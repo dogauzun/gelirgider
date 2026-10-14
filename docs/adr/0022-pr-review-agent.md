@@ -94,6 +94,12 @@ rebases the branch onto `main` does not, and neither does a finding that
 was answered without a push. A rebase that had to resolve a conflict
 rewrites the PR's own lines, so it counts as a change and gets a review.
 
+A PR branch changes only through git under the owner's identity, never
+through the GitHub contents API or the update-branch endpoint, which decode
+escape sequences and add merge commits. A merge passes an explicit commit
+title and message, because the merge tool adds a `Co-authored-by` trailer
+otherwise (CLAUDE.md rule 9).
+
 A round is one review that posted findings; after six rounds on one PR
 the merger parks the ticket with the `needs-decision` label instead of a
 seventh.
