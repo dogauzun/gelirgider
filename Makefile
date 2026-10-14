@@ -114,5 +114,5 @@ screenshots: build-frontend ## Regenerate docs/screenshots/*.png from the demo s
 	node docs/screenshots/capture.mjs http://127.0.0.1:$$fp || { tail -n 20 "$$d/server.log" "$$d/vite.log"; exit 1; }
 
 build: ## Build backend and frontend Docker images
-	docker build -f deploy/backend.Dockerfile -t gelirgider-backend .
-	docker build -f deploy/frontend.Dockerfile -t gelirgider-frontend .
+	docker build --build-arg VERSION=$$(git describe --tags --always --dirty) -f deploy/backend.Dockerfile -t gelirgider-backend .
+	docker build --build-arg VERSION=$$(git describe --tags --always --dirty) -f deploy/frontend.Dockerfile -t gelirgider-frontend .

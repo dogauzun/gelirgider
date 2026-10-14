@@ -1857,12 +1857,14 @@ paths:
       - auth
   /health:
     get:
-      description: Reports ok when the database answers. Needs no session.
+      description: Reports ok and the build version when the database answers. Needs
+        no session.
       produces:
       - application/json
       responses:
         "200":
-          description: status is ok
+          description: status is ok, version is the build version (dev for an unstamped
+            build)
           schema:
             additionalProperties:
               type: string
