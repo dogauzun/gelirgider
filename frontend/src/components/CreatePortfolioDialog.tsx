@@ -10,7 +10,7 @@ import { useModal } from './ui/useModal'
 import { Modal } from './ui/Modal'
 import { sheetPanel } from './ui/sheetPanel'
 
-// Tüm portföyler and the sidebar both open it (GLG-875). Mounted only while
+// Tüm portföyler and the sidebar both open it. Mounted only while
 // open, so the name and the server error reset themselves on every reopen
 // instead of needing an effect to clear them.
 export function CreatePortfolioDialog({
@@ -24,7 +24,7 @@ export function CreatePortfolioDialog({
   const titleId = useId()
   const [name, setName] = useState('')
   // A blank name is answered here, with the text the server's 400 maps to,
-  // instead of a silent no-op (GLG-904).
+  // instead of a silent no-op.
   const [blank, setBlank] = useState(false)
   const createMutation = useCreatePortfolio()
   const once = useOneAtATime()
@@ -37,7 +37,7 @@ export function CreatePortfolioDialog({
     // Not mutateAsync's per-call onSuccess: the hook's list refetch runs
     // first and can unmount this dialog (Tüm portföyler's empty state goes
     // with it), and TanStack drops per-call callbacks of an unmounted
-    // observer. The promise still resolves (GLG-1355).
+    // observer. The promise still resolves.
     once(async () => {
       const created = await createMutation.mutateAsync(trimmed)
       toast(t('portfolios.created'))
@@ -54,7 +54,7 @@ export function CreatePortfolioDialog({
         </h2>
         {/* No maxLength: it counts UTF-16 units, so it cut emoji names at
             half the server's 100 characters; the server checks the length
-            and its error shows below the field (GLG-904). */}
+            and its error shows below the field. */}
         <div className="mt-4">
           <Field
             label={t('portfolios.name')}
@@ -68,7 +68,7 @@ export function CreatePortfolioDialog({
               onChange={(event) => {
                 setName(event.target.value)
                 // A server error is about the name sent: any edit drops it,
-                // as on the signed-out forms (GLG-1075). Only an error: a
+                // as on the signed-out forms. Only an error: a
                 // reset while pending would drop the success that closes.
                 if (createMutation.isError) createMutation.reset()
               }}

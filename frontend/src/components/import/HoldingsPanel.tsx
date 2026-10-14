@@ -6,12 +6,11 @@ import { formatMoney, formatNumber, formatUnitPrice, MISSING, signedMoney } from
 import { Icon } from '../ui/Icon'
 
 // The statement's period-end snapshot next to what the portfolio computes
-// with the preview's checked rows applied (GLG-207). A line the server marked
+// with the preview's checked rows applied. A line the server marked
 // as matching gets a check, everything else a warning: a position the
 // statement never mentions has no statement quantity at all. The last line
-// compares the statement's cash balance in its own currency (GLG-419). The
-// page hands it the lines moved by the rows the user would commit
-// (GLG-1191).
+// compares the statement's cash balance in its own currency. The
+// page hands it the lines moved by the rows the user would commit.
 export function HoldingsPanel({
   holdings,
   reconciliation,
@@ -26,7 +25,7 @@ export function HoldingsPanel({
   if (reconciliation.length === 0 && !cash) return null
   const bySymbol = new Map(holdings.map((holding) => [holding.symbol, holding]))
   // A table with the difference per line, so a mismatch reads at a glance
-  // rather than from two numbers 900px from their symbol (GLG-793).
+  // rather than from two numbers 900px from their symbol.
   const lines = reconciliation.map((entry) => {
     const holding = bySymbol.get(entry.symbol)
     return {
@@ -38,7 +37,7 @@ export function HoldingsPanel({
             <span className="font-semibold text-ink">{entry.symbol}</span>
           </span>
           {/* Garanti and Garanti Yatırım print no average cost, so their
-              holdings carry "0" (GLG-755). */}
+              holdings carry "0". */}
           {holding && Number(holding.avg_cost) !== 0 && (
             <span className="mt-0.5 block pl-6 text-[12px] text-muted">
               {`${t('import.avgCost')} ${formatUnitPrice(holding.avg_cost, holding.currency)}`}
@@ -149,11 +148,11 @@ function MatchIcon({ match }: { match: boolean }) {
 }
 
 // Statement minus portfolio, exact: both are decimal strings, counted in the
-// API's 1e-9 units, so no float rounding (GLG-793). `format` signs it: a
+// API's 1e-9 units, so no float rounding. `format` signs it: a
 // surplus on the statement side gets a plus, and a difference that prints as
-// zero, a sub-cent cash gap, gets no sign (GLG-1186). Highlighted when the
+// zero, a sub-cent cash gap, gets no sign. Highlighted when the
 // line does not match, the server's call: the cash line allows a cent of
-// rounding (GLG-419), so a non-zero difference can still match, next to a
+// rounding, so a non-zero difference can still match, next to a
 // check.
 function DifferenceCell({
   statement,

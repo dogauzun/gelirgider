@@ -9,8 +9,8 @@ type ChartQuery = Pick<
   'data' | 'isError' | 'error' | 'refetch' | 'isFetching' | 'isPlaceholderData'
 >
 
-// The frame around a history query's chart (GLG-1342): the failure with a
-// Retry (GLG-771), a skeleton of the chart's `height` until the first data,
+// The frame around a history query's chart: the failure with a
+// Retry, a skeleton of the chart's `height` until the first data,
 // then the chart, the previous range's lines dimmed while the new range loads.
 export function ChartFrame({
   query,

@@ -8,12 +8,12 @@ import { Icon } from './Icon'
 // the box sits in a <label> that is the whole 44 px tap target; the label
 // names the box and `description` describes it. A box in a table row has no
 // visible label and takes `aria-label` instead. The unchecked border is
-// `faint`, the 3:1 a control's boundary needs (WCAG 1.4.11, GLG-1076);
+// `faint`, the 3:1 a control's boundary needs (WCAG 1.4.11);
 // `line-strong` drew it at 1.5:1.
 //
 // `pending` is for a save in flight, as on Button: Chromium blurs a focused
-// control that becomes disabled, dropping a keyboard user to <body>
-// (GLG-917), so the box stays enabled, is announced as unavailable and
+// control that becomes disabled, dropping a keyboard user to <body>,
+// so the box stays enabled, is announced as unavailable and
 // ignores a change meanwhile.
 export function Checkbox({
   checked,

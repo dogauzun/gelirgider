@@ -10,7 +10,7 @@ import { inputClass } from '../ui/inputClass'
 import { SourcesTable } from './SourcesTable'
 import { toastQueued } from './toastQueued'
 
-// Takes no props, so the setup wizard's step 2 renders it as is (GLG-316).
+// Takes no props, so the setup wizard's step 2 renders it as is.
 export function SourcesSection() {
   const backfillAll = useBackfill('', toastQueued)
   const once = useOneAtATime()
@@ -50,7 +50,7 @@ function ScheduleBlock() {
   const once = useOneAtATime()
 
   // A change while a save runs is ignored: the toggles stay enabled then, see
-  // SourcesTable (GLG-917).
+  // SourcesTable.
   function update(change: Partial<ScheduleSettings>) {
     if (schedule) once(() => save.mutateAsync({ ...schedule, ...change }))
   }

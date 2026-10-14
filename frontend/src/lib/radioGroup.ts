@@ -9,7 +9,7 @@ const steps: Partial<Record<string, number>> = {
 
 // The onKeyDown of a WAI-ARIA radio group whose role="radio" children are
 // `options` in order, and where only the checked one has tabIndex 0: the arrow
-// keys move and select, wrapping at the ends (GLG-428, GLG-453).
+// keys move and select, wrapping at the ends.
 export function radioGroupKeyDown<T>(options: readonly T[], value: T, select: (option: T) => void) {
   return (event: KeyboardEvent<HTMLElement>) => {
     const step = steps[event.key]

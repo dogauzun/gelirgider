@@ -5,7 +5,7 @@ import { Link } from 'react-router'
 // A dropdown menu on Base UI (ADR 0023): it owns the open state, focus,
 // arrow keys, Escape and the outside click. The popup is portaled to <body>,
 // so a click in it never reaches a card-wide link around the trigger; inside
-// a modal <dialog> (the account menu in the drawer, GLG-876) it goes into
+// a modal <dialog> (the account menu in the drawer) it goes into
 // that dialog instead, as in Select, or it would sit under it, inert.
 
 // Also the item look of Select.
@@ -32,7 +32,7 @@ export function Menu({
       // opens a confirm dialog would leave the dialog's opener on that removed
       // item, so its close() drops focus to <body>. Focus goes back as soon as
       // a press closes the menu instead, after Base UI's handlers; a rename
-      // input that mounts with autoFocus still takes it from there (GLG-441).
+      // input that mounts with autoFocus still takes it from there.
       onOpenChange={(open, details) => {
         if (!open && details.reason === 'item-press') triggerRef.current?.focus()
       }}

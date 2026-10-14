@@ -111,7 +111,7 @@ function PortfolioRow({
   )
 }
 
-// Tüm portföyler's "Portföyler" table (GLG-935): one row per portfolio with
+// Tüm portföyler's "Portföyler" table: one row per portfolio with
 // its value, its share of the whole, its return over the page's range by the
 // page's method with a sparkline, and its day change. A row opens that
 // portfolio's Özet in the same range. Below md the sparkline goes, below sm
@@ -129,8 +129,8 @@ export function PortfoliosTable({
   const { search } = useLocation()
   const { from, to } = resolveRange(range, todayIstanbul())
   // The share base sums only positive totals, as the allocation card does: a
-  // negative portfolio (net negative cash) would push the others past 100%
-  // (GLG-670). Such a portfolio has no share.
+  // negative portfolio (net negative cash) would push the others past 100%.
+  // Such a portfolio has no share.
   const base = Number(
     portfolios.reduce((sum, p) => {
       const units = decimalUnits(p.total_value)

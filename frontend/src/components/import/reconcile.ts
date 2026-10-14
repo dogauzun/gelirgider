@@ -7,8 +7,7 @@ import type {
 import { decimalUnits, unitsToDecimal } from '../../lib/decimal'
 import { isCashIn } from '../../lib/transactionCells'
 
-// A cent in 1e-9 units: the cash line matches within it, as on the server
-// (GLG-419).
+// A cent in 1e-9 units: the cash line matches within it, as on the server.
 const CENT = 10_000_000n
 
 type Booked = Partial<ImportRow>
@@ -43,9 +42,9 @@ function effects(rows: Booked[], periodEnd: string, currency: string | undefined
 }
 
 // The parse response compares the statement with the rows the preview starts
-// checked (backend reconcile), so without a closing sell (GLG-1190). The page moves each line by what the rows the
-// user would commit now change against those: a check, an edit, a priced
-// opening row or an added row (GLG-1191). Only the lines the server sent can
+// checked (backend reconcile), so without a closing sell. The page moves each
+// line by what the rows the user would commit now change against those: a check, an edit, a priced
+// opening row or an added row. Only the lines the server sent can
 // move, as only it knows the portfolio's other positions; a line the
 // statement is silent about that the edits close goes, as a closed position
 // is not listed. A line nothing moved keeps the server's verdict.

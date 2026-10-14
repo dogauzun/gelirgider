@@ -2,7 +2,7 @@ import type { PeriodBucket, ReturnMethod } from '../api/history'
 import { excessReturn } from './returns'
 
 // The returns at which a heatmap cell's colour steps up a strength: below 1%
-// is step 1, then 1, 2, 4 and 8% and above (GLG-955).
+// is step 1, then 1, 2, 4 and 8% and above.
 const HEAT_BOUNDS = [0.01, 0.02, 0.04, 0.08]
 
 // heatStep is a return's colour strength on the periodic returns heatmap,

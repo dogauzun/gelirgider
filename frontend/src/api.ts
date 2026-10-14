@@ -68,19 +68,19 @@ const messageKeys: Record<string, StringKey> = {
   'file: not a PDF': 'error.field.file',
   'file: not a readable PDF': 'error.field.file',
   // The Midas parser's only rejection (ADR 0006); fileNotStatement is the
-  // broker-neutral fallback for any other broker (GLG-614).
+  // broker-neutral fallback for any other broker.
   'file: no period row found: not a Midas statement': 'error.fileNotMidasStatement',
   // Automatic mode: no PDF parser accepted the file, and the user chose no
-  // broker to check (GLG-788).
+  // broker to check.
   'file: not a supported statement': 'error.fileNotSupportedStatement',
-  // The CSV upload's own errors (GLG-598).
+  // The CSV upload's own errors.
   'file: not a CSV': 'error.fileNotCsv',
   'file: not a readable CSV': 'error.fileNotCsv',
   'file: not a csv statement': 'error.fileNotCsvStatement',
   'file: no rows': 'error.fileNoRows',
   'file: more than 5000 rows': 'error.fileTooManyRows',
   'file: invalid upload': 'error.fileUnreadable',
-  // The statement period checks of the import commit (GLG-377).
+  // The statement period checks of the import commit.
   'period_start: must be on or after 1990-01-01': 'error.periodTooEarly',
   'period_end: must not be in the future': 'error.periodFuture',
   'period_start: must not be in the future': 'error.periodFuture',
@@ -106,7 +106,7 @@ const fieldKeys: Record<string, StringKey> = {
 }
 
 // Field labels for the digit-limit message; fee uses feeLabel. close is the
-// manual price endpoint (GLG-456).
+// manual price endpoint.
 const digitLabels: Record<string, StringKey> = {
   quantity: 'transactions.quantity',
   price: 'transactions.price',
@@ -116,21 +116,21 @@ const digitLabels: Record<string, StringKey> = {
 }
 
 // The instrument's currency in a "currency contradicts the instrument" error,
-// the server's (backend checkInstrument) or the import page's own (GLG-1320).
+// the server's (backend checkInstrument) or the import page's own.
 export function currencyMismatch(message: string | undefined): string | undefined {
   return /^currency: must match instrument currency \((\w+)\)$/.exec(message ?? '')?.[1]
 }
 
 // Maps a server `error` string to its Turkish UI message. Unknown messages
 // get a generic fallback so raw English never reaches the screen. `feeLabel`
-// names the fee field: a dividend's fee is the withholding tax (GLG-293).
+// names the fee field: a dividend's fee is the withholding tax.
 export function translateError(
   message: string | undefined,
   feeLabel: StringKey = 'transactions.fee',
 ): string {
   if (!message) return t('error.unknown')
   // A commit row error (POST /api/imports) names the row by its index among
-  // the rows sent; the rest is an ordinary field message (GLG-364).
+  // the rows sent; the rest is an ordinary field message.
   const row = /^rows\[(\d+)\]\.(.*)$/.exec(message)
   if (row) {
     const n = Number(row[1]) + 1
@@ -141,7 +141,7 @@ export function translateError(
   const currency = currencyMismatch(message)
   if (currency) return t('error.currencyMismatch', { currency })
   // A value past the digit limit names the limit, not "must be greater than
-  // 0" (GLG-446).
+  // 0".
   const digits = /^(\w+): must have at most \d+ integer and (\d+) fraction digits$/.exec(message)
   if (digits && digits[1] in digitLabels) {
     const label = digits[1] === 'fee' ? feeLabel : digitLabels[digits[1]]
@@ -175,7 +175,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 }
 
 // apiFetch, plus the response headers, for the endpoints that put paging
-// metadata there (X-Next-Cursor on the transaction list, GLG-141).
+// metadata there (X-Next-Cursor on the transaction list).
 export async function apiFetchWithHeaders<T>(
   path: string,
   init: RequestInit = {},
@@ -194,8 +194,8 @@ export async function apiFetchWithHeaders<T>(
   return { data: (text ? JSON.parse(text) : undefined) as T, headers: res.headers }
 }
 
-// Multipart POST for the endpoints that take a file (the statement upload,
-// GLG-205). Same cookies and same error translation as apiFetch, minus the
+// Multipart POST for the endpoints that take a file (the statement upload).
+// Same cookies and same error translation as apiFetch, minus the
 // JSON content type: the browser has to set it itself so the multipart
 // boundary matches the body it builds from the FormData.
 export async function apiUpload<T>(
@@ -211,7 +211,7 @@ export async function apiUpload<T>(
 
 // fetch, with its rejection (the browser's raw English "Failed to fetch"
 // TypeError when the server is unreachable) turned into a translated
-// ApiError with status 0, which shouldRetryQuery still retries (GLG-663).
+// ApiError with status 0, which shouldRetryQuery still retries.
 // An aborted request keeps its AbortError so cancellation stays a cancel.
 async function send(path: string, init: RequestInit): Promise<Response> {
   try {
@@ -224,7 +224,7 @@ async function send(path: string, init: RequestInit): Promise<Response> {
 
 // Called when a request comes back 401 "unauthorized", the auth middleware's
 // answer to a missing or expired session. App points it at the cached
-// /api/me so ProtectedRoute sends the user to the login page (GLG-379).
+// /api/me so ProtectedRoute sends the user to the login page.
 // Keyed on the message, not just the status: a wrong password on login or on
 // the password change is also a 401, but it is not a lost session.
 let onSessionExpired = () => {}
@@ -235,7 +235,7 @@ export function setSessionExpiredHandler(handler: () => void) {
 
 // Called when an admin route answers 403 "admin only": another admin removed
 // this user's admin role, which the server applies at once (ADR 0010). App
-// points it at the cached /api/me so the admin page and its link go (GLG-1023).
+// points it at the cached /api/me so the admin page and its link go.
 let onAdminRevoked = () => {}
 
 export function setAdminRevokedHandler(handler: () => void) {
@@ -248,7 +248,7 @@ async function apiError(res: Response): Promise<ApiError> {
   if (res.status === 403 && body.error === 'admin only') onAdminRevoked()
   // A 502/503/504 with no JSON `error` is the vite or nginx proxy saying the
   // backend is down: in every supported setup a stopped server looks like
-  // this, not like a rejected fetch (GLG-676).
+  // this, not like a rejected fetch.
   if (!body.error && [502, 503, 504].includes(res.status)) {
     return new ApiError(t('error.network'), res.status, body)
   }

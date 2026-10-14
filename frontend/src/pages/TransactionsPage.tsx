@@ -38,10 +38,10 @@ import { usePortfolioTitle } from '../lib/useTitle'
 import { toast } from '../lib/toast'
 import { focusIfLost, neighbourOf } from '../lib/useFocusLater'
 
-// Rows deleted while their undo toast is up (GLG-795). Kept here rather than
+// Rows deleted while their undo toast is up. Kept here rather than
 // in the page's state, like the toast queue that holds the delete back, so a
 // row stays hidden when the page is left and opened again before the toast
-// goes (GLG-834).
+// goes.
 const pendingDeletes = createStore<ReadonlySet<number>>(() => new Set())
 
 function setPendingDelete(id: number, pending: boolean): void {
@@ -52,7 +52,7 @@ function setPendingDelete(id: number, pending: boolean): void {
 }
 
 // The one line the delete dialog shows, built from the same formatters as the
-// row (GLG-231). A cash transaction has no instrument, so the parts are
+// row. A cash transaction has no instrument, so the parts are
 // joined rather than slotted, the way the phone row's details are.
 function deleteSummary(tx: Transaction): string {
   const parts = [t(typeLabelKeyFor(tx.type, tx.instrument_id)), formatMarketDate(tx.date)]
@@ -101,11 +101,11 @@ function FilteredEmpty({
   )
 }
 
-// The banner of the import the page opened on (GLG-992). `onClose(true)`
+// The banner of the import the page opened on. `onClose(true)`
 // keeps that import selected in Kaynak, `onClose(false)` drops the filter.
 // The page shows it only on arrival from an import commit, whose İçe aktar
 // button left with ImportPage and dropped focus to <body>; it renders once
-// the imports load, and takes focus then (GLG-1208).
+// the imports load, and takes focus then.
 function ImportBanner({ item, onClose }: { item: Import; onClose: (keep: boolean) => void }) {
   const showOnly = useRef<HTMLButtonElement>(null)
   useEffect(() => focusIfLost(showOnly.current), [])
@@ -142,18 +142,18 @@ export function TransactionsPage() {
   const portfolioId = Number(params.id)
   usePortfolioTitle(t('transactions.title'), portfolioId)
   // What arrives with the navigation: the summary page's add button asks for
-  // the add dialog (GLG-172), the import page names the import it just
+  // the add dialog, the import page names the import it just
   // committed, for the banner.
   const { state, clear } = useNavState()
   // The filters live in the query string so they survive a reload and the
-  // back button, and so a filtered list can be linked to (GLG-173).
+  // back button, and so a filtered list can be linked to.
   const [searchParams, setSearchParams] = useSearchParams()
   const filter = filterFromParam(searchParams.get('type') ?? '')
   const instrumentId = instrumentFromParam(searchParams.get('instrument'))
   const importFilter = importFromParam(searchParams.get('import'))
   // Set by picking or clearing an instrument: the chip and the search swap
-  // places, which dropped focus to <body>, so the one that mounts takes focus
-  // (GLG-633, GLG-642). A page loaded with a filter leaves focus alone.
+  // places, which dropped focus to <body>, so the one that mounts takes focus.
+  // A page loaded with a filter leaves focus alone.
   const [focusInstrumentFilter, setFocusInstrumentFilter] = useState(false)
   const from = dateFromParam(searchParams.get('from'))
   const to = dateFromParam(searchParams.get('to'))
@@ -191,10 +191,10 @@ export function TransactionsPage() {
   // the dialog is open and is cleared when it closes. `formOpen` is the only
   // thing that opens the dialog: add mode is `formOpen` with no `editing`.
   const [editing, setEditing] = useState<Transaction | null>(null)
-  // Add mode's starting form: a cloned row (GLG-609), else an empty one.
+  // Add mode's starting form: a cloned row, else an empty one.
   const [initial, setInitial] = useState<FormState | undefined>(undefined)
   // Navigation state is read once on mount, then cleared so a remount cannot
-  // reopen the dialog (GLG-172) or bring the banner back.
+  // reopen the dialog or bring the banner back.
   const [formOpen, setFormOpen] = useState(() => Boolean(state?.add))
   const [bannerId, setBannerId] = useState(() => state?.imported ?? null)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -210,7 +210,7 @@ export function TransactionsPage() {
 
   // Where the table is wider than its card, focusing a row's edit or delete
   // button scrolls the card to its right edge and it stayed there after the
-  // dialog closed, hiding the date column (GLG-346).
+  // dialog closed, hiding the date column.
   function resetTableScroll() {
     if (tableCardRef.current) tableCardRef.current.scrollLeft = 0
   }
@@ -231,7 +231,7 @@ export function TransactionsPage() {
   }
 
   // The symbol rides along in ?symbol= so the chip can name the instrument
-  // even when the filtered list is empty (GLG-350).
+  // even when the filtered list is empty.
   function selectInstrument(instrument: Instrument | undefined) {
     setFocusInstrumentFilter(true)
     setSearchParams((prev) =>
@@ -243,13 +243,13 @@ export function TransactionsPage() {
   }
 
   // The banner names the filter the page opened on; once Kaynak names another
-  // source it goes, so its ✕ cannot undo that choice (GLG-992).
+  // source it goes, so its ✕ cannot undo that choice.
   if (bannerId !== null && importFilter !== bannerId) setBannerId(null)
 
   // Either banner button takes the banner, and the focus it held, away; the
   // Kaynak filter is what both act on. `keep` keeps the import selected,
   // else the filter goes back to every row. Below md Kaynak is inside the
-  // closed sheet, so its Filtrele button takes focus (GLG-992).
+  // closed sheet, so its Filtrele button takes focus.
   function closeBanner(keep: boolean) {
     if (bannerId === null) return
     setParam('import', keep ? String(bannerId) : undefined)
@@ -264,7 +264,7 @@ export function TransactionsPage() {
     setFormOpen(true)
   }
 
-  // A recurring buy is re-entered as a copy dated today (GLG-609). It opens
+  // A recurring buy is re-entered as a copy dated today. It opens
   // in add mode, so the save is a new row: the form carries no id and no
   // import_id of the source.
   function startClone(tx: Transaction) {
@@ -275,7 +275,7 @@ export function TransactionsPage() {
 
   // `keyboard`: the delete button was pressed with a key (a click with no
   // pointer, detail 0). The undo toast then takes focus, else it sits past
-  // the whole table in the tab order (GLG-838).
+  // the whole table in the tab order.
   async function handleDelete(tx: Transaction, keyboard: boolean) {
     // Read before the dialog takes focus: the delete button just pressed.
     const trigger = document.activeElement
@@ -287,7 +287,7 @@ export function TransactionsPage() {
     })
     resetTableScroll()
     if (!confirmed) return
-    // The delete waits behind the toast's undo (GLG-795): the row is hidden
+    // The delete waits behind the toast's undo: the row is hidden
     // now and the request goes when the toast does, so an undo has nothing
     // to restore and an imported row keeps its id and import link.
     const neighbour = neighbourOf(
@@ -298,7 +298,7 @@ export function TransactionsPage() {
     flushSync(() => setPendingDelete(tx.id, true))
     toast(t('transactions.deleted'), {
       // Focus goes back to the restored row's delete button; the undo button
-      // leaves with its toast, which dropped focus to <body> (GLG-838).
+      // leaves with its toast, which dropped focus to <body>.
       undo: () => {
         flushSync(show)
         document.querySelector<HTMLElement>(`[data-delete-tx="${tx.id}"]`)?.focus()
@@ -310,7 +310,7 @@ export function TransactionsPage() {
         deleteMutation.mutateAsync(tx.id).then(
           show,
           // A toast, since the page that would show a notice may be gone
-          // and the user elsewhere in the app (GLG-842).
+          // and the user elsewhere in the app.
           (mutationError: Error) => {
             toast(t('transactions.deleteFailed', { error: mutationError.message }), {
               error: true,
@@ -320,7 +320,7 @@ export function TransactionsPage() {
         ),
     })
     // The dialog hands focus back to this row's delete button, which hiding
-    // the row removes, dropping focus to <body> (GLG-386). Move it to the
+    // the row removes, dropping focus to <body>. Move it to the
     // next row, else the previous one, else the add button -- unless the
     // user has already moved it elsewhere.
     focusIfLost(
@@ -334,7 +334,7 @@ export function TransactionsPage() {
   // The server returns each page newest first (date then id, both
   // descending), so the loaded pages' rows are already the display order.
   const rows = (data ?? []).filter((tx) => !hidden.has(tx.id))
-  // The active filter is named by ?symbol= (GLG-350), else by a filtered row,
+  // The active filter is named by ?symbol=, else by a filtered row,
   // which carries the symbol; the id stands in when neither has it.
   const instrumentSymbol = instrumentId
     ? searchParams.get('symbol') ||
@@ -372,7 +372,7 @@ export function TransactionsPage() {
       }}
     >
       {/* As wide as the portfolio header above it and the summary page, so
-          the table has room on a laptop (GLG-346). */}
+          the table has room on a laptop. */}
       <div className="mx-auto max-w-6xl px-6 pt-6 pb-12">
         {formOpen && (
           <TransactionDialog
@@ -381,8 +381,8 @@ export function TransactionsPage() {
             editing={editing}
             initial={initial}
             onClose={closeForm}
-            // Opened by another page's "İşlem ekle" (GLG-172), the button
-            // that had focus is gone on close; this page's takes it (GLG-664).
+            // Opened by another page's "İşlem ekle", the button
+            // that had focus is gone on close; this page's takes it.
             focusFallback="[data-add-transaction]"
           />
         )}
@@ -433,7 +433,7 @@ export function TransactionsPage() {
                 </p>
                 {/* A plain download link: the browser sends the session
                     cookie and saves the file under the server's name. It
-                    carries the list's filters (GLG-602, GLG-613). */}
+                    carries the list's filters. */}
                 <a
                   href={transactionsCsvUrl(portfolioId, listFilter)}
                   download

@@ -41,7 +41,7 @@ export function DrawdownChart({ series, height = 140 }: DrawdownChartProps) {
   }
 
   return (
-    // A mouse press takes no focus (pressWithoutFocus, GLG-1034).
+    // A mouse press takes no focus (pressWithoutFocus).
     <div onMouseDown={pressWithoutFocus}>
       <AreaChart
         responsive

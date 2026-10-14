@@ -7,7 +7,7 @@ import { tradeForm } from './transactionForm'
 
 // What a position's buy, sell and price actions open, for the position page
 // and Özet's positions table: the transaction dialog prefilled from the
-// position (GLG-558) and the price dialog, anchored to the element that
+// position and the price dialog, anchored to the element that
 // opened it or centred without one. `dialogs` renders whichever is open.
 export function usePositionActions(portfolioId: number) {
   const [trade, setTrade] = useState<{ type: TradeType; position: Position } | null>(null)

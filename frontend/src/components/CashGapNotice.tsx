@@ -17,7 +17,7 @@ import { Modal } from './ui/Modal'
 import { sheetPanel } from './ui/sheetPanel'
 
 // Why every return of the scope is null (ADR 0011), on the Performans tab's
-// periodic returns and drawdown cards (GLG-1110). With cash gaps, the first
+// periodic returns and drawdown cards. With cash gaps, the first
 // day each portfolio's cash went below zero and its shortfall per currency,
 // and a button that records them as deposits after a confirm. Both cards
 // share the gaps query, and the fill invalidates every portfolio query, so
@@ -82,7 +82,7 @@ function shortfalls(rows: CashGap[]): string[] {
 }
 
 // Lists the deposits the server will write; confirm sends only the note, as
-// the server recomputes the gaps (GLG-1109). Mounted only while open, so a
+// the server recomputes the gaps. Mounted only while open, so a
 // failed post's error is gone on the next open.
 function CashGapDialog({
   scope,

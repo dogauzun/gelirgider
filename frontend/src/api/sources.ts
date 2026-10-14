@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../api'
 
-// Admin market-data sources and schedule (GLG-307, GLG-309, GLG-314). Times
+// Admin market-data sources and schedule. Times
 // are HH:MM in Europe/Istanbul; started_at and finished_at are UTC instants.
 interface SourceRun {
   started_at: string

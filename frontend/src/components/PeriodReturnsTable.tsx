@@ -7,7 +7,7 @@ import { cellValue, HEAT_MIX, heatStep, periodGrid } from '../lib/periods'
 // The year column stays in view while the table scrolls sideways.
 const STICKY = 'sticky left-0 z-[1] bg-surface'
 
-// The periodic returns heatmap (GLG-955): a row per year, newest first, with
+// The periodic returns heatmap: a row per year, newest first, with
 // twelve month cells and the year's own cell. A cell prints the chosen
 // method's return, or with `excess` the return over the benchmark, and its
 // background is the gain or loss colour in five strengths (heatStep), so
@@ -31,9 +31,9 @@ export function PeriodReturnsTable({
     formatMarketDate(`2001-${String(i + 1).padStart(2, '0')}-01`, { month: 'short' }),
   )
   // relative: the cells' sr-only labels are absolute, so without a positioned
-  // scroller they escape its clip and widen the page (GLG-1048, as GLG-679).
+  // scroller they escape its clip and widen the page.
   // The table holds nothing focusable, so the scroller itself is a named tab
-  // stop that arrow keys scroll (GLG-1357, WCAG 2.1.1).
+  // stop that arrow keys scroll (WCAG 2.1.1).
   return (
     <div
       role="region"

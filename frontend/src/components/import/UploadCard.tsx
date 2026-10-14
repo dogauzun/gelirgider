@@ -10,7 +10,7 @@ const listFormats: Record<Locale, Intl.ListFormat> = {
   en: new Intl.ListFormat('en', { type: 'conjunction' }),
 }
 
-// The brokers "Otomatik" tells apart: every PDF one (GLG-764).
+// The brokers "Otomatik" tells apart: every PDF one.
 function recognised(): string {
   return listFormats[getLocale()].format(
     BROKERS.filter((broker) => broker.key !== 'csv').map((broker) => broker.label),
@@ -72,7 +72,7 @@ export function UploadCard({
         </div>
       )}
       {/* Both Garanti PDFs are titled the same, so each says which
-        one it takes (GLG-700). */}
+        one it takes. */}
       <p id="import-brokers" className="mt-3 text-[12px] text-muted">
         {broker === 'garanti'
           ? t('import.garanti.fileHint')

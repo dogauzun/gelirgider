@@ -14,7 +14,7 @@ import { Segmented } from './ui/Segmented'
 import { TAP_Y } from './ui/tap'
 
 // Allocation renders the portfolio's allocation as a donut beside a legend
-// list (GLG-947): one row per position (or per market, or per currency, see
+// list: one row per position (or per market, or per currency, see
 // AllocationView) and one for cash, from allocationRows. The legend is the
 // accessible content, with each row's amount and share; the donut is
 // decorative. Hovering a slice or a legend row highlights the pair.
@@ -67,8 +67,8 @@ export function Allocation({
 
   // The header count names every holding, not the folded legend.
   const itemCount = rows.length + Math.max(other.length - 1, 0)
-  // Only positive cash is in the donut (GLG-662), so the header claims cash
-  // only then (GLG-1323). The currency view folds each currency's cash into
+  // Only positive cash is in the donut, so the header claims cash
+  // only then. The currency view folds each currency's cash into
   // that currency's row, so there any positive currency counts.
   const cashInDonut =
     view === 'currency'
@@ -76,7 +76,7 @@ export function Allocation({
       : rows.some((row) => row.key === 'cash')
 
   return (
-    // The header of the other Özet cards (GLG-934).
+    // The header of the other Özet cards.
     <section className="card">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-line px-4 py-3">
         <div className="flex items-baseline gap-2">
@@ -103,7 +103,7 @@ export function Allocation({
           <p className="text-sm text-muted">{t('allocation.unavailable')}</p>
         ) : (
           // The legend goes under the donut until the card itself is 28rem
-          // wide (GLG-1027): from lg the card is half the page, and a
+          // wide: from lg the card is half the page, and a
           // viewport breakpoint left the names 0 px wide beside the donut.
           <div className="flex flex-col items-center gap-4 @md:flex-row">
             <AllocationDonut

@@ -1,4 +1,4 @@
-// The look the four Recharts wrappers share (GLG-1253): props objects spread
+// The look the four Recharts wrappers share: props objects spread
 // onto Recharts' own components, nothing more (ADR 0023).
 
 // Series draw in on first render and when the data changes. Left on

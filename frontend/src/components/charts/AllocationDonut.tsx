@@ -28,7 +28,7 @@ export interface AllocationDonutProps {
 // the legend's order from twelve o'clock, with "Toplam" and the total in the
 // middle as our own HTML. It is decorative: the card's legend list carries
 // every number, so the donut is aria-hidden, has no focus stop and no
-// keyboard layer (GLG-947). Hovering a slice highlights it and its legend row
+// keyboard layer. Hovering a slice highlights it and its legend row
 // through onActive, and shows the shared tooltip card.
 export function AllocationDonut({
   rows,
@@ -72,7 +72,7 @@ export function AllocationDonut({
   }
 
   return (
-    // A press or tap takes no focus (pressWithoutFocus, GLG-1034, GLG-1044).
+    // A press or tap takes no focus (pressWithoutFocus).
     <div
       aria-hidden="true"
       className="relative shrink-0"
@@ -99,7 +99,7 @@ export function AllocationDonut({
           onMouseLeave={() => onActive(null)}
         />
         {/* Recharts keeps the card inside the donut's box, flipping it to the
-            slice's other side, so it never runs past a phone's edge (GLG-1028). */}
+            slice's other side, so it never runs past a phone's edge. */}
         <Tooltip content={tooltipContent} isAnimationActive={false} wrapperStyle={{ zIndex: 10 }} />
       </PieChart>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">

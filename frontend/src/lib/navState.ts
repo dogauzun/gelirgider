@@ -3,9 +3,9 @@ import { useLocation, useNavigate } from 'react-router'
 import type { StringKey } from '../i18n/strings'
 
 // What rides along in react-router's location.state, one type for every
-// writer (`satisfies NavState`) and reader: the add dialog (GLG-172), the
-// import banner, focus after a portfolio is created or deleted (GLG-1324,
-// GLG-857), and the login page's notice and deep link (GLG-400).
+// writer (`satisfies NavState`) and reader: the add dialog, the
+// import banner, focus after a portfolio is created or deleted, and the login
+// page's notice and deep link.
 export type NavState = {
   add?: boolean
   imported?: number

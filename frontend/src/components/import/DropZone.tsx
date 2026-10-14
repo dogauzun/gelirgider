@@ -18,7 +18,7 @@ function accepts(accept: string, file: File): boolean {
 // A file the zone did not pass on, with the message that names it.
 export type Refused = { file: File; reason: string }
 
-// The upload of step 1 (GLG-965): a button-like region that opens the file
+// The upload of step 1: a button-like region that opens the file
 // dialog on click, Enter and Space and takes dropped files. A folder, an
 // empty file and a file `accept` refuses are named in a message and never
 // passed on as files; next to a good file they go to `onFiles` as `refused`.
@@ -49,7 +49,7 @@ export function DropZone({
       (file) => !folders.has(file) && file.size > 0 && !accepts(accept, file),
     )
     // A CSV under a PDF choice ("Otomatik (PDF)" included) needs the CSV
-    // choice, which no broker the user picked explains (GLG-1064).
+    // choice, which no broker the user picked explains.
     const csv = refused.filter((file) => accepts('.csv,text/csv', file))
     const other = refused.filter((file) => !csv.includes(file))
     const good = files.filter(
@@ -67,7 +67,7 @@ export function DropZone({
         .map(([list, key]) => t(key, { names: named(list) })),
     )
     // The page names the refused files once a good one has replaced this
-    // step: in the batch's queue or in the review (GLG-1064).
+    // step: in the batch's queue or in the review.
     const reasons = groups.flatMap(([list, key]) =>
       list.map((file) => ({ file, reason: t(key, { names: file.name }) })),
     )
@@ -140,7 +140,7 @@ export function DropZone({
         }}
         onDrop={handleDrop}
         // The dashed edge is `faint`, the 3:1 a control's boundary needs
-        // (WCAG 1.4.11, GLG-1083); `line-strong` drew it at 1.5:1.
+        // (WCAG 1.4.11); `line-strong` drew it at 1.5:1.
         className="cursor-pointer rounded-card border-[1.5px] border-dashed border-faint bg-well/40 px-4 py-6 text-center text-[13px] text-muted outline-accent hover:bg-raised-hover focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-default aria-disabled:opacity-60 aria-disabled:hover:bg-well/40 data-over:border-accent data-over:bg-accent-soft"
       >
         <span className="block font-semibold text-ink">{t('import.drop.title')}</span>

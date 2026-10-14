@@ -4,10 +4,10 @@ import type { PositionHistoryPoint } from '../api/positions'
 import type { Position, Summary } from '../api/summary'
 import { signedPercent } from './format'
 
-// The one rule for P/L over cost as a ratio (GLG-1169), for a position's
+// The one rule for P/L over cost as a ratio, for a position's
 // unrealized P/L, a closed position's realized P/L and the portfolio's total
 // alike: the P/L over the cost taken absolute, so a negative cost (a short,
-// allowed on purpose, GLG-27) still reads "a gain is positive". Null without
+// allowed on purpose) still reads "a gain is positive". Null without
 // the P/L, without the cost (a backend that does not send it) or with a zero
 // cost, which leaves nothing to divide by.
 export function returnRatio(pl: string | null, cost: string | null | undefined): number | null {
@@ -21,7 +21,7 @@ export function returnPercent(pl: string | null, cost: string | null | undefined
   return ratio === null ? null : signedPercent(ratio)
 }
 
-// A position's move since the previous close (GLG-542) over its value at that
+// A position's move since the previous close over its value at that
 // close: what the Günlük cell shows, and so what it sorts by. Null without a
 // previous close, or with no value then. `== null` because a payload without
 // the fields must not render a NaN. The base is taken absolute, as in
@@ -35,8 +35,8 @@ export function dayRatio(position: Position): number | null {
 
 // The unrealized P/L in the reporting currency, the column's sort key and
 // footer unit, with its percent over the position's own cost. Unknown until
-// the first price (GLG-275): the API's "0.00" would read as flat. No percent
-// without the amount either (a priced position with no FX rate, GLG-1026).
+// the first price: the API's "0.00" would read as flat. No percent
+// without the amount either (a priced position with no FX rate).
 export function unrealized(position: Position): { amount: string | null; percent: string | null } {
   if (!position.has_price || position.unrealized_pl_reporting === null)
     return { amount: null, percent: null }
@@ -55,7 +55,7 @@ export function weightOf(position: Position, total: number): number | null {
 }
 
 // The total weightOf divides by: the open positions' positive reporting
-// values plus cash when positive (GLG-662).
+// values plus cash when positive.
 export function weightTotal(summary: Summary): number {
   return (
     summary.positions.reduce((sum, p) => {
@@ -69,5 +69,5 @@ export function weightTotal(summary: Summary): number {
 // held days (ADR 0016): the days before the first held one and after the
 // last are dropped, rather than drawn as a flat zero line, and a day inside
 // the span with nothing held (a close, then a reopen) is a gap in the lines,
-// not a zero (GLG-589).
+// not a zero.
 export const isHeld = (p: PositionHistoryPoint) => Number(p.quantity) !== 0

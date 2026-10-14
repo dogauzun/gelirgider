@@ -55,13 +55,13 @@ export function PositionPage() {
   const { openTrade, openPrice, dialogs } = usePositionActions(portfolioId)
 
   const position = data?.positions.find((p) => p.instrument_id === instrumentId)
-  // A summary without this position is the body's not-found state (GLG-840).
+  // A summary without this position is the body's not-found state.
   usePortfolioTitle(
     data && !position ? t('notFound.title') : (position?.symbol ?? t('position.title')),
     portfolioId,
   )
 
-  // The value chart spans the held days (isHeld, GLG-589); the price chart
+  // The value chart spans the held days (isHeld); the price chart
   // is PositionPriceChart, over the same history query.
   const points = history.data?.points ?? []
   const first = points.findIndex(isHeld)
@@ -77,7 +77,7 @@ export function PositionPage() {
 
   return (
     // Once the summary is in, the body has the page's h1; until then, and on
-    // an error, the header's portfolio name is the h1 (GLG-677). The header's
+    // an error, the header's portfolio name is the h1. The header's
     // İşlem ekle opens here, with this instrument.
     <PortfolioHeader
       portfolioId={portfolioId}

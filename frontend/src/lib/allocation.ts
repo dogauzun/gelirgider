@@ -2,7 +2,7 @@ import type { Position } from '../api/summary'
 import { marketLabel, t } from '../i18n/strings'
 import { decimalUnits, unitsToDecimal } from './decimal'
 
-// The three groupings of the allocation card's toggle (GLG-553): one row per
+// The three groupings of the allocation card's toggle: one row per
 // position, per market, or per currency.
 export const ALLOCATION_VIEWS = ['symbol', 'market', 'currency'] as const
 export type AllocationView = (typeof ALLOCATION_VIEWS)[number]
@@ -32,8 +32,8 @@ export interface AllocationRow {
 
 // One colour per row, never reused: past six rows the largest five keep
 // cat-1..5 and the rest fold into one "Diğer" row on cat-6, the palette's
-// neutral slate (GLG-780). Cash keeps its own token, the same slate a 3:1
-// step lighter than cat-6 (GLG-1045), so it reads as "not invested".
+// neutral slate. Cash keeps its own token, the same slate a 3:1
+// step lighter than cat-6, so it reads as "not invested".
 const COLORS = [1, 2, 3, 4, 5, 6].map((n) => `var(--color-cat-${n})`)
 const CASH_COLOR = 'var(--color-cash)'
 

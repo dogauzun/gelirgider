@@ -6,10 +6,10 @@ import type { Instrument } from './instruments'
 import { invalidatePortfolios, type TransactionType } from './transactions'
 
 // Statement import, the two-step flow of ADR 0006: parse returns a preview and
-// writes nothing (GLG-203), commit takes the rows the user kept (GLG-204).
+// writes nothing, commit takes the rows the user kept.
 
 // Per-row verdict of the parse endpoint. Only `ok` rows can be committed;
-// `unknown_instrument` and `unsupported_currency` need a human (GLG-210),
+// `unknown_instrument` and `unsupported_currency` need a human,
 // `skipped` is a row the parser deliberately dropped and `error` one it could
 // not read.
 export type PreviewStatus =
@@ -23,8 +23,7 @@ export interface PreviewRow {
   type?: TransactionType
   date?: string
   symbol?: string
-  // The row's market hint; `TEFAS` lets the picker look a fund code up
-  // (GLG-733).
+  // The row's market hint; `TEFAS` lets the picker look a fund code up.
   market?: string
   instrument_id?: number
   quantity?: string
@@ -33,7 +32,7 @@ export interface PreviewRow {
   fee?: string
   currency?: string
   // The file gave no currency, so `currency` is the instrument's, TRY when
-  // none: a pick switches it to the picked instrument's (GLG-622, GLG-1320).
+  // none: a pick switches it to the picked instrument's.
   currency_fallback?: boolean
   description?: string
   reason?: string
@@ -43,31 +42,30 @@ export interface PreviewRow {
   message?: string
   raw?: string[]
   // Date of a hand-entered transaction this row likely repeats. The page
-  // warns and starts the row unchecked (GLG-415, GLG-559).
+  // warns and starts the row unchecked.
   duplicate_of?: string
-  // An error row whose symbol is unknown as well (GLG-678).
+  // An error row whose symbol is unknown as well.
   unknown_instrument?: boolean
   // "alias" when no instrument matched the symbol and the instrument is the
-  // one the user picked for it in an earlier commit (GLG-735); "name" when it
-  // is the fund an earlier statement's balances printed under this name
-  // (GLG-766).
+  // one the user picked for it in an earlier commit; "name" when it
+  // is the fund an earlier statement's balances printed under this name.
   resolved_by?: 'alias' | 'name'
   // The instrument such a row resolved to, as `symbol` stays the statement's
-  // own (GLG-750).
+  // own.
   instrument_symbol?: string
   instrument_name?: string
   // A row the preview proposes for what the account held before the period:
   // a buy dated the day before period_start, or the deposit paying for those
   // buys. `approximate_price` marks such a buy priced with the statement's
-  // period-end price, as no stored price existed for its date (GLG-737);
+  // period-end price, as no stored price existed for its date;
   // `cost_price` one priced with the average cost the statement prints for
-  // the holding (GLG-1185).
+  // the holding.
   opening?: boolean
   approximate_price?: boolean
   cost_price?: boolean
   // A sell the preview proposes, dated the day before period_start, for a
   // position the portfolio holds and the statement does not; it starts
-  // unchecked, as the gap may be months not imported (GLG-1190).
+  // unchecked, as the gap may be months not imported.
   closing?: boolean
 }
 
@@ -82,10 +80,10 @@ export interface Holding {
 
 // One symbol of the period-end comparison between the statement's snapshot
 // and the positions the portfolio would hold once the preview's `ok` rows are
-// committed (GLG-207). `statement_quantity` is null for a position the
+// committed. `statement_quantity` is null for a position the
 // statement does not mention. Average cost is not compared. `instrument_id`
 // is the instrument compared, absent for a holding that resolves to none; the
-// page moves the line by it as the user edits the rows (GLG-1191).
+// page moves the line by it as the user edits the rows.
 export interface Reconciliation {
   symbol: string
   instrument_id?: number
@@ -96,8 +94,7 @@ export interface Reconciliation {
 
 // The period-end cash comparison in the statement currency: the balance the
 // statement prints against the cash the portfolio would hold once the
-// preview's `ok` rows are committed. `match` allows up to 0.01 of difference
-// (GLG-419).
+// preview's `ok` rows are committed. `match` allows up to 0.01 of difference.
 export interface CashReconciliation {
   currency: string
   statement_amount: string
@@ -108,9 +105,9 @@ export interface CashReconciliation {
 // A notice about an earlier import. `code` is stable and translated by the
 // page; `message` is the server's English text for an unknown code. An
 // `overlap` does not block the commit; `same_period` is the same statement
-// again, which the server refuses until that import is undone (GLG-361).
+// again, which the server refuses until that import is undone.
 // `period` is a statement period the server refuses outright: `message` is
-// the commit's error and `import_id` is 0 (GLG-435).
+// the commit's error and `import_id` is 0.
 export interface PreviewWarning {
   code: string
   message: string
@@ -132,7 +129,7 @@ export interface StatementPreview {
   // Null when the statement printed no cash balance or no currency.
   cash_reconciliation: CashReconciliation | null
   // The fund names the statement printed next to a code, sent back as the
-  // commit's names so later previews resolve them (GLG-766).
+  // commit's names so later previews resolve them.
   names?: ImportAlias[]
 }
 
@@ -144,7 +141,7 @@ export interface ImportRow {
   instrument_id?: number
   quantity?: string
   price?: string
-  // Left out for a trade edited by hand, so the server derives it (GLG-366).
+  // Left out for a trade edited by hand, so the server derives it.
   amount?: string
   fee: string
   currency: string
@@ -155,16 +152,16 @@ export interface ImportRequest {
   portfolio_id: number
   sha256: string
   // The preview's statement currency: with the period, it is what tells a
-  // re-downloaded month from a new one (GLG-361).
+  // re-downloaded month from a new one.
   currency: string
   period_start: string
   period_end: string
   rows: ImportRow[]
   // The instruments the user picked for preview symbols that matched none;
   // the server remembers each for the broker's later previews, replacing an
-  // earlier pick (GLG-735).
+  // earlier pick.
   aliases?: ImportAlias[]
-  // The preview's names, learned without replacing a pick (GLG-766).
+  // The preview's names, learned without replacing a pick.
   names?: ImportAlias[]
 }
 
@@ -182,7 +179,7 @@ export interface ImportResult {
 
 // `picks` are the instruments the user picked in this preview so far: the
 // server resolves their symbols with them for this request only, so the
-// opening rows and the reconciliation follow them (GLG-752).
+// opening rows and the reconciliation follow them.
 export function parseStatement(
   portfolioId: number,
   broker: string,
@@ -194,7 +191,7 @@ export function parseStatement(
   }: {
     picks?: ImportAlias[]
     // Fund names the batch's other statements print, taken as learned names
-    // for this preview only (GLG-1181).
+    // for this preview only.
     names?: ImportAlias[]
     signal?: AbortSignal
   } = {},
@@ -210,8 +207,8 @@ export function parseStatement(
 
 // One mutation serves every parse of the page, and only its newest call's
 // answer is applied: each call aborts the one before, so quick picks never
-// hold the browser's few connections to the host with parses nobody reads
-// (GLG-1231). The aborted call's AbortError reaches no one, as the mutation
+// hold the browser's few connections to the host with parses nobody reads.
+// The aborted call's AbortError reaches no one, as the mutation
 // has moved on to the newer call.
 export function useParseStatement(portfolioId: number) {
   const inFlight = useRef<AbortController | null>(null)
@@ -248,7 +245,7 @@ export function useCommitImport() {
   })
 }
 
-// The picker's way out for a fund row named by its name (GLG-733): the server
+// The picker's way out for a fund row named by its name: the server
 // returns the TEFAS fund with this code, creating it when TEFAS confirms it,
 // and answers 404 `fund not found` otherwise. Every instrument search is
 // invalidated so the new fund shows up at once.
@@ -265,9 +262,9 @@ export function useLookupFund() {
 }
 
 // Broker keys the parse endpoint knows (ADR 0006). A proper name, so no i18n.
-// `csv` is not a broker but a file format (GLG-593); it rides the same key.
+// `csv` is not a broker but a file format; it rides the same key.
 // The form also offers `auto`, the default: the server picks the PDF parser
-// that reads each file and answers with its key (GLG-764). Its label is
+// that reads each file and answers with its key. Its label is
 // translated, so it is not listed here.
 export const BROKERS = [
   { key: 'midas', label: 'Midas' },
@@ -285,7 +282,7 @@ export function brokerLabel(key: string): string {
 // What İşlemler calls an import (core pages spec): the broker and the
 // statement's month, "Midas · Haz 2026", or its first and last month when it
 // spans more. A statement in another currency says so, as the TRY and USD
-// statements of a month are otherwise told apart by nothing (GLG-375).
+// statements of a month are otherwise told apart by nothing.
 export function importLabel(item: Import): string {
   const format = (iso: string) => formatMarketDate(iso, { month: 'short', year: 'numeric' })
   const start = format(item.period_start)
@@ -299,7 +296,7 @@ export function importLabel(item: Import): string {
     .join(' · ')
 }
 
-// One past import, as `GET /api/imports` lists it (GLG-204). The endpoint
+// One past import, as `GET /api/imports` lists it. The endpoint
 // answers with every import of the user, across portfolios.
 export interface Import {
   id: number
@@ -307,7 +304,7 @@ export interface Import {
   portfolio_id: number
   period_start: string
   period_end: string
-  // The statement's account currency, "" when unknown (GLG-375).
+  // The statement's account currency, "" when unknown.
   currency: string
   transaction_count: number
   created_at: string
@@ -325,8 +322,7 @@ export function useImports() {
 // Undo: the server deletes the import and every transaction it created, so
 // the cache moves exactly as it did on the commit.
 // `onDeleted` runs as soon as the import is gone, before the refreshes below,
-// which can take a while: a preview open above reads itself again from there
-// (GLG-1063).
+// which can take a while: a preview open above reads itself again from there.
 export function useDeleteImport(onDeleted?: () => void) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -339,7 +335,7 @@ export function useDeleteImport(onDeleted?: () => void) {
 }
 
 // An import is a batch of transactions, so it moves everything a single
-// create moves: the list, the summary, the value history (GLG-184) and the
+// create moves: the list, the summary, the value history and the
 // portfolio cards' P/L and cash -- plus the list of imports itself.
 function invalidateAfterImport(queryClient: ReturnType<typeof useQueryClient>) {
   return Promise.all([

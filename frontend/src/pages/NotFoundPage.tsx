@@ -20,9 +20,9 @@ export function NotFoundPage() {
   )
 }
 
-// A visitor's unknown URL, in the frame of the other signed-out pages
-// (GLG-970). Its title has no full stop like the frame's other titles, and
-// its action is the login page, where / would only redirect (GLG-1058).
+// A visitor's unknown URL, in the frame of the other signed-out pages.
+// Its title has no full stop like the frame's other titles, and
+// its action is the login page, where / would only redirect.
 export function SignedOutNotFoundPage() {
   useTitle(t('notFound.title'))
   return (

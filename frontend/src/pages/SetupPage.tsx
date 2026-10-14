@@ -40,7 +40,7 @@ export function SetupPage() {
   const [passwordAgain, setPasswordAgain] = useState('')
   // Set on submit, cleared on any edit of either password field: the native
   // minLength check can block the next submit, and a stale mismatch error
-  // would sit next to it (GLG-399, like GLG-384 on the Account page).
+  // would sit next to it (as on the Account page).
   const [mismatch, setMismatch] = useState(false)
   const { data: status } = useSetupStatus()
 
@@ -54,7 +54,7 @@ export function SetupPage() {
     return <Navigate to="/" replace />
   }
 
-  // A server error is about the values sent: any edit drops it (GLG-1075).
+  // A server error is about the values sent: any edit drops it.
   // Only an error: a reset while pending would make the mutation idle and
   // let the redirect above cut our own success short.
   function clearError() {

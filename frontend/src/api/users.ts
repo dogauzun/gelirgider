@@ -3,7 +3,7 @@ import { apiFetch } from '../api'
 import type { Locale } from '../i18n/strings'
 import { meQueryKey, type Me } from './auth'
 
-// Admin user management (GLG-304, GLG-310). Admin only; the server answers
+// Admin user management. Admin only; the server answers
 // 403 to anyone else.
 export interface AdminUser {
   id: number
@@ -83,7 +83,7 @@ export function useResetPassword(id: number, password: string, onDone: () => voi
 // Flips the user's admin flag. When the caller demotes themselves, the cached
 // me loses its admin flag before `onDemotedSelf` runs: the refresh gets a 403
 // "admin only" for the users list, and App's handler would toast the demotion
-// a second time (GLG-1023).
+// a second time.
 export function useToggleAdmin(onDemotedSelf: () => void) {
   const queryClient = useQueryClient()
   return useMutation({

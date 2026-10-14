@@ -1,8 +1,8 @@
 import { t } from '../i18n/strings'
 
 // A value that silently drops the holdings it could not convert is worse than
-// no value at all (GLG-121), so mark it. Reuses summary.missingRates rather
-// than adding a portfolios.* twin, so the GLG-114 wording -- "excluded for
+// no value at all, so mark it. Reuses summary.missingRates rather
+// than adding a portfolios.* twin, so the wording -- "excluded for
 // lack of a rate", never "these currencies have no rate" -- lives in one
 // place. `currencies` is the excluded set; on the total line it is the union
 // across portfolios.

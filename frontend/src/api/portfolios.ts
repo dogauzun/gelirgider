@@ -13,26 +13,26 @@ export interface Portfolio {
   // missing_rates currencies as total_value. unrealized_pl is null when every
   // currency contributing to it was excluded for lack of a rate -- the same
   // rule as Summary.unrealized_pl, and the caller renders MISSING rather than a
-  // zero that reads as a real figure (GLG-113).
+  // zero that reads as a real figure.
   cash: string
   unrealized_pl: string | null
   currency: string
   // Currencies excluded from total_value because no conversion factor could
   // be built -- same field and same caveat as Summary.missing_rates: it names
   // what was left out, not what is absent from the rate table, so never label
-  // these as "currencies with no rate" (GLG-114).
+  // these as "currencies with no rate".
   missing_rates: string[]
 }
 
 // POST /api/portfolios answers with only these three fields (portfolioResponse
 // in backend/internal/portfolio/handlers.go); the valuation fields on Portfolio
-// are computed for the list only (GLG-175).
+// are computed for the list only.
 export type CreatedPortfolio = Pick<Portfolio, 'id' | 'name' | 'created_at'>
 
 export const portfoliosQueryKey = ['portfolios'] as const
 
 // The exact sum of one money field over the portfolios, as a decimal string:
-// a Number sum rounds the cents once they pass 2^53 units (GLG-846).
+// a Number sum rounds the cents once they pass 2^53 units.
 export function sumPortfolios(
   portfolios: Portfolio[] | undefined,
   pick: (p: Portfolio) => string,
@@ -58,7 +58,7 @@ function renamePortfolio(id: number, name: string): Promise<void> {
   })
 }
 
-// force=true deletes the portfolio's transactions along with it (GLG-123).
+// force=true deletes the portfolio's transactions along with it.
 // The server refuses with 409 without it, so the flag is only ever sent after
 // the user confirms the cascade by name.
 function deletePortfolio(id: number, force = false): Promise<void> {
@@ -90,11 +90,11 @@ export function useDeletePortfolio() {
   return useMutation({
     mutationFn: ({ id, force }: { id: number; force?: boolean }) => deletePortfolio(id, force),
     // Both delete paths (a home card, the portfolio page) only move focus
-    // afterwards, so the toast's status region says what happened (GLG-863).
+    // afterwards, so the toast's status region says what happened.
     // The deleted portfolio's own queries are left out: its page is still on
     // screen until the list refetch redirects it, and refetching them can only
-    // answer 404 (GLG-1005). Not removed either, or that page would build and
-    // fetch them again on its next render (GLG-999); they go once unused.
+    // answer 404. Not removed either, or that page would build and
+    // fetch them again on its next render; they go once unused.
     onSuccess: (_, { id }) => {
       toast(t('portfolios.deleted'))
       return queryClient.invalidateQueries({

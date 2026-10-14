@@ -18,8 +18,8 @@ import { TAP_ICON } from './ui/tap'
 
 // Everything after /portfolios/:id on the page header's tabs; the summary tab
 // is the empty suffix, so it is not in the list. A portfolio row keeps the tab
-// the user is on (GLG-875); from a position page it goes to the summary, as
-// the instrument may not be held in the other portfolio (GLG-587).
+// the user is on; from a position page it goes to the summary, as
+// the instrument may not be held in the other portfolio.
 const TAB_SUFFIXES = ['/performance', '/transactions', '/dividends', '/import']
 
 const rowClass = ({ isActive }: { isActive: boolean }) =>
@@ -29,8 +29,8 @@ const rowClass = ({ isActive }: { isActive: boolean }) =>
 
 const valueClass = 'ml-auto shrink-0 pl-2 text-[11.5px] font-normal text-muted'
 
-// The brand mark and name, linking to Tüm portföyler, the home page
-// (GLG-935). The label names the link even where the text is not shown.
+// The brand mark and name, linking to Tüm portföyler, the home page.
+// The label names the link even where the text is not shown.
 function Brand({ onClick }: { onClick?: () => void }) {
   return (
     <Link
@@ -45,7 +45,7 @@ function Brand({ onClick }: { onClick?: () => void }) {
   )
 }
 
-// Masks every money amount while the app is shown to someone (GLG-564); the
+// Masks every money amount while the app is shown to someone; the
 // label names what a click does.
 export function PrivacyToggle() {
   const privacy = usePrivacy()
@@ -80,7 +80,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const range = tab ? '' : rangeSearch(search)
   // In the first portfolio's currency, the sum of the list's totals. It
   // leaves out what any portfolio left out, so its mark carries the union of
-  // their missing rates (GLG-895).
+  // their missing rates.
   const total =
     data && data.length > 0 ? (
       <span className={valueClass}>
@@ -103,7 +103,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <div className="px-2 pb-3">
         <Brand onClick={onNavigate} />
       </div>
-      {/* Tüm portföyler has Özet and Performans only (GLG-955). */}
+      {/* Tüm portföyler has Özet and Performans only. */}
       <NavLink
         to={`/portfolios/all${tab === '/performance' ? tab : ''}${range}`}
         onClick={onNavigate}
@@ -205,7 +205,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           onCreated={(id) => {
             onNavigate?.()
             // The empty list's opener is gone by now: the new page takes
-            // focus unless it moved on, as from the header (GLG-1355).
+            // focus unless it moved on, as from the header.
             navigate(`/portfolios/${id}`, { state: { focusAfterCreate: true } satisfies NavState })
           }}
         />

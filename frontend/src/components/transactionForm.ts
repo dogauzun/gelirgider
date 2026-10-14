@@ -15,7 +15,7 @@ import { isCashIn } from '../lib/transactionCells'
 import type { TradeType } from './PositionsTable'
 
 // The form's types: the API's, plus 'interest', which the API stores as a
-// dividend with no instrument (GLG-533, GLG-538).
+// dividend with no instrument.
 export type FormType = TransactionType | 'interest'
 
 export const TYPES: FormType[] = [
@@ -37,7 +37,7 @@ export const TYPES_WITH_AMOUNT = new Set<FormType>([
   'fee',
 ])
 // Types whose fee comes out of the amount, so the fee must not exceed it --
-// mirrors the server check (GLG-229). Buy and sell are absent: there the fee
+// mirrors the server check. Buy and sell are absent: there the fee
 // adds to the cost instead.
 const TYPES_WITH_FEE_FROM_AMOUNT = new Set<FormType>([
   'dividend',
@@ -77,7 +77,7 @@ export function typeLabelKeyFor(
 }
 
 // A dividend's fee is the withholding tax (stopaj), not a commission: the
-// amount is gross and the fee is the tax taken from it (GLG-288, ADR 0006).
+// amount is gross and the fee is the tax taken from it (ADR 0006).
 // Interest is taxed the same way. `short` picks the compact prefix used next
 // to a row's amount.
 export function feeLabelKey(type: FormType | undefined, short = false): StringKey {
@@ -126,7 +126,7 @@ export function emptyForm(type: FormType = 'buy', date: string = todayIstanbul()
 }
 
 // The trade dialog's form for a buy or a sell of a held position, as the
-// positions table's row menu opens it (GLG-558).
+// positions table's row menu opens it.
 export function tradeForm(type: TradeType, position: Position): FormState {
   return {
     ...emptyForm(type),
@@ -141,8 +141,8 @@ export function tradeForm(type: TradeType, position: Position): FormState {
 // Buy, sell and dividend always take their currency from the selected
 // instrument, set by the server (see
 // backend/internal/transaction/handlers.go checkInstrument) - never a select,
-// since the server rejects a currency that contradicts the instrument
-// (GLG-136). Only interest/deposit/withdrawal/fee let the user choose.
+// since the server rejects a currency that contradicts the instrument.
+// Only interest/deposit/withdrawal/fee let the user choose.
 export function needsCurrencySelect(form: FormState): boolean {
   return !TYPES_WITH_INSTRUMENT.has(form.type)
 }
@@ -151,7 +151,7 @@ function instrumentLabelFor(tx: Transaction): string {
   if (tx.instrument_id === null) return ''
   if (!tx.instrument_symbol) return `#${tx.instrument_id}`
   // The name can be missing on a row that is not a saved transaction (the
-  // import preview builds one from a statement row, GLG-210); the symbol on
+  // import preview builds one from a statement row); the symbol on
   // its own is still the right label then.
   return tx.instrument_name
     ? `${tx.instrument_symbol} - ${tx.instrument_name}`
@@ -159,7 +159,7 @@ function instrumentLabelFor(tx: Transaction): string {
 }
 
 // A dividend with no instrument, saved or a preview row (a Midas nema),
-// reopens as interest (GLG-538).
+// reopens as interest.
 export function fromTransaction(tx: Transaction): FormState {
   return {
     type: formType(tx.type, tx.instrument_id ?? tx.instrument_symbol),
@@ -191,8 +191,8 @@ function notANumber(text: string): boolean {
   return trimmed !== '' && parseDecimalInput(trimmed.replace(/^-/, '')) === null
 }
 
-// A fee row's amount is the fee itself, so it takes no fee of its own
-// (GLG-378): the field is hidden, and a value typed under another type before
+// A fee row's amount is the fee itself, so it takes no fee of its own:
+// the field is hidden, and a value typed under another type before
 // switching to fee is ignored rather than sent.
 function feeInput(form: FormState): string {
   return form.type === 'fee' ? '' : form.fee
@@ -203,15 +203,15 @@ function feeInput(form: FormState): string {
 export type FormField = 'instrument' | 'quantity' | 'price' | 'amount' | 'fee'
 export type FormError = { field: FormField | null; message: string }
 
-// validate mirrors the server rules from GLG-25 (backend/internal/transaction/handlers.go fromRequest).
+// validate mirrors the server rules (backend/internal/transaction/handlers.go fromRequest).
 export function validate(form: FormState): FormError | null {
   if (TYPES_WITH_INSTRUMENT.has(form.type) && form.instrumentId === null) {
     return { field: 'instrument', message: t('transactions.error.instrumentRequired') }
   }
   // Before the > 0 checks, which would otherwise say "must be greater than 0"
-  // for a "10.000" that parseDecimalInput rejects as ambiguous (GLG-342), for
-  // a "1e3" that is no number at all (GLG-355) and for a positive value with
-  // more digits than the server stores (GLG-423).
+  // for a "10.000" that parseDecimalInput rejects as ambiguous, for
+  // a "1e3" that is no number at all and for a positive value with
+  // more digits than the server stores.
   const typed: [FormField, StringKey, string][] = []
   if (TYPES_WITH_QUANTITY_PRICE.has(form.type)) {
     typed.push(
@@ -242,7 +242,7 @@ export function validate(form: FormState): FormError | null {
       return { field: 'quantity', message: t('transactions.error.quantityRequired') }
     }
     // A buy at price 0 records units received for free: staking, airdrops,
-    // gifted shares (ADR 0007, GLG-340). A sell still needs a positive price.
+    // gifted shares (ADR 0007). A sell still needs a positive price.
     if (form.type === 'buy') {
       if (parseDecimalInput(form.price) === null) {
         return { field: 'price', message: t('transactions.error.priceNonNegative') }
@@ -283,7 +283,7 @@ function sameDecimal(a: string, b: string): boolean {
 // `original` is the transaction being edited. A trade whose quantity and price
 // are unchanged sends its stored amount back: an imported one holds the
 // statement's rounded İşlem Tutarı, which the server would otherwise replace
-// with quantity × price (GLG-366, GLG-368).
+// with quantity × price.
 export function toInput(form: FormState, original?: Transaction | null): TransactionInput {
   const input: TransactionInput = {
     type: form.type === 'interest' ? 'dividend' : form.type,
@@ -335,18 +335,18 @@ export function cashEffect(form: FormState): { out: boolean; amount: number } | 
     if (Number.isNaN(gross)) return null
   }
   // The engine nets the fee out of an incoming movement and adds it to an
-  // outgoing one (GLG-232), so the preview does the same.
+  // outgoing one, so the preview does the same.
   // Interest is stored as a dividend, so it moves cash the same way.
   const out = !isCashIn(form.type === 'interest' ? 'dividend' : form.type)
   const net = out ? gross + fee : gross - fee
-  // A fee above the proceeds turns an incoming movement into an outgoing one
-  // (GLG-382): a sell of 1 at 1 with fee 5 takes 4 out of cash.
+  // A fee above the proceeds turns an incoming movement into an outgoing one:
+  // a sell of 1 at 1 with fee 5 takes 4 out of cash.
   return net < 0 ? { out: !out, amount: -net } : { out, amount: net }
 }
 
 // sellExceedsHeld returns the quantity held when a sell asks for more than
 // that, else null. A warning only: an oversell is accepted on purpose, since
-// months may be entered out of order (GLG-373). Held is the summary's current
+// months may be entered out of order. Held is the summary's current
 // quantity, not the quantity on the sell's date. The row being edited is
 // already in the summary, so it is taken out again first. A split after that
 // row makes this add-back approximate; a hint can live with it.

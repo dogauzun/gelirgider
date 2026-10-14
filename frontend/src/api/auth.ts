@@ -161,7 +161,7 @@ export function useRegister(onDone: (loggedIn: boolean) => void) {
 // Whether the last session ended by a logout the user chose. ProtectedRoute
 // reads it so the null me that follows is not called an expired session: the
 // move to /login is a transition, and the protected page can render that null
-// me before it commits (GLG-833). The next signed-in /api/me clears it.
+// me before it commits. The next signed-in /api/me clears it.
 let loggedOut = false
 
 export function loggedOutByUser(): boolean {
@@ -174,10 +174,10 @@ export async function logout(): Promise<void> {
 }
 
 // A delete still waiting behind its undo toast is sent first, while the
-// session lasts (GLG-795). Then me goes null before `onLoggedOut` runs, so
+// session lasts. Then me goes null before `onLoggedOut` runs, so
 // GuestRoute does not bounce /login back home; the protected page may still
 // see it before the caller's navigation commits, which logout() has told
-// ProtectedRoute is no expired session (GLG-833).
+// ProtectedRoute is no expired session.
 export function useLogout(onLoggedOut: () => void) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -221,7 +221,7 @@ export function useChangePassword(
 }
 
 // The portfolio list's values are in the reporting currency, and the sidebar
-// showing them stays mounted (GLG-875). Exact: the per-portfolio keys share
+// showing them stays mounted. Exact: the per-portfolio keys share
 // the prefix and refetch on their own pages' mount. `onSaved` runs last.
 export function useUpdateReportingCurrency(onSaved: () => void) {
   const queryClient = useQueryClient()
@@ -263,19 +263,19 @@ const keptQueryKeys: readonly unknown[] = [
 ]
 
 // Everything else in the cache belongs to the user in me. When that user
-// leaves, drop it so the next user never sees it rendered (GLG-389). Logged
+// leaves, drop it so the next user never sees it rendered. Logged
 // out (logout, an expired session): the protected pages unmount, so remove
 // it; a query still on screen goes once its page has unmounted. The page can
 // render once more before it does, and a query removed under it would be
-// built and fetched again, without a session (GLG-999). Another account
+// built and fetched again, without a session. Another account
 // signed in from another tab: the mounted page stays, so reset it, which
 // refetches what is on screen. The kept queries stay.
 // Toasts go too, their held-back commits unsent but undone: logout has flushed them
 // already, an expired session or another account would only see them fail
 // or show them to the wrong user. On a login as well, for one that a late
-// response added after the user left (GLG-849), and the cache is reset then
+// response added after the user left, and the cache is reset then
 // too: a request sent without a session may still be in flight, and the next
-// user's page would join it and get its 401 (GLG-998).
+// user's page would join it and get its 401.
 export function dropDataOnUserChange(queryClient: QueryClient) {
   // undefined until /api/me first answers, null while signed out.
   let cachedUserId: string | null | undefined

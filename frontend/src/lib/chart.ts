@@ -5,7 +5,7 @@ import { formatNumber, MASK } from './format'
 import { getPrivacy } from './privacy'
 
 // Every amount the chart prints (tooltip rows, axis ticks) goes through
-// formatChartValue or formatTicks, so privacy mode masks all of them (GLG-564).
+// formatChartValue or formatTicks, so privacy mode masks all of them.
 export function formatChartValue(value: string | number): string {
   if (getPrivacy()) return MASK
   return formatNumber(value, { maximumFractionDigits: 0 })
@@ -23,9 +23,9 @@ export function formatTicks(ticks: number[]): string[] {
   return distinctLabels(ticks, { notation: 'compact' })
 }
 
-// The percent mode's ticks (GLG-954): fractions printed as percentages, `%5`,
+// The percent mode's ticks: fractions printed as percentages, `%5`,
 // with fraction digits added the same way until every label differs. Never
-// masked: percentages are not amounts (GLG-564).
+// masked: percentages are not amounts.
 export function formatPercentTicks(ticks: number[]): string[] {
   return distinctLabels(ticks, { style: 'percent' })
 }
@@ -39,7 +39,7 @@ function distinctLabels(ticks: number[], options: Intl.NumberFormatOptions): str
 }
 
 // A range across calendar years carries the year, so "02 Oca" is never
-// ambiguous on a multi-year chart (GLG-809).
+// ambiguous on a multi-year chart.
 export function formatDateLabel(iso: string, withYear: boolean): string {
   return formatMarketDate(iso, {
     day: '2-digit',
@@ -61,7 +61,7 @@ const LABEL_GAP_PX = 8
 // index step is at least 1, so no date repeats. Fewer, down to the two ends
 // (or the first alone), when the labels would overlap: the first starts at
 // its point, the last ends at its point, the rest are centred (DateAxis), and
-// a label with a year is longer (GLG-1035).
+// a label with a year is longer.
 export function dateTicks(dates: string[], plotWidth: number, withYear = false): string[] {
   const label = withYear ? YEAR_LABEL_PX : DATE_LABEL_PX
   const last = dates.length - 1
@@ -87,8 +87,8 @@ export const LEGEND_HEIGHT = 'min-h-9 sm:min-h-4'
 // pressWithoutFocus is a chart's onMouseDown. A press would focus the
 // Recharts layer under the pointer (its z-index layers have tabindex -1),
 // which draws a focus frame and, as focus bubbles to Recharts' focus handler,
-// pins the keyboard tooltip on the first point after the mouse leaves
-// (GLG-1034). Preventing the press's default keeps focus out, and the field
+// pins the keyboard tooltip on the first point after the mouse leaves.
+// Preventing the press's default keeps focus out, and the field
 // focused elsewhere is blurred by hand, as the press would have, so a field
 // that saves on blur (the portfolio rename) still saves. Tab still focuses
 // the chart.
@@ -114,7 +114,7 @@ export function niceTicks(min: number, max: number): number[] {
   return ticks
 }
 
-// axisTicks fits the y axis to the plotted values (GLG-775): 0 is on the axis
+// axisTicks fits the y axis to the plotted values: 0 is on the axis
 // only when the data reaches or crosses it, so a portfolio moving between 900k
 // and 1M fills the plot instead of sitting in its top fifth. A flat series gets
 // 5% of its value either side (or 1 at zero) so it still has a range to sit in.
@@ -131,11 +131,11 @@ export function axisTicks(values: number[]): number[] {
 
 // rangeDelta is the change in total value across the whole series, net of the
 // external cash that arrived inside it (netFlow, from the history response):
-// a deposit raises the total without being a gain (GLG-219). Null with fewer
+// a deposit raises the total without being a gain. Null with fewer
 // than two points: nothing to compare. The percentage next to it comes from
 // the history response's `returns` (ADR 0011). Exact decimal subtraction,
-// since floats print 0.30 - 0.10 - 0.20 as `-0.00` and lose cents above 2^53
-// (GLG-942); the API's amounts carry 2 decimals, padded back to 2 here.
+// since floats print 0.30 - 0.10 - 0.20 as `-0.00` and lose cents above 2^53;
+// the API's amounts carry 2 decimals, padded back to 2 here.
 export function rangeDelta(points: HistoryEntry[], netFlow: string): string | null {
   if (points.length < 2) return null
   const [whole, fraction = ''] = subDecimal(
@@ -151,8 +151,8 @@ type Size = { width: number; height: number }
 // placeTooltip is the top-left corner of a tooltip card of size `card` for the
 // point at `point`, all in chart pixels. The card goes `gap` below a point in
 // the upper half of the plot and `gap` above one in the lower half, the side
-// with more room, so it never covers the point or the line around it
-// (GLG-779, GLG-922); it is kept inside the plot. Pushed back inside, the card
+// with more room, so it never covers the point or the line around it;
+// it is kept inside the plot. Pushed back inside, the card
 // may come closer, down to half the gap; any closer and it sits beside the
 // point instead.
 export function placeTooltip(point: XY, card: Size, plot: XY & Size, gap: number): XY {

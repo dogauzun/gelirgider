@@ -22,7 +22,7 @@ export const tr = {
   'auth.login.sessionExpired': 'Oturumunun süresi doldu, tekrar giriş yap',
   // No self-service reset until the app can send email (Phase 6). Until then
   // only the operator can set a password, so point the user at them instead
-  // of at a link that does not exist (GLG-126).
+  // of at a link that does not exist.
   'auth.login.forgotPassword':
     'Şifreni unuttuysan kendin sıfırlayamazsın. Bu uygulamayı çalıştıran kişiye ulaş, şifreni sıfırlayabilir.',
   'auth.register.title': 'Kayıt ol',
@@ -154,7 +154,7 @@ export const tr = {
   'admin.instruments.currency': 'Para birimi',
   'admin.instruments.submit': 'Ekle',
   'admin.instruments.saved': 'Kaydedildi: {symbol} · {name} · {market} · {currency}',
-  // Shared by every ConfirmDialog and Toaster (GLG-162); the confirm label is
+  // Shared by every ConfirmDialog and Toaster; the confirm label is
   // per call site, the cancel and undo labels are not.
   'confirm.cancel': 'Vazgeç',
   'toast.undo': 'Geri al',
@@ -189,7 +189,7 @@ export const tr = {
   'portfolios.name': 'Ad',
   'portfolios.nameHint': 'En fazla 100 karakter. Aynı adda ikinci portföy açılamaz.',
   'portfolios.created': 'Portföy oluşturuldu',
-  // The sub-header on the two portfolio pages (GLG-172): the label over the
+  // The sub-header on the two portfolio pages: the label over the
   // name, the switcher and its menu.
   'portfolio.label': 'Portföy',
   'portfolio.all': 'Tüm portföyler',
@@ -202,7 +202,7 @@ export const tr = {
   'portfolios.deleteConfirm': 'Bu portföyü silmek istediğine emin misin?',
   'portfolios.deleted': 'Portföy silindi',
   // Second confirmation, shown only after the server refuses the plain delete
-  // and says how many transactions are in the way (GLG-123). It is the last
+  // and says how many transactions are in the way. It is the last
   // step before the rows are gone for good, so it states the count -- on the
   // button too, so the last click names what it destroys.
   'portfolios.deleteCascadeConfirm':
@@ -268,7 +268,7 @@ export const tr = {
   'transactions.deduction': 'Kesinti',
   'transactions.fee': 'Komisyon',
   'transactions.commissionShort': 'kom.',
-  // A dividend's fee is the withholding tax, not a commission (GLG-288).
+  // A dividend's fee is the withholding tax, not a commission.
   'transactions.withholdingTax': 'Stopaj',
   'transactions.currency': 'Para birimi',
   'transactions.note': 'Not',
@@ -292,19 +292,19 @@ export const tr = {
   'transactions.delete': '{what} işlemini sil',
   'transactions.deleteConfirm': 'Bu işlemi silmek istediğine emin misin?',
   // The dialog covers the list, and on a phone the row is scrolled away
-  // behind it, so the body names the row that is about to go (GLG-231).
+  // behind it, so the body names the row that is about to go.
   'transactions.deleteConfirmBody': 'Silinecek işlem: {summary}',
   'transactions.deleteButton': 'İşlemi sil',
   'transactions.deleted': 'İşlem silindi',
   // A toast, not a notice on the page: the delete is sent when its undo toast
-  // goes, which may be after İşlemler was left (GLG-842).
+  // goes, which may be after İşlemler was left.
   'transactions.deleteFailed': 'İşlem silinemedi. {error}',
   'transactions.added': 'İşlem eklendi',
   'transactions.saved': 'İşlem kaydedildi',
   'transactions.imported': 'içe aktarıldı',
-  // Expected dividends panel on the Temettü tab (GLG-292, GLG-605, ADR 0009).
+  // Expected dividends panel on the Temettü tab (ADR 0009).
   'dividends.expected.title': 'Onay bekleyen temettüler',
-  // The collapsed panel's summary line after the title (GLG-568).
+  // The collapsed panel's summary line after the title.
   'dividends.expected.summary': '{count} · {net} net',
   'dividends.expected.exDate': 'Hak kullanım',
   'dividends.expected.perShare': 'Hisse başı',
@@ -313,14 +313,14 @@ export const tr = {
   'dividends.expected.add': 'Ekle',
   'dividends.expected.addAll': 'Tümünü ekle',
   'dividends.expected.dismiss': 'Yoksay',
-  // Screen-reader names for a row's buttons, so six "Ekle" read apart (GLG-351).
+  // Screen-reader names for a row's buttons, so six "Ekle" read apart.
   'dividends.expected.addLabel': '{symbol} {date} temettüsünü ekle',
   'dividends.expected.dismissLabel': '{symbol} {date} temettüsünü yoksay',
   'dividends.expected.added': '{count} temettü eklendi',
   'dividends.expected.addAllFailed':
     '{symbol} {date} eklenemedi, {count} temettü eklenmeden kaldı. {error}',
   'dividends.expected.dismissed': 'Temettü yoksayıldı',
-  // The Temettü tab (GLG-605): what came in, by period and by instrument.
+  // The Temettü tab: what came in, by period and by instrument.
   'dividends.page.title': 'Temettü',
   'dividends.page.last12': 'Son 12 ay net',
   'dividends.page.yieldOnCost': 'Maliyete göre verim',
@@ -366,7 +366,7 @@ export const tr = {
   'transactions.error.freeBuyAmount': 'Fiyat 0 ise tutar da 0 olmalı.',
   'transactions.error.dateTooEarly': 'Tarih 01.01.1990 veya sonrası olmalı.',
   'transactions.error.dateFuture': 'Tarih gelecekte olamaz.',
-  // Statement import (GLG-205). The broker names themselves are proper nouns
+  // Statement import. The broker names themselves are proper nouns
   // and stay out of the key set.
   'import.title': 'İçe aktar',
   'import.uploadTitle': 'Ekstre yükle',
@@ -379,7 +379,7 @@ export const tr = {
   'import.garantiYatirim.fileHint':
     "Garanti BBVA Yatırım'ın aylık hesap ekstresi: hisse senedi alımları, komisyon ve bankadan gelen para. Birden fazla ay seçebilirsin.",
   'import.parsing': 'Ekstre okunuyor...',
-  // Step 1 (GLG-965): the steps, the drop zone and the history beside it.
+  // Step 1: the steps, the drop zone and the history beside it.
   'import.steps.choose': 'Dosya seç',
   'import.steps.review': 'İncele',
   'import.steps.reviewBatch': 'İncele · Ekstre {n} / {total}',
@@ -488,7 +488,7 @@ export const tr = {
   'import.reconcile.cash': 'Nakit',
   'import.reconcile.warning':
     'Ekstre ile portföy uyuşmuyor, önceki ayları içe aktarmamış olabilirsin.',
-  // The review's one filter and its bar (GLG-966).
+  // The review's one filter and its bar.
   'import.filter.label': 'Satırlar',
   'import.filter.all': 'Tümü {count}',
   'import.filter.problems': 'Sorunlu {count}',
@@ -503,36 +503,35 @@ export const tr = {
   'import.leftOut.confirmBody':
     'Düzeltilmemiş satırlar bu içe aktarmaya girmez. Sonradan eklemek için içe aktarmayı geri alıp ekstreyi yeniden yüklemen ya da işlemleri elle girmen gerekir.',
   'import.leftOut.confirm': 'Yine de içe aktar',
-  // The preview is editable (GLG-210): every row can be corrected by hand and
+  // The preview is editable: every row can be corrected by hand and
   // operations the parser dropped can be typed in.
   'import.editRow': '{what} satırını düzenle',
   'import.editRowPlain': 'Satırı düzenle',
   'import.manual': 'elle',
   'import.pickInstrument': '{symbol} için enstrüman seç',
-  // The unknown names, each once above the table (GLG-1193).
+  // The unknown names, each once above the table.
   'import.unknownNames': 'Eşleşmeyen isimler ({count})',
   'import.unknownNameRows': '{count} satır',
-  // A TEFAS name may be a fund's old name (GLG-1197).
+  // A TEFAS name may be a fund's old name.
   'import.unknownNameRenamedFund':
     'Fonun adı değişmiş olabilir. Aynı hesabın daha sonraki bir ekstresini aynı seferde yükle ya da fon koduyla ara.',
   'import.earlierPick': 'Önceki seçimin',
   'import.change': 'Değiştir',
   'import.changeMatch': '{symbol} eşleşmesini değiştir',
-  // A fund name an earlier statement's balances printed with its code (GLG-766).
+  // A fund name an earlier statement's balances printed with its code.
   'import.learnedName': 'Başka bir ekstreden',
   // Opening positions the preview proposes for holdings the portfolio has no
-  // record of (GLG-737, GLG-738).
+  // record of.
   'import.opening': 'Açılış',
   'import.openingHint':
     'Bu ekstre, portföyde kaydı olmayan varlıklarla başlıyor. Açılış pozisyonları, dönem başından bir gün önceki fiyatla önerildi.',
-  // The statement prints each holding's average cost (Midas, GLG-1185).
+  // The statement prints each holding's average cost (Midas).
   'import.openingHintCost':
     'Bu ekstre, portföyde kaydı olmayan varlıklarla başlıyor. Açılış pozisyonları, ekstredeki ortalama maliyetle önerildi.',
   // Opening buys priced from more than one source, or all edited.
   'import.openingHintMixed':
     'Bu ekstre, portföyde kaydı olmayan varlıklarla başlıyor. Açılış pozisyonları önerildi; fiyatlarını kontrol edip düzenleyebilirsin.',
-  // Closing sells the preview proposes for positions the statement omits
-  // (GLG-1190).
+  // Closing sells the preview proposes for positions the statement omits.
   'import.closing': 'Kapanış',
   'import.closingHint':
     'Portföyde olup ekstrede olmayan pozisyonlar için kapanış satırları önerildi; önceki ayları içe aktarmadıysan bunları seçme.',
@@ -542,10 +541,10 @@ export const tr = {
   'import.openingPending':
     'Bilinmeyen sembollerin hepsini eşleştirdiğinde, ekstrede olup portföyde olmayan pozisyonlar için açılış satırları önerilecek.',
   'import.openingAdded': '{count} açılış satırı eklendi',
-  // A fund the app does not have yet, looked up by its code (GLG-733).
+  // A fund the app does not have yet, looked up by its code.
   'import.lookupFund': "{code} fonunu TEFAS'ta ara",
   'import.lookupFundNotFound': "TEFAS'ta {code} kodlu fon bulunamadı",
-  // Past imports and the undo button (GLG-206).
+  // Past imports and the undo button.
   'import.past': 'Geçmiş içe aktarmalar',
   'import.pastEmpty': 'Bu portföyde henüz içe aktarma yok.',
   'import.pastError': 'Geçmiş içe aktarmalar yüklenemedi',
@@ -553,7 +552,7 @@ export const tr = {
   'import.undoConfirm': 'İçe aktarmayı geri al',
   'import.undoConfirmBody': 'Bu içe aktarmadaki {count} işlem silinecek.',
   'import.undone': 'İçe aktarma geri alındı',
-  // The Performans tab (GLG-955): the periodic returns heatmap.
+  // The Performans tab: the periodic returns heatmap.
   'performance.title': 'Performans',
   'performance.periods.title': 'Dönemsel getiri',
   'performance.periods.view': 'Gösterim',
@@ -567,7 +566,7 @@ export const tr = {
   // Every return is null (ADR 0011): no positive base, or cash below zero.
   'performance.periods.undefined':
     'Getiri hesaplanamıyor: dönem değersiz başlıyor ya da nakit bir gün eksiye düşüyor. Alımları karşılayan para girişlerini kaydet.',
-  // The cash gaps behind a null return (GLG-1110): the first day a
+  // The cash gaps behind a null return: the first day a
   // portfolio's cash went below zero and the shortfall per currency, and the
   // dialog that records them as deposits. noValue is the other reason, V_0 <= 0.
   'performance.cashGaps.line': 'Nakit {date} tarihinde eksiye düştü: {amounts} eksik.',
@@ -588,7 +587,7 @@ export const tr = {
   // A closed position's realized P/L over the cost of the shares it sold.
   'summary.realizedPlPercent': 'K/Z %',
   // The currency move on foreign cash and on the cost of foreign positions,
-  // which neither P/L figure holds (GLG-267).
+  // which neither P/L figure holds.
   'summary.fxPl': 'Kur farkı',
   'summary.value': 'Değer',
   // Qualifies the percentage next to it: the return is measured against
@@ -597,16 +596,16 @@ export const tr = {
   'summary.cost': 'Maliyet {amount}',
   'summary.positions': 'Pozisyonlar',
   // The positions table's switch between open and closed positions: closed
-  // ones are sold down to zero, or paid a dividend with no holding (GLG-218).
+  // ones are sold down to zero, or paid a dividend with no holding.
   'summary.positionsView': 'Gösterilen pozisyonlar',
   'summary.open': 'Açık',
   'summary.closed': 'Kapalı',
   'summary.noOpenPositions': 'Açık pozisyon yok.',
-  // The positions card's filter on symbol and name (GLG-1102).
+  // The positions card's filter on symbol and name.
   'summary.searchPositions': 'Pozisyon ara',
   'summary.noMatchingPositions': 'Aramayla eşleşen pozisyon yok.',
-  // A position row's menu (GLG-933): the transaction dialog prefilled
-  // (GLG-558), the price dialog, and removing a manual price.
+  // A position row's menu: the transaction dialog prefilled,
+  // the price dialog, and removing a manual price.
   'summary.rowMenu': '{symbol} işlemleri',
   'summary.buy': 'Al',
   'summary.sell': 'Sat',
@@ -619,7 +618,7 @@ export const tr = {
   // Share of the total including cash, and the unrealized P/L column.
   'summary.weight': 'Ağırlık',
   'summary.pl': 'K/Z',
-  // The move since the previous close (GLG-542): a positions column, a line
+  // The move since the previous close: a positions column, a line
   // under the total value, and the tooltip naming the two dates it compares.
   'summary.dayChange': 'Günlük',
   'summary.dayChangeTitle': 'Önceki kapanış {from} → {to}',
@@ -627,15 +626,15 @@ export const tr = {
   'summary.dayAsOf': '{date} fiyatlarıyla',
   'summary.negativeQuantity': 'Negatif',
   // Badge on a position changed by a stock split; the label lists each split
-  // as "12.05.2026 · ×2" (GLG-276).
+  // as "12.05.2026 · ×2".
   'summary.split': 'Bölünme',
   'summary.splitLabel': 'Bölünme: {splits}',
   // Names the currencies left out of the totals, not the currency whose rate
   // is absent -- with reporting USD and no USD rate it is TRY that gets
-  // excluded, and TRY never needs a rate of its own (GLG-114).
+  // excluded, and TRY never needs a rate of its own.
   'summary.missingRates':
     'Kur bulunamadığı için şu para birimlerindeki tutarlar {currency} toplamlarına dahil edilmedi: {currencies}',
-  // The statistics card under the positions (GLG-596): what went in and came
+  // The statistics card under the positions: what went in and came
   // out, and how long ago the first transaction was.
   'summary.stats.title': 'İstatistikler',
   'summary.stats.netContribution': 'Net katkı',
@@ -648,7 +647,7 @@ export const tr = {
   'summary.stats.years': '{count} yıl',
   'summary.stats.months': '{count} ay',
   'summary.stats.thisMonth': 'bu ay',
-  // The positions card's copy button (GLG-608): the holdings as a markdown
+  // The positions card's copy button: the holdings as a markdown
   // table and a prompt, to paste into any AI assistant.
   'summary.copyAi.button': 'AI için kopyala',
   'summary.copyAi.copied': 'Panoya kopyalandı',
@@ -696,7 +695,7 @@ export const tr = {
   'position.price': 'Fiyat',
   'position.transactions': 'İşlemler',
   'position.allTransactions': 'Tüm işlemler',
-  // The positions card's detail dialog (GLG-1104).
+  // The positions card's detail dialog.
   'position.dialog.close': 'Kapat',
   'position.dialog.previous': 'Önceki pozisyon',
   'position.dialog.next': 'Sonraki pozisyon',
@@ -713,7 +712,7 @@ export const tr = {
   'allocation.view.symbol': 'Sembol',
   'allocation.view.market': 'Pazar',
   'allocation.view.currency': 'Para birimi',
-  // The Katkı card (GLG-948): profit and loss per position.
+  // The Katkı card: profit and loss per position.
   'contribution.title': 'Katkı',
   'contribution.subtitle': 'pozisyon başına K/Z',
   'contribution.mode.label': 'Katkı ölçüsü',
@@ -721,7 +720,7 @@ export const tr = {
   'contribution.mode.day': 'Bugün',
   'contribution.showAll': 'Tümünü göster',
   'contribution.empty': 'Gösterilecek kâr veya zarar yok',
-  // The drawdown card on the Performans tab (GLG-957).
+  // The drawdown card on the Performans tab.
   'drawdown.title': 'Zirveden düşüş',
   'drawdown.subtitle': 'para giriş çıkışları hariç',
   'drawdown.max': 'En büyük',
@@ -729,7 +728,7 @@ export const tr = {
   'drawdown.error': 'Zirveden düşüş yüklenemedi',
   'drawdown.chart.summary': '{from} – {to} zirveden düşüş, en büyük {value}',
   // The "Dikkat" card (UI v2 core pages): what needs the owner's attention.
-  // The missing-rate line keeps the GLG-114 wording: the currency was left
+  // The missing-rate line keeps its wording: the currency was left
   // out, not "has no rate".
   'attention.title': 'Dikkat',
   'attention.count': '{count} öğe işlem bekliyor',
@@ -762,21 +761,21 @@ export const tr = {
   'chart.empty': 'Grafik için yeterli veri yok.',
   'chart.error': 'Grafik yüklenemedi',
   'loadError.retry': 'Tekrar dene',
-  // BarChart's aria-label (GLG-604).
+  // BarChart's aria-label.
   'chart.bars.summary': '{count} çubuk, en yüksek {label}: {value}',
-  // ReturnBars (GLG-956): its aria-label, a null month in its tooltip, and
+  // ReturnBars: its aria-label, a null month in its tooltip, and
   // the Dönemsel getiri card's switch between the table and the bars.
   'chart.returnBars.summary': '{from} – {to} aylık getiri: {series}',
   'chart.returnBars.undefined': 'tanımsız',
   'chart.returnBars.view': 'Biçim',
   'chart.returnBars.view.heatmap': 'Isı haritası',
   'chart.returnBars.view.bars': 'Çubuk',
-  // LineChart's aria-label (GLG-807): the date range, then the value line's
+  // LineChart's aria-label: the date range, then the value line's
   // first and last value and the change between them; range alone when the
   // value line has no point.
   'chart.line.summary': '{from} – {to}, {label} {first} → {last} ({change})',
   'chart.line.range': '{from} – {to}',
-  // Tooltip rows for trade markers on the position chart (GLG-536).
+  // Tooltip rows for trade markers on the position chart.
   'chart.marker.buy': 'Alış',
   'chart.marker.sell': 'Satış',
   'chart.marker.dividend': 'Temettü',
@@ -799,10 +798,10 @@ export const tr = {
   'chart.benchmark.noData': 'bu aralık için veri yok',
   // Like summary.missingRates, but only some days in the range are affected,
   // and it names the currencies left out rather than the one whose rate is
-  // absent (GLG-114, GLG-135).
+  // absent.
   'chart.missingRates':
     'Kur bulunamadığı için bazı günlerde şu para birimlerindeki tutarlar {currency} toplamlarına dahil edilmedi: {currencies}',
-  // Days before an instrument's first price: valued at cost there (GLG-254).
+  // Days before an instrument's first price: valued at cost there.
   'chart.missingPrices':
     'Fiyat bilinmiyor: bazı günlerde şu varlıklar ilk fiyatları gelene kadar maliyetinden sayıldı: {symbols}',
   // The period the chart header's change is measured over.
@@ -814,7 +813,7 @@ export const tr = {
   // The chart header's return method selector and its percentage's tooltip
   // (ADR 0011).
   'chart.return.method': 'Getiri yöntemi',
-  // The return card's heading, before the range in words (GLG-934).
+  // The return card's heading, before the range in words.
   'chart.return.title': 'Getiri',
   'chart.return.simple': 'Basit',
   'chart.return.twr': 'Zaman ağırlıklı',
@@ -824,15 +823,15 @@ export const tr = {
     'Günlük getirilerin zincirlenmesi; para giriş çıkışlarının zamanlamasından bağımsız',
   'chart.return.mwr.hint': 'İç verim oranı; para giriş çıkışlarının zamanlaması dahil',
   'chart.return.undefined': 'Bu aralık için tanımsız',
-  // The return card's "% | ₺" switch and its percent line's legend entry
-  // (GLG-954): the line is always time-weighted, so with another method it
+  // The return card's "% | ₺" switch and its percent line's legend entry:
+  // the line is always time-weighted, so with another method it
   // says so and why.
   'chart.return.unit': 'Grafik birimi',
   'chart.return.portfolio': 'Portföy',
   'chart.return.portfolioTwr': 'Portföy (zaman ağırlıklı)',
   'chart.return.portfolioTwr.hint':
     'Çizgi para giriş çıkışlarından etkilenmeyen zaman ağırlıklı getiridir, bu yüzden seçilen yöntemle hesaplanan getiriden farklı bir değerde bitebilir.',
-  // The chart header's return annualized, for ranges of a year or more (GLG-607).
+  // The chart header's return annualized, for ranges of a year or more.
   'chart.annualized': 'yıllık {value}',
   'chart.range.1m': '1A',
   'chart.range.3m': '3A',
@@ -937,7 +936,7 @@ export const tr = {
   'error.limit': 'Limit pozitif bir tam sayı olmalı.',
   'error.field.reporting_currency': 'Geçersiz para birimi.',
   'error.field.note': 'Not en fazla 500 karakter olmalı.',
-  // Each language named in itself; the locale switcher (GLG-147) lists these.
+  // Each language named in itself; the locale switcher lists these.
   'language.tr': 'Türkçe',
   'language.en': 'English',
 } as const
@@ -1282,8 +1281,8 @@ const en: Strings = {
   'transactions.loading': 'Loading transactions...',
   'session.loading': 'Loading session...',
   'page.loading': 'Loading page...',
-  // GLG-153: added to tr by GLG-141 while GLG-146 was adding this table, so
-  // they landed on main without each other and left en short two keys.
+  // Added to tr while the en table was being written, so they landed on main
+  // without each other and left en short two keys.
   'transactions.loadMore': 'Load more',
   'transactions.loadingMore': 'Loading...',
   'transactions.error': 'Could not load transactions',
@@ -1843,7 +1842,7 @@ document.documentElement.lang = store.get()
 
 export const getLocale = store.get
 export const setLocale = store.set
-// Re-renders the caller on every locale switch. The root component (GLG-147)
+// Re-renders the caller on every locale switch. The root component
 // reads it so the whole tree picks up the new strings while the `t()` call
 // sites stay plain function calls.
 export const useLocale = store.use

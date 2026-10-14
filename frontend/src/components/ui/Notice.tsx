@@ -7,9 +7,9 @@ const tones = {
 }
 
 // `warn` for advice the user may act on; `error` for what failed or blocks
-// the next step (GLG-794). An alert is an error unless told otherwise.
-// `role="alert"` is for an error, after a user action (GLG-436) or a failed
-// load (GLG-455), so screen readers announce it; static warnings leave it off.
+// the next step. An alert is an error unless told otherwise.
+// `role="alert"` is for an error, after a user action or a failed
+// load, so screen readers announce it; static warnings leave it off.
 export function Notice({
   children,
   role,

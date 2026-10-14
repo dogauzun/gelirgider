@@ -40,7 +40,7 @@ export function FilterSheet({
 }
 
 // The search text is held here, not by the page, so a keystroke renders the
-// input alone and not every loaded row (GLG-1168). Picking an instrument
+// input alone and not every loaded row. Picking an instrument
 // swaps this for the chip, so the text starts empty the next time it shows.
 function InstrumentFilter({
   onSelect,

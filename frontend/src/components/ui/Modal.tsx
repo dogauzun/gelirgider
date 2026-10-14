@@ -14,7 +14,7 @@ type ModalProps = Omit<
 // transparent, so the caller's panel inside sets the look.
 export function Modal({ ref, onClose, children, ...props }: ModalProps) {
   return (
-    // eslint-disable-next-line no-restricted-syntax
+    // eslint-disable-next-line no-restricted-syntax -- the one dialog shell
     <dialog
       {...props}
       ref={ref}

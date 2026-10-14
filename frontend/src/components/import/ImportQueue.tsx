@@ -16,12 +16,11 @@ const queueTone = {
   undone: 'cash',
 } as const
 
-// The statements of a multi-file import in the order they are reviewed
-// (GLG-577): by period, then currency, the ones that could not be read last.
+// The statements of a multi-file import in the order they are reviewed:
+// by period, then currency, the ones that could not be read last.
 // `current` is the one in review; the page shows "Bitti" (ImportDone) instead
-// once the last one is done (GLG-967). `reviewable` is how many files the upfront parse queued for review: a
-// duplicate or an unreadable file is never shown, so it is not counted
-// (GLG-786).
+// once the last one is done. `reviewable` is how many files the upfront parse queued for review: a
+// duplicate or an unreadable file is never shown, so it is not counted.
 export function ImportQueue({
   queue,
   current,
@@ -36,8 +35,7 @@ export function ImportQueue({
   portfolioId: number
 }) {
   // While a statement is in review the full list pushed the preview below
-  // the fold on a phone, so it folds to one line naming the file (GLG-790,
-  // GLG-967).
+  // the fold on a phone, so it folds to one line naming the file.
   const [expanded, setExpanded] = useState(false)
   const folded = !reading && !expanded
   return (
@@ -58,9 +56,9 @@ export function ImportQueue({
           <>
             {' · '}
             <span className="font-medium break-all text-ink">{queue[current]?.file.name}</span>
-            {/* Midas names its TRY and USD statements alike (GLG-1194). */}
+            {/* Midas names its TRY and USD statements alike. */}
             {queue[current]?.currency && ` · ${queue[current].currency}`}
-            {/* The same-period note stays in sight while folded (GLG-1183). */}
+            {/* The same-period note stays in sight while folded. */}
             {queue[current]?.reason && ` · ${queue[current].reason}`}
             {' · '}
             <button
@@ -122,7 +120,7 @@ export function ImportQueue({
 }
 
 // The parse failures worth naming: a re-upload of a statement already in the
-// portfolio or in another one (GLG-1182), and a file over the endpoint's
+// portfolio or in another one, and a file over the endpoint's
 // limit. Everything else is the server's own message, already translated by
 // apiFetch.
 export function ParseError({

@@ -16,14 +16,14 @@ import { NotFoundPage, SignedOutNotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { SetupGate, SetupPage } from './pages/SetupPage'
 
-// The signed-in pages load as one chunk each, on first visit (GLG-1242), so
+// The signed-in pages load as one chunk each, on first visit, so
 // the login page does not ship them. A navigation is a transition, so the
 // page on screen stays until the next one's chunk arrives; only a cold load
 // shows the fallback. The same ponytail as LazyChart.tsx: a failed fetch
 // stays failed until a reload, and an ErrorBoundary shows it.
 // The app shell and setup step 2 load the same way, so the login page ships
 // neither the shell's account menu (Base UI Menu, floating-ui) nor the admin
-// sections (GLG-1259).
+// sections.
 const AppShell = lazyNamed(() => import('./components/AppShell'), 'AppShell')
 const SetupConfigurePage = lazyNamed(
   () => import('./pages/SetupConfigurePage'),
@@ -47,8 +47,8 @@ const queryClient = new QueryClient({
 // a straight null, so a stray 401 cannot log out a session that still works.
 setSessionExpiredHandler(() => queryClient.invalidateQueries({ queryKey: meQueryKey }))
 
-// A 403 "admin only" means the user was demoted while an admin page was open
-// (GLG-1023). The server answered for the user in me, so drop the flag at
+// A 403 "admin only" means the user was demoted while an admin page was open.
+// The server answered for the user in me, so drop the flag at
 // once: the admin page and its sidebar link go, and the page's own error line
 // with them, so the toast says why. Only on the first such answer: the
 // admin page's other requests in flight would repeat it. Then re-check me.
@@ -68,9 +68,9 @@ dropDataOnUserChange(queryClient)
 function focusPath(): number[] | null {
   const path: number[] = []
   let node = document.activeElement
-  // eslint-disable-next-line no-restricted-syntax
+  // eslint-disable-next-line no-restricted-syntax -- walks the focus path from <body>, not a focus restore
   if (node === null || node === document.body) return null
-  // eslint-disable-next-line no-restricted-syntax
+  // eslint-disable-next-line no-restricted-syntax -- walks the focus path from <body>, not a focus restore
   while (node !== document.body) {
     const parent: Element | null = node.parentElement
     if (parent === null) return null
@@ -95,14 +95,14 @@ export function App() {
   // the keyed subtree: cached data and the current URL survive the switch,
   // in-progress form input does not.
   const key = useLocale()
-  // Privacy mode (GLG-564) is read by the format helpers during render too.
+  // Privacy mode is read by the format helpers during render too.
   // Subscribing here re-renders App, and with it every component below (none
   // is memoised), so they re-run without a remount: component state, such as
-  // the range before a zoom or the Katkı card's choice, survives (GLG-1031).
+  // the range before a zoom or the Katkı card's choice, survives.
   usePrivacy()
 
   // The remount destroys the focused control, the very button that made the
-  // switch, and focus drops to <body> (GLG-681). Note where it was while the
+  // switch, and focus drops to <body>. Note where it was while the
   // old tree is still mounted, and focus its replacement after the commit.
   const [mounted, setMounted] = useState<{ key: string; focus: number[] | null }>({
     key,
@@ -163,16 +163,16 @@ export function App() {
                       </ProtectedRoute>
                     }
                   >
-                    {/* Tüm portföyler is the home page (GLG-935). */}
+                    {/* Tüm portföyler is the home page. */}
                     <Route path="/" element={<Navigate to="/portfolios/all" replace />} />
                     <Route path="/account" element={<AccountPage />} />
                     <Route path="/admin" element={<AdminPage />} />
-                    {/* The sidebar keeps the tab on a portfolio switch
-                      (GLG-875), Back and Forward cross portfolios too, and
+                    {/* The sidebar keeps the tab on a portfolio switch,
+                       Back and Forward cross portfolios too, and
                       the router keeps the mounted page when only :id changes.
                       Every portfolio page is keyed by it, so a switch starts
                       the page over instead of carrying one portfolio's
-                      preview, rows or open dialog into the other (GLG-1062).
+                      preview, rows or open dialog into the other.
                       No child takes the rest of the path, so an unknown
                       sub-path falls to the not-found route below. */}
                     <Route path="/portfolios/:id" element={<PerPortfolio />}>
@@ -185,8 +185,8 @@ export function App() {
                     </Route>
                   </Route>
                   {/* An unknown URL: inside the shell when signed in, the
-                    signed-out frame for a visitor (GLG-970), nothing while
-                    the session loads (GLG-882). The same element as the
+                    signed-out frame for a visitor, nothing while
+                    the session loads. The same element as the
                     layout above, at the same place, so React keeps one shell
                     mounted between them. */}
                   <Route

@@ -1,7 +1,7 @@
 import { t } from '../../i18n/strings'
 import { Icon } from '../ui/Icon'
 
-// The three steps of an import under the tabs (GLG-965). `batch.index` is the
+// The three steps of an import under the tabs. `batch.index` is the
 // statement in review counted from 0, like the page's `turn`.
 export function ImportSteps({
   step,
@@ -11,7 +11,7 @@ export function ImportSteps({
   batch?: { index: number; total: number }
 }) {
   const count = batch && { n: batch.index + 1, total: batch.total }
-  // Below `sm` a batch shows only the counter so the steps stay on one line (GLG-1054).
+  // Below `sm` a batch shows only the counter so the steps stay on one line.
   const labels = [
     t('import.steps.choose'),
     count ? (

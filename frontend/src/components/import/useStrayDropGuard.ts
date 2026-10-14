@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 // A file dropped outside the zone would open in the tab and leave the app,
 // losing a preview under review. The import page calls this for as long as
 // it is mounted, so such a drop does nothing in every step, also while the
-// zone is gone (GLG-1052).
+// zone is gone.
 export function useStrayDropGuard() {
   useEffect(() => {
     const block = (event: globalThis.DragEvent) => {

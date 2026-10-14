@@ -54,7 +54,7 @@ export function useRange(): [RangeValue, (next: RangeValue) => void] {
   return [parse(params, todayIstanbul()), set]
 }
 
-// Drag to zoom (GLG-949) for a page's chart and range picker: onZoom sets the
+// Drag to zoom for a page's chart and range picker: onZoom sets the
 // dragged span as an Özel range and remembers the range before the first
 // zoom, and onClear returns to it. The memory is component state: without one
 // (after a reload, or Özel filled in by hand) onClear returns to the default

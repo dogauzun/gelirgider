@@ -11,7 +11,7 @@ import { TAP_Y } from './ui/tap'
 // How many of the best and of the worst the card shows before "Tümünü göster".
 const LIMIT = 4
 
-// The Katkı card (GLG-948): one bar per open position on a shared zero line,
+// The Katkı card: one bar per open position on a shared zero line,
 // a gain to the right and a loss to the left, the longest spanning half the
 // track, with the signed amount in the reporting currency at the row's end.
 // Plain HTML, not Recharts: the card does not wait for the charts chunk, and

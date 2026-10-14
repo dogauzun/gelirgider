@@ -32,8 +32,8 @@ const toNumber = (v: string | null | undefined) => (v == null ? null : Number(v)
 
 // ReturnBars draws the last 24 month buckets of the periods endpoint as
 // grouped bars, the portfolio's return by the chosen method and, when a
-// benchmark is chosen, the benchmark's, on a percent axis with a zero line
-// (GLG-956). Sizing, tokens, the keyboard and the animation follow BarChart.
+// benchmark is chosen, the benchmark's, on a percent axis with a zero line.
+// Sizing, tokens, the keyboard and the animation follow BarChart.
 // A null return draws no bar and the tooltip says so; the benchmark series
 // is drawn only when some month has its value. Fractions are drawn as
 // numbers: they are ratios, not money (ADR 0011).
@@ -103,7 +103,7 @@ export function ReturnBars({ buckets, method, benchmarkLabel, height = 200 }: Re
   const minPointSize = (value: number | null | undefined) => (value === 0 ? 1 : 0)
 
   return (
-    // A mouse press takes no focus (pressWithoutFocus, GLG-1034).
+    // A mouse press takes no focus (pressWithoutFocus).
     <div onMouseDown={pressWithoutFocus}>
       <RechartsBarChart
         {...BAR_FRAME}

@@ -3,7 +3,7 @@ import { Button } from './Button'
 import { Icon } from './Icon'
 
 // A query that failed to load: what failed, the translated server message,
-// and a Retry that refetches it (GLG-771). It is an alert so screen readers
+// and a Retry that refetches it. It is an alert so screen readers
 // announce the failure; a second view of the same failure passes
 // announce={false} so it is heard once.
 export function LoadError({

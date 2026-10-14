@@ -61,7 +61,7 @@ function absolute(iso: string): string {
 
 // "4 Eki 14:05" in Istanbul time, with the year when it is not this year's.
 // A stale pill shows this: 47 h and 49 h back both read "evvelsi gün", so
-// the relative text could not say why only one is flagged (GLG-1057).
+// the relative text could not say why only one is flagged.
 function exact(iso: string): string {
   const year = (at: string) =>
     formatMarketDate(at, { timeZone: 'Europe/Istanbul', year: 'numeric' })
@@ -139,7 +139,7 @@ function SourceRow({
   const save = useSaveSource(source.name)
   const run = useRunSource(source.name)
   const fill = useBackfill(source.name, toastQueued)
-  // One per action: each sends its request once per click (GLG-1292), and the
+  // One per action: each sends its request once per click, and the
   // three still run side by side.
   const saveOnce = useOneAtATime()
   const runOnce = useOneAtATime()
@@ -158,8 +158,7 @@ function SourceRow({
   const success = source.last_success_at
   const when = success ? (stale ? exact : relative)(success) : t('admin.sources.never')
   const notice = source.enabled && missingKeys.length > 0
-  // TEFAS is opt-in: its endpoint is disallowed by the site's robots.txt
-  // (GLG-1114).
+  // TEFAS is opt-in: its endpoint is disallowed by the site's robots.txt.
   const tefasNote = source.name === 'tefas'
   // A failed run, an action error, the missing key note or the TEFAS note
   // sits in a row of its own under the source, which then carries the row's
@@ -174,7 +173,7 @@ function SourceRow({
       >
         {/* From md the source column takes the width left over, and its
             description truncates rather than pushing the actions onto two
-            lines (GLG-1071). */}
+            lines. */}
         <td
           className={`${CELL} ${border} py-1.5 max-md:col-start-2 max-md:row-start-1 md:w-full md:max-w-0`}
         >
@@ -188,7 +187,7 @@ function SourceRow({
         </td>
         <td className={`${CELL} ${border} max-md:col-start-1 max-md:row-start-1`}>
           {/* A 44 px tap target around the 16 px box; the negative margin
-              keeps the row's layout as it was (GLG-1071). */}
+              keeps the row's layout as it was. */}
           <label className="-m-3.5 flex size-11 cursor-pointer items-center justify-center">
             <Checkbox
               aria-label={t('admin.sources.enabledLabel', { source: source.name })}
@@ -208,7 +207,7 @@ function SourceRow({
             <span className="text-muted text-[12px] md:hidden">{t('admin.sources.at')}</span>
             {/* At least 112 px, and as wide as the native control's content:
                 Chromium lays it out by the browser locale, not <html lang>,
-                and a 12-hour one adds AM/PM, about 120 px (GLG-1096). */}
+                and a 12-hour one adds AM/PM, about 120 px. */}
             <span className="min-w-28">
               <input
                 type="time"

@@ -84,7 +84,7 @@ function Label({ item, children }: { item: AttentionItem; children: ReactNode })
 // when `portfolioId` is given; Tüm portföyler leaves it out. `busy` is a
 // dividend request in flight: Ekle and Yoksay ignore clicks meanwhile, so a
 // second click cannot book the same dividend twice. They stay enabled, as
-// Button's `pending` does (GLG-920), so focus stays on them. `editingPrice`
+// Button's `pending` does, so focus stays on them. `editingPrice`
 // is the price editor that Fiyat gir or Güncelle opened, still open.
 export function AttentionCard({
   items,
@@ -118,9 +118,9 @@ export function AttentionCard({
   )
 
   // Ekle and Yoksay remove the focused button once the expected list has
-  // refetched, dropping focus to <body> (GLG-1007); a price saved from Fiyat
-  // gir or Güncelle does the same once the summary has (GLG-1145). Then, as
-  // the Temettü tab does (GLG-442), move focus to the same button of the
+  // refetched, dropping focus to <body>; a price saved from Fiyat
+  // gir or Güncelle does the same once the summary has. Then, as
+  // the Temettü tab does, move focus to the same button of the
   // next item, else the previous one's, else the card's heading -- unless
   // the user has already moved it elsewhere. A failed request or a cancelled
   // editor leaves the item: forget it.

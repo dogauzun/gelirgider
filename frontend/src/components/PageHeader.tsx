@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 // The header of a page that is not a portfolio page: a 20 px title, an
 // optional muted line under it, optional actions on the right. Below lg the
 // top bar shows the title, so the h1 is for screen readers only there, as on
-// the portfolio pages (GLG-940).
+// the portfolio pages.
 export function PageHeader({
   title,
   description,

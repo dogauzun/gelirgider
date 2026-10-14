@@ -10,13 +10,13 @@ import { marketLabel, t } from '../i18n/strings'
 // (after a successful add, or switching what's being edited) just flows down
 // as a prop instead of needing an effect to re-sync local state.
 //
-// On Base UI Autocomplete (ADR 0023, GLG-1285): focus stays in the input,
+// On Base UI Autocomplete (ADR 0023): focus stays in the input,
 // ArrowUp/Down move the highlighted option, Enter picks it, Escape closes the
-// list (GLG-323).
+// list.
 //
 // `selected` says the text is a picked instrument's label, which the search
 // cannot match: focusing it neither searches nor says "no results"; the
-// first keystroke clears the pick and searches again (GLG-1305).
+// first keystroke clears the pick and searches again.
 export function InstrumentSearchInput({
   value,
   selected = false,
@@ -44,7 +44,7 @@ export function InstrumentSearchInput({
   // While the list is open, Base UI 1.8 puts a hidden button for screen
   // readers right before the input and right after the popup, named
   // "Dismiss" in English; no prop renames it or drops it while the input sits
-  // outside the popup (GLG-1322). Both exist once the popup mounts, and React
+  // outside the popup. Both exist once the popup mounts, and React
   // leaves the attribute alone afterwards, as its own prop never changes.
   const nameDismissButtons = (popup: HTMLElement | null) => {
     for (const button of [inputRef.current?.previousElementSibling, popup?.nextElementSibling]) {
@@ -62,18 +62,18 @@ export function InstrumentSearchInput({
 
   const { data, isPending } = useInstrumentSearch(debounced)
   // Until the delay ends the results belong to the previous text; listing
-  // them let ArrowDown and Enter pick from the old search (GLG-991).
+  // them let ArrowDown and Enter pick from the old search.
   const stale = query !== debounced
   const results = stale ? undefined : data
   const listOpen = open && !!results && results.length > 0
   // A full page may hide matches past the cap; say so instead of a count
-  // that reads like every match (GLG-1192). Exactly SEARCH_LIMIT matches
+  // that reads like every match. Exactly SEARCH_LIMIT matches
   // look the same, and keeping on typing is still the way to narrow them.
   const capped = listOpen && results.length >= SEARCH_LIMIT
   // `results` stays undefined until the current query settles (a new query
   // key has no cached data), so an empty array means "searched, found
-  // nothing" and not "still loading" (GLG-225). While it is in flight the
-  // popup says so instead of showing nothing (GLG-812).
+  // nothing" and not "still loading". While it is in flight the
+  // popup says so instead of showing nothing.
   const settledEmpty = debounced.length > 0 && results?.length === 0
   const statusText =
     !open || stale
@@ -84,7 +84,7 @@ export function InstrumentSearchInput({
           ? t('search.noResults')
           : null
   // Screen readers hear the outcome of each settled search through a polite
-  // live region; it stays mounted so changes to it are announced (GLG-812).
+  // live region; it stays mounted so changes to it are announced.
   const announcement = !open
     ? ''
     : capped
@@ -127,11 +127,11 @@ export function InstrumentSearchInput({
       <Autocomplete.Status className="sr-only">{announcement}</Autocomplete.Status>
       <Autocomplete.Portal container={dialogRef}>
         {/* Above the sticky app header (z-20), as Menu. Base UI flips it
-            above the input when there is no room below (GLG-440) and keeps
+            above the input when there is no room below and keeps
             it inside the viewport. */}
         <Autocomplete.Positioner sideOffset={4} align="start" collisionPadding={8} className="z-30">
           {/* At least 22rem, so a narrow box (the import table's symbol
-              cell) does not cut names to "Vangua…" (GLG-789). */}
+              cell) does not cut names to "Vangua…". */}
           <Autocomplete.Popup
             ref={nameDismissButtons}
             className="bg-surface text-ink flex max-h-[min(16rem,var(--available-height))] w-[max(var(--anchor-width),min(22rem,calc(100vw-1rem)))] flex-col rounded-card shadow-pop outline-none"
@@ -145,7 +145,7 @@ export function InstrumentSearchInput({
                     key={instrument.id}
                     value={instrument}
                     onClick={() => onSelect(instrument)}
-                    // The Menu and Select item look (GLG-885).
+                    // The Menu and Select item look.
                     className={menuItemClass}
                   >
                     <span className="text-ink shrink-0 font-semibold">{instrument.symbol}</span>

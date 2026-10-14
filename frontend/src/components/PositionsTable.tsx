@@ -101,7 +101,7 @@ const COLUMNS: Column[] = [
   { key: 'pl', label: 'summary.pl', value: (p) => unrealized(p).amount },
 ]
 
-// The closed view's columns (GLG-1101). Realized P/L sorts by its reporting
+// The closed view's columns. Realized P/L sorts by its reporting
 // amount, as K/Z does: the cells are in each position's own currency.
 const CLOSED_COLUMNS: Column[] = [
   { key: 'symbol', label: 'summary.symbol', value: (p) => p.symbol },
@@ -129,7 +129,7 @@ function sortPositions(positions: Position[], columns: Column[], sort: Sort<Sort
   })
 }
 
-// A manual price (GLG-134) or a fetched one too old for its market (GLG-557),
+// A manual price or a fetched one too old for its market,
 // as a small pill after the price with the explanation in its toggletip.
 function pricePill(position: Position) {
   const date = position.price_date
@@ -149,10 +149,10 @@ function pricePill(position: Position) {
   )
 }
 
-// The symbol opens the position page (GLG-549) with the chart's range; the
+// The symbol opens the position page with the chart's range; the
 // read-only `all` scope has no position page, so there it is plain text (ADR
 // 0014). A phone row is plain text too: the row opens the position dialog,
-// whose title links to the page (GLG-1105).
+// whose title links to the page.
 function SymbolLink({
   position,
   portfolioId,
@@ -176,7 +176,7 @@ function SymbolLink({
   )
 }
 
-// What makes a row open the position dialog (GLG-1105): a click or tap
+// What makes a row open the position dialog: a click or tap
 // anywhere but its links and buttons (the symbol, a toggletip, the ⋮
 // trigger), and Enter on the focused row. The ⋮ menu's popup is portaled out
 // of the row, so its cell stops its clicks instead.
@@ -196,7 +196,8 @@ const OPENER =
   'cursor-pointer outline-accent hover:bg-raised-hover focus-visible:outline-2 focus-visible:-outline-offset-2'
 
 // The badges after a name: the currency when it is not the reporting one, a
-// split (GLG-276), and a negative quantity (GLG-25 keeps those visible).
+// split, and a negative quantity (a negative position is deliberate, so it
+// stays visible).
 function Tags({ position, reporting }: { position: Position; reporting: string }) {
   const splits = position.splits ?? []
   const splitLabel =
@@ -341,13 +342,13 @@ function PositionRow({
   )
 }
 
-// A closed position's realized P/L over the cost of the shares it sold
-// (GLG-1100), by the one return rule.
+// A closed position's realized P/L over the cost of the shares it sold,
+// by the one return rule.
 function realizedRatio(position: Position): number | null {
   return returnRatio(position.realized_pl, position.realized_cost)
 }
 
-// A closed position (GLG-218): only the realized P/L it left behind, and its
+// A closed position: only the realized P/L it left behind, and its
 // percent.
 function ClosedRow({
   position,
@@ -400,7 +401,7 @@ function ListItemName({
 // The phone row: the table has no honest layout under md, so it is a list
 // rather than a horizontally scrolling table (ADR 0005). The symbol and name
 // on the left, value, P/L and day change on the right; the whole row opens
-// the position dialog (GLG-1105), which carries the rest.
+// the position dialog, which carries the rest.
 function PositionListItem({
   position,
   portfolioId,
@@ -490,11 +491,11 @@ function searchFold(text: string): string {
   return text.replace(/[çÇğĞıİöÖşŞüÜ]/g, (c) => TURKISH_ASCII[c]).toLowerCase()
 }
 
-// The positions card of Özet and Tüm portföyler (GLG-933): 40px rows sorted
-// by a header click, Değer descending first (Kapalı: Gerçekleşmiş K/Z,
-// GLG-1101); a row menu with Al, Sat, Fiyat gir and, for a manual price, Elle
-// fiyatı kaldır; an Açık | Kapalı switch; a search on symbol and name
-// (GLG-1102); a row opens the position dialog (GLG-1105), which flips
+// The positions card of Özet and Tüm portföyler: 40px rows sorted
+// by a header click, Değer descending first (Kapalı: Gerçekleşmiş K/Z);
+// a row menu with Al, Sat, Fiyat gir and, for a manual price, Elle
+// fiyatı kaldır; an Açık | Kapalı switch; a search on symbol and name;
+// a row opens the position dialog, which flips
 // through the rows as shown.
 // The page owns what the menu and the dialog's buttons open, through the
 // handlers. The `all` scope is read-only: no menu, symbols as plain text
@@ -522,7 +523,7 @@ export function PositionsTable({
   const [range] = useRange()
   const desktop = useIsDesktop()
   const reporting = summary.currency
-  // A quantity of 0 alone is not closed (GLG-827).
+  // A quantity of 0 alone is not closed.
   const open = sortPositions(
     summary.positions.filter((p) => !p.closed),
     COLUMNS,
@@ -534,7 +535,7 @@ export function PositionsTable({
     sorts.closed,
   )
   // Both sides folded to ASCII, so "bimas" finds BIMAS and "hisse" finds
-  // "HİSSE SENEDİ" in either locale (GLG-1143). The filter only narrows the
+  // "HİSSE SENEDİ" in either locale. The filter only narrows the
   // rows shown: the switch, the weight bars and the AI copy still go by every
   // position.
   const query = searchFold(search.trim())
@@ -542,13 +543,13 @@ export function PositionsTable({
     searchFold(p.symbol).includes(query) || searchFold(p.name).includes(query)
   const openRows = query ? open.filter(matches) : open
   const closedRows = query ? closed.filter(matches) : closed
-  // The total row is the server's figure for every open position (GLG-976),
+  // The total row is the server's figure for every open position,
   // which would read as the sum of the matching rows, so it hides meanwhile.
   const showTotal = open.length > 0 && !query
   const total = weightTotal(summary)
   const largest = Math.max(...open.map((p) => weightOf(p, total) ?? 0))
 
-  // The server's own totals (GLG-976): the rows are rounded one by one, so
+  // The server's own totals: the rows are rounded one by one, so
   // their sum can be a cent off the KPI cards. With no row in the reporting
   // currency the value total is unknown, not the server's zero.
   const totalValue = open.some((p) => p.market_value_reporting !== null)
@@ -727,15 +728,15 @@ export function PositionsTable({
         </div>
       </div>
 
-      {/* Only the layout matching the viewport is built (GLG-460). The table
-          scrolls sideways at tablet widths, where it is wider than the card
-          (GLG-322); at 1280px it fits. relative: the actions header's sr-only
+      {/* Only the layout matching the viewport is built. The table
+          scrolls sideways at tablet widths, where it is wider than the card;
+          at 1280px it fits. relative: the actions header's sr-only
           label is absolute, so without a positioned scroller it escapes the
-          clip and scrolls the whole page (GLG-679). */}
+          clip and scrolls the whole page. */}
       {desktop ? (
         <div className="relative overflow-x-auto">{table}</div>
       ) : (
-        // Room under the last row for the floating add button (GLG-933).
+        // Room under the last row for the floating add button.
         <div className="pb-14">
           <ul>
             {showClosed && closedRows.length > 0 ? (

@@ -1,18 +1,18 @@
 import { getLocale } from '../i18n/strings'
 import { getPrivacy } from './privacy'
 
-// What privacy mode shows in place of a money amount (GLG-564). Quantities
+// What privacy mode shows in place of a money amount. Quantities
 // and percentages stay visible, so formatNumber and signedPercent never mask.
 export const MASK = '•••'
 
-// What every page shows for a value it does not have (GLG-809), never a zero.
+// What every page shows for a value it does not have, never a zero.
 export const MISSING = '—'
 
 // Display formatters that follow the active locale. A module-level
 // `const formatter = new Intl.NumberFormat(...)` is evaluated once at import
 // and never notices a runtime locale switch, so formatters are kept per
 // locale and options instead: building one per call was a large part of the
-// transactions page's render time at a thousand rows (GLG-431).
+// transactions page's render time at a thousand rows.
 const formatters = new Map<string, Intl.NumberFormat>()
 
 function formatter(options?: Intl.NumberFormatOptions): Intl.NumberFormat {
@@ -28,15 +28,15 @@ function formatter(options?: Intl.NumberFormatOptions): Intl.NumberFormat {
 
 export function formatNumber(value: string | number, options?: Intl.NumberFormatOptions): string {
   // A string goes in as is: Intl formats it as an exact decimal, where
-  // Number() would round a large amount's cents (GLG-631).
+  // Number() would round a large amount's cents.
   return formatter(options).format(typeof value === 'string' ? (value as `${number}`) : value)
 }
 
 // Formats with the value's own currency, so a USD figure carries a $ and a
 // TRY figure a ₺ -- never a bare number with no currency shown. narrowSymbol:
-// the `en` locale has no TRY symbol and would print "TRY 1,234.50" (GLG-270).
+// the `en` locale has no TRY symbol and would print "TRY 1,234.50".
 // signDisplay 'negative': an amount that rounds to zero, such as a sub-cent
-// difference, reads "$0,00", never "-$0,00" (GLG-1186).
+// difference, reads "$0,00", never "-$0,00".
 export function formatMoney(value: string | number, currency: string): string {
   if (getPrivacy()) return MASK
   return formatNumber(value, {
@@ -48,12 +48,12 @@ export function formatMoney(value: string | number, currency: string): string {
 }
 
 // A short money figure for a narrow slot, the sidebar's portfolio rows:
-// "₺1,28 Mn" in tr (GLG-875). Intl's compact currency output depends on the
-// runtime's CLDR data: ICU 77 prints "1,28 Mn ₺" and "842,00 B ₺" (GLG-891).
+// "₺1,28 Mn" in tr. Intl's compact currency output depends on the
+// runtime's CLDR data: ICU 77 prints "1,28 Mn ₺" and "842,00 B ₺".
 // So the number is formatted compactly on its own and put where formatMoney
 // puts the digits, which keeps the sign and symbol where formatMoney has them.
 // `rounding` overrides the 2-decimal cap; `{}` keeps Intl's compact default,
-// which BarChart's narrow y-axis ticks need (GLG-893).
+// which BarChart's narrow y-axis ticks need.
 const NUMBER_PARTS = new Set(['integer', 'group', 'decimal', 'fraction'])
 
 export function formatCompactMoney(
@@ -127,10 +127,10 @@ export function plTone(value: string | number | null): string {
 
 // Unit prices (avg cost, last price, a transaction's price) keep source
 // precision: TEFAS NAVs carry 6 decimals and often sit below 1 TL, so 2
-// decimals would misstate them. Money totals stay on formatMoney (GLG-237).
-// An average cost is a division result, so callers cap it at 6 (GLG-272).
+// decimals would misstate them. Money totals stay on formatMoney.
+// An average cost is a division result, so callers cap it at 6.
 // Below 1 the cap counts from the first nonzero digit, or a coin at
-// 0.00000874 would round to 0.000009 (GLG-1024). Intl allows 100 at most.
+// 0.00000874 would round to 0.000009. Intl allows 100 at most.
 export function formatUnitPrice(value: string | number, currency: string, maxDigits = 9): string {
   if (getPrivacy()) return MASK
   const n = Math.abs(Number(value))

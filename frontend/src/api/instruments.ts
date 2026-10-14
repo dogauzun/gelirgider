@@ -32,7 +32,7 @@ interface NewInstrument {
   currency: string
 }
 
-// Admin only (GLG-561). Idempotent: a known market+symbol answers with the
+// Admin only. Idempotent: a known market+symbol answers with the
 // existing instrument.
 function createInstrument(instrument: NewInstrument): Promise<Instrument> {
   return apiFetch<Instrument>('/api/admin/instruments', {

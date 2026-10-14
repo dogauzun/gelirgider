@@ -5,12 +5,12 @@ import { Icon } from './ui/Icon'
 import { Menu, MenuItem, MenuLink } from './ui/Menu'
 
 // The signed-in user's menu, at the foot of the sidebar and in the small-screen
-// top bar (GLG-875): the account page and the logout. Yönetim is the
-// sidebar's own row, in the drawer below `lg` (GLG-876). `wide` is the
+// top bar: the account page and the logout. Yönetim is the
+// sidebar's own row, in the drawer below `lg`. `wide` is the
 // sidebar's: the trigger fills its row and always shows the email, truncated,
 // the drawer included; the top bar has room for the initial only below `sm`,
 // and there the trigger keeps its size: the page title is the bar's only
-// item that shrinks (GLG-882).
+// item that shrinks.
 export function AccountMenu({ wide = false }: { wide?: boolean }) {
   const { data: me } = useMe()
   const navigate = useNavigate()

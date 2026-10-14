@@ -29,8 +29,8 @@ export interface Transaction {
   currency: string
   note: string | null
   created_at: string
-  // The import this transaction came from, null when it was entered by hand
-  // (GLG-201). Read-only: it is set by the commit endpoint, never sent back.
+  // The import this transaction came from, null when it was entered by hand.
+  // Read-only: it is set by the commit endpoint, never sent back.
   import_id: number | null
 }
 
@@ -54,8 +54,7 @@ const transactionsQueryKey = (portfolioId: number) =>
 
 // Rows per request. The server defaults to 100 and caps at 500 (see
 // backend/internal/transaction/handlers.go); 100 keeps the response and the
-// rendered table small on a portfolio with thousands of transactions
-// (GLG-141).
+// rendered table small on a portfolio with thousands of transactions.
 const PAGE_SIZE = 100
 
 export interface TransactionPage {
@@ -66,13 +65,13 @@ export interface TransactionPage {
 }
 
 // ImportFilter narrows the list to one import's rows (an id from
-// useImports) or, as 'none', to the rows entered by hand (GLG-931).
+// useImports) or, as 'none', to the rows entered by hand.
 export type ImportFilter = number | 'none'
 
 // TransactionFilter narrows the list. types to those transaction types,
-// instrumentId to one instrument's rows (GLG-333), from and to to an
-// inclusive YYYY-MM-DD date range (GLG-601), and importId to one import's
-// rows or the hand-entered ones (GLG-931). Every field is optional: an empty
+// instrumentId to one instrument's rows, from and to to an
+// inclusive YYYY-MM-DD date range, and importId to one import's
+// rows or the hand-entered ones. Every field is optional: an empty
 // filter is the whole list.
 export interface TransactionFilter {
   types?: TransactionType[]
@@ -94,11 +93,11 @@ function filterQuery({
 }: TransactionFilter): URLSearchParams {
   const query = new URLSearchParams()
   // The filter has to be a query parameter: paging is server-side, so
-  // filtering on the client would only filter the loaded pages (GLG-173).
+  // filtering on the client would only filter the loaded pages.
   if (types && types.length > 0) query.set('type', types.join(','))
   if (instrumentId) query.set('instrument_id', String(instrumentId))
   if (importId) query.set('import_id', String(importId))
-  // Inclusive YYYY-MM-DD bounds (GLG-601).
+  // Inclusive YYYY-MM-DD bounds.
   if (from) query.set('from', from)
   if (to) query.set('to', to)
   return query
@@ -122,7 +121,7 @@ async function fetchTransactions(
 
 // transactionsCsvUrl is the CSV export link for the list with these filters.
 // A plain link, not a fetch: the browser sends the session cookie and saves
-// the file under the server's name (GLG-602).
+// the file under the server's name.
 export function transactionsCsvUrl(portfolioId: number, filter: TransactionFilter = {}): string {
   const search = filterQuery(filter).toString()
   return `/api/portfolios/${portfolioId}/transactions.csv${search ? `?${search}` : ''}`
@@ -146,8 +145,7 @@ function updateTransaction(id: number, input: TransactionInput): Promise<Transac
 }
 
 // keepalive: the transactions page defers a delete behind its undo toast and
-// sends it when the page is left, which would otherwise cancel the request
-// (GLG-795).
+// sends it when the page is left, which would otherwise cancel the request.
 function deleteTransaction(id: number): Promise<void> {
   return apiFetch<void>(`/api/transactions/${id}`, { method: 'DELETE', keepalive: true })
 }
@@ -203,8 +201,8 @@ export function useUpdateTransaction(portfolioId: number) {
   })
 }
 
-// The delete may land after its page is gone (it waits behind an undo toast,
-// GLG-795): once the open lists have refetched, cached lists that are not
+// The delete may land after its page is gone (it waits behind an undo toast):
+// once the open lists have refetched, cached lists that are not
 // shown are dropped, so coming back fetches them rather than painting the
 // row again.
 export function useDeleteTransaction(portfolioId: number) {
@@ -221,7 +219,7 @@ export function useDeleteTransaction(portfolioId: number) {
 // useFillCashGaps records the scope's cash gaps (useCashGaps) as deposits
 // carrying note; the server recomputes them, so no amounts are sent. It
 // answers the new transaction ids. In the all scope the deposits land in
-// several portfolios, so every portfolio query is refreshed (GLG-1109).
+// several portfolios, so every portfolio query is refreshed.
 export function useFillCashGaps(scope: PortfolioScope) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -236,11 +234,11 @@ export function useFillCashGaps(scope: PortfolioScope) {
 
 // invalidatePortfolio also refreshes the summary and history queries: a
 // transaction changes both, and their cached data would otherwise paint
-// stale totals until something else happens to refetch them (GLG-184). The
-// expected dividends follow the holdings and hide once a dividend is entered
-// (GLG-292); the dividend timeline sums the dividend rows, and shares its page
-// with the expected panel's add flow (GLG-605). The portfolio list carries
-// each portfolio's value, which the always-mounted sidebar shows (GLG-875);
+// stale totals until something else happens to refetch them. The
+// expected dividends follow the holdings and hide once a dividend is entered;
+// the dividend timeline sums the dividend rows, and shares its page
+// with the expected panel's add flow. The portfolio list carries
+// each portfolio's value, which the always-mounted sidebar shows;
 // exact, since every key above starts with 'portfolios' too.
 export function invalidatePortfolio(
   queryClient: ReturnType<typeof useQueryClient>,

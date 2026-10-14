@@ -30,7 +30,7 @@ import type { NavState } from '../lib/navState'
 import { usePortfolioTitle } from '../lib/useTitle'
 
 // The Bitti list per history entry, so Back from a statement's "İşlemlerde
-// gör" returns to it (GLG-1072).
+// gör" returns to it.
 // ponytail: module memory, gone on a full reload; history state would have to
 // structured-clone the files and ApiErrors. Kept per user, so another
 // account in this tab never gets it back. `listed` goes with it, so an
@@ -59,7 +59,7 @@ export function ImportPage() {
   useStrayDropGuard()
   const [broker, setBroker] = useState('auto')
   const [files, setFiles] = useState<File[]>([])
-  // Several files picked at once (GLG-577); null for a single file, which
+  // Several files picked at once; null for a single file, which
   // goes straight to the preview and on to the transactions page as before.
   const [restored] = useState(() => {
     const saved = doneByEntry.get(entry)
@@ -67,11 +67,11 @@ export function ImportPage() {
   })
   const [queue, setQueue] = useState<QueueItem[] | null>(restored?.items ?? null)
   // Files the drop zone refused next to a single good one, named in its
-  // review since step 1 and its message are gone (GLG-1064).
+  // review since step 1 and its message are gone.
   const [refused, setRefused] = useState<Refused[]>([])
   const [reading, setReading] = useState(false)
   // Files the upfront parse queued; they sort first, so the one in review
-  // is number turn + 1 of these (GLG-786).
+  // is number turn + 1 of these.
   const [reviewable, setReviewable] = useState(0)
   // The statement in review (reviewReducer).
   const [review, dispatch] = useReducer(reviewReducer, noReview)
@@ -84,19 +84,18 @@ export function ImportPage() {
   // no batch or its last file is done.
   const turn = queue ? queue.findIndex((item) => item.status === 'queued') : -1
   const currentFile = queue ? queue[turn]?.file : files[0]
-  // The batch's fund names every parse of the file in review sends (GLG-1181).
+  // The batch's fund names every parse of the file in review sends.
   const names = queue && turn !== -1 ? batchNames(queue, queue[turn].broker) : undefined
-  // A batch ends on this page at step 3, "Bitti" (GLG-967).
+  // A batch ends on this page at step 3, "Bitti".
   const batchDone = queue !== null && !reading && turn === -1
-  // What is on screen, for an undo that lands renders after it started
-  // (GLG-1063).
+  // What is on screen, for an undo that lands renders after it started.
   const live = useRef({ file: undefined as File | undefined, preview, rows })
   useEffect(() => {
     live.current = { file: currentFile, preview, rows }
   })
   // Every import id the imports list has shown on this page, or on the
   // visit Back returns to. Only one of these can be undone: a commit whose
-  // refetch of the list failed is not in it yet (GLG-1072).
+  // refetch of the list failed is not in it yet.
   const [listedImports, setListedImports] = useState<ReadonlySet<number>>(
     restored?.listed ?? new Set(),
   )
@@ -109,7 +108,7 @@ export function ImportPage() {
     } else doneByEntry.delete(entry)
   }, [batchDone, entry, user, portfolioId, queue, listedImports])
   // An import undone below, or anywhere else, reads as undone in the queue
-  // and on Bitti, without its link to rows that are gone (GLG-1072). It was
+  // and on Bitti, without its link to rows that are gone. It was
   // listed once and is no longer.
   const listed =
     queue?.map((item): QueueItem =>
@@ -121,18 +120,18 @@ export function ImportPage() {
         ? { ...item, status: 'undone' }
         : item,
     ) ?? null
-  // Where focus goes when an action takes its own control away (GLG-1068).
+  // Where focus goes when an action takes its own control away.
   const focusLater = useFocusLater()
   // The files of the batch after the one in review.
   const later = queue ? queue.filter((item) => item.status === 'queued').length - 1 : 0
-  // Leaving the page loses what Vazgeç would, and asks the same (GLG-1073).
+  // Leaving the page loses what Vazgeç would, and asks the same.
   const releaseLeave = useLeaveGuard(touched || later > 0, askDiscard)
 
   function showPreview(result: StatementPreview) {
     dispatch({ type: 'show', preview: result })
   }
 
-  // Choosing or dropping files starts the preview at once (GLG-965); a
+  // Choosing or dropping files starts the preview at once; a
   // wrong file costs one Vazgeç, as nothing is written before İçe aktar.
   function choose(chosen: File[], dropped: Refused[]) {
     if (chosen.length > 1) {
@@ -162,7 +161,7 @@ export function ImportPage() {
   // per host. Add one if a year of statements ever strains the server.
   async function startBatch(selected: File[], dropped: Refused[]) {
     // A batch's files live in its queue, the refused ones last as not
-    // imported with the drop zone's reason (GLG-1064).
+    // imported with the drop zone's reason.
     const refusedItems = dropped.map(({ file, reason }): QueueItem => ({
       file,
       status: 'failed',
@@ -185,7 +184,7 @@ export function ImportPage() {
   // and overlap warnings and its reconciliation depend on the statements
   // committed before it in this batch.
   // `from` is the control the user moved on with: the next review may keep
-  // it, so focus moves on from it too (GLG-1068).
+  // it, so focus moves on from it too.
   function next(items: QueueItem[], from: Element | null = null) {
     clearPreview()
     focusLater(['#import-review', '#import-done'], from)
@@ -213,7 +212,7 @@ export function ImportPage() {
 
   // An import undone below may be what the open preview's warnings and
   // likely duplicates point at, and only the server knows which: the preview
-  // is requested again and merged as after a pick (GLG-1063). This runs when
+  // is requested again and merged as after a pick. This runs when
   // the undo is back, so it reads the page as it is by then, with any pick
   // since, and leaves it alone once the batch has moved to another file.
   function reread() {
@@ -276,7 +275,7 @@ export function ImportPage() {
       return
     }
     // The statement in review was skipped by the user, the ones after it
-    // without a look; both say so (GLG-786).
+    // without a look; both say so.
     next(
       queue.map((item, index): QueueItem =>
         item.status === 'queued'
@@ -339,7 +338,7 @@ export function ImportPage() {
         )}
 
         {/* A batch hides step 1 until "Başka ekstre yükle" at its end. Upload first,
-            the history beside it from lg, stacked below (GLG-965). */}
+            the history beside it from lg, stacked below. */}
         {!preview && turn === -1 && !batchDone && (
           <div className="grid items-start gap-4 lg:grid-cols-[5fr_4fr]">
             <UploadCard

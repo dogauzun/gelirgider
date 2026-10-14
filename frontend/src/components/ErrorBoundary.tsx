@@ -4,9 +4,9 @@ import { t } from '../i18n/strings'
 interface Props {
   children: ReactNode
   // A change clears a caught error and renders the children again, without
-  // remounting them when there was none (GLG-875: the shell passes the
+  // remounting them when there was none (the shell passes the
   // pathname). A portfolio page still starts over on a portfolio switch: App
-  // keys it by the portfolio id (GLG-1062).
+  // keys it by the portfolio id.
   resetKey?: string
   // Rendered instead of the full-page fallback, e.g. inside a chart card.
   fallback?: ReactNode

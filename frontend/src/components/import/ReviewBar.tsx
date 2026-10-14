@@ -4,15 +4,15 @@ import { bottomBar } from '../../lib/bottomBar'
 import { Button } from '../ui/Button'
 import { Icon } from '../ui/Icon'
 
-// The review's totals and buttons (GLG-966), at the bottom of the screen at
-// every width, as the phone had it (GLG-791). Sticky rather than fixed: it
+// The review's totals and buttons, at the bottom of the screen at
+// every width, as the phone had it. Sticky rather than fixed: it
 // stays in the page column beside the sidebar, and once the table ends it
 // sits after the last row, so it never covers one and the table needs no
-// padding of the bar's height; keyboard focus never scrolls a row under it
-// (GLG-1067). `children` are the page's buttons (Vazgeç,
+// padding of the bar's height; keyboard focus never scrolls a row under it.
+// `children` are the page's buttons (Vazgeç,
 // "Bu ekstreyi atla", İçe aktar) and its status line. `notice` is a failed
 // commit's error, on its own line above them so it is in view wherever the
-// review is scrolled (GLG-1065).
+// review is scrolled.
 export function ReviewBar({
   selected,
   leftOut,
@@ -36,7 +36,7 @@ export function ReviewBar({
       <div className="flex items-center gap-3">
         {/* Operations the parser dropped entirely -- a stock transfer, a cash
             type it skipped -- are typed in here. "Satır ekle", as the page
-            header's "İşlem ekle" adds a transaction, not a row (GLG-966). */}
+            header's "İşlem ekle" adds a transaction, not a row. */}
         <Button variant="secondary" onClick={onAddRow}>
           <Icon name="plus" />
           {t('import.addReviewRow')}
@@ -52,7 +52,7 @@ export function ReviewBar({
         </p>
       </div>
       {/* ml-auto: wrapped to the bar's second line on a phone, the buttons
-          stay on the right (GLG-1055). */}
+          stay on the right. */}
       <div className="ml-auto flex flex-wrap items-center justify-end gap-2">{children}</div>
     </div>
   )

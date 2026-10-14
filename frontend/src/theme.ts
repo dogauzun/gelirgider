@@ -7,7 +7,7 @@ import { createStore, readStored, writeStored } from './lib/createStore'
 export type Theme = 'system' | 'light' | 'dark'
 export const themes: readonly Theme[] = ['system', 'light', 'dark']
 
-// ponytail: per-device, in the browser only, exactly like the locale (GLG-146).
+// ponytail: per-device, in the browser only, exactly like the locale.
 // Multi-device sync, if ever wanted: a `theme` column on the user row.
 // Nothing stored, or storage disabled: follow the OS.
 function storedTheme(): Theme {

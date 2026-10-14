@@ -21,7 +21,7 @@ export function Field({ label, hint, error, children }: FieldProps) {
 
   // A server error usually lands after the submit button was disabled for the
   // request, which drops focus to the page. Put it back on the invalid control,
-  // unless the user has already moved on to another field (GLG-481).
+  // unless the user has already moved on to another field.
   useEffect(() => {
     if (!error || document.activeElement?.matches('input, select, textarea, [role="combobox"]'))
       return

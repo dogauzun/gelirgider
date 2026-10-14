@@ -5,7 +5,7 @@ export interface Position {
   instrument_id: number
   symbol: string
   name: string
-  // BIST, US, TEFAS or CRYPTO (GLG-543).
+  // BIST, US, TEFAS or CRYPTO.
   market: string
   currency: string
   quantity: string
@@ -15,13 +15,13 @@ export interface Position {
   has_price: boolean
   // Where last_price came from ('manual' for this user's own entry, else the
   // fetching provider) and the date it carries. Both null when there is no
-  // price. A manual price is tagged and removable by this date (GLG-134).
+  // price. A manual price is tagged and removable by this date.
   price_source: string | null
   price_date: string | null
   // The latest close before price_date and its date, and the move between
   // the two: quantity × (last_price − prev_close) in the position's currency,
   // then in the reporting currency (null there too without a rate). All null
-  // when either price is missing or the position is closed (GLG-542).
+  // when either price is missing or the position is closed.
   prev_close: string | null
   prev_price_date: string | null
   day_change: string | null
@@ -31,7 +31,7 @@ export interface Position {
   realized_pl: string
   // The cost of every share sold, in the position's currency: the base of a
   // closed position's realized percent. Zero or below after a short. Optional
-  // until the backend sends it (GLG-1100), so test it with != null.
+  // until the backend sends it, so test it with != null.
   realized_cost?: string
   // Null when this position's currency has no FX rate for the valuation
   // date (see missing_rates on Summary) -- excluded from reporting totals.
@@ -40,20 +40,20 @@ export interface Position {
   realized_pl_reporting: string | null
   // unrealized_pl_reporting plus realized_pl_reporting, summed unrounded and
   // rounded once on the server, so it can be a cent off the two rounded
-  // fields' sum (GLG-1354). Null without a rate.
+  // fields' sum. Null without a rate.
   total_pl_reporting: string | null
   // The currency part of this position's gain in the reporting currency:
   // cost basis at today's rate less its trade-date cost (ADR 0003, Phase 16).
   // Null for a position in the reporting currency or with no usable rate.
-  // Optional until the backend sends it (GLG-532), so test it with != null.
+  // Optional until the backend sends it, so test it with != null.
   fx_pl_reporting?: string | null
   // A closed position, listed only for its realized P/L. Quantity 0 alone is
   // not closed: in the all-portfolios view a long and an equal short in two
-  // portfolios sum to 0 and stay open (GLG-827).
+  // portfolios sum to 0 and stay open.
   closed: boolean
   // Splits that changed this position, oldest first; ratio is new shares per
-  // old share as an exact decimal string. Optional until the backend sends it
-  // (GLG-273), so read it as `splits ?? []`.
+  // old share as an exact decimal string. Optional until the backend sends it,
+  // so read it as `splits ?? []`.
   splits?: { date: string; ratio: string }[]
 }
 
@@ -65,28 +65,27 @@ export interface Summary {
   cash_by_currency: Record<string, string>
   // Each cash_by_currency entry converted into the reporting currency, keyed
   // by its own currency. A currency with no rate is left out (it is named in
-  // missing_rates), the same way `cash` leaves it out (GLG-543).
+  // missing_rates), the same way `cash` leaves it out.
   cash_by_currency_reporting: Record<string, string>
   total_value: string
   // The open positions' market value and cost, leaving out the same
   // missing_rates currencies as total_value. Each is rounded once on the
-  // server; total_value less cash less unrealized_pl can be a cent off
-  // (GLG-976).
+  // server; total_value less cash less unrealized_pl can be a cent off.
   positions_value: string
   cost_basis: string
   // Null when every currency contributing to the total was excluded from it
   // for lack of a rate: the sum is then 0.00 only because nothing was added
   // to it, so render MISSING rather than a wrong zero. The page could work this
-  // out itself for cash and total value (GLG-113) but not for realized P/L,
-  // which also counts closed positions (GLG-129).
+  // out itself for cash and total value but not for realized P/L,
+  // which also counts closed positions.
   unrealized_pl: string | null
   realized_pl: string | null
   // The currency move on foreign cash and on the cost of foreign positions,
-  // which neither P/L figure above holds (GLG-267). Null when the portfolio
+  // which neither P/L figure above holds. Null when the portfolio
   // has no currency besides the reporting one: the page then hides it.
   fx_pl: string | null
   // The open positions' day_change_reporting summed unrounded and rounded
-  // once on the server, so it can be a cent off the rows' sum (GLG-1204). A
+  // once on the server, so it can be a cent off the rows' sum. A
   // position with no previous close or no rate is left out; null when none
   // is left, so render MISSING, not a zero. Optional until the backend sends
   // it, so test it with != null.
@@ -95,14 +94,14 @@ export interface Summary {
   // could be built for the valuation date. It names what was left out, not
   // what is absent from the rate table: conversion divides by the reporting
   // currency's rate, so a missing USD rate lists TRY even though TRY needs
-  // no rate. Never label these as "currencies with no rate" (GLG-114).
+  // no rate. Never label these as "currencies with no rate".
   missing_rates: string[]
   // Open and closed positions both. A closed one (sold down to zero, or a
   // dividend on an instrument no longer held) has quantity and market value
   // zero and only its realized P/L set, so the page can account for the
-  // realized_pl above instead of totalling the open rows alone (GLG-218).
+  // realized_pl above instead of totalling the open rows alone.
   positions: Position[]
-  // What the user put in, took out, paid and earned (GLG-595).
+  // What the user put in, took out, paid and earned.
   stats: SummaryStats
 }
 
@@ -114,7 +113,7 @@ interface StatsFields {
   withdrawals: string
   // deposits less withdrawals, and dividends_gross less dividends_tax, each
   // worked out unrounded and rounded once on the server, so either can be a
-  // cent off the rounded fields' difference (GLG-1354).
+  // cent off the rounded fields' difference.
   net_contribution: string
   fees: string
   dividends_gross: string

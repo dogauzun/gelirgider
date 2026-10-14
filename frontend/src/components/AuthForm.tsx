@@ -23,7 +23,7 @@ interface AuthFormProps {
   // The mutation's mutateAsync: a second submit while it runs is ignored.
   onSubmit: (email: string, password: string) => Promise<unknown>
   // Called on every edit, so the page can drop a server error about the
-  // values it sent (GLG-1075).
+  // values it sent.
   onEdit: () => void
   footer: ReactNode
 }
@@ -87,7 +87,7 @@ export function AuthForm({
         />
         {notice && (
           // Neutral, not text-gain: it may be bad news like an expired
-          // session (GLG-1075).
+          // session.
           <p role="status" className="mt-4 text-[13px] text-ink-2" data-testid="auth-notice">
             {notice}
           </p>
