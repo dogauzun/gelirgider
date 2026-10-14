@@ -195,41 +195,47 @@ export function ExpectedDividends({ portfolioId }: { portfolioId: number }) {
             </div>
           )}
 
+          {/* Eight columns and two buttons are wider than the card at tablet
+              widths in English (GLG-1369): the table scrolls in its own box,
+              as on Pozisyonlar. relative keeps the actions header's absolute
+              sr-only label inside the clip (GLG-679). */}
           {desktop ? (
-            <table className={TABLE}>
-              <thead>
-                <tr>
-                  <th className={TH}>{t('transactions.instrument')}</th>
-                  <th className={TH}>{t('dividends.expected.exDate')}</th>
-                  <th className={`${TH} text-right`}>{t('transactions.quantity')}</th>
-                  <th className={`${TH} text-right`}>{t('dividends.expected.perShare')}</th>
-                  <th className={`${TH} text-right`}>{t('dividends.expected.gross')}</th>
-                  <th className={`${TH} text-right`}>{t('transactions.withholdingTax')}</th>
-                  <th className={`${TH} text-right`}>{t('dividends.expected.net')}</th>
-                  <ActionsTh />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={rowKey(row)} className={ROW_44}>
-                    <td className={TD}>
-                      <SymbolLabel row={row} />
-                    </td>
-                    <td className={TD}>{formatMarketDate(row.date)}</td>
-                    <td className={TD_NUM}>{formatQuantity(row.quantity)}</td>
-                    <td className={TD_NUM}>{formatUnitPrice(row.per_share, row.currency)}</td>
-                    <td className={TD_NUM}>{formatMoney(row.gross, row.currency)}</td>
-                    <td className={TD_NUM}>{formatMoney(row.stopaj, row.currency)}</td>
-                    <td className={`${TD_NUM} font-medium text-plum`}>
-                      {formatMoney(row.net, row.currency)}
-                    </td>
-                    <td className={TD}>
-                      <div className="flex justify-end gap-1">{actions(row)}</div>
-                    </td>
+            <div className="relative overflow-x-auto">
+              <table className={TABLE}>
+                <thead>
+                  <tr>
+                    <th className={TH}>{t('transactions.instrument')}</th>
+                    <th className={TH}>{t('dividends.expected.exDate')}</th>
+                    <th className={`${TH} text-right`}>{t('transactions.quantity')}</th>
+                    <th className={`${TH} text-right`}>{t('dividends.expected.perShare')}</th>
+                    <th className={`${TH} text-right`}>{t('dividends.expected.gross')}</th>
+                    <th className={`${TH} text-right`}>{t('transactions.withholdingTax')}</th>
+                    <th className={`${TH} text-right`}>{t('dividends.expected.net')}</th>
+                    <ActionsTh />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={rowKey(row)} className={ROW_44}>
+                      <td className={TD}>
+                        <SymbolLabel row={row} />
+                      </td>
+                      <td className={TD}>{formatMarketDate(row.date)}</td>
+                      <td className={TD_NUM}>{formatQuantity(row.quantity)}</td>
+                      <td className={TD_NUM}>{formatUnitPrice(row.per_share, row.currency)}</td>
+                      <td className={TD_NUM}>{formatMoney(row.gross, row.currency)}</td>
+                      <td className={TD_NUM}>{formatMoney(row.stopaj, row.currency)}</td>
+                      <td className={`${TD_NUM} font-medium text-plum`}>
+                        {formatMoney(row.net, row.currency)}
+                      </td>
+                      <td className={TD}>
+                        <div className="flex justify-end gap-1">{actions(row)}</div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             // Phone: stacked rows like the transaction list (ADR 0005).
             <ul>

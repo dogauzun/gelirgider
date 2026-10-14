@@ -89,6 +89,19 @@ describe('ExpectedDividends', () => {
     expect(screen.getByRole('button', { name: 'Tümünü ekle' })).toBeVisible()
   })
 
+  // GLG-1369: eight columns and two buttons per row are wider than the card at
+  // 768 and 1024px in English; the table scrolls inside its own box instead of
+  // pushing the page sideways, as on Pozisyonlar.
+  it('scrolls the table sideways inside the card', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify([row(7, 'THYAO', '150.00', '22.50')]), { status: 200 }),
+    )
+
+    renderPanel()
+    const table = await screen.findByRole('table')
+    expect(table.parentElement).toHaveClass('relative', 'overflow-x-auto')
+  })
+
   // GLG-1166: one layout per viewport, not both with one hidden by CSS.
   it('renders the phone list instead of the table below md', async () => {
     desktop = false
