@@ -1,53 +1,40 @@
 # ADR 0022: PR review by a subagent of the merger
 
-Status: accepted (GLG-762, 2026-10-02); amended 2026-10-05 (GLG-974, the
-merger's hygiene step checks tests and swag annotations); amended 2026-10-14
-(GLG-1373, the required GitHub Actions checks replace the merger's local
-check run); amended 2026-10-14 (GLG-1385, the checks are renamed); amended 2026-10-14 (GLG-1388, the reviewer runs at high effort and the implementer is pinned to Sonnet 5.5 at high effort)
+Status: accepted (2026-10-02).
 
 ## Context
 
-[ADR 0015](0015-pr-review-routine.md) gave every PR a review from the
-`pr review` cloud routine: a GitHub webhook and an hourly schedule started
-a separate cloud session, which posted a review whose body carried
-`Verdict: APPROVE` or `Verdict: REQUEST_CHANGES` and `Head: <sha>`. The
-merger polled for that body for up to 30 minutes after every push, and
-read the whole diff itself as well.
-
-The routine was a second moving part with its own failure modes: a
-verdict posted without its findings, two runs racing on one head, a wait
-that ended in a timeout merge, and a draft and ready toggle to get a fresh
-verdict (the 2026-09-29 amendment of ADR 0015). Its checklist also covered
-what the linters, the tests and the merger already cover, so reviews
-carried findings about scope wording, hygiene and style next to the few
-that mattered.
-
-The owner decided on 2026-10-02 to drop the routine and to narrow what a
-review is for.
+Development is done by AI agents. A second, independent reader of every
+diff is worth having, but it must not become a second moving part with its
+own failure modes. A review routine fired by a webhook and an hourly
+schedule had them: a verdict posted without its findings, two runs racing on
+one head, a wait that ended in a timeout merge, and a draft and ready toggle
+to get a fresh verdict. Its checklist also covered what the linters, the
+tests and the merger already cover, so the few findings that mattered sat
+among findings about scope wording, hygiene and style. [ADR 0015](0015-pr-review-routine.md)
+records that routine.
 
 ## Decision
 
 ### A review subagent, spawned by the merger
 
-Every PR is reviewed by a separate review agent on Opus 5.5. The merger
-spawns it as a subagent: the hourly kanban worker in the cloud, the
-orchestrating session locally. It runs once the PR is open and the local
-checks are green, and a fresh one runs after every push that changes
-the PR's diff. The agent that wrote the code never reviews it, and the
-reviewer starts without the author's context.
+Every PR is reviewed by a separate review agent, `pr-reviewer`, on Opus 5.5 at
+high effort. The merger spawns it as a subagent: the hourly kanban worker in
+the cloud, the orchestrating session locally. It runs once the PR is open and
+its required GitHub Actions checks are green on the PR head, and a fresh one
+runs after every push that changes the PR's diff. The agent that wrote the
+code never reviews it, and the reviewer starts without the author's context.
 
-> Superseded 2026-10-14 (GLG-1373): the reviewer runs once the PR is open and its required GitHub Actions checks are green on the PR head, not the local checks.
+The author is the `ticket-implementer` agent, on Sonnet 5.5 at high effort.
 
-> Amended 2026-10-14 (GLG-1388): the reviewer runs at high effort (`effort: high` in its frontmatter). The agent that writes the code is pinned too: `.claude/agents/ticket-implementer.md` sets Sonnet 5.5 at high effort, and a harness that cannot load that agent type spawns a general subagent with that model and effort and tells it to read the file.
+Both agents' instructions live in the repository, in
+`.claude/agents/pr-reviewer.md` and `.claude/agents/ticket-implementer.md`,
+so the cloud worker and a local session use the same text. A session whose
+harness does not load those files as agent types spawns a general subagent
+with the same model and effort and tells it to read the file and follow it.
 
-The reviewer's instructions live in the repository, in
-`.claude/agents/pr-reviewer.md`, so the cloud worker and a local session
-use the same text. A session whose harness does not load that file as an
-agent type spawns a general subagent on the same model and tells it to
-read the file and follow it.
-
-The `pr review` routine and its webhook trigger are disabled. No session
-waits for or parses a `Verdict:` body any more.
+No session waits for or parses a verdict. The review of a head starts when
+the merger asks for it and ends with a report.
 
 ### What the reviewer reports
 
@@ -68,31 +55,26 @@ it reviewed and either `no findings` or one line per comment posted.
 
 The review is posted with state `COMMENT`, because GitHub refuses
 `APPROVE` and `REQUEST_CHANGES` on the author's own PR and every PR is
-authored by the account the agents run as (unchanged from ADR 0015).
+authored by the account the agents run as.
 
 ### What the merger does
 
-The merger no longer reads the whole diff. It:
+The merger does not read the whole diff. It:
 
-1. runs every local check on the PR head (`docs/PRINCIPLES.md` #6);
-2. checks hygiene: no AI attribution in commits or the PR body, the PR
-   body follows the template, the branch contains current `main`;
+1. reads the required GitHub Actions checks on the PR head: `Lint (Go + web)`,
+   `Go tests`, `Web tests` and `Web build` (workflow `ci`) and `Title`
+   (workflow `pr`), see `docs/PRINCIPLES.md` #6;
+2. checks hygiene: no AI attribution in commits or the PR body, the PR body
+   follows the template, the branch contains current `main`, non-trivial logic
+   ships with a test, a bug fix's Testing section names a test that failed
+   before the fix or says why no test can express the bug, and a new or
+   changed route has its swag annotation (the missing tests and documentation
+   the reviewer leaves to the merger);
 3. spawns the reviewer and reads its report;
 4. sends findings that need a code change back to the ticket's agent, and
    answers the others in their thread: a disagreement with evidence, or a
    new GLG ticket for a real but out-of-scope problem (CLAUDE.md rule 4);
 5. resolves every thread once it is fixed or answered.
-
-> Amended 2026-10-05 (GLG-974): step 2 also checks that non-trivial logic
-> ships with a test, that a bug fix's Testing section names a test that
-> failed before the fix or says why no test can express the bug (the GLG-959
-> rule), and that a new or changed route has its swag annotation. These are
-> the missing tests and documentation that `.claude/agents/pr-reviewer.md`
-> leaves to the merger.
-
-> Superseded 2026-10-14 (GLG-1373): step 1 is reading the required GitHub Actions checks (`lint`, `test-backend`, `test-frontend`, `build-frontend`, `pr-title`) on the PR head, see [ADR 0015](0015-pr-review-routine.md); the merger no longer runs them locally, and the reviewer is spawned once they are green.
-
-> Amended 2026-10-14 (GLG-1385): the checks are now named `Lint (Go + web)`, `Go tests`, `Web tests` and `Web build` (workflow `ci`) and `Title` (workflow `pr`); the Make targets keep their names.
 
 ### Merge gate
 
@@ -103,16 +85,14 @@ A PR merges when all of these hold (CLAUDE.md rules 6 and 7):
    resolved no conflict;
 2. every review thread, from the reviewer or a human, is fixed or
    answered and resolved;
-3. every local check passed on the current head, the commit that
-   merges, observed by the merger. A rebase needs the checks again even
-   when it needs no new review.
+3. the required checks are green on the current head, the commit that
+   merges. GitHub runs them again on every push, and `main` requires the
+   branch to be up to date.
 
 A push that changes the PR's own diff gets a new review. A push that only
 rebases the branch onto `main` does not, and neither does a finding that
 was answered without a push. A rebase that had to resolve a conflict
 rewrites the PR's own lines, so it counts as a change and gets a review.
-
-> Superseded 2026-10-14 (GLG-1373): item 3 is the required checks green on the current head. GitHub runs them again on every push, and `main` requires the branch to be up to date.
 
 A round is one review that posted findings; after six rounds on one PR
 the merger parks the ticket with the `needs-decision` label instead of a
@@ -130,28 +110,23 @@ seventh.
   a different model.
 - In a cloud session the GitHub proxy appends a
   `Generated by Claude Code` footer to every review comment and
-  re-appends it on every edit. The owner decided on 2026-09-29 that
-  reviews and review comments stay as posted, footer included; it is not
-  a CLAUDE.md rule 9 breach to report or fix (GLG-769).
+  re-appends it on every edit. The owner decided that reviews and review
+  comments stay as posted, footer included; it is not a CLAUDE.md rule 9
+  breach to report or fix.
 
 ## Consequences
 
-- No webhook, no polling and no timeout merge. The review of a head
-  starts when the merger asks for it and ends with a report.
-- One reader per diff instead of two. Review quality depends on
+- One reader per diff. Review quality depends on
   `.claude/agents/pr-reviewer.md`; a change to what counts as a finding is
   made there, in a PR.
 - Fewer comments. Problems in old code and anything a linter would say
   never reach a PR thread.
-- The decision of ADR 0015 to run no GitHub Actions and no CI stands.
-
-> Superseded 2026-10-14 (GLG-1373): it no longer stands. GitHub Actions runs the check set on every pull request and on `main` (GLG-1372, GLG-1374), and the required checks are the merge bar.
 
 ## Alternatives rejected
 
 | Option                                         | Why not                                                                                                              |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Keep the routine, change only its prompt       | Keeps the webhook, the polling, the verdict parsing and the race between runs for no gain over a subagent.           |
+| A cloud routine fired by a webhook and a timer | The webhook, the polling, the verdict parsing and the race between runs, for no gain over a subagent.                |
 | A one-line "reviewed" marker comment per head  | One more comment on every PR to carry information the merger already has from the reviewer's report.                 |
 | Merger keeps its own full diff read            | Two reads of the same diff by the same model family; the merger's time goes to the checks, hygiene and triage.       |
 | Local sessions only, the cloud worker no merge | Every PR would wait for a local session; the worker can spawn the same reviewer from the same file in the same repo. |
