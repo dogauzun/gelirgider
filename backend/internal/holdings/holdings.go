@@ -74,12 +74,12 @@ func LatestClose(fetched, manual map[int64]price.Price, id int64) (price.Price, 
 // LatestCloses loads, for each of ids, the latest fetched row and userID's
 // latest manual row dated on or before asOf and keeps the one LatestClose
 // picks. Ids with neither row are omitted.
-func LatestCloses(ctx context.Context, prices *price.Repo, manual *price.ManualRepo, userID int64, ids []int64, asOf string) (map[int64]price.Price, error) {
-	fetchedRows, err := prices.Latest(ctx, ids, asOf)
+func LatestCloses(ctx context.Context, src PriceSources, userID int64, ids []int64, asOf string) (map[int64]price.Price, error) {
+	fetchedRows, err := src.Prices.Latest(ctx, ids, asOf)
 	if err != nil {
 		return nil, err
 	}
-	manualRows, err := manual.Latest(ctx, userID, ids, asOf)
+	manualRows, err := src.Manual.Latest(ctx, userID, ids, asOf)
 	if err != nil {
 		return nil, err
 	}
@@ -92,8 +92,8 @@ func LatestCloses(ctx context.Context, prices *price.Repo, manual *price.ManualR
 	return out, nil
 }
 
-// PriceSources is what MergedSeries reads: the fetched closes and the
-// user's manual prices that override them.
+// PriceSources is what LatestCloses and MergedSeries read: the fetched closes
+// and the user's manual prices that override them.
 type PriceSources struct {
 	Prices *price.Repo
 	Manual *price.ManualRepo
