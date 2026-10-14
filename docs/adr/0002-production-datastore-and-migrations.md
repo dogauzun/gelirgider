@@ -5,7 +5,8 @@ became one Docker host); superseded in part by
 [ADR 0015](0015-pr-review-routine.md) (GLG-580, 2026-09-28): no GitHub
 Actions, `go test ./...` runs against SQLite only as a local check before
 every merge; amended 2026-10-05 (GLG-888, a table rebuild may start with
-`PRAGMA defer_foreign_keys = ON`)
+`PRAGMA defer_foreign_keys = ON`); amended 2026-10-14 (GLG-1367,
+correction: backups are not copied off the host automatically)
 
 ## Decision
 
@@ -110,6 +111,12 @@ Rules:
 
 - A single host is a single point of failure. Mitigation: backups copied off
   the host (GLG-44, GLG-46) and a rehearsed restore, not a replica.
+
+  > Correction 2026-10-14 (GLG-1367): GLG-46 did not copy backups off the
+  > host. `deploy/backup.sh` keeps gzipped local copies in
+  > `deploy/data/backups/` for 14 days; copying them off the host is the
+  > operator's job (`deploy/RUNBOOK.md` §4).
+
 - SQLite's one-writer-at-a-time model means a long write transaction blocks
   every other write. Mitigation: keep write transactions short; the scheduled
   price fetch (GLG-35) writes one day of rows per run. `SQLITE_BUSY` in the
@@ -139,6 +146,12 @@ Rules:
 - GLG-44 adds a `-backup <path>` flag to the backend binary that runs
   `VACUUM INTO` against the configured `DB_PATH`. GLG-46 documents the host
   cron that calls it and copies the result off the host.
+
+  > Correction 2026-10-14 (GLG-1367): GLG-46 did not copy backups off the
+  > host. `deploy/backup.sh` keeps gzipped local copies in
+  > `deploy/data/backups/` for 14 days; copying them off the host is the
+  > operator's job (`deploy/RUNBOOK.md` §4).
+
 - `docs/PRINCIPLES.md` section 4 ("Datastore is undecided") stays as written:
   the datastore is decided for now, the portability rule is what makes the
   decision cheap to revisit.
