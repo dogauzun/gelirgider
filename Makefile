@@ -10,7 +10,7 @@ endif
 # Hand them to every target, like compose does for the backend in prod.
 export
 
-.PHONY: dev dev-backend dev-frontend test test-backend test-frontend build-frontend build lint swagger swagger-check notices help
+.PHONY: dev dev-backend dev-frontend test test-backend test-frontend build-frontend build lint swagger swagger-check notices screenshots help
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*##' $(firstword $(MAKEFILE_LIST)) | awk 'BEGIN {FS = ":.*##"}; {printf "  %-15s %s\n", $$1, $$2}'
@@ -89,6 +89,29 @@ notices: ## Regenerate THIRD_PARTY_NOTICES.md from the backend and frontend depe
 	node deploy/notices.mjs "$$r/LICENSE" "$$m" "$$d/go.tsv" "$$d/npm.json" >"$$d/notices.md" && \
 	mv "$$d/notices.md" THIRD_PARTY_NOTICES.md && \
 	cd frontend && npx prettier --config .prettierrc.json --log-level warn --write ../THIRD_PARTY_NOTICES.md
+
+# The README screenshots (GLG-1381): a throwaway -demo database served by the
+# backend and `vite preview` of the built frontend on spare ports, captured
+# with headless Chrome. The scheduler starts its catch-up before any API call
+# could switch it off, so the catch-up, the backfill and every source (the
+# names in backend/internal/scheduler/scheduler.go) are switched off in the
+# settings table first: the pictures show the seed's prices, and the run needs
+# no network. env -i keeps .env out of the backend.
+screenshots: build-frontend ## Regenerate docs/screenshots/*.png from the demo seed (needs Google Chrome)
+	@d=$$(mktemp -d) && trap 'kill $$b $$v 2>/dev/null; wait; rm -rf "$$d"' EXIT && \
+	port() { node -e "const s = require('net').createServer().listen(0, () => { console.log(s.address().port); s.close() })"; } && \
+	bp=$$(port) && fp=$$(port) && \
+	(cd backend && go build -o "$$d/server" ./cmd/server) && \
+	env -i DB_PATH="$$d/demo.db" "$$d/server" -demo >/dev/null && \
+	for k in schedule.catchup_enabled schedule.backfill_enabled \
+		$$(printf 'source.%s.enabled ' bist bist-splits tcmb us crypto tefas tufe xu100 gold); do \
+		echo "INSERT INTO settings (key, value, updated_at) VALUES ('$$k', 'false', datetime('now'));"; \
+	done | sqlite3 "$$d/demo.db" && \
+	{ env -i HOST=127.0.0.1 PORT=$$bp DB_PATH="$$d/demo.db" SECRET_KEY=$$(openssl rand -base64 32) \
+		"$$d/server" >"$$d/server.log" 2>&1 & b=$$!; } && \
+	{ (cd frontend && PORT=$$bp exec node_modules/.bin/vite preview --host 127.0.0.1 --port $$fp --strictPort) \
+		>"$$d/vite.log" 2>&1 & v=$$!; } && \
+	node docs/screenshots/capture.mjs http://127.0.0.1:$$fp || { tail -n 20 "$$d/server.log" "$$d/vite.log"; exit 1; }
 
 build: ## Build backend and frontend Docker images
 	docker build -f deploy/backend.Dockerfile -t gelirgider-backend .

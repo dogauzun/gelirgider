@@ -24,6 +24,22 @@ Multi-user portfolio tracking tool. BIST, US stocks, TEFAS funds, crypto and gol
 The UI is in Turkish (`tr`, the default) and English (`en`), chosen with the
 language switch. The choice is stored in the browser only.
 
+## Screenshots
+
+The Demo portfolio from the `-demo` seed (see [Development](#development)).
+
+![Summary page of the Demo portfolio: return chart, totals and positions](docs/screenshots/summary.png)
+
+Summary: the return over a chosen range, the portfolio totals and the positions.
+
+![Performance page of the Demo portfolio: monthly returns heatmap and drawdown chart](docs/screenshots/performance.png)
+
+Performance: returns by month and year, and the drawdown over time.
+
+![Transactions page of the Demo portfolio: trades, dividends and deposits grouped by month](docs/screenshots/transactions.png)
+
+Transactions: every trade, dividend and cash movement, with filters and CSV export.
+
 ## Documentation
 
 - [docs/ROADMAP.md](docs/ROADMAP.md): work in progress, what is next and the non-goals
@@ -93,6 +109,11 @@ For a populated database without network or API keys, run
 admin `demo@example.com` with a Demo portfolio of synthetic trades, dividends,
 prices and FX rates over the last two years, and prints the password. It
 refuses a database that already has a user.
+
+`make screenshots` regenerates the pictures under [Screenshots](#screenshots)
+from the same demo seed, in a throwaway database with the price fetches
+switched off. It needs Google Chrome (set `CHROME` to its binary when it is
+not in the default place) and the `sqlite3` command.
 
 `make test` runs `go vet` and the backend tests, then the frontend lint and
 tests. `make lint` runs the swag spec check, `gofmt`, `go vet`, `golangci-lint`
