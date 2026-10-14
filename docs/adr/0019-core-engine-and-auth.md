@@ -5,7 +5,7 @@ taken in Phases 1-5, and their later fixes, that had no ADR.
 
 ## Context
 
-These decisions lived only in code, old tickets and `docs/HISTORY.md`, so
+These decisions lived only in code and old tickets, so
 agents and QA runs keep rediscovering them, and some have been filed as bugs
 although they are deliberate, for example negative positions and cash
 overdraft. This ADR records what the code does today, why where a ticket or
@@ -21,7 +21,7 @@ and `history.go`.
 
 - **Passwords are bcrypt hashes** at `bcrypt.DefaultCost`
   (`backend/internal/auth/handlers.go:194`, `setpassword.go:30`; GLG-14,
-  commit 8ced1c2, `docs/HISTORY.md`, Phase 1). A password is 8 characters to 72
+  commit 8ced1c2, Phase 1). A password is 8 characters to 72
   bytes, bcrypt's own input limit, may not be only whitespace and is never
   trimmed (`handlers.go:21-26`, `handlers.go:437-453`). A login with an
   unknown email compares against a dummy hash, so response time does not
@@ -83,7 +83,7 @@ and `history.go`.
   sell realizes `amount - fee - quantity × avg_cost`, shrinks the cost basis
   by `quantity × avg_cost` and leaves the average cost unchanged
   (`holdings.go:196-235`). GLG-27 chose it over FIFO because the roadmap asks
-  for average cost (`docs/HISTORY.md`, Phase 2); FIFO could be added as a second
+  for average cost (Phase 2); FIFO could be added as a second
   method if tax reporting ever lands. A position whose quantity reaches 0
   resets its cost basis and average cost, so a remainder is not folded into
   the next buy (`holdings.go:287-300`; GLG-372, commit f25e42c).
@@ -117,7 +117,7 @@ and `history.go`.
 
 There is no snapshot table and no snapshot job: the daily value series is
 computed on each request from the transactions and the price history
-(`docs/HISTORY.md`, Phase 3; GLG-37, commit 03341c8). Reason not recorded. The
+(Phase 3; GLG-37, commit 03341c8). Reason not recorded. The
 handler keeps one `holdings.State` per portfolio for the whole sweep and
 applies each transaction once (`history.go:389-394`), since replaying the
 prefix every day had cost about 6.4 s of CPU at 5001 transactions (GLG-131,
@@ -189,7 +189,7 @@ offer its deletion (`summary.go:77-82`; GLG-134).
   commit 9c07a42). Both follow the schedule settings of ADR 0010.
 - **`make dev` behaves like production**: the Makefile loads a gitignored
   `.env` (`Makefile:1-2`; GLG-194, commit 12ab303). GLG-193 (commit 00c92bf)
-  ran the TEFAS crawler, since removed (`docs/HISTORY.md`, Phase 0).
+  ran the TEFAS crawler, since removed (Phase 0).
 - **Holiday memory.** A weekday that returned no data is written to
   `empty_fetches` once a later date in the same walk is synced, and
   `HasSource` treats it as synced, so holidays are not requested on every

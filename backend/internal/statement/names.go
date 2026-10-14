@@ -28,10 +28,9 @@ type namedFund struct {
 // nameInstrument returns the instrument a fund name that is no symbol
 // resolves to: the one of the learned names it matches (see learnedName),
 // else, for a garanti TEFAS row, the one TEFAS fund whose name it is cut or
-// abbreviated from (see fundByName, GLG-1188). A nil learned is a symbol
+// abbreviated from (see fundByName). A nil learned is a symbol
 // the statement's own balances keep unresolved, which stays so. The TEFAS
-// funds are read and split into words once per request, into s.funds
-// (GLG-1336).
+// funds are read and split into words once per request, into s.funds.
 func (h *handler) nameInstrument(ctx context.Context, s *lookupSession, learned map[string]int64, row *previewRow) (instrument.Instrument, error) {
 	if id := learnedName(row.Symbol, learned); id != 0 {
 		return h.instruments.Get(ctx, id)

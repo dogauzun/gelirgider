@@ -94,7 +94,7 @@ func (r *Repo) Get(ctx context.Context, userID, id int64) (Portfolio, error) {
 func (r *Repo) Create(ctx context.Context, userID int64, name string) (Portfolio, error) {
 	// The check and the insert share one transaction, which takes the write
 	// lock before the check (_txlock=immediate), so two creates of one name
-	// cannot both pass the check (GLG-1020).
+	// cannot both pass the check.
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return Portfolio{}, fmt.Errorf("begin transaction: %w", err)
@@ -113,7 +113,7 @@ func (r *Repo) Create(ctx context.Context, userID int64, name string) (Portfolio
 		"INSERT INTO portfolios (user_id, name, created_at) VALUES (?, ?, ?)",
 		userID, name, createdAt.Format(time.RFC3339),
 	)
-	// The user was deleted since the session check (GLG-1002).
+	// The user was deleted since the session check.
 	if db.IsForeignKeyViolation(err) {
 		return Portfolio{}, fmt.Errorf("insert portfolio: %w", user.MissingError{ID: userID})
 	}
@@ -135,7 +135,7 @@ func (r *Repo) Create(ctx context.Context, userID int64, name string) (Portfolio
 // portfolio of the same user already has that name; renaming a portfolio to
 // the name it already has is a no-op, not a conflict.
 func (r *Repo) Rename(ctx context.Context, userID, id int64, name string) error {
-	// One transaction for check and update, as in Create (GLG-1020).
+	// One transaction for check and update, as in Create.
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
@@ -238,7 +238,7 @@ func (r *Repo) Delete(ctx context.Context, userID, id int64, cascade bool) (int,
 // excluded). The comparison runs in Go because SQL LOWER is ASCII-only on
 // SQLite; a user has a handful of portfolios, so reading their names is
 // cheap. It runs inside the caller's write transaction, so no other write
-// can land between this check and the caller's insert or update (GLG-1020).
+// can land between this check and the caller's insert or update.
 func nameTaken(ctx context.Context, tx *sql.Tx, userID int64, name string, excludeID int64) (bool, error) {
 	rows, err := tx.QueryContext(ctx,
 		"SELECT name FROM portfolios WHERE user_id = ? AND id <> ?",
@@ -270,7 +270,7 @@ func nameTaken(ctx context.Context, tx *sql.Tx, userID int64, name string, exclu
 var turkishI = strings.NewReplacer("İ", "i", "I", "i", "ı", "i")
 
 // foldName is the key two portfolio names are compared by. Case is folded
-// and whitespace runs collapse to one space (GLG-682), so a name stored
+// and whitespace runs collapse to one space, so a name stored
 // before checkName collapsed them still matches; diacritics stay, so
 // "Portfoy" and "Portföy" remain two names.
 func foldName(s string) string {

@@ -17,9 +17,7 @@ as a reference)
 > shell below are superseded; the rules ADR 0023 lists under "Rules that
 > survive from ADR 0005" still hold.
 
-Visual reference: a private design canvas that is not published; the
-committed mockups under `docs/superpowers/specs/` are the public reference
-since [ADR 0023](0023-ui-design-system-v2.md).
+The Defter system is superseded by [ADR 0023](0023-ui-design-system-v2.md).
 
 ## Decision
 

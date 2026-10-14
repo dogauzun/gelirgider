@@ -20,19 +20,19 @@ type portfolioListResponse struct {
 	TotalValue string `json:"total_value"`
 	// Cash and UnrealizedPL in the reporting currency, taken from the same
 	// holdings.Convert result as TotalValue, so they leave out the same
-	// MissingRates currencies (GLG-158). UnrealizedPL is null under
+	// MissingRates currencies. UnrealizedPL is null under
 	// summaryResponse.UnrealizedPL's rule: when every currency contributing
 	// to it was excluded for lack of a rate, the sum is 0.00 only because
 	// nothing was added to it, and a caller must render "-" rather than a
-	// figure that reads as a real zero (GLG-113, GLG-129).
+	// figure that reads as a real zero.
 	Cash         string  `json:"cash"`
 	UnrealizedPL *string `json:"unrealized_pl"`
 	Currency     string  `json:"currency"`
 	// MissingRates lists the currencies whose amounts TotalValue leaves out
 	// for want of a conversion factor -- same field and same semantics as
 	// summaryResponse.MissingRates: it names what was excluded, not what is
-	// absent from the rate table (see holdings.Totals.Missing, GLG-114).
-	// Without it the list silently understates a portfolio (GLG-121).
+	// absent from the rate table (see holdings.Totals.Missing).
+	// Without it the list silently understates a portfolio.
 	MissingRates []string `json:"missing_rates"`
 }
 
@@ -95,7 +95,7 @@ func (h *summaryHandler) list(w http.ResponseWriter, r *http.Request) {
 // only the totals are used here, never CostBasisReporting, so the trade-date
 // rates it would load are not needed. The second result is unrealizedKnown's
 // verdict on the unrealized total, so the list nulls unrealized_pl on exactly
-// the input the summary does (GLG-158).
+// the input the summary does.
 func (h *summaryHandler) totals(ctx context.Context, userID, portfolioID int64, reporting string) (holdings.Totals, bool, error) {
 	txs, err := h.transactions.List(ctx, userID, portfolioID)
 	if err != nil {

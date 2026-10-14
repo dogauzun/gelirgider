@@ -24,24 +24,24 @@ import (
 )
 
 // OnDemandFetchTimeout bounds how long create/update waits on the on-demand
-// price fetch callback (GLG-182). The transaction is already saved by the
+// price fetch callback. The transaction is already saved by the
 // time this runs, so a slow or unreachable price source must never hold the
 // response open for long; any error, including this timeout, is logged and
 // swallowed. A request that fetches for several instruments, such as an
-// import, waits this long in all, not this long per instrument (GLG-854).
+// import, waits this long in all, not this long per instrument.
 const OnDemandFetchTimeout = 5 * time.Second
 
 // maxNoteLen caps the note field so a very long, spaceless note can't stretch
-// the transactions table off screen (GLG-100).
+// the transactions table off screen.
 const maxNoteLen = 500
 
 // OnDemandFetch fetches and stores prices and FX rates for in,
 // best-effort. It is called after every create or update of a transaction
 // that needs either, with the transaction's date (YYYY-MM-DD), so the
-// summary opened next already has a price (GLG-182) and the history chart
-// has one per trading day back to date (GLG-189) instead of waiting for
-// the next scheduler run. in is the zero Instrument for a cash transaction
-// (GLG-195), which the callback treats as "no price source, FX only".
+// summary opened next already has a price and the history chart
+// has one per trading day back to date instead of waiting for
+// the next scheduler run. in is the zero Instrument for a cash transaction,
+// which the callback treats as "no price source, FX only".
 // The callback decides what, if anything, still needs fetching.
 type OnDemandFetch func(ctx context.Context, in instrument.Instrument, date string)
 
@@ -80,8 +80,8 @@ type handler struct {
 var ErrLookup = errors.New("lookup failed")
 
 // Validate runs req through FromRequest's rules without looking up its
-// instrument, for a statement import row whose symbol is not resolved yet
-// (GLG-654). req carries a placeholder InstrumentID in place of the real
+// instrument, for a statement import row whose symbol is not resolved yet.
+// req carries a placeholder InstrumentID in place of the real
 // one, which only its presence is checked for.
 func Validate(req Request) error {
 	_, err := fromRequest(req)
@@ -96,10 +96,10 @@ func Validate(req Request) error {
 //
 // A request currency that contradicts the instrument's own is rejected
 // rather than silently overwritten, so a user who records a dividend in USD
-// hears that the instrument is TRY (GLG-136); otherwise the instrument's
+// hears that the instrument is TRY; otherwise the instrument's
 // currency wins, since trades take their currency from the instrument.
 //
-// The statement import commit (GLG-204) runs every one of its rows through
+// The statement import commit runs every one of its rows through
 // this, so an imported transaction is validated exactly like a hand-entered
 // one.
 func FromRequest(ctx context.Context, instruments *instrument.Repo, req Request) (Transaction, instrument.Instrument, error) {
@@ -109,7 +109,7 @@ func FromRequest(ctx context.Context, instruments *instrument.Repo, req Request)
 // FromRequestWith is FromRequest with get in place of the instrument
 // lookup, for a caller that already holds the instruments its requests
 // name: the statement import validates thousands of rows of a few
-// instruments (GLG-1272). get returns instrument.ErrNotFound for an id it
+// instruments. get returns instrument.ErrNotFound for an id it
 // does not know.
 func FromRequestWith(req Request, get func(id int64) (instrument.Instrument, error)) (Transaction, instrument.Instrument, error) {
 	t, err := fromRequest(req)
@@ -137,8 +137,8 @@ func FromRequestWith(req Request, get func(id int64) (instrument.Instrument, err
 // saved, passing in (the zero Instrument when t has none). A cash
 // transaction in a foreign currency carries no instrument but still needs
 // TCMB rates back to its date for the history chart, so it goes through
-// too; only a TRY cash transaction, which needs neither, is skipped
-// (GLG-195). fetch may be nil, which disables the feature. Best-effort and
+// too; only a TRY cash transaction, which needs neither, is skipped.
+// fetch may be nil, which disables the feature. Best-effort and
 // synchronous: any error, including the bounded timeout, is logged and
 // ignored by the callback, since the transaction is already saved and the
 // response must go out regardless.
@@ -238,15 +238,15 @@ func fromRequest(req Request) (Transaction, error) {
 	t := Transaction{Type: req.Type, Date: req.Date, Fee: fee}
 	if req.Note != nil {
 		// Trim first so surrounding whitespace neither counts against the
-		// limit nor gets stored as an empty-looking note (GLG-144).
+		// limit nor gets stored as an empty-looking note.
 		note := strings.TrimSpace(*req.Note)
 		if utf8.RuneCountInString(note) > maxNoteLen {
 			return Transaction{}, fmt.Errorf("note: must be at most %d characters", maxNoteLen)
 		}
-		// Same rule as portfolio names (GLG-334, GLG-354): the note is a
+		// Same rule as portfolio names: the note is a
 		// single line in the UI, so tabs and newlines go too. A non-empty
 		// note with no visible rune (only combining marks) renders blank,
-		// as GLG-429 refuses for names (GLG-1003); an empty note is fine.
+		// which is refused for names too; an empty note is fine.
 		if textcheck.HasInvisible(note) || note != "" && !strings.ContainsFunc(note, textcheck.IsVisible) {
 			return Transaction{}, fmt.Errorf("note: must not contain control characters")
 		}
@@ -260,7 +260,7 @@ func fromRequest(req Request) (Transaction, error) {
 		}
 	default: // dividend, deposit, withdrawal, fee
 		// A dividend with no instrument is interest income, like Midas's
-		// monthly nema (GLG-519): cash in that is not a contribution. It
+		// monthly nema: cash in that is not a contribution. It
 		// takes its currency like a deposit; one with an instrument gets the
 		// instrument's in FromRequest.
 		if req.InstrumentID != nil && req.Type != TypeDividend {
@@ -287,9 +287,9 @@ func fromRequest(req Request) (Transaction, error) {
 	}
 
 	// For a dividend and a deposit the fee comes out of the amount, so a
-	// fee above the amount would book a negative one (GLG-229). A
+	// fee above the amount would book a negative one. A
 	// withdrawal is capped alongside them: its fee adds to the cash that
-	// leaves (GLG-232), and a fee larger than the withdrawal itself is a
+	// leaves, and a fee larger than the withdrawal itself is a
 	// typo, not a movement. Buy and sell are excluded: there the fee adds
 	// to the cost, which may well exceed the amount.
 	switch req.Type {
@@ -299,7 +299,7 @@ func fromRequest(req Request) (Transaction, error) {
 		}
 	case TypeFee:
 		// A fee row's amount is the fee; a second fee on top of it has no
-		// meaning and would only double-charge cash (GLG-378).
+		// meaning and would only double-charge cash.
 		if !fee.IsZero() {
 			return Transaction{}, fmt.Errorf("fee: must be 0 for a fee transaction")
 		}
@@ -318,7 +318,7 @@ func fillTrade(req Request, t *Transaction) error {
 		return fmt.Errorf("quantity: %w", err)
 	}
 	// A buy at price 0 records units received for free: staking, airdrops,
-	// gifted shares (ADR 0007, GLG-340). A sell still needs a positive
+	// gifted shares (ADR 0007). A sell still needs a positive
 	// price.
 	parsePrice := parsePositiveDecimal
 	if req.Type == TypeBuy {
@@ -334,14 +334,14 @@ func fillTrade(req Request, t *Transaction) error {
 	t.Amount = qty.Mul(price)
 	// A statement's trade amount is the cash that moved (İşlem Tutarı, ADR
 	// 0006), which the broker rounds to the cent while quantity × average
-	// price is not (GLG-366). An explicit amount wins; the manual form sends
+	// price is not. An explicit amount wins; the manual form sends
 	// none and gets quantity × price. An amount that is quantity × price
 	// itself skips the digit limit: the product can carry more fraction
 	// digits than the parser accepts, and the edit form sends a stored
-	// trade's amount back unchanged (GLG-476). A priced trade needs a
-	// positive amount, or it books a position at no cost (GLG-501). A buy at
+	// trade's amount back unchanged. A priced trade needs a
+	// positive amount, or it books a position at no cost. A buy at
 	// price 0 needs amount 0, or free units would still move cash and carry
-	// a cost (GLG-505).
+	// a cost.
 	if req.Amount != nil && *req.Amount != "" && *req.Amount != t.Amount.String() {
 		parseAmount := parseNonNegativeDecimal
 		if price.IsPositive() {
@@ -361,8 +361,7 @@ func fillTrade(req Request, t *Transaction) error {
 // no exponent. Unbounded input lets decimal.NewFromString accept exponents
 // up to int32, which overflows (panics) on Mul and materializes giant
 // strings on String(). 15 integer digits covers any realistic TRY amount;
-// 9 fraction digits covers TEFAS (6) and Midas fractional shares (9,
-// GLG-214).
+// 9 fraction digits covers TEFAS (6) and Midas fractional shares (9).
 const (
 	maxIntDigits  = 15
 	maxFracDigits = 9
@@ -375,7 +374,7 @@ var (
 	// only too long.
 	digitsPattern = regexp.MustCompile(`^\d+(\.\d+)?$`)
 	// errTooManyDigits names the limit itself, so a long positive value is
-	// not reported as "must be positive" (GLG-446). The frontend maps it to
+	// not reported as "must be positive". The frontend maps it to
 	// decimal.error.tooManyDigits.
 	errTooManyDigits = fmt.Errorf("must have at most %d integer and %d fraction digits", maxIntDigits, maxFracDigits)
 )
@@ -408,7 +407,7 @@ func parsePositiveDecimal(s *string) (decimal.Decimal, error) {
 	return d, err
 }
 
-// Paging for the transaction list (GLG-141). A client that sends no limit
+// Paging for the transaction list. A client that sends no limit
 // gets defaultListLimit rows; a larger one is clamped to maxListLimit rather
 // than rejected, matching the price history endpoint.
 const (
@@ -475,7 +474,7 @@ func parseFilter(q url.Values) (Filter, error) {
 // comma-separated list of transaction types ("deposit,withdrawal,fee"). An
 // absent or empty value means no filter; any unknown or empty entry inside
 // the list is rejected rather than ignored, so a typo doesn't silently widen
-// the result (GLG-173).
+// the result.
 func parseTypes(q string) ([]string, error) {
 	if q == "" {
 		return nil, nil
@@ -490,7 +489,7 @@ func parseTypes(q string) ([]string, error) {
 }
 
 // parseInstrumentID reads the ?instrument_id= query value of the transaction
-// list. An absent or empty value is 0, no filter (GLG-333).
+// list. An absent or empty value is 0, no filter.
 func parseInstrumentID(q string) (int64, error) {
 	if q == "" {
 		return 0, nil
@@ -504,8 +503,7 @@ func parseInstrumentID(q string) (int64, error) {
 
 // parseImportID reads the ?import_id= query value of the transaction list
 // and the CSV export: a positive import id, or "none" for the rows entered
-// by hand, returned as ImportNone. An absent or empty value is 0, no filter
-// (GLG-931).
+// by hand, returned as ImportNone. An absent or empty value is 0, no filter.
 func parseImportID(q string) (int64, error) {
 	if q == "none" {
 		return ImportNone, nil
@@ -518,8 +516,8 @@ func parseImportID(q string) (int64, error) {
 }
 
 // parseDateRange reads the optional ?from= and ?to= query values of the
-// transaction list and the CSV export, an inclusive YYYY-MM-DD range
-// (GLG-601). An absent value is "", no bound.
+// transaction list and the CSV export, an inclusive YYYY-MM-DD range.
+// An absent value is "", no bound.
 func parseDateRange(q url.Values) (from, to string, err error) {
 	from, to = q.Get("from"), q.Get("to")
 	if from != "" {
@@ -552,12 +550,12 @@ func writeRequestError(w http.ResponseWriter, r *http.Request, err error) {
 // list returns one page of the portfolio's transactions, newest first, as a
 // plain array. ?limit= (default 100, max 500) sizes the page and ?before=
 // continues from a previous page's X-Next-Cursor header; a client that sends
-// neither still gets an array, just the first 100 rows (GLG-141). The header
+// neither still gets an array, just the first 100 rows. The header
 // is absent on the last page. ?type= narrows the page to a comma-separated
-// list of transaction types (GLG-173), ?instrument_id= to one
-// instrument's rows (GLG-333), ?import_id= to one import's rows or, as
-// "none", the hand-entered ones (GLG-931), and ?from= and ?to= to an
-// inclusive date range (GLG-601).
+// list of transaction types, ?instrument_id= to one
+// instrument's rows, ?import_id= to one import's rows or, as
+// "none", the hand-entered ones, and ?from= and ?to= to an
+// inclusive date range.
 //
 //	@Summary	List a portfolio's transactions
 //	@Tags		transactions
@@ -618,19 +616,19 @@ func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 	auth.WriteJSON(w, http.StatusOK, out)
 }
 
-// csvHeader is the export's column set. It is frozen (epic GLG-519): a
+// csvHeader is the export's column set. It is frozen: a
 // spreadsheet or script built on it must keep working, so a new column goes
 // at the end, never in between.
 var csvHeader = []string{"date", "type", "symbol", "quantity", "price", "amount", "fee", "currency", "note", "market"}
 
 // exportCSV writes every transaction of one of the caller's portfolios as a
-// CSV download (GLG-563): comma separated, UTF-8 without BOM, dot decimals
-// that the CSV import reads back (csvNumber, GLG-653),
+// CSV download: comma separated, UTF-8 without BOM, dot decimals
+// that the CSV import reads back (csvNumber),
 // raw type codes, oldest first, each row on its stored date. Split rows are
 // left out: they are derived from market data, not entered. A symbol, note or market starting with =,
 // +, - or @ gets a leading ' so a spreadsheet does not run it as a formula. ?type=,
 // ?instrument_id=, ?import_id=, ?from= and ?to= keep only the rows the list
-// shows for the same values (GLG-601, GLG-613, GLG-931).
+// shows for the same values.
 //
 //	@Summary	Export a portfolio's transactions as CSV
 //	@Tags		transactions
@@ -657,9 +655,9 @@ func (h *handler) exportCSV(w http.ResponseWriter, r *http.Request) {
 		auth.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	// ListStored, not List: List moves a bonus buy to its split's ex-date
-	// (GLG-828), so the export would write a date the list does not show and
-	// a re-import would not see the row as a duplicate (GLG-894).
+	// ListStored, not List: List moves a bonus buy to its split's ex-date,
+	// so the export would write a date the list does not show and
+	// a re-import would not see the row as a duplicate.
 	txs, err := h.repo.ListStored(r.Context(), userID, portfolioID, filter)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
@@ -688,10 +686,10 @@ func (h *handler) exportCSV(w http.ResponseWriter, r *http.Request) {
 }
 
 // csvThousandsShape is a written number the CSV import refuses as an
-// ambiguous thousands separator, like "7.407" (statement/csv, GLG-626).
+// ambiguous thousands separator, like "7.407" (statement/csv).
 var csvThousandsShape = regexp.MustCompile(`^[1-9]\d{0,2}\.\d{3}$`)
 
-// csvNumber writes d so the CSV import reads it back (GLG-653): a value in
+// csvNumber writes d so the CSV import reads it back: a value in
 // thousands shape gets one trailing zero, "7.4070", which is the same number.
 func csvNumber(d decimal.Decimal) string {
 	s := d.String()
@@ -702,7 +700,7 @@ func csvNumber(d decimal.Decimal) string {
 }
 
 // csvSafe prefixes a text cell starting with =, +, - or @ with ' so a
-// spreadsheet does not run it as a formula (GLG-563, GLG-623).
+// spreadsheet does not run it as a formula.
 func csvSafe(s string) string {
 	if s != "" && strings.ContainsRune("=+-@", rune(s[0])) {
 		return "'" + s

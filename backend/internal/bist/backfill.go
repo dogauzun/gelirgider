@@ -69,12 +69,12 @@ func BulletinBackfillSource(f *Fetcher, instruments *instrument.Repo, prices *pr
 // and a nil error, handled inside src.Sync the same way the daily scheduler
 // treats it, so it is not a failure) — so a partial run can be resumed by
 // running again. Shared by the -backfill-prices flag and the on-demand
-// backfill after a transaction is saved (GLG-189). A stored date is
+// backfill after a transaction is saved. A stored date is
 // skipped without a log line, so a walk with nothing to fetch logs nothing,
-// like the gold and xu100 backfills (GLG-688).
+// like the gold and xu100 backfills.
 //
 // A date that returned no data is a holiday once a later date in the walk
-// is synced, since the source then demonstrably serves data (GLG-277): it
+// is synced, since the source then demonstrably serves data: it
 // is passed to src.MarkEmpty so the next walk skips it instead of
 // requesting it again. Empty dates at the end of the range may just not be
 // published yet, so they stay unmarked.
@@ -102,7 +102,7 @@ func BackfillRange(ctx context.Context, logger *slog.Logger, src BackfillSource,
 			return total, fmt.Errorf("check existing %s for %s: %w", src.Name, dateStr, err)
 		}
 		if has {
-			markEmpty() // no log line: a stored range is silent (GLG-688)
+			markEmpty() // no log line: a stored range is silent
 			continue
 		}
 
@@ -120,7 +120,7 @@ func BackfillRange(ctx context.Context, logger *slog.Logger, src BackfillSource,
 
 		select {
 		case <-ctx.Done():
-			return total, ctx.Err() // stopped during the pause (GLG-467)
+			return total, ctx.Err() // stopped during the pause
 		case <-time.After(RequestPause):
 		}
 	}

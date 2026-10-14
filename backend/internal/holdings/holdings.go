@@ -20,7 +20,7 @@ import (
 )
 
 // MergeSeries merges fetched (from the shared prices table) and manual
-// (a user's per-user overrides, GLG-103) into one date-ascending series
+// (a user's per-user overrides) into one date-ascending series
 // with at most one row per date. Both inputs must already be sorted
 // ascending by date (Repo.Range and ManualRepo.Range both return rows in
 // that order; a single Latest row is a one-element slice). When both series
@@ -101,7 +101,7 @@ type PriceSources struct {
 
 // MergedSeries builds, for each of ids, the date-ascending series of its
 // last price before from (however old: a delisted symbol or a long gap
-// still has one, GLG-260) followed by every row in [from, to], fetched and
+// still has one) followed by every row in [from, to], fetched and
 // userID's manual rows merged by MergeSeries. The seed is dated before
 // from, so it never duplicates a Range row. Every id has an entry, empty
 // when it has no price.
@@ -161,13 +161,13 @@ type Position struct {
 	UnrealizedPL decimal.Decimal
 	RealizedPL   decimal.Decimal
 	// RealizedCost is the cost of every share sold, the base RealizedPL is
-	// a return on (GLG-1100). It survives the position closing. It adds up
+	// a return on. It survives the position closing. It adds up
 	// the same cost a sell, or a buy covering an oversold quantity,
-	// subtracts from RealizedPL (GLG-1106), so a short not yet covered can
+	// subtracts from RealizedPL, so a short not yet covered can
 	// leave it zero.
 	RealizedCost decimal.Decimal
 	// CostBasisReporting is CostBasis in the reporting currency, each buy
-	// converted at its own trade date's rate (GLG-527). It is kept only
+	// converted at its own trade date's rate. It is kept only
 	// when State.FactorOn is set and is zero otherwise.
 	CostBasisReporting decimal.Decimal
 	// CostRateMissing reports that a buy of the open position had no rate
@@ -177,8 +177,7 @@ type Position struct {
 	// When false, LastPrice is zero and MarketValue equals CostBasis.
 	HasPrice bool
 	// Splits are the splits that scaled Quantity, oldest first. A split on
-	// no position or a closed one is skipped by Apply and not listed
-	// (GLG-406).
+	// no position or a closed one is skipped by Apply and not listed.
 	Splits []Split
 }
 
@@ -200,17 +199,17 @@ type Summary struct {
 	// quantity, in the same instrument-id order. Quantity, market value and
 	// unrealized P/L are zero on them; RealizedPL is what the user earned
 	// before closing, so the summary page can show where its realized total
-	// came from instead of only totalling the open rows (GLG-218).
+	// came from instead of only totalling the open rows.
 	Closed []Position
 	Cash   map[string]decimal.Decimal
 	// RealizedPL holds realized P/L per currency over every instrument the
 	// transactions touched, including positions closed down to zero
 	// quantity and dividends on instruments no longer held. Those are
 	// dropped from Positions, but their realized P/L is still the user's,
-	// so it is summed here and not over Positions (GLG-111).
+	// so it is summed here and not over Positions.
 	RealizedPL map[string]decimal.Decimal
 	// Stats holds per currency what the user put in, took out, paid and
-	// earned (GLG-595), keyed like Cash.
+	// earned, keyed like Cash.
 	Stats map[string]Stats
 }
 
@@ -242,7 +241,7 @@ func (a Stats) add(b Stats) Stats {
 // State is the running result of applying transactions one at a time, in
 // transaction.SortForApply order. Compute builds one internally and throws it away; the
 // history endpoint keeps one across its day sweep, so the transactions are
-// walked once for the whole series instead of once per day (GLG-131).
+// walked once for the whole series instead of once per day.
 type State struct {
 	// FactorOn returns the factor converting one unit of currency into the
 	// reporting currency on date, and false when there is no rate. When
@@ -310,8 +309,7 @@ func (s *State) Apply(t transaction.Transaction) {
 		// A buy that covers an oversold quantity is that part of the sell
 		// in reverse: the sell booked its proceeds less short, its share of
 		// the negative CostBasis, so the cover books short back less what
-		// covering cost, and only the rest of the buy is cost basis
-		// (GLG-1106).
+		// covering cost, and only the rest of the buy is cost basis.
 		if p.Quantity.IsNegative() {
 			oversold, short, coverCost := p.Quantity.Neg(), p.CostBasis, cost
 			switch {
@@ -384,7 +382,7 @@ func (s *State) Apply(t transaction.Transaction) {
 
 	// A fee on a cash movement is a real cost, like it is on a buy or a
 	// sell: a deposit brings in less than its amount, a withdrawal takes
-	// out more (GLG-232).
+	// out more.
 	case transaction.TypeDeposit:
 		s.addCash(t.Currency, t.Amount.Sub(t.Fee))
 		st := s.stat(t.Currency)
@@ -418,7 +416,7 @@ func (s *State) Apply(t transaction.Transaction) {
 
 // resetIfClosed zeroes the cost of a position whose quantity reached 0, so
 // what is left of it (a rounding remainder of the average cost) is not
-// folded into the next buy's average cost (GLG-372).
+// folded into the next buy's average cost.
 func (p *Position) resetIfClosed() {
 	if p.Quantity.IsZero() {
 		p.CostBasis = decimal.Zero
@@ -478,21 +476,21 @@ func (s *State) Summarize(latest map[int64]decimal.Decimal) Summary {
 	return summary
 }
 
-// Merge sums per-portfolio summaries into one, for the all-portfolios view
-// (GLG-528). Cash, realized P/L and stats add up per currency; positions add up
+// Merge sums per-portfolio summaries into one, for the all-portfolios view.
+// Cash, realized P/L and stats add up per currency; positions add up
 // per instrument over Positions and Closed alike, so an instrument closed
 // in one portfolio and open in another is one open row carrying both
 // realized P/Ls. A row goes to Closed only when every input row was closed:
 // one long in a portfolio and oversold by as much in another sums to
 // quantity zero but stays in Positions, with its value and cost, so the
-// totals equal the per-portfolio sums (GLG-827). LastPrice and
+// totals equal the per-portfolio sums. LastPrice and
 // HasPrice come from any input that has a price (every input was valued
 // with the same latest map), and splits are unioned by date.
 //
 // One summary is returned as is: summing it alone changes nothing but
 // AvgCost, which would become CostBasis / Quantity instead of the average
-// cost Apply keeps across sells, the one position history reports too
-// (GLG-657). The history sweep uses SummarizeAll instead (GLG-685).
+// cost Apply keeps across sells, the one position history reports too.
+// The history sweep uses SummarizeAll instead.
 func Merge(summaries []Summary) Summary {
 	if len(summaries) == 1 {
 		return summaries[0]
@@ -555,11 +553,11 @@ func Merge(summaries []Summary) Summary {
 }
 
 // SummarizeAll is Merge over each state's Summarize(latest), cut down to
-// what the history sweep reads every day (GLG-685): Cash and RealizedPL per
+// what the history sweep reads every day: Cash and RealizedPL per
 // currency, and Positions with Quantity, CostBasis, LastPrice, HasPrice,
 // MarketValue and UnrealizedPL summed per instrument. An instrument closed
 // in every state is left out, as Merge moves it to Closed; one whose open
-// quantities only sum to zero is kept, as in Merge (GLG-827). Every
+// quantities only sum to zero is kept, as in Merge. Every
 // other field (Closed, Stats, AvgCost, RealizedCost, Splits,
 // CostBasisReporting, CostRateMissing) is left zero: building them and copying each position
 // twice was most of the `all` history's cost.
@@ -567,7 +565,7 @@ func SummarizeAll(states []*State, latest map[int64]decimal.Decimal) Summary {
 	out := Summary{Cash: map[string]decimal.Decimal{}, RealizedPL: map[string]decimal.Decimal{}}
 	// Positions are built in place, found through byID, and sorted once
 	// at the end: a pointer per position and a growing slice of copies
-	// were most of what the history sweep allocated each day (GLG-1363).
+	// were most of what the history sweep allocated each day.
 	n := 0
 	for _, s := range states {
 		n += len(s.positions)
@@ -630,7 +628,7 @@ func Compute(txs []transaction.Transaction, latest map[int64]decimal.Decimal, cu
 }
 
 // Gap is one day a currency's cash reached a new low below zero: Amount is
-// how much further below the previous low it went (GLG-1109).
+// how much further below the previous low it went.
 type Gap struct {
 	Date     string
 	Currency string
@@ -638,7 +636,7 @@ type Gap struct {
 }
 
 // maxDepositPlaces is the most fraction digits a deposit amount takes; a
-// trade's amount, quantity × price, can carry more (GLG-476).
+// trade's amount, quantity × price, can carry more.
 const maxDepositPlaces = 9
 
 // CashGaps walks one portfolio's cash per currency in date order, with
@@ -684,7 +682,7 @@ type Totals struct {
 	RealizedPL   decimal.Decimal
 	// PositionsValue and CostBasis are the open positions' market value and
 	// cost, summed unrounded like TotalValue so a caller rounds each once
-	// instead of subtracting rounded totals (GLG-976).
+	// instead of subtracting rounded totals.
 	PositionsValue decimal.Decimal
 	CostBasis      decimal.Decimal
 	// Missing lists the currencies whose amounts were left out of the totals
@@ -696,7 +694,7 @@ type Totals struct {
 	// rates, TRY cash is listed here even though TRY needs no rate (it is
 	// implied 1) -- the absent rate is USD's. Callers that show this list to
 	// a user must phrase it as "excluded for lack of a rate", never as
-	// "these currencies have no rate" (GLG-114).
+	// "these currencies have no rate".
 	Missing []string
 }
 
@@ -740,11 +738,11 @@ func Factor(rates map[string]decimal.Decimal, currency, reporting string) (decim
 // Realized P/L and cost basis convert at the same valuation-date rate as
 // everything else: a simplification (ADR 0003) that does not separate FX
 // gain/loss from price gain/loss. A caller that needs cost at trade-date
-// rates sets State.FactorOn and reads Position.CostBasisReporting instead
-// (GLG-527); Convert does not use it.
+// rates sets State.FactorOn and reads Position.CostBasisReporting instead;
+// Convert does not use it.
 func Convert(s Summary, rates map[string]decimal.Decimal, reporting string) Totals {
 	missing := map[string]bool{}
-	// One Factor per currency: each is a 16-digit division (GLG-1363).
+	// One Factor per currency: each is a 16-digit division.
 	factors := map[string]decimal.Decimal{}
 	factor := func(currency string) (decimal.Decimal, bool) {
 		if f, ok := factors[currency]; ok {
@@ -779,7 +777,7 @@ func Convert(s Summary, rates map[string]decimal.Decimal, reporting string) Tota
 	// The positions are summed per currency first and each sum converted
 	// once: decimal Add and Mul never round, so this is the same total as
 	// converting every position, without a 16-digit product per position
-	// that each Add then rescales to (GLG-1363).
+	// that each Add then rescales to.
 	type sums struct{ value, unrealized, cost decimal.Decimal }
 	byCurrency := map[string]*sums{}
 	for _, p := range s.Positions {

@@ -77,14 +77,14 @@ func (c Config) EnabledSources(sources []Source) []Source {
 
 // Enabled reports whether source name is enabled. The default is true,
 // except for tefas: its endpoint is disallowed by tefas.gov.tr's
-// robots.txt, so fetching from it is the operator's opt-in (GLG-1114).
+// robots.txt, so fetching from it is the operator's opt-in.
 func Enabled(ctx context.Context, repo *settings.Repo, name string, logger *slog.Logger) bool {
 	return readBool(ctx, repo, EnabledKey(name), name != NameTEFAS, logger)
 }
 
 // readBool reads a true/false setting that defaults to def. A read cut
 // off by a cancelled or expired ctx failed nothing: it logs nothing and
-// reports false, so it never turns a disabled source on (GLG-466).
+// reports false, so it never turns a disabled source on.
 func readBool(ctx context.Context, repo *settings.Repo, key string, def bool, logger *slog.Logger) bool {
 	v, ok, err := repo.Get(ctx, key)
 	if err != nil {

@@ -63,7 +63,7 @@ func (r *Repo) CreateSession(ctx context.Context, userID int64) (Session, error)
 		"INSERT INTO sessions (id, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
 		hashToken(s.ID), s.UserID, s.CreatedAt.Format(time.RFC3339), s.ExpiresAt.Format(time.RFC3339),
 	)
-	// The user was deleted since the caller checked it (GLG-1012).
+	// The user was deleted since the caller checked it.
 	if db.IsForeignKeyViolation(err) {
 		return Session{}, fmt.Errorf("insert session: %w", user.ErrNotFound)
 	}

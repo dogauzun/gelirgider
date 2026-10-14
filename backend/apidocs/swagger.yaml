@@ -227,7 +227,7 @@ definitions:
         description: |-
           BenchmarkTWR is the same for the benchmark's shadow series: null on
           every point without a benchmark, when the shadow has no value, or when
-          benchmark.returns.twr is null (ADR 0012, GLG-952).
+          benchmark.returns.twr is null (ADR 0012).
         type: string
       benchmark_value:
         description: |-
@@ -246,7 +246,7 @@ definitions:
           PriceUnknown is set on a point that holds at least one instrument with
           no price on or before its date. Those holdings count at cost in
           total_value, so the point is incomplete, not wrong by the whole
-          holding (ADR 0003, GLG-254).
+          holding (ADR 0003).
         type: boolean
       total_value:
         type: string
@@ -255,7 +255,7 @@ definitions:
           TWR is the time-weighted return from the range's first point to this
           one, a fraction with 6 decimals: "0.000000" on the first point, the
           range's returns.twr on the last. null on every point when returns.twr
-          is null (ADR 0011, GLG-952).
+          is null (ADR 0011).
         type: string
     type: object
   server.historyResponse:
@@ -272,7 +272,7 @@ definitions:
       missing_prices:
         description: |-
           MissingPrices is the union, over every point with price_unknown, of
-          the symbols held with no price yet on that point's date (GLG-254).
+          the symbols held with no price yet on that point's date.
         items:
           type: string
         type: array
@@ -288,20 +288,20 @@ definitions:
           (ADR 0003). Anything dated on or before `from` is already inside the
           first point's total, so it is not counted here. The chart header
           subtracts it from last - first, so money put in is not shown as a
-          gain (GLG-219). A flow whose currency has no rate on its own day is
+          gain. A flow whose currency has no rate on its own day is
           carried and counted on the first later day that has one, because
-          that is the day its cash enters total_value (GLG-233).
+          that is the day its cash enters total_value.
 
           The gross amount is counted, not the amount net of its fee: a fee is
           a cost, and costs belong in the performance the chart shows, exactly
           like the fee on a buy, a sell or a standalone fee row, none of which
-          is a flow either (GLG-232).
+          is a flow either.
 
           It also holds the first-price jump of every holding the first point
           had no price for: on the day its first price lands, its value moves
           from cost to market in one step, and that move is gain made before
           the range as much as inside it, so it is counted here rather than as
-          the range's gain (GLG-254).
+          the range's gain.
         type: string
       points:
         items:
@@ -315,7 +315,7 @@ definitions:
           return (ADR 0011), from each point's total_value and the same
           external flows net_flow counts, taken on the day they land. All three
           are null when the first point's total_value is not positive or any
-          point's cash is negative (GLG-641).
+          point's cash is negative.
     type: object
   server.periodBucket:
     properties:
@@ -360,11 +360,11 @@ definitions:
         description: |-
           Cash and UnrealizedPL in the reporting currency, taken from the same
           holdings.Convert result as TotalValue, so they leave out the same
-          MissingRates currencies (GLG-158). UnrealizedPL is null under
+          MissingRates currencies. UnrealizedPL is null under
           summaryResponse.UnrealizedPL's rule: when every currency contributing
           to it was excluded for lack of a rate, the sum is 0.00 only because
           nothing was added to it, and a caller must render "-" rather than a
-          figure that reads as a real zero (GLG-113, GLG-129).
+          figure that reads as a real zero.
         type: string
       created_at:
         type: string
@@ -377,8 +377,8 @@ definitions:
           MissingRates lists the currencies whose amounts TotalValue leaves out
           for want of a conversion factor -- same field and same semantics as
           summaryResponse.MissingRates: it names what was excluded, not what is
-          absent from the rate table (see holdings.Totals.Missing, GLG-114).
-          Without it the list silently understates a portfolio (GLG-121).
+          absent from the rate table (see holdings.Totals.Missing).
+          Without it the list silently understates a portfolio.
         items:
           type: string
         type: array
@@ -423,7 +423,7 @@ definitions:
           True for a closed position: no quantity left, listed for its
           realized P/L. A quantity of 0 alone does not mean closed: in the
           all-portfolios view a long and an equal short position in two
-          portfolios sum to 0 and stay open (GLG-827).
+          portfolios sum to 0 and stay open.
         type: boolean
       cost_basis:
         type: string
@@ -441,8 +441,7 @@ definitions:
           cost_basis at today's rate minus the cost with each buy converted at
           its own trade date's rate. The price part is unrealized_pl_reporting.
           Null on closed positions, on positions in the reporting currency, and
-          when today's rate or any open buy's trade-date rate is missing
-          (GLG-532).
+          when today's rate or any open buy's trade-date rate is missing.
         type: string
       has_price:
         type: boolean
@@ -451,7 +450,7 @@ definitions:
       last_price:
         type: string
       market:
-        description: BIST, US, TEFAS or CRYPTO (GLG-543)
+        description: BIST, US, TEFAS or CRYPTO
         type: string
       market_value:
         type: string
@@ -464,7 +463,7 @@ definitions:
           The latest close dated before price_date (manual winning on a date,
           like last_price), scaled by any split after its date up to today. It,
           prev_price_date, day_change and day_change_reporting are null when
-          either price is missing or the position is closed (GLG-542).
+          either price is missing or the position is closed.
         type: string
       prev_price_date:
         description: The date of prev_close.
@@ -476,14 +475,14 @@ definitions:
           Where last_price came from ("manual" for the caller's own entry, else
           the fetching provider) and the date it is dated. Null when there is no
           price. The page needs both to tag a manual price and to address it for
-          deletion -- DELETE /api/instruments/{id}/prices/{date} (GLG-134).
+          deletion -- DELETE /api/instruments/{id}/prices/{date}.
         type: string
       quantity:
         type: string
       realized_cost:
         description: |-
           The cost of every share sold, in the position's currency: the base
-          realized_pl is a return on (GLG-1100). Kept after the position closes.
+          realized_pl is a return on. Kept after the position closes.
           Zero, or even negative, after a short: no base for a percentage.
         type: string
       realized_pl:
@@ -494,7 +493,7 @@ definitions:
         description: |-
           The splits the holdings engine applied to this position, oldest
           first: dated after the instrument's first transaction in this
-          portfolio, on or before today, and while shares were held (GLG-406).
+          portfolio, on or before today, and while shares were held.
           Never null.
         items:
           $ref: '#/definitions/server.splitResponse'
@@ -505,7 +504,7 @@ definitions:
         description: |-
           Unrealized plus realized P/L in the reporting currency, summed
           unrounded and rounded once, so it can differ from the two rounded
-          fields' sum by a cent (GLG-1354). Null without a rate.
+          fields' sum by a cent. Null without a rate.
         type: string
       unrealized_pl:
         type: string
@@ -519,7 +518,7 @@ definitions:
       error:
         description: |-
           Error is "undecryptable" when the stored key cannot be read (SECRET_KEY
-          changed), so the admin can enter it again (GLG-320).
+          changed), so the admin can enter it again.
         type: string
       last4:
         type: string
@@ -587,7 +586,7 @@ definitions:
         description: |-
           deposits less withdrawals, and dividends_gross less dividends_tax,
           each worked out unrounded and rounded once, so either can differ from
-          the rounded fields' difference by a cent (GLG-1354).
+          the rounded fields' difference by a cent.
         type: string
       withdrawals:
         type: string
@@ -624,7 +623,7 @@ definitions:
         description: |-
           Each cash_by_currency entry converted into the reporting currency,
           keyed by its own currency. A currency with no rate is left out; it is
-          named in missing_rates (GLG-543).
+          named in missing_rates.
         type: object
       cost_basis:
         type: string
@@ -633,7 +632,7 @@ definitions:
       day_change:
         description: |-
           The open positions' day_change_reporting summed unrounded and rounded
-          once, so it can differ from the rounded rows' sum by a cent (GLG-1204).
+          once, so it can differ from the rounded rows' sum by a cent.
           A position with no previous close or no rate is left out; null when
           none is left, so the page shows "-" rather than a zero.
         type: string
@@ -641,8 +640,8 @@ definitions:
         description: |-
           FXPL is the part of the return that neither P/L figure holds: the
           currency move on foreign cash and on the cost of foreign positions,
-          both of which unrealized and realized P/L value at today's rate
-          (GLG-267). Null when the portfolio has no currency other than the
+          both of which unrealized and realized P/L value at today's rate.
+          Null when the portfolio has no currency other than the
           reporting one, or when every such currency was excluded for lack of a
           rate -- the same rule as the P/L fields above.
         type: string
@@ -660,7 +659,7 @@ definitions:
           leaving out the same missing_rates currencies as total_value. Each is
           summed unrounded and rounded once, so it matches the rows and history's
           cost_basis; total_value less cash less unrealized_pl, each already
-          rounded, can be a cent off (GLG-976).
+          rounded, can be a cent off.
         type: string
       realized_pl:
         type: string
@@ -675,9 +674,9 @@ definitions:
           a real zero next to the per-position figures. The caller renders "-"
           instead, the way it already does for a position with no reporting
           value. Cash and total value stay plain strings: the page can tell the
-          same thing for those from cash_by_currency and market_value_reporting
-          (GLG-113), but realized P/L also counts closed positions, whose
-          currencies reach no other field of this response (GLG-129).
+          same thing for those from cash_by_currency and market_value_reporting,
+          but realized P/L also counts closed positions, whose
+          currencies reach no other field of this response.
         type: string
     type: object
   statement.aliasRequest:
@@ -769,8 +768,7 @@ definitions:
       currency:
         description: |-
           Currency is the statement's account currency, "" when unknown or a
-          CSV. It tells the TRY and USD statements of the same month apart
-          (GLG-375).
+          CSV. It tells the TRY and USD statements of the same month apart.
         type: string
       id:
         type: integer
@@ -792,7 +790,7 @@ definitions:
         - $ref: '#/definitions/statement.cashReconcileEntry'
         description: |-
           CashReconciliation is null when the statement printed no cash
-          balance or no currency (GLG-419).
+          balance or no currency.
       currency:
         type: string
       holdings:
@@ -803,8 +801,8 @@ definitions:
         description: |-
           Names are the fund names the balances printed, each once with the
           instrument of its code (0: see statementNames), in the shape of
-          commit's aliases, for the client to send back as commit's names
-          (GLG-766). Left out for a statement that prints none.
+          commit's aliases, for the client to send back as commit's names.
+          Left out for a statement that prints none.
         items:
           $ref: '#/definitions/statement.aliasRequest'
         type: array
@@ -834,28 +832,28 @@ definitions:
       approximate_price:
         description: |-
           ApproximatePrice marks an opening buy priced with the statement's own
-          period-end price, as no stored price exists for its date (GLG-737).
+          period-end price, as no stored price exists for its date.
         type: boolean
       closing:
         description: |-
           Closing marks a sell the preview proposes, dated the day before
-          period_start, for what the portfolio holds and the statement does not
-          (GLG-1190). It starts unchecked: the gap may be months not imported.
+          period_start, for what the portfolio holds and the statement does not.
+          It starts unchecked: the gap may be months not imported.
         type: boolean
       code:
         type: string
       cost_price:
         description: |-
           CostPrice marks an opening buy priced with the average cost the
-          statement prints for the holding (GLG-1185).
+          statement prints for the holding.
         type: boolean
       currency:
         type: string
       currency_fallback:
         description: |-
           CurrencyFallback marks a row the file gave no currency for: Currency
-          is the instrument's, TRY when none (GLG-622), so a pick in the page
-          takes the picked instrument's (GLG-1320).
+          is the instrument's, TRY when none, so a pick in the page
+          takes the picked instrument's.
         type: boolean
       date:
         type: string
@@ -865,7 +863,7 @@ definitions:
         description: |-
           DuplicateOf is the date of an earlier transaction, hand-entered or
           imported, this row likely repeats (see flagDuplicates); the client
-          starts such a row unchecked (GLG-415, GLG-559, GLG-627).
+          starts such a row unchecked.
         type: string
       fee:
         type: string
@@ -877,7 +875,7 @@ definitions:
         description: |-
           InstrumentSymbol and InstrumentName name the instrument of a row
           resolved by an earlier pick, whose symbol is the statement's own, so
-          the user sees what the pick resolved it to (GLG-750).
+          the user sees what the pick resolved it to.
         type: string
       key:
         type: string
@@ -892,7 +890,7 @@ definitions:
         description: |-
           Opening marks a row the preview proposes for what the account held
           before period_start: a buy dated the day before it, or the deposit
-          that pays for those buys (GLG-737).
+          that pays for those buys.
         type: boolean
       price:
         type: string
@@ -907,9 +905,8 @@ definitions:
       resolved_by:
         description: |-
           ResolvedBy is "alias" when the instrument is the user's own earlier
-          pick for this symbol rather than a match of it (GLG-735), "name" when
-          it is the fund an earlier statement's balances printed under this name
-          (GLG-766).
+          pick for this symbol rather than a match of it, "name" when
+          it is the fund an earlier statement's balances printed under this name.
         type: string
       section:
         type: string
@@ -922,7 +919,7 @@ definitions:
       unknown_instrument:
         description: |-
           UnknownInstrument marks an error row whose symbol is unknown as well,
-          so the preview still says so once checkRow made it an error (GLG-678).
+          so the preview still says so once checkRow made it an error.
         type: boolean
       value:
         type: string

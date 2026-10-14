@@ -9,7 +9,7 @@ import (
 // RLIMIT_AS: the Go runtime reserves about a gigabyte of address space at
 // start, but reservations only count once they are used. A process cannot
 // raise its hard limit, so on a host that is already stricter the worker
-// keeps the host's (GLG-592).
+// keeps the host's.
 func limitMemory() error {
 	var limit syscall.Rlimit
 	if err := syscall.Getrlimit(syscall.RLIMIT_DATA, &limit); err != nil {

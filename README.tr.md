@@ -45,7 +45,6 @@ Performans: aylara ve yıllara göre getiriler ve zaman içinde zirveden düşü
 ## Belgeler
 
 - [docs/ROADMAP.md](docs/ROADMAP.md): süren işler, sıradakiler ve kapsam dışı olanlar
-- [docs/HISTORY.md](docs/HISTORY.md): tamamlanan aşamalar ve her birinin getirdikleri
 - [docs/PRINCIPLES.md](docs/PRINCIPLES.md): yol gösterici ilkeler
 - [docs/adr/](docs/adr/): mimari karar kayıtları
 - [deploy/README.md](deploy/README.md): Docker Compose ile canlı ortama kurulum

@@ -16,7 +16,7 @@
 // import preview, and they are the user's own data. Callers show them to that
 // user and nowhere else: never in a log line, and never persisted — the
 // transaction note is the generic "Midas <period>" string. The preview masks
-// the IBAN to its last four digits (statement.MaskIdentifiers, GLG-1196).
+// the IBAN to its last four digits (statement.MaskIdentifiers).
 package midas
 
 import (
@@ -195,7 +195,7 @@ func parseHolding(st *statement.Statement, row []string) {
 		Currency: currency,
 	}
 	// The price is Toplam Değeri / Adet, for an opening position the
-	// portfolio has no stored price for (GLG-737, GLG-816); an unreadable
+	// portfolio has no stored price for; an unreadable
 	// value leaves it zero, as reconciliation needs only the quantity.
 	if value, _, err := parseMoney(row[4]); err == nil && quantity.IsPositive() {
 		hold.Price = value.DivRound(quantity, 6)
@@ -275,19 +275,19 @@ func parseCash(st *statement.Statement, row []string) {
 	case "Diğer Gelir":
 		// "Aylık Nema Geliri", Midas's monthly interest on idle TRY cash. It
 		// is income, not a contribution, so it imports as a dividend with no
-		// instrument (GLG-359, GLG-533).
+		// instrument.
 		kind = "dividend"
 	case "Para Çekme":
 		kind = "withdrawal"
 	case "Diğer Gider":
 		// A tax or expense debit, so far only "Stopaj", the withholding on
-		// the monthly interest. It imports as a fee (GLG-1177).
+		// the monthly interest. It imports as a fee.
 		kind = "fee"
 	case "Döviz Alış", "Döviz Satış":
 		kind = "fx"
 	case "Para Yatırma", "Ücretsiz İşlem":
 		// Ücretsiz İşlem is Midas's zero-commission credit, paid into the cash
-		// account like a deposit (GLG-1187).
+		// account like a deposit.
 		kind = "deposit"
 	default:
 		date, _ := parseDate(row[1])
@@ -316,7 +316,7 @@ func parseCash(st *statement.Statement, row []string) {
 	if kind == "fx" {
 		// Midas prints a conversion on both the TRY and the USD statement,
 		// each with its own exact amount, so each books only its own leg,
-		// like a transfer between two of the user's accounts (GLG-363).
+		// like a transfer between two of the user's accounts.
 		// Döviz Satış sells dollars, Döviz Alış buys them.
 		switch {
 		case currency != "USD" && currency != "TRY":
@@ -413,8 +413,8 @@ func parseMoney(cell string) (decimal.Decimal, string, error) {
 
 // parseHeaderMoney reads a header block amount such as Nakit Bakiye's
 // "0.74 USD". The header prints plain decimals ("27.46", "88702.860000"), so
-// "1.500 USD" is one and a half, not the tables' Turkish thousand (GLG-498);
-// only a comma switches to the Turkish format (GLG-419).
+// "1.500 USD" is one and a half, not the tables' Turkish thousand;
+// only a comma switches to the Turkish format.
 func parseHeaderMoney(cell string) (decimal.Decimal, string, error) {
 	amount, currency, err := parseMoney(cell)
 	if err != nil || strings.Contains(cell, ",") {
@@ -432,12 +432,12 @@ var thousandsOnly = regexp.MustCompile(`^[+-]?[1-9]\d{0,2}(\.\d{3})+$`)
 // parseNumber accepts both formats the statement mixes: Turkish "8.237,46"
 // and "1.000" in the tables, and plain "88702.860000" in the header block.
 // With a comma, the dots must be 3-digit thousands groups ("1.2.3,4" is
-// unreadable, GLG-908). A header amount goes through parseHeaderMoney
+// unreadable). A header amount goes through parseHeaderMoney
 // instead, because a plain decimal with a 3-digit fraction ("1.500") reads
 // as a thousand here.
 // The result must have the transaction API's shape, plus the sign Kar /
 // Zarar prints: unchecked, "1e2000000000" panics on Mul and "1e3000000"
-// prints 3 MB (GLG-629, like the CSV parser's GLG-615).
+// prints 3 MB (the CSV parser guards the same way).
 func parseNumber(cell string) (decimal.Decimal, error) {
 	if s := strings.TrimSpace(cell); strings.Contains(s, ",") || thousandsOnly.MatchString(s) {
 		return statement.ParseNumber(s, ".", ",")

@@ -13,7 +13,7 @@ import (
 
 // defaultClient is used when a provider's HTTPClient is nil. Its timeout
 // bounds one request, so a server that never answers fails the fetch
-// instead of holding the caller until its context ends (GLG-396).
+// instead of holding the caller until its context ends.
 var defaultClient = &http.Client{Timeout: 30 * time.Second}
 
 // Client returns c, or the default client when c is nil.

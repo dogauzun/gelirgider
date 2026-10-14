@@ -24,14 +24,13 @@ import (
 var ErrNotFound = errors.New("import not found")
 
 // ErrDuplicate is returned when the same user has already imported the same
-// file, into this portfolio or another one (GLG-1182).
+// file, into this portfolio or another one.
 var ErrDuplicate = errors.New("import already exists")
 
 // ErrSamePeriod is returned when the user already has an import of the same
 // statement: same broker, portfolio, account currency and exact period, from
 // a different file. Midas regenerates the PDF on every download, so a
-// re-downloaded month has a new hash and only this check catches it
-// (GLG-361).
+// re-downloaded month has a new hash and only this check catches it.
 var ErrSamePeriod = errors.New("statement period already imported")
 
 // Import is one imported statement file.
@@ -143,7 +142,7 @@ func create(ctx context.Context, q querier, n NewImport) (Import, error) {
 		}
 	}
 	// The unique index is per portfolio; the file of one account is refused
-	// in every other portfolio of the user too (GLG-1182).
+	// in every other portfolio of the user too.
 	switch imp, err := bySHA256(ctx, q, n.UserID, n.SHA256); {
 	case err == nil:
 		return imp, ErrDuplicate
@@ -172,7 +171,7 @@ func create(ctx context.Context, q querier, n NewImport) (Import, error) {
 			return Import{}, ErrDuplicate
 		}
 		// The portfolio, or its user, was deleted since the caller's
-		// ownership check (GLG-1002).
+		// ownership check.
 		if db.IsForeignKeyViolation(err) {
 			return Import{}, fmt.Errorf("insert import: %w", portfolio.ErrNotFound)
 		}
@@ -187,8 +186,8 @@ func create(ctx context.Context, q querier, n NewImport) (Import, error) {
 }
 
 // samePeriod reports whether imp is the same statement as one of the given
-// account currency and period: exactly the same dates, of the same account
-// (GLG-361). Broker and portfolio are the caller's to match.
+// account currency and period: exactly the same dates, of the same account.
+// Broker and portfolio are the caller's to match.
 func (imp Import) samePeriod(currency, periodStart, periodEnd string) bool {
 	return imp.PeriodStart == periodStart && imp.PeriodEnd == periodEnd && imp.sameAccount(currency)
 }
@@ -196,7 +195,7 @@ func (imp Import) samePeriod(currency, periodStart, periodEnd string) bool {
 // sameAccount reports whether imp may be of the account with the given
 // currency: the same currency, or either side's unknown. TRY and USD
 // statements are two accounts, so a different known currency is another
-// account (GLG-361, GLG-367).
+// account.
 func (imp Import) sameAccount(currency string) bool {
 	return imp.Currency == "" || currency == "" || imp.Currency == currency
 }
@@ -213,7 +212,7 @@ func isUniqueViolation(err error) bool {
 // BySHA256 returns the user's import of this file into any of their
 // portfolios, the earliest when an older database holds it in several, or
 // ErrNotFound. A statement file is one broker account, so the same file in a
-// second portfolio is always a mistake (GLG-1182); the parse endpoint answers
+// second portfolio is always a mistake; the parse endpoint answers
 // "already imported" with it before parsing anything.
 func (r *ImportRepo) BySHA256(ctx context.Context, userID int64, sha256 string) (Import, error) {
 	return bySHA256(ctx, r.db, userID, sha256)
@@ -268,7 +267,7 @@ func (r *ImportRepo) List(ctx context.Context, userID int64) ([]Import, error) {
 // portfolio whose period intersects [periodStart, periodEnd], touching ends
 // included. The parse endpoint turns each one into a warning about importing
 // the same trades twice, and create refuses the one that is the same
-// statement (GLG-361).
+// statement.
 func (r *ImportRepo) Overlapping(ctx context.Context, userID, portfolioID int64, broker, periodStart, periodEnd string) ([]Import, error) {
 	return overlapping(ctx, r.db, NewImport{UserID: userID, PortfolioID: portfolioID, Broker: broker, PeriodStart: periodStart, PeriodEnd: periodEnd})
 }
@@ -339,7 +338,7 @@ func (r *ImportRepo) Delete(ctx context.Context, userID, id int64) error {
 }
 
 // Alias returns the instrument id userID picked for symbol in a statement of
-// broker, or ErrNotFound when they picked none (GLG-735). A learned name is
+// broker, or ErrNotFound when they picked none. A learned name is
 // no pick (see LearnedNames).
 func (r *ImportRepo) Alias(ctx context.Context, userID int64, broker, symbol string) (int64, error) {
 	var id int64
@@ -369,14 +368,14 @@ type ImportAlias struct {
 
 // LearnNameTx stores, inside tx, that the fund name a.Symbol a committed
 // statement of a.Broker, whose period ends on a.PeriodEnd, printed next to a
-// code is a.InstrumentID (GLG-766). It replaces an earlier learned name for the same key
+// code is a.InstrumentID. It replaces an earlier learned name for the same key
 // but never a pick, and only when periodEnd is the same as or later than that
 // name's own, so statements committed out of period order leave the newest
-// statement's name (GLG-773). instrumentID 0, a name the statement printed for
+// statement's name. instrumentID 0, a name the statement printed for
 // two funds or for a code of no instrument, removes the learned name under the
 // same rule, leaves a pick alone and records the forget in
 // import_forgotten_names, so a statement of an older period does not learn
-// the name again (GLG-821). A learned name of the same or a later period
+// the name again. A learned name of the same or a later period
 // removes that record.
 func (r *ImportRepo) LearnNameTx(ctx context.Context, tx *sql.Tx, a ImportAlias) error {
 	userID, broker, name, periodEnd, instrumentID := a.UserID, a.Broker, a.Symbol, a.PeriodEnd, a.InstrumentID
@@ -418,7 +417,7 @@ func (r *ImportRepo) LearnNameTx(ctx context.Context, tx *sql.Tx, a ImportAlias)
 }
 
 // LearnedNames returns the fund names userID's committed statements of
-// broker printed, each with its instrument id (GLG-766).
+// broker printed, each with its instrument id.
 func (r *ImportRepo) LearnedNames(ctx context.Context, userID int64, broker string) (map[string]int64, error) {
 	rows, err := r.db.QueryContext(ctx,
 		"SELECT symbol, instrument_id FROM import_aliases WHERE user_id = ? AND broker = ? AND learned = 1",

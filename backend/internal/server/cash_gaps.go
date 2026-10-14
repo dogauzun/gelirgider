@@ -11,8 +11,8 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 )
 
-// registerCashGapRoutes wires GET and POST /api/portfolios/{id}/cash-gaps
-// (GLG-1109): the days a portfolio's cash goes below zero for lack of
+// registerCashGapRoutes wires GET and POST /api/portfolios/{id}/cash-gaps:
+// the days a portfolio's cash goes below zero for lack of
 // recorded deposits, and writing those deposits on the user's confirm.
 func registerCashGapRoutes(mux *http.ServeMux, d *deps) {
 	h := &cashGapHandler{d}

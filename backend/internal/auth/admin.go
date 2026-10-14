@@ -89,7 +89,7 @@ func (h *handler) adminCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Another admin deleted the new user before its default portfolio was
-	// seeded: the 404 the other admin routes give for it (GLG-1015).
+	// seeded: the 404 the other admin routes give for it.
 	if errors.Is(err, user.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "user not found")
 		return
@@ -155,7 +155,7 @@ func (h *handler) adminSetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := SetPassword(r.Context(), h.users, h.sessions, u.Email, req.Password)
-	// Another admin deleted the user since pathUser (GLG-1015).
+	// Another admin deleted the user since pathUser.
 	if errors.Is(err, user.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "user not found")
 		return

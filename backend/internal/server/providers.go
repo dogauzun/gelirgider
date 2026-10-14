@@ -39,7 +39,7 @@ type providerStatus struct {
 	Configured bool   `json:"configured"`
 	Last4      string `json:"last4"`
 	// Error is "undecryptable" when the stored key cannot be read (SECRET_KEY
-	// changed), so the admin can enter it again (GLG-320).
+	// changed), so the admin can enter it again.
 	Error string `json:"error,omitempty"`
 }
 
@@ -114,7 +114,7 @@ func registerProviderRoutes(mux *http.ServeMux, secrets *settings.Repo, fetcher 
 	})
 
 	// POST .../test makes one request to the provider with the body's
-	// api_key, or the stored key when the body has none (GLG-308). Rate
+	// api_key, or the stored key when the body has none. Rate
 	// limited like login, so it cannot be used to hammer the providers.
 	//
 	//	@Summary	Test a provider API key

@@ -169,7 +169,7 @@ func (h *dividendHandler) dismiss(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Expected dividends are ex-dates from MinDate to today, so nothing
-	// outside that range can be dismissed (GLG-376).
+	// outside that range can be dismissed.
 	if err := price.CheckDate(req.Date); err != nil {
 		auth.WriteError(w, http.StatusBadRequest, "date "+err.Error())
 		return
