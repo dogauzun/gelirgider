@@ -40,7 +40,7 @@ func NewRepo(db *sql.DB) *Repo {
 // source are overwritten. Implemented as UPDATE-then-INSERT rather than a
 // dialect-specific upsert, per project convention of portable SQL, in one
 // transaction so overlapping fetches of a new key cannot both INSERT
-// (GLG-1025, see price.Repo.Upsert).
+// (see price.Repo.Upsert).
 func (r *Repo) Upsert(ctx context.Context, currency, date, rate, source string) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -74,14 +74,14 @@ func (r *Repo) Upsert(ctx context.Context, currency, date, rate, source string) 
 }
 
 // hasSourceQuery is HasSource's lookup. Both EXISTS arms are index seeks:
-// fx_rates on idx_fx_rates_date_source (GLG-692), empty_fetches on its
+// fx_rates on idx_fx_rates_date_source, empty_fetches on its
 // (source, date) primary key. Without the index the fx_rates arm scanned
 // the whole table once per day of every backfill walk.
 const hasSourceQuery = `SELECT EXISTS(SELECT 1 FROM fx_rates WHERE date = ? AND source = ?)
 	OR EXISTS(SELECT 1 FROM empty_fetches WHERE date = ? AND source = ?)`
 
 // HasSource reports whether at least one fx_rates row exists for date with
-// the given source, or MarkEmpty recorded date as having no data (GLG-277).
+// the given source, or MarkEmpty recorded date as having no data.
 // Used by backfill to skip dates already synced.
 func (r *Repo) HasSource(ctx context.Context, date, source string) (bool, error) {
 	var exists int
@@ -107,10 +107,10 @@ func (r *Repo) MarkEmpty(ctx context.Context, date, source string) error {
 }
 
 // latestQuery is Latest's lookup, one statement for every currency in its
-// VALUES list (GLG-1256). The plan walks the requested currencies and, per
+// VALUES list. The plan walks the requested currencies and, per
 // currency, seeks the newest date on or before asOf, then the row at that
 // date, all on the (currency, date) primary key, so its cost does not grow
-// with the length of rate history (GLG-503). fx_rates has no parent table
+// with the length of rate history. fx_rates has no parent table
 // to drive the walk the way instruments drives price.Repo.Latest, and an
 // IN filter on fx_rates itself would run the date subquery once per stored
 // row, hence the VALUES list.

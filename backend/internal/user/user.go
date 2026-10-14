@@ -17,7 +17,7 @@ var ErrNotFound = errors.New("user not found")
 // MissingError is ErrNotFound for one user id: errors.Is(err, ErrNotFound)
 // holds for it, and it names the id, so auth.WriteInternalError can tell
 // the signed-in user, deleted since the session check (401), from any other
-// user (GLG-1015). Returned by GetByID and by the writes whose user foreign
+// user. Returned by GetByID and by the writes whose user foreign
 // key failed.
 type MissingError struct{ ID int64 }
 
@@ -27,7 +27,7 @@ func (e MissingError) Is(target error) bool { return target == ErrNotFound }
 
 // ErrEmailTaken is returned by Create when another user already has the
 // email. The insert is the authority, so two concurrent sign-ups with the
-// same address get one user and one ErrEmailTaken (GLG-369).
+// same address get one user and one ErrEmailTaken.
 var ErrEmailTaken = errors.New("email already registered")
 
 // DefaultReportingCurrency is the reporting_currency new users get, matching

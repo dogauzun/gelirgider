@@ -45,7 +45,7 @@ func (r *Repo) Get(ctx context.Context, key string) (string, bool, error) {
 // Set stores value under key (last writer wins). UPDATE then INSERT, for
 // portable SQL, in one transaction: BeginTx takes the write lock up front
 // (_txlock=immediate), so two concurrent Sets of a new key cannot both miss
-// on UPDATE and both INSERT (GLG-1019).
+// on UPDATE and both INSERT.
 func (r *Repo) Set(ctx context.Context, key, value string) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	tx, err := r.db.BeginTx(ctx, nil)

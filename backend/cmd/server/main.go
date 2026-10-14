@@ -76,8 +76,8 @@ func main() {
 	flag.Parse()
 
 	// Without this check a mistyped one-shot run (-date alone, an empty
-	// -fetch) starts a second server with its own scheduler (GLG-1088,
-	// GLG-1362). -date defaults to today and the one-shot flags branch on
+	// -fetch) starts a second server with its own scheduler.
+	// -date defaults to today and the one-shot flags branch on
 	// a non-empty value, so only flag.Visit tells a flag was set.
 	setFlags := map[string]string{}
 	flag.Visit(func(f *flag.Flag) { setFlags[f.Name] = f.Value.String() })
@@ -185,7 +185,7 @@ func main() {
 
 	if backfillPrices {
 		// Only the US and XU100 fetches need SECRET_KEY: without it,
-		// backfill every other source and skip those (GLG-448).
+		// backfill every other source and skip those.
 		var settingsRepo *settings.Repo
 		if hasSecret {
 			settingsRepo = secretSettings()
@@ -195,7 +195,7 @@ func main() {
 			fetchers.us, fetchers.xu100 = nil, nil
 			logger.Warn("backfill: SECRET_KEY not set or not valid, skipping us and xu100")
 		}
-		// TEFAS is opt-in (GLG-1114): skipped unless its source is on. The
+		// TEFAS is opt-in: skipped unless its source is on. The
 		// setting is plain text, so it needs no SECRET_KEY.
 		if !scheduler.Enabled(context.Background(), settings.NewRepo(conn, nil), scheduler.NameTEFAS, logger) {
 			fetchers.tefas = nil
@@ -311,7 +311,7 @@ func serve(conn *sql.DB, cfg config.Config, logger *slog.Logger, settingsRepo *s
 			scheduler.CatchUp(ctx, sc.EnabledSources(sources), scheduler.CatchUpLookbackDays, runs, "catch-up", logger)
 		}
 		// A shutdown during the catch-up: the backfill and Run would
-		// only fail on the cancelled ctx (GLG-447).
+		// only fail on the cancelled ctx.
 		if ctx.Err() != nil {
 			return
 		}
@@ -346,7 +346,7 @@ func serve(conn *sql.DB, cfg config.Config, logger *slog.Logger, settingsRepo *s
 // outside the app's mux so they need no session. Dev only (ADR 0013): off
 // without API_DOCS_DIR, and off with COOKIE_SECURE=true, a production setup
 // where a CDN script on the app's origin could act as any admin who opens
-// the page (GLG-1123).
+// the page.
 func mountDocs(handler http.Handler, cfg config.Config, logger *slog.Logger) http.Handler {
 	if cfg.APIDocsDir == "" {
 		return handler
@@ -393,8 +393,8 @@ func isHealthy(port string) bool {
 // with source "manual" (ADR 0008). Upsert validates the ratio > 0.
 // The date is checked like any user-entered date (price.CheckDate): one
 // after today (Europe/Istanbul) is rejected, since holdings ignore it until
-// then, so it is almost always a typo (GLG-321), and so is one before
-// price.MinDate (GLG-1275).
+// then, so it is almost always a typo, and so is one before
+// price.MinDate.
 func runAddSplit(ctx context.Context, conn *sql.DB, arg string) error {
 	parts := strings.Split(arg, ",")
 	if len(parts) != 3 {
@@ -542,9 +542,9 @@ func schedulerSources(conn *sql.DB, logger *slog.Logger, f sourceFetchers) []sch
 					return written, err
 				}
 				// Finnhub has no split data: re-read a recent Tiingo
-				// window for splits (GLG-279).
+				// window for splits.
 				if _, err := usSyncer.SyncRecent(ctx, time.Now()); err != nil && ctx.Err() == nil {
-					// A shutdown mid-run is not a failure (GLG-463).
+					// A shutdown mid-run is not a failure.
 					logger.Error("us: recent tiingo sync failed", "error", err)
 				}
 				return written, nil
@@ -642,7 +642,7 @@ func schedulerSources(conn *sql.DB, logger *slog.Logger, f sourceFetchers) []sch
 			// The backfill stores the series from the backfill start
 			// date (from, or the earliest transaction of any market) up
 			// to now via SyncGoldHistory, which clamps the range and
-			// skips it when it is already stored (GLG-645). No
+			// skips it when it is already stored. No
 			// transaction and no from is nothing to fetch.
 			Backfill: func(ctx context.Context, from string) (int, error) {
 				start, ok, err := backfillStartDate(ctx, transactionRepo, from, "")

@@ -20,7 +20,7 @@ import (
 // maxInflated bounds what a file's compressed streams may decode to. Deflate
 // packs about 1000:1, and the library inflates with no limit of its own, so
 // without this a sub-megabyte upload decodes to gigabytes and the whole server
-// dies of OOM (GLG-579). A one-page statement is a 21-24 KB file, so a long
+// dies of OOM. A one-page statement is a 21-24 KB file, so a long
 // statement stays far below 8 MB.
 const maxInflated = 8 << 20
 
@@ -33,7 +33,7 @@ const workerEnv = "GELIRGIDER_PDFTEXT_WORKER"
 // from a plain number in the file (an xref stream's /Size, a predictor's
 // /Columns, a CMap's entry count), so a few-hundred-byte upload can ask for
 // more than the machine has, and a failed allocation is a fatal error no
-// recover catches (GLG-583). A statement's extraction needs a few MB.
+// recover catches. A statement's extraction needs a few MB.
 const workerMemory = 256 << 20
 
 // workerTimeout bounds the worker's run: a huge /Count loops over pages for
@@ -43,7 +43,7 @@ var workerTimeout = 10 * time.Second
 
 // workers holds one slot per extraction worker that may run at once. Each
 // worker can take a core and workerMemory for workerTimeout, so without a
-// bound a burst of crafted uploads still starves the host (GLG-584). An import
+// bound a burst of crafted uploads still starves the host. An import
 // is rare and interactive; two at once is plenty. A var so the test can fill
 // it.
 var workers = make(chan struct{}, 2)

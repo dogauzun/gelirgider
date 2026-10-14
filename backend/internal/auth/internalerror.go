@@ -28,7 +28,7 @@ const statusClientClosedRequest = 499
 //
 // One error is not internal: a user.MissingError for the signed-in user
 // means an admin deleted that user after the session check, so it answers
-// the 401 the user's next request gets, and logs nothing (GLG-1015). Every
+// the 401 the user's next request gets, and logs nothing. Every
 // lookup of the signed-in user by id, and every write whose user foreign key
 // failed, lands here. A missing user other than the signed-in one is not
 // matched: its route maps it to its own 404 first.
@@ -37,7 +37,7 @@ const statusClientClosedRequest = 499
 // the request context when the connection closes, so the handler's query
 // fails with context.Canceled although nothing is broken. It logs nothing
 // and answers nginx's 499 "client closed request", which nobody receives
-// but the request log records instead of a false 500 (GLG-1021).
+// but the request log records instead of a false 500.
 func WriteInternalError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(r.Context().Err(), context.Canceled) {
 		WriteError(w, statusClientClosedRequest, "client closed request")

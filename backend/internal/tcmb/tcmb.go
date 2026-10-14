@@ -137,7 +137,7 @@ func parseBulletin(body []byte, date string) ([]Rate, error) {
 			}
 		}
 		// A zero Unit would panic in Div; a non-positive rate would zero or
-		// flip every converted value (GLG-465).
+		// flip every converted value.
 		if !buying.IsPositive() || !unit.IsPositive() {
 			return nil, fmt.Errorf("tcmb %s: non-positive ForexBuying %q or Unit %q", c.CurrencyCode, c.ForexBuying, c.Unit)
 		}

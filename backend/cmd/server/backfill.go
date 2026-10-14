@@ -24,7 +24,7 @@ import (
 // the latest US prices (see backfillUS), whether or not a history source
 // failed. This is what -backfill-prices runs; any failure makes its error
 // non-nil. A nil f.us (no SECRET_KEY to read the US provider keys with)
-// skips US and backfills every other source (GLG-448); a nil f.xu100 skips
+// skips US and backfills every other source; a nil f.xu100 skips
 // XU100 the same way, and a nil f.tefas (the tefas source off) TEFAS.
 func runBackfill(ctx context.Context, logger *slog.Logger, conn *sql.DB, f sourceFetchers, from string) error {
 	disabled := map[string]bool{scheduler.NameUS: f.us == nil, scheduler.NameXU100: f.xu100 == nil, scheduler.NameTEFAS: f.tefas == nil}
@@ -40,15 +40,15 @@ func runBackfill(ctx context.Context, logger *slog.Logger, conn *sql.DB, f sourc
 // date from, or from its own earliest transaction when from is empty, up
 // to the day before f.now(), each skipping what it already has. A
 // source name set in disabled is skipped; nil skips none. XU100 is also
-// skipped without an EVDS key (GLG-644): no key is a skip, not a failed
+// skipped without an EVDS key: no key is a skip, not a failed
 // run, while an unreadable key still runs, so FetchXU100's error fails it.
 // walked is false when there is no range to walk (no transactions, or a
 // start date after yesterday); it stays true when a source failed.
 // Finnhub's latest close is not part of it: see backfillUS. Each source's
 // walk is one backfill run in the run log (source_runs), and runs whatever
-// happened to the ones before it (GLG-414): err joins every source's
+// happened to the ones before it: err joins every source's
 // error. A cancelled or expired ctx is the exception: the walk stops
-// before the next source and err includes ctx's error (GLG-458).
+// before the next source and err includes ctx's error.
 func backfillHistory(ctx context.Context, logger *slog.Logger, conn *sql.DB, f sourceFetchers, from string, disabled map[string]bool) (bool, error) {
 	start, ok, err := backfillStartDate(ctx, transaction.NewRepo(conn), from, "")
 	if err != nil {
@@ -128,9 +128,8 @@ func (r backfillRun) backfillDates(ctx context.Context, src bist.BackfillSource,
 // request because the range is already stored. The loop is
 // instrument.EachTracked: it pauses for pause between requests, logs a
 // failing instrument and continues, makes the run a failed one when every
-// attempted instrument fails, naming them by noun ("funds") (GLG-471), and
-// stops on a cancelled ctx with ctx's error and no WARN (GLG-458,
-// GLG-467).
+// attempted instrument fails, naming them by noun ("funds"), and
+// stops on a cancelled ctx with ctx's error and no WARN.
 func (r backfillRun) backfillTracked(ctx context.Context, market, noun string, pause time.Duration, sync func(in instrument.Instrument, start string) (written int, skipped bool, err error)) (int, error) {
 	tracked, err := r.instruments.Tracked(ctx, market)
 	if err != nil {
@@ -179,8 +178,7 @@ func backfillTEFAS(ctx context.Context, r backfillRun, s *tefas.Syncer) (int, er
 // no bist.BackfillRange (it skips weekends). The request runs up to now;
 // the fetcher itself drops the unfinished current day, so the newest row
 // is yesterday's (UTC, the candle date). A pair without a start date, or
-// that already has a row for every day of that range, is skipped
-// (GLG-277).
+// that already has a row for every day of that range, is skipped.
 func backfillCrypto(ctx context.Context, r backfillRun, f *btcturk.Fetcher) (int, error) {
 	last := btcturk.LastCandleDay(r.now)
 	return r.backfillTracked(ctx, "CRYPTO", "pairs", btcturk.RequestPause, func(in instrument.Instrument, startStr string) (int, bool, error) {
@@ -205,7 +203,7 @@ func backfillCrypto(ctx context.Context, r backfillRun, f *btcturk.Fetcher) (int
 
 // backfillUSHistory backfills every tracked US instrument's Tiingo daily
 // closes (see backfillTracked), one request per instrument, via
-// us.SyncHistory (GLG-236). An instrument whose range is already stored
+// us.SyncHistory. An instrument whose range is already stored
 // costs one small query and no request, so this is cheap on every start.
 func backfillUSHistory(ctx context.Context, r backfillRun, s *us.Syncer) (int, error) {
 	return r.backfillTracked(ctx, "US", "us instruments", us.RequestPause, func(in instrument.Instrument, start string) (int, bool, error) {
@@ -243,7 +241,7 @@ const startupBackfillTimeout = 2 * time.Hour
 // tracked pair whose range has a missing day; US
 // history costs one request per tracked symbol whose range is not stored
 // yet; XU100 costs one EVDS request per year of each missing stretch,
-// none when its range is stored (GLG-648). Finnhub's
+// none when its range is stored. Finnhub's
 // latest close is skipped: the startup catch-up already fetched it. sc
 // gives the start date override and the disabled sources.
 //
@@ -262,7 +260,7 @@ func backfillStartupHistory(ctx context.Context, logger *slog.Logger, conn *sql.
 		disabled[name] = !s.Enabled
 	}
 	// A shutdown mid-walk cancels ctx: nothing failed, so nothing is
-	// logged (GLG-447). The timeout above is a real failure and is.
+	// logged. The timeout above is a real failure and is.
 	if _, err := backfillHistory(ctx, logger, conn, newSourceFetchers(settingsRepo), sc.BackfillFrom, disabled); err != nil && !errors.Is(ctx.Err(), context.Canceled) {
 		logger.Error("startup backfill failed", "error", err)
 	}

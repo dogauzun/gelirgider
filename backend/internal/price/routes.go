@@ -25,7 +25,7 @@ const manualSource = "manual"
 
 // RegisterRoutes wires the price endpoints into mux. mux must be mounted
 // behind middleware that calls auth.RequireUser: every handler here reads
-// or writes manual, scoped to the caller (GLG-103), so it needs the user id
+// or writes manual, scoped to the caller, so it needs the user id
 // from context. instruments is used to check that an instrument exists
 // before writing or reading its prices.
 func RegisterRoutes(mux *http.ServeMux, repo *Repo, manual *ManualRepo, instruments *instrument.Repo) {
@@ -111,11 +111,11 @@ func (h *handler) put(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Store and echo the normalized form ("0010.50" -> "10.5"), as
-	// transactions do through decimal.String() (GLG-684). ValidClose
+	// transactions do through decimal.String(). ValidClose
 	// already guarantees a plain positive decimal, so parsing cannot fail.
 	normalized := decimal.RequireFromString(req.Close).String()
 
-	// Per-user override (GLG-103): stored in manual_prices, not the shared
+	// Per-user override: stored in manual_prices, not the shared
 	// prices table, so one user's manual entry never overwrites another
 	// user's entry or a fetched (bist/us/tefas) price.
 	if err := h.manual.Upsert(r.Context(), userID, in.ID, date, normalized); err != nil {
@@ -134,9 +134,9 @@ func (h *handler) put(w http.ResponseWriter, r *http.Request) {
 
 // history returns instrumentID's price history newest first: the shared
 // fetched rows (the prices table) merged with the caller's own manual
-// overrides (manual_prices, GLG-103), each row labelled by source. Without
+// overrides (manual_prices), each row labelled by source. Without
 // the manual rows a user cannot see -- let alone find and delete -- a
-// wrong-dated manual entry that shadows every fetched close (GLG-134).
+// wrong-dated manual entry that shadows every fetched close.
 //
 //	@Summary	List an instrument's prices
 //	@Tags		prices

@@ -16,7 +16,7 @@ import (
 const searchLimit = 20
 
 // maxSymbolRunes and maxNameRunes cap what an admin adds, since every
-// user's search lists it (GLG-1310). The seed lists peak at 11 runes for a
+// user's search lists it. The seed lists peak at 11 runes for a
 // symbol and about 250 for a name, and both stay far below maxSearchRunes.
 const (
 	maxSymbolRunes = 32
@@ -162,8 +162,8 @@ func (h *handler) add(w http.ResponseWriter, r *http.Request) {
 	case utf8.RuneCountInString(name) > maxNameRunes:
 		auth.WriteError(w, http.StatusBadRequest, "name must be at most 300 characters")
 		return
-	// Only combining marks render blank, as GLG-429 refuses for portfolio
-	// names (GLG-1003).
+	// Only combining marks render blank, which is refused for portfolio
+	// names too.
 	case textcheck.HasInvisible(symbol), !strings.ContainsFunc(symbol, textcheck.IsVisible):
 		auth.WriteError(w, http.StatusBadRequest, "symbol must not contain control characters")
 		return

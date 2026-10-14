@@ -94,7 +94,7 @@ type Transaction struct {
 
 	// bookedSplit marks a zero-price buy DropBookedSplits put in place of a
 	// split row, so SortForApply applies it first on its date, as it would
-	// the split (GLG-851).
+	// the split.
 	bookedSplit bool
 	// storedDate is the date a bonus buy DropBookedSplits moved to its
 	// split's ex-date is stored on, "" for every other row (StoredDate).
@@ -103,7 +103,7 @@ type Transaction struct {
 
 // StoredDate returns the date t is stored on: Date, unless DropBookedSplits
 // moved t, a bonus buy, to its split's ex-date. The statement preview's
-// duplicate check reads List's rows through it (GLG-1173).
+// duplicate check reads List's rows through it.
 func (t Transaction) StoredDate() string {
 	if t.storedDate != "" {
 		return t.storedDate
@@ -119,12 +119,12 @@ func (t Transaction) StoredDate() string {
 // order.
 //
 // Id order is not always trade order: a newest-first broker history enters
-// a day trade sell-first, which would sell at an average cost of 0
-// (GLG-372). So a sell that would take its instrument's quantity below zero
+// a day trade sell-first, which would sell at an average cost of 0.
+// So a sell that would take its instrument's quantity below zero
 // has the same instrument's later buys of that date moved ahead of it, one
 // at a time, until it no longer does or none are left. Any other day keeps
 // id order, so a sell followed by a same-day rebuy realizes against the old
-// lot (GLG-411).
+// lot.
 func SortForApply(txs []Transaction) {
 	sort.SliceStable(txs, func(i, j int) bool {
 		if txs[i].Date != txs[j].Date {
@@ -201,7 +201,7 @@ const listSelect = joinedSelect + `
 		 WHERE t.user_id = ? AND t.portfolio_id = ?`
 
 // get returns the transaction with the given id owned by userID, the shape
-// List returns, for Create and Update to hand back (GLG-759).
+// List returns, for Create and Update to hand back.
 func (r *Repo) get(ctx context.Context, userID, id int64) (Transaction, error) {
 	return scanTransactionWithInstrument(r.db.QueryRowContext(ctx,
 		joinedSelect+" WHERE t.id = ? AND t.user_id = ?", id, userID,
@@ -216,16 +216,15 @@ const ImportNone int64 = -1
 // and its CSV export show for the same query values. The zero Filter keeps
 // every row.
 type Filter struct {
-	// Types, when non-empty, keeps only rows of those types (GLG-173).
+	// Types, when non-empty, keeps only rows of those types.
 	Types []string
-	// InstrumentID, when non-zero, keeps only that instrument's rows
-	// (GLG-333).
+	// InstrumentID, when non-zero, keeps only that instrument's rows.
 	InstrumentID int64
 	// ImportID, when non-zero, keeps only that import's rows or, as
-	// ImportNone, the hand-entered ones (GLG-931).
+	// ImportNone, the hand-entered ones.
 	ImportID int64
 	// From and To, when non-empty, keep only rows in that inclusive
-	// YYYY-MM-DD range (GLG-601).
+	// YYYY-MM-DD range.
 	From, To string
 }
 
@@ -280,7 +279,7 @@ type Cursor struct {
 // transaction here are left out: they change nothing, and history takes its
 // default start date from List's first row. Splits dated after today
 // (Europe/Istanbul) are left out too: they have not happened yet, and the
-// summary would apply them to today's position (GLG-321). The id and date aliases let
+// summary would apply them to today's position. The id and date aliases let
 // List's ORDER BY name them: SQLite resolves a compound select's ORDER BY
 // against aliases, not against listSelect's t.id and t.date.
 const listSplits = ` UNION ALL
@@ -322,8 +321,8 @@ func (r *Repo) List(ctx context.Context, userID, portfolioID int64) ([]Transacti
 
 // ListStored returns the transactions stored for portfolioID owned by
 // userID that f keeps, by date then id, as they were booked: no split rows,
-// and a bonus buy on its own date, which List moves to the ex-date
-// (GLG-828). The CSV export writes it.
+// and a bonus buy on its own date, which List moves to the ex-date.
+// The CSV export writes it.
 func (r *Repo) ListStored(ctx context.Context, userID, portfolioID int64, f Filter) ([]Transaction, error) {
 	where, filterArgs := f.where()
 	args := append([]any{userID, portfolioID}, filterArgs...)
@@ -338,7 +337,7 @@ func (r *Repo) ListStored(ctx context.Context, userID, portfolioID int64, f Filt
 // bonusWindowDays is how far, in calendar days either side of a split's
 // ex-date, a zero-price buy of the same instrument counts as that split's
 // bonus shares: a statement prints the day the shares were credited, which
-// can trail the ex-date by a few days (GLG-741).
+// can trail the ex-date by a few days.
 const bonusWindowDays = 10
 
 // bonusWindow is bonusWindowDays as a duration; dates parse as UTC
@@ -347,17 +346,17 @@ const bonusWindow = bonusWindowDays * 24 * time.Hour
 
 // DropBookedSplits removes the split rows of txs, one portfolio's rows, that
 // a buy of the same instrument at price 0 dated within bonusWindowDays of the
-// ex-date already books (ADR 0008, GLG-741). That buy is the broker's own
+// ex-date already books (ADR 0008). That buy is the broker's own
 // record of the bonus shares the account received, fractions included, so
 // applying the split on top would scale the position twice. Price scaling by
 // the instrument's splits is market data and is not affected, so each such
 // buy is moved to the ex-date of the split it books (the first one listed,
 // if it books more than one): the shares are held from the day the price is
 // scaled, and value history neither dips nor spikes between the ex-date and
-// the date the statement prints (GLG-828). Each such buy is also marked so
+// the date the statement prints. Each such buy is also marked so
 // SortForApply applies it before the other rows of the ex-date, as the
 // split would be: a sell on the ex-date realizes against the post-split
-// average cost (GLG-851). Order is kept, so a moved buy may be out of date
+// average cost. Order is kept, so a moved buy may be out of date
 // order; List sorts the result afterwards.
 //
 // ponytail: any zero-price buy in the window suppresses the split, a gift of
@@ -415,7 +414,7 @@ func DropBookedSplits(txs []Transaction) ([]Transaction, error) {
 }
 
 // isBonusBuy reports whether t is a buy of an instrument at price 0, the
-// shape a statement's bonus row is booked in (GLG-739).
+// shape a statement's bonus row is booked in.
 func isBonusBuy(t Transaction) bool {
 	return t.Type == TypeBuy && t.InstrumentID != nil && t.Price.IsZero()
 }
@@ -429,9 +428,9 @@ func within(d, ex time.Time) bool {
 // ListPage returns at most limit transactions for portfolioID owned by
 // userID that f keeps, newest first (date then id, both descending),
 // starting strictly before the cursor. A zero Cursor starts at the newest
-// row, so walking the pages visits every row exactly once (GLG-141). f is
+// row, so walking the pages visits every row exactly once. f is
 // applied before the cursor and the limit, so a filtered walk pages over the
-// filtered rows and nothing else (GLG-173).
+// filtered rows and nothing else.
 func (r *Repo) ListPage(ctx context.Context, userID, portfolioID int64, limit int, before Cursor, f Filter) ([]Transaction, error) {
 	where, filterArgs := f.where()
 	query := listSelect + where
@@ -485,7 +484,7 @@ func (r *Repo) Create(ctx context.Context, userID int64, t Transaction) (Transac
 	}
 	stored, err := r.get(ctx, userID, created.ID)
 	// A forced delete of the portfolio, or of its user, committed between
-	// the insert and this read and took the new row with it (GLG-1012).
+	// the insert and this read and took the new row with it.
 	if errors.Is(err, sql.ErrNoRows) {
 		return Transaction{}, fmt.Errorf("query created transaction: %w", portfolio.ErrNotFound)
 	}
@@ -584,7 +583,7 @@ func (r *Repo) Update(ctx context.Context, userID, id int64, t Transaction) (Tra
 
 	updated, err := r.get(ctx, userID, id)
 	// A forced delete of the portfolio, or of its user, committed between
-	// the update and this read and took the row with it (GLG-1014).
+	// the update and this read and took the row with it.
 	if errors.Is(err, sql.ErrNoRows) {
 		return Transaction{}, fmt.Errorf("query updated transaction: %w", ErrNotFound)
 	}
@@ -630,7 +629,7 @@ func (r *Repo) EarliestDate(ctx context.Context, market string) (date string, ok
 
 // EarliestDateByInstrument returns each instrument in market's earliest
 // transaction date, keyed by instrument id. Like EarliestDate it is not
-// scoped by user_id: it backs the US history backfill (GLG-236), an
+// scoped by user_id: it backs the US history backfill, an
 // internal batch job.
 func (r *Repo) EarliestDateByInstrument(ctx context.Context, market string) (map[int64]string, error) {
 	rows, err := r.db.QueryContext(ctx,

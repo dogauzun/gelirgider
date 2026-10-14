@@ -75,7 +75,7 @@ func NewFetcher(s *settings.Repo) *Fetcher {
 }
 
 // key returns the stored API key, or APIKey when Settings is nil. Empty
-// means not configured. The XU100 fetcher (GLG-518) calls it.
+// means not configured. The XU100 fetcher calls it.
 func (f *Fetcher) key(ctx context.Context) (string, error) {
 	if f.Settings == nil {
 		return f.APIKey, nil
@@ -85,7 +85,7 @@ func (f *Fetcher) key(ctx context.Context) (string, error) {
 }
 
 // HasKey reports whether an API key is configured, so the startup backfill
-// can skip XU100 without one instead of failing (GLG-644).
+// can skip XU100 without one instead of failing.
 func (f *Fetcher) HasKey(ctx context.Context) (bool, error) {
 	k, err := f.key(ctx)
 	return k != "", err
@@ -198,8 +198,8 @@ func SyncXU100(ctx context.Context, f *Fetcher, repo *benchmark.Repo, date time.
 	return syncRange(ctx, f, repo, date.AddDate(0, 0, -syncWindowDays), date)
 }
 
-// BackfillXU100 upserts the closes of [from, to] that are not stored yet
-// (GLG-648): every run of more than syncWindowDays calendar days without a
+// BackfillXU100 upserts the closes of [from, to] that are not stored yet:
+// every run of more than syncWindowDays calendar days without a
 // stored close, the longest holiday run, is fetched; a shorter one is a
 // holiday or left to SyncXU100's window, as EVDS has no trading calendar.
 // The range starts syncWindowDays before from, so a from on a holiday is

@@ -10,7 +10,7 @@ import (
 )
 
 // scopeTransactions resolves the {id} path value of a portfolio route into
-// one transaction list per portfolio in scope (GLG-528): the one portfolio
+// one transaction list per portfolio in scope: the one portfolio
 // for a numeric id, every portfolio of userID for "all". An id that is not
 // a number, or names another user's portfolio, is portfolio.ErrNotFound, as
 // it is on the single-portfolio routes today.

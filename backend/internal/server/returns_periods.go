@@ -23,7 +23,7 @@ type periodBucket struct {
 }
 
 // periodsResponse is every calendar month and year from the first
-// transaction to today, oldest first, with no gaps (GLG-953).
+// transaction to today, oldest first, with no gaps.
 type periodsResponse struct {
 	Currency string         `json:"currency"`
 	Months   []periodBucket `json:"months"`

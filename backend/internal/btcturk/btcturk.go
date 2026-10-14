@@ -1,8 +1,8 @@
 // Package btcturk fetches daily closes for tracked crypto pairs from
 // BtcTurk's public klines endpoint and stores them via price.Repo with
 // source = "btcturk". Same shape as internal/us (Fetcher + Sync); source,
-// endpoint and the USDT-as-USD simplification are documented in the
-// Phase 9 epic GLG-245 and ADR 0007. SyncGold stores the PAXG-TRY gram gold
+// endpoint and the USDT-as-USD simplification are documented in
+// ADR 0007. SyncGold stores the PAXG-TRY gram gold
 // price (ADR 0017).
 package btcturk
 
@@ -261,7 +261,7 @@ func LastCandleDay(now time.Time) time.Time {
 // request. from is moved back to at most six days before yesterday (UTC),
 // so a gold buy dated today still gets a last price, and forward to
 // GoldHistoryStart. A GOLD/GRAM price on every day from there to yesterday
-// is nothing to fetch (GLG-645). Returns the number of days stored.
+// is nothing to fetch. Returns the number of days stored.
 func (s *GoldSyncer) SyncGoldHistory(ctx context.Context, from string, now time.Time) (int, error) {
 	last := LastCandleDay(now)
 	from = min(from, last.AddDate(0, 0, -6).Format(time.DateOnly))
@@ -281,7 +281,7 @@ func (s *GoldSyncer) SyncGoldHistory(ctx context.Context, from string, now time.
 }
 
 // PricedEveryDay reports whether instrumentID has a price row on every day
-// from start to last, both UTC midnights (GLG-277). An empty range (start
+// from start to last, both UTC midnights. An empty range (start
 // after last) counts as stored: there is no finished candle to fetch.
 func PricedEveryDay(ctx context.Context, prices *price.Repo, instrumentID int64, start, last time.Time) (bool, error) {
 	have, err := prices.Range(ctx, []int64{instrumentID}, start.Format(time.DateOnly), last.Format(time.DateOnly))

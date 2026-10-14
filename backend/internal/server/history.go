@@ -43,7 +43,7 @@ type historyEntry struct {
 	// PriceUnknown is set on a point that holds at least one instrument with
 	// no price on or before its date. Those holdings count at cost in
 	// total_value, so the point is incomplete, not wrong by the whole
-	// holding (ADR 0003, GLG-254).
+	// holding (ADR 0003).
 	PriceUnknown bool `json:"price_unknown,omitempty"`
 	// BenchmarkValue is the shadow portfolio's value on this day in the
 	// reporting currency, set only when a benchmark was requested and is
@@ -52,18 +52,18 @@ type historyEntry struct {
 	// TWR is the time-weighted return from the range's first point to this
 	// one, a fraction with 6 decimals: "0.000000" on the first point, the
 	// range's returns.twr on the last. null on every point when returns.twr
-	// is null (ADR 0011, GLG-952).
+	// is null (ADR 0011).
 	TWR *string `json:"twr"`
 	// BenchmarkTWR is the same for the benchmark's shadow series: null on
 	// every point without a benchmark, when the shadow has no value, or when
-	// benchmark.returns.twr is null (ADR 0012, GLG-952).
+	// benchmark.returns.twr is null (ADR 0012).
 	BenchmarkTWR *string `json:"benchmark_twr"`
 }
 
 // benchmarkResponse is the requested benchmark's shadow-portfolio returns
 // (ADR 0012, docs/adr/0012-benchmarks.md). All three returns are null when
 // the benchmark has no level on or before the range's first point, or when
-// the portfolio's own are null for lack of a positive base (GLG-641).
+// the portfolio's own are null for lack of a positive base.
 // EstimatedFrom is the first day of the range whose TUFE level is
 // extrapolated past the last stored month, null when none is.
 type benchmarkResponse struct {
@@ -78,10 +78,10 @@ type benchmarkResponse struct {
 var benchmarkCurrencies = map[string]string{"USD": "USD", "EUR": "EUR", benchmark.CodeXU100: "TRY", benchmark.CodeTUFE: "TRY", benchmark.CodeGOLD: "TRY"}
 
 // historyResponse wraps the per-day series with the reporting currency it
-// was converted into (GLG-80), so the client doesn't have to assume TRY.
+// was converted into, so the client doesn't have to assume TRY.
 //
 // MissingRates is the union, over every day in the range, of the currencies
-// that day's conversion left out for lack of a rate (GLG-135). Same field
+// that day's conversion left out for lack of a rate. Same field
 // name and same caveat as the summary response: it names the currency that
 // was excluded, not necessarily the one whose rate is absent. Non-empty
 // means at least one point understates the portfolio -- which is what makes
@@ -91,7 +91,7 @@ type historyResponse struct {
 	Points       []historyEntry `json:"points"`
 	MissingRates []string       `json:"missing_rates"`
 	// MissingPrices is the union, over every point with price_unknown, of
-	// the symbols held with no price yet on that point's date (GLG-254).
+	// the symbols held with no price yet on that point's date.
 	MissingPrices []string `json:"missing_prices"`
 	// NetFlow is the external cash that entered the portfolio after the
 	// first point: deposits minus withdrawals dated after `from`, each
@@ -99,26 +99,26 @@ type historyResponse struct {
 	// (ADR 0003). Anything dated on or before `from` is already inside the
 	// first point's total, so it is not counted here. The chart header
 	// subtracts it from last - first, so money put in is not shown as a
-	// gain (GLG-219). A flow whose currency has no rate on its own day is
+	// gain. A flow whose currency has no rate on its own day is
 	// carried and counted on the first later day that has one, because
-	// that is the day its cash enters total_value (GLG-233).
+	// that is the day its cash enters total_value.
 	//
 	// The gross amount is counted, not the amount net of its fee: a fee is
 	// a cost, and costs belong in the performance the chart shows, exactly
 	// like the fee on a buy, a sell or a standalone fee row, none of which
-	// is a flow either (GLG-232).
+	// is a flow either.
 	//
 	// It also holds the first-price jump of every holding the first point
 	// had no price for: on the day its first price lands, its value moves
 	// from cost to market in one step, and that move is gain made before
 	// the range as much as inside it, so it is counted here rather than as
-	// the range's gain (GLG-254).
+	// the range's gain.
 	NetFlow string `json:"net_flow"`
 	// Returns is the range's simple, time-weighted and money-weighted
 	// return (ADR 0011), from each point's total_value and the same
 	// external flows net_flow counts, taken on the day they land. All three
 	// are null when the first point's total_value is not positive or any
-	// point's cash is negative (GLG-641).
+	// point's cash is negative.
 	Returns returnsResponse `json:"returns"`
 	// Benchmark is the ?benchmark= comparison: the shadow portfolio that
 	// put the same external flows into the benchmark (ADR 0012,
@@ -146,7 +146,7 @@ type historyResponse struct {
 //nolint:dupl // positionHistoryHandler.get copies the from/to rules on purpose, see its ponytail comment
 func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 	userID := auth.MustUserID(r.Context())
-	// One list per portfolio in scope: a numeric id or "all" (GLG-535).
+	// One list per portfolio in scope: a numeric id or "all".
 	lists, err := scopeTransactions(r.Context(), h.portfolios, h.transactions, userID, r.PathValue("id"))
 	if errors.Is(err, portfolio.ErrNotFound) {
 		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
@@ -179,8 +179,8 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// A future `to` would draw made-up flat points past today and,
-		// with no `from`, push the real history out of the default window
-		// (GLG-502). Clamp rather than reject: a client whose clock is
+		// with no `from`, push the real history out of the default window.
+		// Clamp rather than reject: a client whose clock is
 		// ahead of Istanbul still gets its chart. A `from` after today is
 		// then after `to` and gets the 400 below.
 		if to.After(today) {
@@ -198,7 +198,7 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 		}
 		// A range opening before the first transaction would draw zeros up
 		// to it and weigh the first deposit as a mid-range flow, inflating
-		// the range return (GLG-266). Start at the first transaction
+		// the range return. Start at the first transaction
 		// instead, unless that is after `to` too.
 		if len(txs) > 0 {
 			first, err := time.Parse(time.DateOnly, txs[0].Date)
@@ -242,7 +242,7 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 	// day's flow is added as the step it makes in the rounded total:
 	// round(total) - round(total - flow). Rounding the sum once can miss
 	// that step by a cent, and the header then shows a -0,01 change when
-	// only flows moved the total (GLG-665).
+	// only flows moved the total.
 	netFlow := decimal.Zero
 	for i, flow := range external {
 		netFlow = netFlow.Add(s.totals[i].Round(2).Sub(s.totals[i].Sub(flow).Round(2)))
@@ -275,7 +275,7 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 
 // parseBenchmark validates a ?benchmark= value: "" (none), a fixed code of
 // benchmarkCurrencies, or instrument:<id> for an instrument with a
-// transaction in the scope (GLG-701). instrumentID is that id, 0 otherwise.
+// transaction in the scope. instrumentID is that id, 0 otherwise.
 func parseBenchmark(code string, instrumentIDs []int64) (instrumentID int64, ok bool) {
 	if _, fixed := benchmarkCurrencies[code]; code == "" || fixed {
 		return 0, true
@@ -299,8 +299,7 @@ func istanbulToday() time.Time {
 
 // defaultHistoryFrom is the first day of a range with no `from`: the first
 // transaction (txs is ordered by date, flatByDate), clamped to the max
-// window instead of letting the range check reject our own default
-// (GLG-93).
+// window instead of letting the range check reject our own default.
 func defaultHistoryFrom(txs []transaction.Transaction, to time.Time) (time.Time, error) {
 	from, err := time.Parse(time.DateOnly, txs[0].Date)
 	if err != nil {
@@ -322,18 +321,18 @@ type historySweep struct {
 	totals   []decimal.Decimal
 	values   []float64 // totals as float64, the V_i of ADR 0011
 	// flows is the deposits and withdrawals that entered total_value on each
-	// day, converted: a carried flow (GLG-233) on the day it converts. Day
+	// day, converted: a carried flow on the day it converts. Day
 	// 0's are kept here; a range opening on a day drops that day's.
 	flows []decimal.Decimal
 	// unpriced is, per day, the instruments held with no price on or before
 	// it; firstPrice is the jump from cost to market of each one on the day
 	// its first price lands while held. The jump is a flow in a range that
-	// opened while the instrument was unpriced (GLG-254).
+	// opened while the instrument was unpriced.
 	unpriced   [][]int64
 	firstPrice map[int64]priceJump
 	// negativeCash is set on a day whose cash, as the point reports it (2
-	// decimals), is below zero: no base to measure a return on (GLG-641).
-	// A sub-cent residual shown as 0.00 doesn't count (GLG-652).
+	// decimals), is below zero: no base to measure a return on.
+	// A sub-cent residual shown as 0.00 doesn't count.
 	negativeCash  []bool
 	missingRates  []string
 	missingPrices []string
@@ -397,7 +396,7 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 	benchmarkCode, benchmarkInstrument := bm.code, bm.instrumentID
 	instrumentIDs := distinctInstrumentIDs(txs)
 	days := int(to.Sub(from).Hours()/24) + 1
-	// Each instrument's series, manual merged over fetched (GLG-103), led
+	// Each instrument's series, manual merged over fetched, led
 	// by its last price before the range, which the sweep below consumes on
 	// day one, the same way the fx rates are seeded with fx.Latest.
 	pricesByInstrument, err := holdings.MergedSeries(ctx, holdings.PriceSources{Prices: h.prices, Manual: h.manualPrices}, userID, instrumentIDs, from, to)
@@ -467,13 +466,13 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 	latest := map[int64]decimal.Decimal{}
 	// One running state per portfolio for the whole sweep: each transaction
 	// is applied once, instead of recomputing the holdings from the whole
-	// prefix every day (GLG-131). flatByDate is stable, so each state still
+	// prefix every day. flatByDate is stable, so each state still
 	// sees its portfolio's rows in the order transaction.Repo.List returns
-	// (SortForApply, GLG-411); the day's snapshots are summed (GLG-535).
+	// (SortForApply); the day's snapshots are summed.
 	states := map[int64]*holdings.State{}
 	// carriedFlow holds the flows no rate could convert yet, per currency,
 	// including those dated on or before the first point (their cash is
-	// only inside that point if it converted there) (GLG-233).
+	// only inside that point if it converted there).
 	carriedFlow := map[string]decimal.Decimal{}
 	var levels []float64
 	if benchmarkCode != "" {
@@ -505,7 +504,7 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 				level = levels[dayIdx]
 			}
 			if benchmarkInstrument != 0 {
-				// The close the valuation uses (GLG-701), zero before
+				// The close the valuation uses, zero before
 				// the first one. latest carries forward.
 				// ponytail: a split inside the range shows as a drop in
 				// the benchmark, since the carried close is not
@@ -525,8 +524,8 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 		// own day's cash uses. A currency with no rate that day converts
 		// to nothing here, but its cash is not lost either: it enters
 		// total_value on the first later day that has a rate, so the flow
-		// stays in carriedFlow until that same day and is counted there
-		// (GLG-233). Without the carry the header reads that jump as a
+		// stays in carriedFlow until that same day and is counted there.
+		// Without the carry the header reads that jump as a
 		// gain.
 		for currency, amount := range dayFlow {
 			carriedFlow[currency] = carriedFlow[currency].Add(amount)
@@ -542,7 +541,7 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 		// the upgrade path if the remaining per-day term ever matters.
 		// The states are snapshotted and summed in one pass, with only the
 		// fields read below: a Summarize and a Merge per day cost the `all`
-		// sweep over a second on ten years (GLG-685).
+		// sweep over a second on ten years.
 		summary := holdings.SummarizeAll(slices.Collect(maps.Values(states)), latest)
 		totals := holdings.Convert(summary, currentRates, reporting)
 		for _, currency := range totals.Missing {
@@ -642,7 +641,7 @@ func advancePrices(prices map[int64][]price.Price, priceIdx map[int64]int, lates
 			firstPriced = append(firstPriced, id)
 		}
 		// A carried close stays in pre-split terms past an ex-date
-		// that has no close yet (GLG-651).
+		// that has no close yet.
 		latest[id] = splitScaled(rows[idx-1].Close, splitsOf[id], rows[idx-1].Date, day)
 	}
 	return firstPriced
@@ -705,8 +704,8 @@ func benchmarkLevels(ctx context.Context, repo *benchmark.Repo, code string, fro
 // rates holds each currency's latest rate on or before day. Days before a
 // currency's first row ever have nothing to seed from, so it is simply
 // absent: those amounts stay out and come back in missing_rates, never
-// back-carried (ADR 0003, GLG-152). Shared by history and the summary's
-// fx_pl so both convert a flow at the same rate (GLG-267).
+// back-carried (ADR 0003). Shared by history and the summary's
+// fx_pl so both convert a flow at the same rate.
 type fxWalk struct {
 	rows  map[string][]fx.Rate
 	idx   map[string]int
@@ -764,8 +763,7 @@ func (w *fxWalk) advance(day string) {
 // convertCarried converts what it can of carried (amounts per currency)
 // into reporting at rates. The rest -- currencies with no rate yet -- comes
 // back to be carried to the next day: its cash only enters total_value on
-// the first day that has a rate, so the flow is counted on that same day
-// (GLG-233).
+// the first day that has a rate, so the flow is counted on that same day.
 func convertCarried(carried, rates map[string]decimal.Decimal, reporting string) (decimal.Decimal, map[string]decimal.Decimal) {
 	converted := holdings.Convert(holdings.Summary{Cash: carried}, rates, reporting)
 	rest := make(map[string]decimal.Decimal, len(converted.Missing))

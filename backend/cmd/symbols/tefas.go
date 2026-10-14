@@ -3,7 +3,7 @@
 // Source, payload, and the robots.txt decision are documented in
 // docs/adr/0004-tefas-data-source.md. The endpoint is under /api/, which
 // tefas.gov.tr's robots.txt disallows: the server fetches TEFAS only when
-// an admin turns the tefas source on (GLG-1114), and running this by hand
+// an admin turns the tefas source on, and running this by hand
 // is the developer's own opt-in.
 package main
 

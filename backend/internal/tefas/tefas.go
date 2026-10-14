@@ -68,7 +68,7 @@ func NewFetcher() *Fetcher {
 
 // NAV is one published daily price. Date is YYYY-MM-DD. Name is the fund's
 // title (fonUnvan) as TEFAS printed it on that row; it changes over time
-// while the code stays (GLG-698).
+// while the code stays.
 type NAV struct {
 	Date  string
 	Close decimal.Decimal
@@ -137,7 +137,7 @@ func (f *Fetcher) FetchNAVs(ctx context.Context, symbol string, periyod int) ([]
 // one-month FetchNAVs. found is true when at least one NAV comes back, and
 // name is then the newest row's fonUnvan. A null or empty resultList is not
 // found, not an error; a transport or parse failure is an error. The
-// statement import creates a fund TEFAS confirms this way (GLG-699).
+// statement import creates a fund TEFAS confirms this way.
 func (f *Fetcher) Lookup(ctx context.Context, code string) (name string, found bool, err error) {
 	navs, err := f.FetchNAVs(ctx, code, 1)
 	if errors.Is(err, errNoResult) {
@@ -166,7 +166,7 @@ type Syncer struct {
 // SyncFund fetches in's NAVs over a periyod-month window and upserts each
 // one. Then, when the newest row's fonUnvan is non-empty and differs from
 // in.Name, it renames the instrument: TEFAS names change while the code
-// stays (GLG-698). Returns rows written.
+// stays. Returns rows written.
 func (s *Syncer) SyncFund(ctx context.Context, in instrument.Instrument, periyod int) (int, error) {
 	navs, err := s.Fetcher.FetchNAVs(ctx, in.Symbol, periyod)
 	if err != nil {

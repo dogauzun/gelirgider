@@ -70,8 +70,8 @@ var (
 )
 
 // funds indexes the balance records' normalized names, so code matches a
-// movement's name in time linear in its length, not in the records
-// (GLG-1270). names is sorted and distinct; codes[i] is the code of
+// movement's name in time linear in its length, not in the records.
+// names is sorted and distinct; codes[i] is the code of
 // names[i], "" when its records carry two codes; next[i] is the first index
 // after i whose code differs from codes[i].
 type funds struct {
@@ -195,7 +195,7 @@ func parseBalance(st *statement.Statement, cells []string, i int, names []string
 		return j
 	}
 	// The Fiyat column; an unreadable one only costs the opening position
-	// its statement price (GLG-737).
+	// its statement price.
 	price, _ := parseNumber(cells[i+3])
 	name := normalize(strings.Join(names, " "))
 	// A name listed with two codes matches neither.
@@ -401,7 +401,7 @@ func normalize(name string) string {
 // parseNumber reads the statement's Turkish format: "." thousands, ","
 // decimal ("89.997,72", "33.070", "2,721431"), see statement.ParseNumber.
 // The statement's numbers carry no sign (ADR 0018), so a signed cell is
-// unreadable (GLG-1304); the stopaj refund's sign is cut before the call.
+// unreadable; the stopaj refund's sign is cut before the call.
 func parseNumber(cell string) (decimal.Decimal, error) {
 	if strings.ContainsAny(cell, "+-") {
 		return decimal.Decimal{}, errors.New("unreadable number")

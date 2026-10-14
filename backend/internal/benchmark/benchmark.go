@@ -43,7 +43,7 @@ func NewRepo(db *sql.DB) *Repo {
 // greater than zero. Implemented as UPDATE-then-INSERT rather than a
 // dialect-specific upsert, per project convention of portable SQL, in one
 // transaction so overlapping fetches of a new key cannot both INSERT
-// (GLG-1025, see price.Repo.Upsert).
+// (see price.Repo.Upsert).
 func (r *Repo) Upsert(ctx context.Context, code, date, value, source string) error {
 	d, err := decimal.NewFromString(value)
 	if err != nil {

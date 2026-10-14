@@ -51,7 +51,7 @@ var cryptoUSDCSV []byte
 
 // goldCSV is hand-written, not generated: gold is priced in TRY. GRAM is
 // the per-gram price; the coins (CEYREK, YARIM, TAM, ATA) have no fetched
-// price and are valued with the user's manual prices (GLG-556), not gram
+// price and are valued with the user's manual prices, not gram
 // price times fine weight, which would ignore the mint premium and spread.
 //
 //go:embed gold_symbols.csv
@@ -134,8 +134,8 @@ const maxSearchRunes = 1000
 
 // searchQuery is Search's statement, built once because foldedName is
 // generated rather than literal. Its %s is the per-word match, one
-// searchWordMatch (or goldWordMatch) per word of the query joined by AND
-// (GLG-1192); the derived table only names the folded expression, which
+// searchWordMatch (or goldWordMatch) per word of the query joined by AND;
+// the derived table only names the folded expression, which
 // SQLite still evaluates once per word.
 var searchQuery = fmt.Sprintf(
 	`SELECT id, symbol, market, name, currency FROM
@@ -159,13 +159,13 @@ const searchWordMatch = `(folded LIKE ? ESCAPE '\' OR symbol LIKE ? ESCAPE '\')`
 
 // goldWordMatch is searchWordMatch for a word that spells the GOLD market's
 // own word: it also matches every GOLD instrument, whose names carry only
-// the tr "Altın", so "gram gold" finds Gram Altın (GLG-1306).
+// the tr "Altın", so "gram gold" finds Gram Altın.
 const goldWordMatch = `(` + searchWordMatch + ` OR market = 'GOLD')`
 
 // maxSearchWords caps how many words Search matches one by one. Each word
 // folds every name again (tens of ms over the seeded table), so a query of
 // more words is matched whole, as a single word, the way every query was
-// before GLG-1192; a pasted full name still finds itself that way.
+// before the word search; a pasted full name still finds itself that way.
 const maxSearchWords = 8
 
 // goldMarketWords are the GOLD market's labels in search (market.GOLD:
@@ -179,26 +179,26 @@ const minGoldWordRunes = 3
 
 // Search returns instruments matching q: a prefix match on symbol, or every
 // whitespace-separated word of q found in the name or at the start of the
-// symbol, in any order (GLG-1192: "garanti para" finds GARANTİ PORTFÖY
+// symbol, in any order ("garanti para" finds GARANTİ PORTFÖY
 // BİRİNCİ PARA ...), case-insensitive, up to limit rows. Results are
 // ranked so an exact symbol match comes first, then crypto pairs whose base
 // is the query ("btc" -> BTC-TRY, BTC-USD; only crypto symbols carry a
-// hyphen, GLG-274), then every GOLD instrument when a word of the query is
+// hyphen), then every GOLD instrument when a word of the query is
 // the start (at least minGoldWordRunes) of the market's own word, "altın"
-// or "gold" (GLG-1094: the coins' names are Turkish only and sort after
+// or "gold" (the coins' names are Turkish only and sort after
 // gold funds, so the limit filled before them, and "gold" matched none;
-// GLG-1306: such a word matches every GOLD instrument, so "gram gold" finds
+// such a word matches every GOLD instrument, so "gram gold" finds
 // Gram Altın), then BIST
 // symbol-prefix matches (product is BIST-first), then other symbol-prefix
 // matches, then names starting with the query, then names containing it.
 // Name buckets
 // are ordered by name, with no market tie-break: with ~1000 TEFAS funds
 // and 31 BIST ETFs sharing the word PORTFOY, a BIST-first tie-break there
-// filled the whole limit with one market and hid every other (GLG-213).
-// Surrounding whitespace is ignored, so a blank q matches nothing (GLG-424).
-// A q longer than maxSearchRunes also matches nothing (GLG-758), and so
+// filled the whole limit with one market and hid every other.
+// Surrounding whitespace is ignored, so a blank q matches nothing.
+// A q longer than maxSearchRunes also matches nothing, and so
 // does one holding a control character: no instrument has one, and SQLite
-// cuts a LIKE pattern at a NUL, so "%<NUL>%" would match everything (GLG-903).
+// cuts a LIKE pattern at a NUL, so "%<NUL>%" would match everything.
 func (r *Repo) Search(ctx context.Context, q string, limit int) ([]Instrument, error) {
 	q = strings.TrimSpace(q)
 	if q == "" || utf8.RuneCountInString(q) > maxSearchRunes || strings.ContainsFunc(q, unicode.IsControl) {
@@ -281,7 +281,7 @@ func (r *Repo) Get(ctx context.Context, id int64) (Instrument, error) {
 }
 
 // byIDsChunk caps the ids of one ByIDs query below modernc sqlite's limit of
-// 32766 variables; a statement commit can name more ids (GLG-1293).
+// 32766 variables; a statement commit can name more ids.
 const byIDsChunk = 10000
 
 // ByIDs returns the instruments with the given ids, keyed by id, in one query
@@ -356,20 +356,20 @@ func (r *Repo) Tracked(ctx context.Context, market string) ([]Instrument, error)
 
 // pauseAfter starts EachTracked's pause timer. It is time.After; tests swap
 // it to cancel exactly at the pause, after the first instrument's rows are
-// counted (GLG-507).
+// counted.
 var pauseAfter = time.After
 
 // EachTracked runs fn once for every instrument in tracked, in order, and
 // returns the rows fn wrote and the number of instruments that failed. It
-// is the loop every per-instrument price sync shares (GLG-1333). Before
+// is the loop every per-instrument price sync shares. Before
 // fn's next call after one that made a request, it pauses for pause, so a
 // failing source is still rate-limited; skipped means fn made no request
 // (its range is already stored), so no pause is owed for it and none
 // follows the last instrument. A failing instrument is logged at WARN and
 // the rest continue; when every attempted one fails, err names them by
 // noun ("funds"), so the run is stored as failed, not as a success with 0
-// rows (GLG-413, GLG-471). A cancelled or expired ctx stops the loop with
-// ctx's error and logs nothing, since nothing failed (GLG-463, GLG-467).
+// rows. A cancelled or expired ctx stops the loop with
+// ctx's error and logs nothing, since nothing failed.
 // ctx.Err() decides, not fn's error: net/http returns
 // signal.NotifyContext's cancel cause, which does not wrap
 // context.Canceled.
@@ -381,7 +381,7 @@ func EachTracked(ctx context.Context, tracked []Instrument, pause time.Duration,
 		if owed {
 			select {
 			case <-ctx.Done():
-				return written, failed, ctx.Err() // stopped during the pause (GLG-467)
+				return written, failed, ctx.Err() // stopped during the pause
 			case <-pauseAfter(pause):
 			}
 		}
@@ -394,7 +394,7 @@ func EachTracked(ctx context.Context, tracked []Instrument, pause time.Duration,
 		attempted++
 		if err != nil {
 			if ctx.Err() != nil {
-				return written, failed, ctx.Err() // stopped, not failed: no WARN (GLG-463)
+				return written, failed, ctx.Err() // stopped, not failed: no WARN
 			}
 			failed++
 			lastErr = err
@@ -434,7 +434,7 @@ func (r *Repo) Insert(ctx context.Context, market, symbol, name, currency string
 }
 
 // Rename sets the instrument's display name. The TEFAS fetcher keeps a
-// fund's name in step with TEFAS this way (GLG-698); the code stays.
+// fund's name in step with TEFAS this way; the code stays.
 func (r *Repo) Rename(ctx context.Context, id int64, name string) error {
 	if _, err := r.db.ExecContext(ctx, "UPDATE instruments SET name = ? WHERE id = ?", name, id); err != nil {
 		return fmt.Errorf("rename instrument %d: %w", id, err)

@@ -14,7 +14,7 @@ import (
 // it is, by definition, a manual entry.
 const manualPriceSource = "manual"
 
-// ManualRepo persists per-user manual price overrides (GLG-103). Unlike
+// ManualRepo persists per-user manual price overrides. Unlike
 // Repo, which stores shared fetched market data, every query here is
 // scoped by user_id: a manual price is visible only to the user who
 // entered it and never overwrites another user's entry or a fetched price.
@@ -32,7 +32,7 @@ func NewManualRepo(db *sql.DB) *ManualRepo {
 // overwritten. Same UPDATE-then-INSERT shape as Repo.Upsert, for portable
 // SQL, run in one transaction: BeginTx takes the write lock up front
 // (_txlock=immediate), so two concurrent saves of a new key cannot both miss
-// on UPDATE and both INSERT (GLG-1019). Returns user.ErrNotFound if the user
+// on UPDATE and both INSERT. Returns user.ErrNotFound if the user
 // no longer exists.
 func (r *ManualRepo) Upsert(ctx context.Context, userID, instrumentID int64, date, close string) error {
 	tx, err := r.db.BeginTx(ctx, nil)
@@ -58,7 +58,7 @@ func (r *ManualRepo) Upsert(ctx context.Context, userID, instrumentID int64, dat
 			userID, instrumentID, date, close,
 		)
 		// Instruments are never deleted, so a foreign key failure is the user
-		// deleted since the session check (GLG-1012).
+		// deleted since the session check.
 		if db.IsForeignKeyViolation(err) {
 			return fmt.Errorf("insert manual price: %w", user.MissingError{ID: userID})
 		}
@@ -74,7 +74,7 @@ func (r *ManualRepo) Upsert(ctx context.Context, userID, instrumentID int64, dat
 
 // latestManualQuery is ManualRepo.Latest's lookup, the same shape as
 // latestQuery: per requested id, seeks on the (user_id, instrument_id,
-// date) primary key, one statement for all ids (GLG-503, GLG-1234).
+// date) primary key, one statement for all ids.
 const latestManualQuery = `SELECT m.instrument_id, m.date, m.close
 	FROM instruments i JOIN manual_prices m ON m.user_id = ? AND m.instrument_id = i.id
 	WHERE i.id IN (%s) AND m.date = (

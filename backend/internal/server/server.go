@@ -102,7 +102,7 @@ type deps struct {
 
 // newHandler is New with the market-data fetchers injected in d, so tests
 // can point them at httptest.Server stubs instead of the real
-// bulletin/Finnhub/TCMB/BtcTurk/TEFAS endpoints (GLG-182) rather than
+// bulletin/Finnhub/TCMB/BtcTurk/TEFAS endpoints rather than
 // reaching out over the network. d's repos are built here from conn.
 func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, sources ...scheduler.Source) http.Handler {
 	mux := http.NewServeMux()
@@ -172,8 +172,8 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 	// The import asks TEFAS about an unknown fund code only while the tefas
 	// source is on: the fetcher is what prices the fund it creates. The
 	// setting is read on a context a client disconnect does not cancel, as
-	// in onDemandFetch (GLG-466). A lookup it skips asks TEFAS nothing, so
-	// it costs the client none of its lookup budget (GLG-897).
+	// in onDemandFetch. A lookup it skips asks TEFAS nothing, so
+	// it costs the client none of its lookup budget.
 	lookupFund := func(ctx context.Context, code string) (string, bool, error) {
 		if !scheduler.Enabled(context.WithoutCancel(ctx), cfg, scheduler.NameTEFAS, slog.Default()) {
 			return "", false, statement.ErrFundLookupOff
@@ -182,7 +182,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 	}
 	// A BIST row the instruments do not know may be a share delisted
 	// since: the import syncs its date's bulletin, which adds it, while the
-	// bist source is on and that bulletin is not stored yet (GLG-782).
+	// bist source is on and that bulletin is not stored yet.
 	syncBulletin := func(ctx context.Context, date time.Time) (bool, error) {
 		if !scheduler.Enabled(context.WithoutCancel(ctx), cfg, scheduler.NameBIST, slog.Default()) {
 			return false, nil
@@ -205,7 +205,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 }
 
 // withCrossOriginProtection rejects a POST/PUT/PATCH/DELETE whose
-// Sec-Fetch-Site or Origin shows another origin, with 403 (GLG-407). The
+// Sec-Fetch-Site or Origin shows another origin, with 403. The
 // session cookie's SameSite=Lax stops cross-site pages, but not another
 // origin of the same site, such as another port on the host or a sibling
 // subdomain, which can post a text/plain form without a preflight. The dev
@@ -227,19 +227,19 @@ const onDemandBackfillTimeout = 2 * time.Hour
 
 // newOnDemandFetch returns the transaction.OnDemandFetch callback. It is
 // called after every transaction save; when the instrument has no price
-// row on or before today, it fetches one synchronously (GLG-182), so the
+// row on or before today, it fetches one synchronously, so the
 // summary opened next already has it. That guard keeps the synchronous
 // part to one fetch per new symbol rather than one per transaction. BIST
 // fills the whole market in one bulletin download, so it walks back from
 // today over at most scheduler.CatchUpLookbackDays days for the latest
 // published bulletin, then starts a background backfill of every bulletin from the
-// transaction date to yesterday (GLG-189), so the history chart has a real
+// transaction date to yesterday, so the history chart has a real
 // close per trading day. US fetches just the one instrument via us.SyncOne,
 // labeled with the same previous-trading-day date the scheduler uses, then
-// its Tiingo daily closes from the transaction date in one request
-// (GLG-236), skipped when that range is already covered. CRYPTO fetches
+// its Tiingo daily closes from the transaction date in one request,
+// skipped when that range is already covered. CRYPTO fetches
 // the pair's daily closes from the transaction date to yesterday in one
-// BtcTurk request (GLG-253), so it needs no background price backfill.
+// BtcTurk request, so it needs no background price backfill.
 // TEFAS fetches the fund's NAVs back to the transaction date in one request
 // via tefas.Syncer.SyncHistory, skipped when stored prices already reach back that
 // far, so it needs no background price backfill either. The gold coins
@@ -250,19 +250,19 @@ const onDemandBackfillTimeout = 2 * time.Hour
 // btcturk.GoldHistoryStart, in one request via GoldSyncer.SyncGoldHistory,
 // the range rule of the startup gold backfill, skipped when stored
 // GOLD/GRAM prices already cover it. That fills both the GOLD/GRAM price
-// (GLG-743) and the GOLD benchmark (GLG-749), as the FX walk below fills
+// and the GOLD benchmark, as the FX walk below fills
 // the USD and EUR ones, while the gold source is enabled.
 //
 // The background walk also backfills TCMB FX rates over the same range,
-// for every market (GLG-192): a TEFAS buy dated in the past needs the
+// for every market: a TEFAS buy dated in the past needs the
 // rates to convert its days on the history chart just as much as a BIST
 // one does. Each background walk goes through backfills.
 //
 // A fetch cut off because the request was cancelled (the client went
-// away) failed nothing and is not logged; one that hit the timeout is
-// (GLG-463). ctx.Err() decides, not the error, as in GLG-447. The gold
+// away) failed nothing and is not logged; one that hit the timeout is logged.
+// ctx.Err() decides, not the error. The gold
 // fetch does not start on a ctx that is already done, so an import's
-// spent shared deadline logs no error per target (GLG-898).
+// spent shared deadline logs no error per target.
 //
 // It uses d's cfg, fetchers and instrument, price, benchmark, split,
 // dividend and fx repos.
@@ -279,7 +279,7 @@ func newOnDemandFetch(d *deps, backfills *backfillQueue) transaction.OnDemandFet
 		// market's source is marketSource's. The settings are read on
 		// settingsCtx, which a client disconnect does not cancel: the
 		// transaction is saved and the backfill outlives the request, so it
-		// follows the real settings either way (GLG-466).
+		// follows the real settings either way.
 		settingsCtx := context.WithoutCancel(ctx)
 		on := scheduler.Enabled(settingsCtx, settingsRepo, marketSource[in.Market], slog.Default())
 
@@ -318,12 +318,12 @@ func newOnDemandFetch(d *deps, backfills *backfillQueue) transaction.OnDemandFet
 
 		// Gold runs on every save, after the instrument's own fetch so that
 		// one keeps the timeout budget: the GOLD benchmark needs the series
-		// whatever the transaction is (GLG-749). For a GOLD instrument "gold"
-		// is also on, so this is the GOLD/GRAM price fetch too (GLG-743).
+		// whatever the transaction is. For a GOLD instrument "gold"
+		// is also on, so this is the GOLD/GRAM price fetch too.
 		// A ctx already done here was spent by the instrument's own fetch,
 		// which logged it if it timed out, or by an import's shared
-		// deadline (GLG-854): the gold fetch is skipped, not logged as an
-		// error per target (GLG-898).
+		// deadline: the gold fetch is skipped, not logged as an
+		// error per target.
 		if scheduler.Enabled(settingsCtx, settingsRepo, scheduler.NameGold, slog.Default()) {
 			if ctx.Err() != nil {
 				slog.Default().Debug("on-demand gold price fetch skipped",
@@ -342,7 +342,7 @@ func newOnDemandFetch(d *deps, backfills *backfillQueue) transaction.OnDemandFet
 }
 
 // marketSource maps an instrument market to the scheduler source whose
-// enabled setting gates its on-demand fetch (GLG-1210). It lists every
+// enabled setting gates its on-demand fetch. It lists every
 // seeded market, which TestMarketSourceCoversSeededMarkets checks.
 var marketSource = map[string]string{
 	"BIST":   scheduler.NameBIST,
@@ -378,7 +378,7 @@ func syncCryptoRange(ctx context.Context, in instrument.Instrument, date string,
 
 // logFetchErr logs a failed on-demand fetch at ERROR with args and the
 // error, unless err is nil or ctx was cancelled: a client that went away
-// failed nothing (GLG-463). ctx.Err() decides, not err (GLG-447).
+// failed nothing. ctx.Err() decides, not err.
 func logFetchErr(ctx context.Context, err error, msg string, args ...any) {
 	if err == nil || errors.Is(ctx.Err(), context.Canceled) {
 		return
@@ -389,7 +389,7 @@ func logFetchErr(ctx context.Context, err error, msg string, args ...any) {
 // syncLatestBulletin walks back from today and syncs the first published
 // bulletin. It is the same walk the startup catch-up does, so it reuses
 // scheduler.CatchUp with a single source, its log lines prefixed
-// "on-demand" rather than "catch-up" (GLG-832); no Have, since the caller
+// "on-demand" rather than "catch-up"; no Have, since the caller
 // only gets here when this instrument has no price row yet.
 func syncLatestBulletin(ctx context.Context, in instrument.Instrument, instruments *instrument.Repo, prices *price.Repo, bistFetcher *bist.Fetcher) {
 	src := scheduler.Source{
@@ -403,11 +403,11 @@ func syncLatestBulletin(ctx context.Context, in instrument.Instrument, instrumen
 
 // backfillQueue serializes backfills: one worker at a time, with the
 // requests that arrive while a walk runs kept as pending instead of
-// dropped, merged per source to the earliest start date (GLG-217). Several
+// dropped, merged per source to the earliest start date. Several
 // transactions saved within seconds, or one import commit fanning out over
 // every instrument and cash currency, each get their range walked.
 // BackfillRange skips dates that already have a row, so re-walking an
-// overlapping range is cheap. An admin backfill now (GLG-314) queues a
+// overlapping range is cheap. An admin backfill now queues a
 // source's whole history walk instead, one pending per source.
 //
 // ponytail: one worker and one pending entry per source name. Upgrade
@@ -469,7 +469,7 @@ func (q *backfillQueue) start() {
 
 // backfillWorkers counts the running drain goroutines of every queue in
 // the process, so a test can wait for them before its DB and temp dir go
-// away (GLG-387).
+// away.
 var backfillWorkers sync.WaitGroup
 
 // next takes one queued walk, its source name and whether it is an
@@ -503,8 +503,8 @@ func (q *backfillQueue) next() (name string, walk func(context.Context) (int, er
 // runs.
 //
 // An admin walk is always logged in source_runs. An on-demand walk, queued
-// by every saved transaction, is logged only when it wrote rows or failed
-// (GLG-331): a no-op one would pile up and hide the daily fetch as the
+// by every saved transaction, is logged only when it wrote rows or failed:
+// a no-op one would pile up and hide the daily fetch as the
 // source's last run. Its row is written after the walk, so its started_at
 // is the finish time.
 func (q *backfillQueue) drain() {
@@ -554,10 +554,10 @@ func startBackfill(q *backfillQueue, in instrument.Instrument, date string, sour
 
 // withBodyLimit caps every request body, except the statement routes: the
 // upload is a multi-page PDF and the commit carries every reviewed row of it,
-// so both set their own larger limit inside their handler (ADR 0006,
-// GLG-216). A body whose declared length is over the limit is answered 413
-// here, since every handler maps a decode error to 400 (GLG-830); a body of
-// unknown length is still cut off by the reader and fails decoding.
+// so both set their own larger limit inside their handler (ADR 0006). A body
+// whose declared length is over the limit is answered 413 here, since every
+// handler maps a decode error to 400; a body of unknown length is still cut
+// off by the reader and fails decoding.
 func withBodyLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -575,7 +575,7 @@ func withBodyLimit(next http.Handler) http.Handler {
 
 // withJSONMiss answers a request mux has no route for (404) or no route
 // for the method (405, Allow kept) with the JSON error body instead of
-// ServeMux's plain text (GLG-980).
+// ServeMux's plain text.
 func withJSONMiss(mux *http.ServeMux) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, pattern := mux.Handler(r); pattern == "" {

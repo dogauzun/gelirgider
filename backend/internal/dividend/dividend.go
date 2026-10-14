@@ -39,8 +39,7 @@ func NewRepo(db *sql.DB) *Repo {
 // Upsert stores a dividend for (instrumentID, date), overwriting amount,
 // currency and source of an existing row (last writer wins). Same
 // UPDATE-then-INSERT shape as split.Repo.Upsert, for portable SQL, in one
-// transaction so overlapping fetches of a new key cannot both INSERT
-// (GLG-1025).
+// transaction so overlapping fetches of a new key cannot both INSERT.
 func (r *Repo) Upsert(ctx context.Context, instrumentID int64, date string, amount decimal.Decimal, currency, source string) error {
 	if !amount.IsPositive() {
 		return errors.New("dividend amount must be > 0")
@@ -120,7 +119,7 @@ const (
 // MatchRecorded pairs recorded dividends (dates ascending) with the ex-dates
 // (ascending) they account for: the result holds, per recorded date, the
 // ex-date it took, or "" for none. One recorded dividend takes at most one
-// ex-date and an ex-date is taken once (GLG-374). Each recorded date, in
+// ex-date and an ex-date is taken once. Each recorded date, in
 // order, takes one ex-date not yet taken from -MatchBeforeDays to
 // +MatchAfterDays of it: the latest one on or before it, since a payment date
 // follows its ex-date, else the earliest one after it. Plain nearest would

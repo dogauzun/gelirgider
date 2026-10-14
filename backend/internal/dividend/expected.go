@@ -55,8 +55,7 @@ func Expected(rows []transaction.Transaction, divs []Dividend, dismissed map[Dis
 		}
 	}
 	// A recorded dividend hides the ex-date it matches; it covers
-	// hand-entered dividends and Midas imports, which carry the payment date
-	// (GLG-374).
+	// hand-entered dividends and Midas imports, which carry the payment date.
 	matched, err := MatchRecorded(recorded, exDates)
 	if err != nil {
 		return nil, err
@@ -72,7 +71,7 @@ func Expected(rows []transaction.Transaction, divs []Dividend, dismissed map[Dis
 		}
 		c.Gross = c.Quantity.Mul(c.PerShare).Round(2)
 		// A fractional holding can earn under a cent: a 0.00 row cannot be
-		// saved as a transaction, so it is not expected (GLG-345).
+		// saved as a transaction, so it is not expected.
 		if !c.Gross.IsPositive() {
 			continue
 		}

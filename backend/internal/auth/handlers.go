@@ -153,7 +153,7 @@ func (h *handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// An admin deleted the new user before its default portfolio was seeded:
-	// the 404 the admin's create-user route gives for it (GLG-1016).
+	// the 404 the admin's create-user route gives for it.
 	if errors.Is(err, user.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "user not found")
 		return
@@ -338,7 +338,7 @@ func (h *handler) updateReportingCurrency(w http.ResponseWriter, r *http.Request
 	}
 
 	// An admin deleted the user since the session check, before or after
-	// the update (GLG-1014): WriteInternalError answers 401.
+	// the update: WriteInternalError answers 401.
 	u, err := h.users.GetByID(r.Context(), userID)
 	if err != nil {
 		WriteInternalError(w, r, err)
@@ -433,7 +433,7 @@ func (h *handler) cookie(value string, expires time.Time) *http.Cookie {
 // acceptable. The minimum counts characters, matching its message and the
 // frontend minLength; the maximum counts bytes, because that is the unit
 // bcrypt itself limits. A password made only of whitespace and format
-// characters (zero-width space, BOM...) is rejected outright (GLG-900), but
+// characters (zero-width space, BOM...) is rejected outright, but
 // the password itself is never trimmed: padding a real password with spaces
 // is the user's choice and has to keep working at login.
 func validatePassword(password string) string {
@@ -459,17 +459,17 @@ func validatePassword(password string) string {
 // The 254-character cap is the RFC 5321 path limit.
 //
 // net/mail also accepts any UTF-8 in the local part, so a control or format
-// character (U+200B..., GLG-900), a line separator or a blank filler
-// (U+3164, U+2800..., GLG-978) is rejected here: it would make one address
+// character (U+200B...), a line separator or a blank filler
+// (U+3164, U+2800...) is rejected here: it would make one address
 // render like another in the admin user list. HasInvisible lets an emoji
-// joiner and a subdivision flag's tags through for names (GLG-901, GLG-907);
+// joiner and a subdivision flag's tags through for names;
 // an address has no such exception, so every control and format character
 // is refused as well.
 //
 // So are space separators (Zs: U+00A0, U+2003, U+3000...) and the rest of
 // Unicode's default-ignorable set, the characters a renderer draws as
 // nothing: the invisible marks U+034F, U+17B4, U+17B5 and the variation
-// selectors (GLG-1010). With Cc and Cf that covers every default-ignorable
+// selectors. With Cc and Cf that covers every default-ignorable
 // code point by property rather than by list, while a visible combining
 // accent still passes.
 func validateEmail(email string) string {

@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-// Period returns over a history range (GLG-388). values[i] is the portfolio
+// Period returns over a history range. values[i] is the portfolio
 // total on point i in the reporting currency, flows[i] the external flow that
 // entered on day i. flows[0] is always 0: a first-day flow is already inside
 // values[0]. Flows are end-of-day, so a flow on day i does not earn day i.
@@ -26,7 +26,7 @@ type returnsResponse struct {
 // base: when values[0] is not positive, or when negativeCash says the cash,
 // in the reporting currency, was below zero on some day of the range. The
 // value is then only the P/L of positions bought with money never put in,
-// and a ratio over it reads millions of percent (GLG-641, GLG-632).
+// and a ratio over it reads millions of percent.
 func periodReturns(values, flows []float64, negativeCash bool) returnsResponse {
 	if negativeCash || len(values) < 2 || values[0] <= 0 {
 		return returnsResponse{}
@@ -71,7 +71,7 @@ func timeWeightedReturn(values, flows []float64) (float64, bool) {
 // timeWeightedSeries is the running product behind timeWeightedReturn:
 // element i is the time-weighted return from day 0 to day i, so the first is
 // 0 and the last is timeWeightedReturn's result. A skipped day repeats the
-// previous element. Undefined exactly when timeWeightedReturn is (GLG-952).
+// previous element. Undefined exactly when timeWeightedReturn is.
 func timeWeightedSeries(values, flows []float64) ([]float64, bool) {
 	if len(values) < 2 {
 		return nil, false

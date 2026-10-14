@@ -92,7 +92,7 @@ const CatchUpLookbackDays = 7
 // Sync writes a row. An error from one source is logged and the next source
 // still runs. Each source's walk is one run in runs (nil logs none). Every
 // log line starts with prefix ("catch-up" at startup), so a caller reusing
-// the walk outside the startup catch-up names its own event (GLG-832).
+// the walk outside the startup catch-up names its own event.
 func CatchUp(ctx context.Context, sources []Source, lookbackDays int, runs *RunLog, prefix string, logger *slog.Logger) {
 	for _, src := range sources {
 		if ctx.Err() != nil {
@@ -112,9 +112,8 @@ func CatchUp(ctx context.Context, sources []Source, lookbackDays int, runs *RunL
 // cancelled (shutdown, or the client went away) is not logged: nothing
 // failed. ctx.Err() decides, not the error: net/http returns
 // signal.NotifyContext's cancel cause, which does not wrap context.Canceled,
-// while ctx.Err() is context.Canceled (GLG-412, GLG-447). A passed
-// deadline (the on-demand fetch's timeout) is a failure and is logged
-// (GLG-1097).
+// while ctx.Err() is context.Canceled. A passed
+// deadline (the on-demand fetch's timeout) is a failure and is logged.
 func catchUpSource(ctx context.Context, src Source, lookbackDays int, today time.Time, prefix string, logger *slog.Logger) (int, error) {
 	for i := 0; i < lookbackDays; i++ {
 		d := today.AddDate(0, 0, -i)
@@ -205,7 +204,7 @@ type runState struct {
 // tick runs, in order, every source due at now: enabled, due on this
 // weekday (dueSources), past its fetch time today, not done today and past
 // its retry time. A tick after shutdown does nothing: Load would log every
-// settings read as failed (GLG-434).
+// settings read as failed.
 func (r *runner) tick(ctx context.Context, now time.Time) {
 	if ctx.Err() != nil {
 		return
@@ -264,7 +263,7 @@ func (r *runner) attempt(ctx context.Context, src Source, now, atToday time.Time
 	case err != nil && ctx.Err() != nil:
 		// Shutdown: nothing failed and the day is not done. ctx.Err()
 		// decides, not err: net/http returns signal.NotifyContext's cancel
-		// cause, which does not wrap context.Canceled (GLG-457).
+		// cause, which does not wrap context.Canceled.
 	case err != nil:
 		r.logger.Error("fetch failed", "source", src.Name, "date", st.day, "error", err)
 		st.done = true

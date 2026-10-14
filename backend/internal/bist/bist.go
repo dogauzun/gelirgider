@@ -265,7 +265,7 @@ func parseBulletinCSV(r io.Reader) ([]Close, int, error) {
 
 // parseBulletinDate returns the bulletin's trade date cell as YYYY-MM-DD.
 // Most bulletins print it that way; those of 21 May to 9 June 2020 print
-// day.month.year with an unpadded day, e.g. "1.06.2020" (GLG-783). Any
+// day.month.year with an unpadded day, e.g. "1.06.2020". Any
 // other form is an error, so it is never stored as raw text.
 func parseBulletinDate(s string) (string, error) {
 	for _, layout := range []string{time.DateOnly, "2.1.2006"} {
@@ -286,7 +286,7 @@ const maxLoggedAdded = 20
 // source = "bist_bulletin", overwriting any existing prices row for the
 // same instrument and date. It never touches manual_prices: a user's
 // manual price lives there and wins over the fetched close when the two
-// are merged (GLG-103). A bulletin symbol with no BIST instrument row gets
+// are merged. A bulletin symbol with no BIST instrument row gets
 // one inserted (name from the bulletin, currency TRY) so a company listed
 // after bist_symbols.csv was generated is searchable and priceable the day
 // it first trades; the added symbols are named in the log line. Returns the

@@ -10,7 +10,7 @@ import (
 )
 
 // registrationOpenKey holds the registration toggle (ADR 0010): "true" or
-// "false". A missing row means closed (GLG-1117).
+// "false". A missing row means closed.
 const registrationOpenKey = "auth.registration_open"
 
 func registrationOpen(ctx context.Context, s *settings.Repo) (bool, error) {
