@@ -125,7 +125,7 @@ exempt), `gocognit` with `min-complexity` 45, `nestif` with `min-complexity` 10,
 `time-layout`, configured in `backend/.golangci.yml`), `deadcode`, the frontend lint, `jscpd`
 (copied blocks of 6 lines or more, configured in `frontend/.jscpd.json`), `knip`
 (unused exports and types, configured in `frontend/knip.json`) and the
-prettier checks on `frontend/`, `docs/`, `deploy/`, `.claude/` and the root
+prettier checks on `frontend/`, `docs/`, `deploy/`, `.claude/`, `.github/` and the root
 Markdown files.
 `make build-frontend` type-checks and builds the frontend for production into
 `frontend/dist/`; neither of the other two runs it. Run `make help` for all
