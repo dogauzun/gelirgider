@@ -108,7 +108,10 @@ export function subDecimal(a: string, b: string): string {
 // compareDecimal orders two API decimal strings exactly: -1, 0 or 1, as a
 // sort comparator expects.
 export function compareDecimal(a: string, b: string): number {
-  const x = decimalUnits(a)
-  const y = decimalUnits(b)
+  return compareUnits(decimalUnits(a), decimalUnits(b))
+}
+
+// compareDecimal for amounts already in units.
+export function compareUnits(x: bigint, y: bigint): number {
   return x < y ? -1 : x > y ? 1 : 0
 }

@@ -4,7 +4,7 @@ import { t } from '../i18n/strings'
 import { SHARE_FORMAT } from '../lib/allocation'
 import { formatQuantity } from '../lib/decimal'
 import { formatMoney, formatNumber, formatUnitPrice, plTone, signedMoney } from '../lib/format'
-import { unrealized as unrealizedOf, weightOf, weightTotal } from '../lib/positions'
+import { holdingsTotal, unrealized as unrealizedOf, weightOf } from '../lib/positions'
 import { FitFigure, KPI_FIGURE, KPI_WIDE, KpiCell, KpiStrip } from './ui/Kpi'
 
 // One position's figures, in the summary's reporting currency. `dividends`
@@ -45,7 +45,7 @@ export function PositionKpis({
     (r) => r.instrument_id === position.instrument_id,
   )
   const dividendNet = dividends ? (dividendRow?.net ?? '0') : null
-  const weight = weightOf(position, weightTotal(summary))
+  const weight = weightOf(position, holdingsTotal(summary))
 
   // A closed position keeps what it left behind: its total, its realized
   // P/L and its dividends. On a phone the total and the last cell span both

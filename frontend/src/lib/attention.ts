@@ -1,8 +1,8 @@
 import type { ExpectedDividend } from '../api/dividends'
 import type { Summary } from '../api/summary'
 import { daysBetween } from './date'
-import { decimalUnits } from './decimal'
-import { dayRatio } from './positions'
+import { compareDecimal, decimalUnits } from './decimal'
+import { currencyTotals, dayRatio, holdingsTotal, shareOf } from './positions'
 
 // The thresholds of the "Dikkat" card (spec: UI v2 core pages). A share is
 // flagged only above its threshold, never at it.
@@ -121,21 +121,20 @@ export function attentionItems(input: {
 
   // Yoğunlaşma.
   const valued = open
-    .filter((p) => p.market_value_reporting !== null)
-    .map((p) => ({ p, units: decimalUnits(p.market_value_reporting!) }))
-    .filter(({ units }) => units > 0n)
+    .filter((p) => p.market_value_reporting !== null && decimalUnits(p.market_value_reporting) > 0n)
+    .sort((a, b) => compareDecimal(b.market_value_reporting!, a.market_value_reporting!))
   const cash = decimalUnits(summary.cash)
-  const total = valued.reduce((sum, { units }) => sum + units, 0n) + (cash > 0n ? cash : 0n)
+  const total = holdingsTotal(summary)
   if (total > 0n) {
-    const share = (units: bigint) => Number(units) / Number(total)
-    for (const { p, units } of [...valued].sort((a, b) => (b.units > a.units ? 1 : -1))) {
+    for (const p of valued) {
+      const units = decimalUnits(p.market_value_reporting!)
       if (!p.has_price || !above(units, total, ATTENTION.positionShare)) continue
       items.push({
         kind: 'concentration',
         subject: 'position',
         label: p.symbol,
         instrument_id: p.instrument_id,
-        share: share(units),
+        share: shareOf(units, total),
       })
     }
     if (above(cash, total, ATTENTION.cashShare)) {
@@ -143,7 +142,7 @@ export function attentionItems(input: {
         kind: 'concentration',
         subject: 'cash',
         label: summary.currency,
-        share: share(cash),
+        share: shareOf(cash, total),
       })
     }
   }
@@ -152,25 +151,16 @@ export function attentionItems(input: {
   // currency, its positions plus its own cash, and only the positive rows
   // count. Against the net cash above, a negative TRY balance would push USD
   // past 100%.
-  const byCurrency = new Map<string, bigint>()
-  for (const { p, units } of valued) {
-    byCurrency.set(p.currency, (byCurrency.get(p.currency) ?? 0n) + units)
-  }
-  for (const [currency, amount] of Object.entries(summary.cash_by_currency_reporting)) {
-    byCurrency.set(currency, (byCurrency.get(currency) ?? 0n) + decimalUnits(amount))
-  }
-  const currencyTotal = [...byCurrency.values()].reduce(
-    (sum, units) => (units > 0n ? sum + units : sum),
-    0n,
-  )
+  const byCurrency = currencyTotals(open, summary.cash_by_currency_reporting)
+  const currencyTotal = [...byCurrency.values()].reduce((sum, units) => sum + units, 0n)
   for (const [currency, units] of byCurrency) {
-    if (currency === summary.currency || units <= 0n) continue
+    if (currency === summary.currency) continue
     if (!above(units, currencyTotal, ATTENTION.currencyShare)) continue
     items.push({
       kind: 'concentration',
       subject: 'currency',
       label: currency,
-      share: Number(units) / Number(currencyTotal),
+      share: shareOf(units, currencyTotal),
     })
   }
 

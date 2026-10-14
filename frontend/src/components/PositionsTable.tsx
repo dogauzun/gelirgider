@@ -17,11 +17,11 @@ import {
 } from '../lib/format'
 import {
   dayRatio,
+  holdingsTotal,
   returnPercent,
   returnRatio,
   unrealized,
   weightOf,
-  weightTotal,
 } from '../lib/positions'
 import { useIsDesktop } from '../lib/useIsDesktop'
 import { rangeSearch, useRange } from '../lib/useRange'
@@ -264,7 +264,7 @@ function PositionRow({
   position: Position
   portfolioId: PortfolioScope
   reporting: string
-  total: number
+  total: bigint
   // The largest weight in the table: its bar is full, the others scale to it.
   largest: number
 } & Handlers &
@@ -542,7 +542,7 @@ export function PositionsTable({
   // The total row is the server's figure for every open position,
   // which would read as the sum of the matching rows, so it hides meanwhile.
   const showTotal = open.length > 0 && !query
-  const total = weightTotal(summary)
+  const total = holdingsTotal(summary)
   const largest = Math.max(...open.map((p) => weightOf(p, total) ?? 0))
 
   // The server's own totals: the rows are rounded one by one, so
