@@ -22,6 +22,19 @@ This is a standalone image build, not a step of the compose run below.
 `gelirgider-frontend` tags. Use `make build` to check that the images build
 or to get tagged images for another runtime.
 
+## Published images
+
+`.github/workflows/publish.yml` publishes both images, `linux/amd64` only, to
+the GitHub Container Registry:
+
+- `ghcr.io/dogauzun/gelirgider-backend`
+- `ghcr.io/dogauzun/gelirgider-frontend`
+
+A push to `main` publishes `latest` and `sha-<first 7 of the commit sha>`; a
+`v*` tag publishes the tag name, for example `v1.2.0`. A host that wants to
+build itself still runs `make build`, which tags the local images
+`gelirgider-backend` and `gelirgider-frontend`.
+
 ## Run locally (production-like)
 
 ```

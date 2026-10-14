@@ -1,0 +1,46 @@
+# Publishes the backend and frontend images to ghcr.io (ADR 0020): `latest`
+# and `sha-<7>` on a push to main, the tag name on a `v*` tag. Plain docker
+# commands in `run:` steps, because the Actions policy allows GitHub-owned
+# actions only. linux/amd64 only, no buildx.
+name: publish
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v7
+      - run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build and push
+        run: |
+          name="ghcr.io/${GITHUB_REPOSITORY,,}-${{ matrix.image }}"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            tags="$GITHUB_REF_NAME"
+          else
+            tags="latest sha-${GITHUB_SHA::7}"
+          fi
+          args=()
+          for t in $tags; do args+=(-t "$name:$t"); done
+          docker build -f deploy/${{ matrix.image }}.Dockerfile \
+            --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
+            --label org.opencontainers.image.licenses=AGPL-3.0-only \
+            "${args[@]}" .
+          for t in $tags; do docker push "$name:$t"; done
