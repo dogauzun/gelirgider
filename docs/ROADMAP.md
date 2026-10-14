@@ -2,9 +2,9 @@
 
 This file lists the work in progress, the work planned next and what is out
 of scope. Phases map to Jira epics in project `GLG`, and this file and the
-epics change together. The shipped phases, with what each one delivered, are
-in [HISTORY.md](HISTORY.md), and the decisions behind them are in the ADRs
-under [`adr/`](adr/).
+epics change together. The decisions behind shipped work are in the ADRs
+under [`adr/`](adr/), and the shipped phases are the Done epics of the Jira
+project.
 
 ## In progress
 

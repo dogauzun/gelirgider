@@ -25,14 +25,6 @@ dialog's type picker renders `ui/Segmented`); amended 2026-10-10 (GLG-1285,
 the instrument search is Base UI `Autocomplete`); amended 2026-10-13
 (GLG-1356, dark `muted` and `loss` at 4.5:1 on `raised-hover`)
 
-Visual reference: the mockup
-[`docs/superpowers/specs/2026-10-04-ui-v2-mockup.html`](../superpowers/specs/2026-10-04-ui-v2-mockup.html)
-(open it in a browser; it has a light/dark switch and uses mock data). The
-full design is in the spec
-[`2026-10-04-ui-v2-design-language-and-shell-design.md`](../superpowers/specs/2026-10-04-ui-v2-design-language-and-shell-design.md),
-and the task order in the plan
-[`2026-10-04-ui-v2-design-language-and-shell.md`](../superpowers/plans/2026-10-04-ui-v2-design-language-and-shell.md).
-
 This ADR supersedes parts of [ADR 0005](0005-ui-design-system.md); the list
 is under "What this supersedes in ADR 0005" below.
 
@@ -63,7 +55,7 @@ sub-projects 4 and 5; the owner accepted that mixed period. Everything here
 is frontend and docs: no backend, API or schema change.
 
 > Amended 2026-10-05 (GLG-934): Özet has its sub-project 4 layout, "layout
-> A" of [`2026-10-05-ui-v2-core-pages-design.md`](../superpowers/specs/2026-10-05-ui-v2-core-pages-design.md).
+> A".
 > From `lg`, top to bottom: the return card
 > (`frontend/src/components/ReturnCard.tsx`: the range's return by the chosen
 > method, the change in value, a pill with the benchmark's return and the
@@ -127,7 +119,7 @@ is frontend and docs: no backend, API or schema change.
 > sideways.
 
 > Amended 2026-10-06 (GLG-971): all five sub-projects have shipped, each in
-> its own phase ([HISTORY.md](../HISTORY.md)): (1) design language and
+> its own phase: (1) design language and
 > (2) app shell in Phase 24 (epic GLG-867); (3) charts in three parts, 3a
 > charts foundation in Phase 25 (GLG-910), 3b chart additions in Phase 27
 > (GLG-945) and 3c return series in Phase 28 (GLG-951); (4) core pages in
@@ -592,8 +584,7 @@ The options were shown to the owner as mockups during brainstorming on
   > split into 3a (charts foundation: Recharts, the line and bar charts in the
   > new look, epic GLG-910), 3b (allocation donut, P/L per position, drag to
   > zoom) and 3c (a return-index series for percent mode, periodic returns and
-  > drawdown), each with its own spec, plan and epic; the 3a spec is
-  > [`2026-10-05-ui-v2-charts-foundation-design.md`](../superpowers/specs/2026-10-05-ui-v2-charts-foundation-design.md).
+  > drawdown), each with its own epic.
   > The line chart is `frontend/src/components/charts/LineChart.tsx`, with
   > the tooltip card in `charts/ChartTooltip.tsx` and the jsdom size helper
   > in `src/test/chartSize.ts`; the old `components/LineChart.tsx` is gone.

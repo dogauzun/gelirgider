@@ -66,4 +66,4 @@
 
 ## 10. Roadmap is a guide, not a contract
 
-- Phases in `ROADMAP.md` are ordered by value and dependency. Reorder when learning says so, but update the doc and the Jira epics together. Shipped phases move to `HISTORY.md`.
+- Phases in `ROADMAP.md` are ordered by value and dependency. Reorder when learning says so, but update the doc and the Jira epics together. A shipped phase leaves this file; its Jira epic is the record.

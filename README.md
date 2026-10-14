@@ -45,7 +45,6 @@ Transactions: every trade, dividend and cash movement, with filters and CSV expo
 ## Documentation
 
 - [docs/ROADMAP.md](docs/ROADMAP.md): work in progress, what is next and the non-goals
-- [docs/HISTORY.md](docs/HISTORY.md): shipped phases and what each one delivered
 - [docs/PRINCIPLES.md](docs/PRINCIPLES.md): guiding principles
 - [docs/adr/](docs/adr/): architecture decision records
 - [deploy/README.md](deploy/README.md): production deployment with Docker Compose

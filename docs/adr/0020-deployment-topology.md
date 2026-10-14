@@ -7,7 +7,7 @@ published to GHCR); amended 2026-10-14 (GLG-1383, compose pulls the
 published images); amended 2026-10-14 (GLG-1395, release flow)
 
 This ADR records decisions taken in Phase 4 (GLG-41..46,
-`docs/HISTORY.md`, Phase 4) that were written down only in the roadmap and in
+Phase 4) that were written down only in the roadmap and in
 the `deploy/` files.
 
 ## Context
@@ -15,7 +15,7 @@ the `deploy/` files.
 [ADR 0002](0002-production-datastore-and-migrations.md) records the Phase 4
 decisions on the datastore, schema files and backups. The rest of the
 deployment decisions live only in the Phase 4 section of the roadmap
-(`docs/HISTORY.md`, Phase 4), in the non-goals (`docs/ROADMAP.md`, Non-goals) and in
+(Phase 4), in the non-goals (`docs/ROADMAP.md`, Non-goals) and in
 the files under `deploy/`. The roadmap is about to be split, so this ADR
 records what is in the repository today, with the reason where a roadmap
 line, ticket or commit gives one.
@@ -27,7 +27,7 @@ line, ticket or commit gives one.
 The deployment target is Docker Compose on any Docker host: a laptop, a
 home server or a cloud machine reachable on ports 80 and 443, with no VM
 provisioning, no cloud-provider steps and no Kubernetes
-(`deploy/RUNBOOK.md:3-5`, `docs/HISTORY.md`, Phase 4). A Kubernetes epic may
+(`deploy/RUNBOOK.md:3-5`, Phase 4). A Kubernetes epic may
 come later (`docs/ROADMAP.md`, Non-goals); the reason for deferring it is not
 recorded.
 
@@ -51,7 +51,7 @@ Only ports 80 and 443 are published, both on `caddy`
 (`deploy/compose.yml:47-49`); `frontend` and `backend` are reachable only
 from other containers on the compose network (`deploy/README.md:36-38`).
 Caddy sits in front of the existing nginx image for TLS
-(`docs/HISTORY.md`, Phase 4); why TLS is a separate proxy rather than part of
+(Phase 4); why TLS is a separate proxy rather than part of
 the nginx image is not recorded.
 
 ### The backend behind two proxies
@@ -96,7 +96,7 @@ The `backend` and `frontend` services have a `build:` section and no
 compose builds both images on the Docker host from the git checkout
 (`deploy/RUNBOOK.md:79-86`). The reason is recorded in the roadmap: the
 repository is private, and a registry would need pull credentials on the
-Docker host for no gain (`docs/HISTORY.md`, Phase 4). Only `caddy` uses a
+Docker host for no gain (Phase 4). Only `caddy` uses a
 published image, `caddy:2` (`deploy/compose.yml:46`).
 
 > Superseded 2026-10-13 (pre-publication review): the repository is being
@@ -127,13 +127,12 @@ published image, `caddy:2` (`deploy/compose.yml:46`).
 > version only by the workflow's `bump: major` override, and the first
 > release is `v1.0.0`. A release also moves the floating major tag `vX`, so
 > `IMAGE_TAG=v1` follows minor and patch releases. The notes are GitHub's
-> generated notes; there is no `CHANGELOG.md`. Design:
-> `docs/superpowers/specs/2026-10-14-release-flow-design.md`.
+> generated notes; there is no `CHANGELOG.md`.
 
 ### No external error reporting, logs to stdout
 
 There is no external error reporting service, only panic recovery and
-structured logs to stdout (`docs/HISTORY.md`, Phase 4); the reason is not
+structured logs to stdout (Phase 4); the reason is not
 recorded.
 
 - The backend logs JSON lines to stdout through `slog`
@@ -192,7 +191,7 @@ recorded.
 
 - Every update rebuilds both images on the host (`deploy/RUNBOOK.md:83-86`).
 - Errors are seen only in the container logs (`deploy/RUNBOOK.md:253-277`).
-- Copying backups off the host is the operator's job (`docs/HISTORY.md`, Phase 4).
+- Copying backups off the host is the operator's job (Phase 4).
 
 > Superseded 2026-10-06 (GLG-1040): several file:line references above have
 > drifted and now point at unrelated lines; the claims still hold. The
