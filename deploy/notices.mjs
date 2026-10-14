@@ -21,7 +21,7 @@ const licenseFile = /^(licen[cs]e|copying|notice)/i
 
 out.push(`# Third-party notices
 
-gelirgider is Copyright (C) 2026 Doğa Uzun, licensed under AGPL-3.0-only (see
+gelirgider is Copyright (C) 2026 Doğa Uzuncukoğlu, licensed under AGPL-3.0-only (see
 [LICENSE](LICENSE)). The backend binary and the frontend bundle include the
 third-party software listed below, each under its own license.
 

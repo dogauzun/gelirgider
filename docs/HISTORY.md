@@ -1354,7 +1354,7 @@ robots.txt as an accepted bypass; the git history is published as is, with
 no rewrite or squash; the AI-driven workflow stays public, so `CLAUDE.md`
 and `.claude/` remain and only stale infrastructure notes and personal
 disclosures go; registration closes by default after setup; the license is
-AGPL-3.0-only with the line "Copyright (C) 2026 Doğa Uzun" in the README and
+AGPL-3.0-only with the line "Copyright (C) 2026 Doğa Uzuncukoğlu" in the README and
 no per-file SPDX headers; security reports go through GitHub private
 vulnerability reporting.
 Decisions taken during the epic: explicit by-name TEFAS runs (Run now,
