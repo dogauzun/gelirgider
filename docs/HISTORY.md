@@ -7,15 +7,15 @@ The decisions behind them live in the ADRs under [`adr/`](adr/).
 
 Status: shipped 2026-09-13 · Epic GLG-1
 
-Goal: `make dev` runs an empty app end to end, and the checks pass. There is
-no CI: the checks run locally before merge
+Goal: `make dev` runs an empty app end to end, and the checks pass. Until
+2026-10-14 the checks ran only locally, before merge
 ([ADR 0015](adr/0015-pr-review-routine.md)).
 
 - Monorepo skeleton: `backend/`, `frontend/`, `tools/`, `deploy/`, `docs/`, root `Makefile` (GLG-8, GLG-9, GLG-13).
 - Go module with `net/http` server, `/api/health`, structured logging, env config (GLG-8).
 - SQLite via `modernc.org/sqlite`, repository layer, first schema file (`users`) (GLG-10).
 - React + TypeScript + Vite app with Tailwind, TanStack Query, router; dev proxy to backend (GLG-9).
-- GitHub Actions CI for backend and frontend (GLG-11), since removed: the backend and frontend jobs went in GLG-257, the `tools/tefas` job in GLG-305 and the last workflows in GLG-580, so all checks run locally and review comes from a review agent the merger spawns ([ADR 0022](adr/0022-pr-review-agent.md)).
+- GitHub Actions CI for backend and frontend (GLG-11), since removed: the backend and frontend jobs went in GLG-257, the `tools/tefas` job in GLG-305 and the last workflows in GLG-580, so all checks ran locally until GitHub Actions returned on 2026-10-14 (see "Public repository"), and review comes from a review agent the merger spawns ([ADR 0022](adr/0022-pr-review-agent.md)).
 - Dockerfile for backend; static build for frontend (GLG-12).
 
 ## Phase 1 — Users and auth
@@ -1418,3 +1418,9 @@ GitHub Actions runs `make lint`, `make test` and `make build-frontend` on every
 pull request and on `main` (GLG-1372, #4) and checks pull request titles
 (GLG-1374, #3). The four checks are required on `main` and, green on the PR
 head, are the merge bar in place of the merger's local run (GLG-1373, #7).
+The owner set the repository up the same day: Actions allows GitHub-owned
+actions only (`actions/*`, `github/*`); CodeQL default setup runs, and the
+three alerts it raised were cleared by GLG-1377 (#6); Dependabot alerts and
+security updates, secret scanning with push protection and private
+vulnerability reporting are on; `main` requires `lint`, `test`,
+`build-frontend` and `pr-title` with branches up to date.
