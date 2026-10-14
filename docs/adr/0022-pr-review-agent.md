@@ -3,7 +3,7 @@
 Status: accepted (GLG-762, 2026-10-02); amended 2026-10-05 (GLG-974, the
 merger's hygiene step checks tests and swag annotations); amended 2026-10-14
 (GLG-1373, the required GitHub Actions checks replace the merger's local
-check run); amended 2026-10-14 (GLG-1385, the checks are renamed)
+check run); amended 2026-10-14 (GLG-1385, the checks are renamed); amended 2026-10-14 (GLG-1388, the reviewer runs at high effort and the implementer is pinned to Sonnet 5.5 at high effort)
 
 ## Context
 
@@ -37,6 +37,8 @@ the PR's diff. The agent that wrote the code never reviews it, and the
 reviewer starts without the author's context.
 
 > Superseded 2026-10-14 (GLG-1373): the reviewer runs once the PR is open and its required GitHub Actions checks are green on the PR head, not the local checks.
+
+> Amended 2026-10-14 (GLG-1388): the reviewer runs at high effort (`effort: high` in its frontmatter). The agent that writes the code is pinned too: `.claude/agents/ticket-implementer.md` sets Sonnet 5.5 at high effort, and a harness that cannot load that agent type spawns a general subagent with that model and effort and tells it to read the file.
 
 The reviewer's instructions live in the repository, in
 `.claude/agents/pr-reviewer.md`, so the cloud worker and a local session
