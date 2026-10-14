@@ -531,19 +531,19 @@ func schedulerSources(conn *sql.DB, logger *slog.Logger, f sourceFetchers) []sch
 			// under the last closed session whatever date the catch-up
 			// walks, so Have looks that session up.
 			Have: func(ctx context.Context, _ string) (bool, error) {
-				return priceRepo.HasSource(ctx, us.LastSession(time.Now()), us.SourceFinnhub)
+				return priceRepo.HasSource(ctx, us.LastSession(f.now()), us.SourceFinnhub)
 			},
 			Sync: func(ctx context.Context, _ time.Time) (int, error) {
 				if err := requireTracked(ctx, instrumentRepo, logger, "US"); err != nil {
 					return 0, err
 				}
-				written, err := us.Sync(ctx, f.us, instrumentRepo, priceRepo, time.Now())
+				written, err := us.Sync(ctx, f.us, instrumentRepo, priceRepo, f.now())
 				if err != nil {
 					return written, err
 				}
 				// Finnhub has no split data: re-read a recent Tiingo
 				// window for splits.
-				if _, err := usSyncer.SyncRecent(ctx, time.Now()); err != nil && ctx.Err() == nil {
+				if _, err := usSyncer.SyncRecent(ctx, f.now()); err != nil && ctx.Err() == nil {
 					// A shutdown mid-run is not a failure.
 					logger.Error("us: recent tiingo sync failed", "error", err)
 				}
