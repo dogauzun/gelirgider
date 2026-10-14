@@ -428,8 +428,9 @@ copy of the current state, and step 2 picks the older file instead.
 3. Once a fixed version is published, empty the `IMAGE_TAG=` line to follow
    `latest` again, and pull and restart as in step 2.
 
-A checkout with local code changes rolls back by checking out the previous
-commit (`git checkout <previous-sha>`) and rebuilding with
+An arm64 host (the published images are `linux/amd64` only) and a checkout
+with local code changes skip the steps above and roll back by checking out
+the previous commit (`git checkout <previous-sha>`) and rebuilding with
 `docker compose -f deploy/compose.yml up -d --build`.
 
 Schema files are forward-only and are never edited or removed once merged
