@@ -24,7 +24,7 @@ A new phase is added here, together with its Jira epic, once it is planned.
 - Social or copy-trading features.
 - Kubernetes. Docker Compose is the only deployment target; a Kubernetes epic may come later.
 - Email alerts and a public share link, dropped from Phase 6 (GLG-284).
-- A container registry and an external error reporting service
+- An external error reporting service
   ([ADR 0020](adr/0020-deployment-topology.md)).
 - OpenAPI 3 and API docs in production
   ([ADR 0013](adr/0013-api-docs.md)).

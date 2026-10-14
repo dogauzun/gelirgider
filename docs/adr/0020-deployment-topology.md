@@ -2,7 +2,8 @@
 
 Status: accepted (GLG-713, 2026-10-01); amended 2026-10-13
 (pre-publication review, the private-repository rationale under "No
-container registry" is dated)
+container registry" is dated); amended 2026-10-14 (GLG-1382, both images are
+published to GHCR)
 
 This ADR records decisions taken in Phase 4 (GLG-41..46,
 `docs/HISTORY.md`, Phase 4) that were written down only in the roadmap and in
@@ -101,6 +102,15 @@ published image, `caddy:2` (`deploy/compose.yml:46`).
 > made public, so pull credentials are no longer the reason. The decision stands: images are
 > built on the host from the checkout, and a registry would be one more
 > moving part for a single-host deployment.
+
+> Superseded 2026-10-14 (GLG-1382): `.github/workflows/publish.yml` builds
+> both images on the GitHub Actions runner, `linux/amd64` only, and publishes
+> them to the GitHub Container Registry as `ghcr.io/dogauzun/gelirgider-backend`
+> and `ghcr.io/dogauzun/gelirgider-frontend`: `latest` and `sha-<7>` on a push
+> to `main`, the tag name on a `v*` tag. GHCR needs no new secret
+> (`GITHUB_TOKEN`) and has no anonymous pull rate limit on public images.
+> Compose still builds both images on the host until GLG-1383 points it at
+> the published ones.
 
 ### No external error reporting, logs to stdout
 
