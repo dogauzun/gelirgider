@@ -66,6 +66,8 @@ Very short explanation of how testing is conducted to verify the PR. Include wha
 - Money and quantities are `decimal`, never `float`. Every query on user data
   filters by `user_id`.
 - Code, comments, commits and pull requests are in English.
+- A change to `README.md` is mirrored in its Turkish translation `README.tr.md`
+  in the same pull request.
 
 [docs/PRINCIPLES.md](docs/PRINCIPLES.md) has the full set of principles and
 [docs/adr/](docs/adr/) the decisions behind them.
