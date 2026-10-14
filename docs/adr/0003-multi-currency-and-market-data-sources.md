@@ -12,7 +12,8 @@ residual); superseded in part by [ADR 0010](0010-setup-and-admin.md)
 settings entered in the admin area, and each source runs at its own daily
 time; amended 2026-09-26 (GLG-393, `returns` replaces
 `net_flow_weighted`); amended 2026-09-28 (GLG-524, Phase 16 trade-date cost
-for open positions)
+for open positions); amended 2026-10-14 (GLG-1373, GitHub Actions runs the
+checks again)
 
 ## Decision
 
@@ -342,6 +343,8 @@ failing does not block the others.
   > encrypted setting `provider.finnhub.api_key`, not `FINNHUB_API_KEY`, and
   > an unset key still fails the fetch with an error. There has been no CI
   > since the same day (GLG-257, [ADR 0015](0015-pr-review-routine.md)).
+
+  > Superseded 2026-10-14 (GLG-1373): GitHub Actions runs the check set on every pull request and on `main` again (GLG-1372), with no provider key set.
 
 - Converting realized P/L at the valuation-date rate instead of the
   trade-date rate understates or overstates FX-driven gains on old trades in

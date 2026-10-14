@@ -34,7 +34,7 @@
 
 ## 6. Verified and reviewed before merged
 
-- Local checks green is the bar; there is no CI. Whoever merges runs these from the repo root on the PR head. Only observed results count.
+- The required GitHub Actions checks green on the PR head is the bar: `lint`, `test-backend`, `test-frontend` and `build-frontend` run the Make targets of the same name (`.github/workflows/checks.yml`, listed below), `pr-title` checks the title (`.github/workflows/pr-title.yml`). The author still runs `make lint`, `make test` and `make build-frontend` from the repo root before pushing.
   - `make lint`: `make swagger-check`, `gofmt -l backend` (fails if it prints a file), `go vet ./...`, `golangci-lint run` (`dupl`, `forbidigo`, `funlen` with `lines` 150 (comments ignored, tests exempt), `gocognit` with `min-complexity` 45, `nestif` with `min-complexity` 10, `noctx`, `revive` with `argument-limit` 6 and `usestdlibvars` with `time-layout`, configured in `backend/.golangci.yml`) and `deadcode ./...` (without `-test`, fails if it prints a function) in `backend/`, `npm run lint`, `npm run lint:dupl` (`jscpd`, configured in `frontend/.jscpd.json`), `npm run knip` (unused exports and types, configured in `frontend/knip.json`), `npx prettier --check .` in `frontend/`, prettier check on `docs/`, `deploy/`, `.claude/` and the root `*.md` files.
   - `make test`: `make test-backend` (`go vet ./...` and `go test ./...` in `backend/`) and `make test-frontend` (`npm run lint` and `npm test` in `frontend/`). CI runs the two as separate jobs.
   - `make build-frontend`: `npm run build` in `frontend/`. Neither `make lint` nor `make test` runs it.
@@ -43,7 +43,7 @@
 - When no automated test can express the bug (pure visual layout, a documentation fix), say so in the PR and describe the manual check instead.
 - PR "Testing" section states the commands run and what was observed.
 - Every PR's current diff is reviewed by the review agent the merger spawns (`.claude/agents/pr-reviewer.md`, [ADR 0022](adr/0022-pr-review-agent.md)). It reviews the change, not the old code around it, and posts inline comments for potential bugs, security issues and inconsistencies only; linting is `make lint`'s job.
-- Every review comment, from the review agent or a human, gets a reply or a fix before merge. The reviewer's report plus green local checks is not a substitute for checking the comment threads.
+- Every review comment, from the review agent or a human, gets a reply or a fix before merge. The reviewer's report plus green required checks is not a substitute for checking the comment threads.
 - Comment raises something real but out of scope: open a new GLG ticket, do not merge silently. Never let a flagged issue merge unaddressed and untracked.
 - Once addressed (fixed, or ticketed), resolve the thread on the PR. Addressed-but-unresolved threads are not done.
 

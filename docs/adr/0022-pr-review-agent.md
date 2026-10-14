@@ -1,7 +1,9 @@
 # ADR 0022: PR review by a subagent of the merger
 
 Status: accepted (GLG-762, 2026-10-02); amended 2026-10-05 (GLG-974, the
-merger's hygiene step checks tests and swag annotations)
+merger's hygiene step checks tests and swag annotations); amended 2026-10-14
+(GLG-1373, the required GitHub Actions checks replace the merger's local
+check run)
 
 ## Context
 
@@ -33,6 +35,8 @@ orchestrating session locally. It runs once the PR is open and the local
 checks are green, and a fresh one runs after every push that changes
 the PR's diff. The agent that wrote the code never reviews it, and the
 reviewer starts without the author's context.
+
+> Superseded 2026-10-14 (GLG-1373): the reviewer runs once the PR is open and its required GitHub Actions checks are green on the PR head, not the local checks.
 
 The reviewer's instructions live in the repository, in
 `.claude/agents/pr-reviewer.md`, so the cloud worker and a local session
@@ -84,6 +88,8 @@ The merger no longer reads the whole diff. It:
 > the missing tests and documentation that `.claude/agents/pr-reviewer.md`
 > leaves to the merger.
 
+> Superseded 2026-10-14 (GLG-1373): step 1 is reading the required GitHub Actions checks (`lint`, `test-backend`, `test-frontend`, `build-frontend`, `pr-title`) on the PR head, see [ADR 0015](0015-pr-review-routine.md); the merger no longer runs them locally, and the reviewer is spawned once they are green.
+
 ### Merge gate
 
 A PR merges when all of these hold (CLAUDE.md rules 6 and 7):
@@ -101,6 +107,8 @@ A push that changes the PR's own diff gets a new review. A push that only
 rebases the branch onto `main` does not, and neither does a finding that
 was answered without a push. A rebase that had to resolve a conflict
 rewrites the PR's own lines, so it counts as a change and gets a review.
+
+> Superseded 2026-10-14 (GLG-1373): item 3 is the required checks green on the current head. GitHub runs them again on every push, and `main` requires the branch to be up to date.
 
 A round is one review that posted findings; after six rounds on one PR
 the merger parks the ticket with the `needs-decision` label instead of a
@@ -132,6 +140,8 @@ seventh.
 - Fewer comments. Problems in old code and anything a linter would say
   never reach a PR thread.
 - The decision of ADR 0015 to run no GitHub Actions and no CI stands.
+
+> Superseded 2026-10-14 (GLG-1373): it no longer stands. GitHub Actions runs the check set on every pull request and on `main` (GLG-1372, GLG-1374), and the required checks are the merge bar.
 
 ## Alternatives rejected
 

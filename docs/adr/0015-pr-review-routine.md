@@ -5,7 +5,9 @@ two-line review body and two-sentence inline findings, no notes); amended
 2026-09-29 (GLG-590, see "Amendment 2026-09-29"); superseded in part by
 [ADR 0022](0022-pr-review-agent.md) (GLG-762, 2026-10-02): the review
 routine and its verdict are gone, the no-Actions decision stands; amended
-2026-10-07 (GLG-1115, personal disclosure removed)
+2026-10-07 (GLG-1115, personal disclosure removed); amended 2026-10-14
+(GLG-1373, the no-Actions decision no longer stands: the required GitHub
+Actions checks are the merge bar)
 
 ## Context
 
@@ -27,6 +29,8 @@ it has to work without Actions.
 `.github/workflows/claude.yml` and `.github/workflows/claude-code-review.yml`
 are deleted and `.github/` with them. Nothing runs on GitHub. Backend and
 frontend checks stay local, run by whoever merges, as CLAUDE.md says.
+
+> Superseded 2026-10-14 (GLG-1373): the repository is public since 2026-10-14 and `.github/workflows/checks.yml` runs `make lint`, `make test-backend`, `make test-frontend` and `make build-frontend` on every pull request and on `main` (GLG-1372, GLG-1379), with `.github/workflows/pr-title.yml` checking the PR title (GLG-1374). The no-Actions decision no longer stands: the five checks are required on `main`, and green on the PR head they are the merge bar in place of the merger's local run (GLG-1373).
 
 ### `pr review` cloud routine
 
@@ -100,6 +104,8 @@ the ticket with the `needs-decision` label instead of a fourth round.
   caught only by the merger running them.
 
 > Superseded 2026-10-02 by [ADR 0022](0022-pr-review-agent.md) (GLG-762): the first three consequences describe the routine and no longer hold; the last one does.
+
+> Superseded 2026-10-14 (GLG-1373): the last consequence no longer holds either. GitHub Actions runs the checks on every pull request (GLG-1372, GLG-1374).
 
 ## Amendment 2026-09-29 (GLG-590)
 

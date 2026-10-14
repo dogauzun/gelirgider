@@ -6,7 +6,8 @@ became one Docker host); superseded in part by
 Actions, `go test ./...` runs against SQLite only as a local check before
 every merge; amended 2026-10-05 (GLG-888, a table rebuild may start with
 `PRAGMA defer_foreign_keys = ON`); amended 2026-10-14 (GLG-1367,
-correction: backups are not copied off the host automatically)
+correction: backups are not copied off the host automatically); amended
+2026-10-14 (GLG-1373, `go test ./...` runs in GitHub Actions again)
 
 ## Decision
 
@@ -25,6 +26,8 @@ CI already runs `go test ./...` against SQLite, so the Phase 4 roadmap item
 > [ADR 0015](0015-pr-review-routine.md) (GLG-580) deleted the last GitHub
 > Actions workflows on 2026-09-28; `go test ./...` runs against SQLite only
 > as a local check before every merge.
+
+> Superseded 2026-10-14 (GLG-1373): GitHub Actions runs `make test-backend`, and with it `go test ./...` against SQLite, on every pull request and on `main` as the required check `test-backend` (GLG-1372, GLG-1379).
 
 Why this holds at the current scale:
 

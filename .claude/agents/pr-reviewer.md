@@ -1,6 +1,6 @@
 ---
 name: pr-reviewer
-description: Reviews one gelirgider pull request and posts its findings as inline comments on the changed lines. The merger spawns it with the PR number once the PR is open and the local checks pass, and again after each push that changes the PR's diff. It never edits code, pushes, merges or writes to Jira.
+description: Reviews one gelirgider pull request and posts its findings as inline comments on the changed lines. The merger spawns it with the PR number once the PR is open and its required checks are green, and again after each push that changes the PR's diff. It never edits code, pushes, merges or writes to Jira.
 model: claude-opus-5-5
 disallowedTools: Edit, Write, NotebookEdit
 ---
@@ -30,7 +30,7 @@ Every finding names a concrete failure: this input or state leads to this wrong 
 ## What is not a finding
 
 - Anything in code the PR does not change. Old code is out of scope even when it is wrong. Mention a serious old problem in your report to the merger, never on the PR.
-- Anything a linter, a formatter or the test run reports. The merger runs `make lint`, the tests and the build; you do not.
+- Anything a linter, a formatter or the test run reports. GitHub Actions runs `make lint`, the tests and the build as required checks; you do not.
 - Style, naming, import order, comment wording, structure you would have chosen differently, and any difference that leaves runtime behavior identical.
 - Missing tests, missing documentation, PR template, commit message hygiene and attribution. The merger checks those.
 - Suggestions ("consider", "might be nicer"), questions, praise, a summary of what the diff does, and a concern with no concrete failure behind it.

@@ -25,8 +25,10 @@ make lint                # swag spec check, gofmt, go vet, golangci-lint, deadco
 make build-frontend      # npm run build in frontend/ (type-check and production build)
 ```
 
-There is no CI. Run `make lint`, `make test` and `make build-frontend` before
-you open a pull request; all three must pass. [docs/PRINCIPLES.md](docs/PRINCIPLES.md)
+GitHub Actions runs the same targets on every pull request, `make test` as its
+two halves `test-backend` and `test-frontend`, and a pull request merges only
+when they pass. Still run `make lint`, `make test` and
+`make build-frontend` before you push. [docs/PRINCIPLES.md](docs/PRINCIPLES.md)
 #6 lists exactly what each one runs.
 
 ## Pull requests
