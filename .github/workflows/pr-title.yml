@@ -1,0 +1,27 @@
+name: pr-title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the title against the CLAUDE.md "PR format"
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          IS_OWNER: ${{ github.event.pull_request.user.login == github.repository_owner }}
+        run: |
+          # Outside contributors reference a GitHub issue and drop the GLG suffix.
+          suffix=' \(GLG-[0-9]+\)'
+          if [[ "$IS_OWNER" != true ]]; then suffix="($suffix)?"; fi
+          re='^(feat|fix|perf|refactor|test|docs|build|chore): [[:lower:]`].*'"$suffix"'$'
+          if [[ ! "$TITLE" =~ $re ]]; then
+            echo "Title:    $TITLE"
+            echo "Expected: <feat|fix|perf|refactor|test|docs|build|chore>: <lowercase imperative> (GLG-<n>), the suffix optional for outside contributors"
+            exit 1
+          fi
