@@ -67,7 +67,9 @@ provider keys again.
    docker compose -f deploy/compose.yml pull
    docker compose -f deploy/compose.yml up -d
    ```
-   A checkout with local code changes builds both images from it instead:
+   The published images are `linux/amd64` only: an arm64 host, or a
+   checkout with local code changes, builds both images from the checkout
+   instead:
    ```
    docker compose -f deploy/compose.yml up -d --build
    ```
@@ -123,8 +125,10 @@ not in env vars or cron:
    ```
    The images for a commit on `main` are published a few minutes after it
    merges (`.github/workflows/publish.yml`); a `pull` before that run
-   finishes gets the previous `latest`. A checkout with local code changes
-   rebuilds instead, with `docker compose -f deploy/compose.yml up -d --build`.
+   finishes gets the previous `latest`. The published images are
+   `linux/amd64` only, so an arm64 host, like a checkout with local code
+   changes, rebuilds instead, with
+   `docker compose -f deploy/compose.yml up -d --build`.
 
 Since GLG-1118 the backend runs as uid 65532 instead of root. On a host
 set up before it, hand the existing database files to that uid once, before

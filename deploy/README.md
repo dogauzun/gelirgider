@@ -35,7 +35,9 @@ the GitHub Container Registry:
 A push to `main` publishes `latest` and `sha-<first 7 of the commit sha>`; a
 `v*` tag publishes the tag name, for example `v1.2.0`. Compose pulls `latest`
 unless `IMAGE_TAG` in `deploy/.env` pins another tag (`deploy/RUNBOOK.md`,
-Rollback).
+Rollback). An arm64 host without amd64 emulation cannot run them (the
+backend exits with `exec format error`) and builds from the checkout with
+`up --build` instead.
 
 ## Run locally (production-like)
 
