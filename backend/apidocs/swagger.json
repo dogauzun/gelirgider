@@ -1,0 +1,4658 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Auth is the `session` cookie set by `POST /api/auth/login`; routes that need it answer 401 without it. Swagger 2.0 has no cookie security scheme, so the spec declares none.\nRoutes under `/api/admin/` answer 403 `admin only` for a signed-in non-admin.\nEvery error body is `{\"error\": \"\u003cmessage\u003e\"}`.\nRequest bodies are capped at 64 KB, except the two statement import routes; a larger body with a declared Content-Length answers 413 `request body: larger than 64 KB`; one sent without a length is cut off at 64 KB and answers the route's 400.\nRate-limited routes answer 429 `too many requests` with a `Retry-After` header.\nA POST, PUT, PATCH or DELETE from another origin answers 403 `cross-origin request`.",
+        "title": "gelirgider API",
+        "contact": {},
+        "version": "1"
+    },
+    "basePath": "/api",
+    "paths": {
+        "/account/password": {
+            "post": {
+                "description": "Needs a session. Signs out every other session of the user. Rate-limited per client IP, 10 per minute.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Change own password",
+                "parameters": [
+                    {
+                        "description": "current and new password",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.changePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "invalid request body; password must not be only whitespace; password must be at least 8 characters; password must be at most 72 bytes",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "current password is incorrect; unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/backfill": {
+            "post": {
+                "description": "Queues a history backfill in the background for every enabled source that has one, or only for the named source even if disabled. The body is optional.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Backfill price history now",
+                "parameters": [
+                    {
+                        "description": "source to backfill; empty means every enabled source",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "source": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "queued lists the sources queued",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; source has no backfill",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "unknown source",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/instruments": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Add an instrument",
+                "parameters": [
+                    {
+                        "description": "market and currency must be a pair the seed lists use, e.g. US/USD or CRYPTO/TRY; symbol is trimmed, upper-cased and at most 32 characters; name is trimmed and at most 300 characters",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/instrument.addRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the new instrument, or the existing one for a known market and symbol",
+                        "schema": {
+                            "$ref": "#/definitions/instrument.instrumentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; market and currency must be a supported pair; symbol is required; name is required; symbol must be at most 32 characters; name must be at most 300 characters; symbol must not contain control characters; name must not contain control characters",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/providers": {
+            "get": {
+                "description": "Each provider's key status: whether it is set and its last 4 characters, never the key. error is \"undecryptable\" when the stored key cannot be read.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "List data providers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/server.providerStatus"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/providers/{name}": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Set a provider API key",
+                "parameters": [
+                    {
+                        "enum": [
+                            "finnhub",
+                            "tiingo",
+                            "evds"
+                        ],
+                        "type": "string",
+                        "description": "provider name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "API key; empty clears it",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "api_key": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "invalid JSON body",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "unknown provider",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/providers/{name}/test": {
+            "post": {
+                "description": "Makes one request to the provider with the body's api_key, or the stored key when the body has none. ok is false with the provider's reason in error when the key does not work. Rate limited to 10 requests per minute.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Test a provider API key",
+                "parameters": [
+                    {
+                        "enum": [
+                            "finnhub",
+                            "tiingo",
+                            "evds"
+                        ],
+                        "type": "string",
+                        "description": "provider name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "key to test; empty tests the stored key",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "api_key": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                },
+                                "ok": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid JSON body; stored key unreadable; not configured",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "unknown provider",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/registration": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Open or close registration",
+                "parameters": [
+                    {
+                        "description": "open is required",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "open": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/schedule": {
+            "get": {
+                "description": "backfill_from is empty when the backfill starts at the earliest transaction.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Get schedule settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.scheduleSettings"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "catchup_enabled and backfill_enabled are required. An empty backfill_from means the earliest transaction.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Update schedule settings",
+                "parameters": [
+                    {
+                        "description": "schedule settings",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.scheduleSettings"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "invalid request body; backfill_from: must be YYYY-MM-DD; backfill_from: must not be in the future; backfill_from: must be on or after 1990-01-01",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/sources": {
+            "get": {
+                "description": "Every scheduler source with its effective settings (defaults applied: every source is enabled except tefas, whose endpoint robots.txt disallows) and latest run status, in run order. last_run and last_success_at are null for a source that never ran or never succeeded.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "List data sources",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/server.sourceSettings"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/sources/{name}": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Update a data source",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "source name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "enabled is required; at is the daily run time, HH:MM",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "at": {
+                                    "type": "string"
+                                },
+                                "enabled": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "invalid request body; at: must be HH:MM",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "unknown source",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/sources/{name}/run": {
+            "post": {
+                "description": "Starts one sync of the source in the background, even if it is disabled, and answers 202 at once.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Run a data source now",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "source name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted"
+                    },
+                    "404": {
+                        "description": "unknown source",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "already running",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "List users",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/auth.adminUserResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Works whether registration is open or closed. Seeds the default portfolio like register.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Create a user",
+                "parameters": [
+                    {
+                        "description": "email, password and locale (tr or en, default tr)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.credentials"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/auth.adminUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; invalid email; email must be at most 254 characters; password must not be only whitespace; password must be at least 8 characters; password must be at most 72 bytes; locale: must be one of tr, en",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "user not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "email already registered",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/{id}": {
+            "delete": {
+                "description": "Deletes the user with all of their data.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Delete a user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "user id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "user not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "cannot delete yourself; last admin",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/{id}/admin": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Promote or demote a user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "user id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "is_admin is required",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "is_admin": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "user not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "last admin",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/{id}/password": {
+            "post": {
+                "description": "Signs out every session of that user.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Set a user's password",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "user id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "new password",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "password": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "invalid request body; password must not be only whitespace; password must be at least 8 characters; password must be at most 72 bytes",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "user not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/config": {
+            "get": {
+                "description": "Needs no session.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Auth config",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "registration_open": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "description": "Checks email and password and sets the `session` cookie. The locale field is ignored. Rate-limited per client IP, 10 per minute.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Sign in",
+                "parameters": [
+                    {
+                        "description": "email and password",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.credentials"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auth.userResponse"
+                        },
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "session=\u003cid\u003e; Path=/; Expires=\u003c30 days\u003e; HttpOnly; SameSite=Lax; Secure when COOKIE_SECURE=true"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "invalid email or password",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "setup_required",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "description": "Deletes the current session, if any, and clears the `session` cookie. Needs no session: always answers 204.",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Sign out",
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax; Secure when COOKIE_SECURE=true"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/register": {
+            "post": {
+                "description": "Creates a user and seeds its default portfolio in the given locale. Does not sign in: no cookie is set, call login next. Rate-limited per client IP, 10 per minute.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register a user",
+                "parameters": [
+                    {
+                        "description": "email, password and locale (tr or en, default tr)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.credentials"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/auth.userResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; invalid email; email must be at most 254 characters; password must not be only whitespace; password must be at least 8 characters; password must be at most 72 bytes; locale: must be one of tr, en",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "setup_required; registration closed",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "user not found: an admin deleted the new user while it was being created",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "email already registered",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Reports ok when the database answers. Needs no session.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "status is ok",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "status is degraded, error is database unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/imports": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "imports"
+                ],
+                "summary": "List statement imports",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/statement.importResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates the import and all its transactions in one database transaction; the first invalid row rolls everything back. For broker csv the period is the committed rows' dates and the one sent is used only when it has no rows; when no row has a valid date, the first row's own error is returned. Each of the optional aliases is stored in the same database transaction as the user's pick for that symbol in this broker's statements, replacing an earlier pick; the next preview resolves an unknown symbol with it. Each of the optional names, the preview's names, is stored the same way as a learned fund name, replacing an earlier learned name but never a pick; a name sent with instrument_id 0 or with two different instruments is stored for neither and removes a learned one. A row may be dated the day before period_start, the date of the preview's opening rows, or the day after period_end, when Midas books the interest of the month it prints. The body is capped at 2 MB instead of 64 KB.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "imports"
+                ],
+                "summary": "Commit a reviewed statement",
+                "parameters": [
+                    {
+                        "description": "the preview's broker, sha256, currency and period, the rows left checked, the instruments picked for unknown symbols, and the preview's names",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/statement.commitRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/statement.commitResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; broker: unknown broker; sha256: must be 64 lowercase hex characters; currency: must be one of TRY, USD, EUR; period_start|period_end: must be YYYY-MM-DD; period_start|period_end: must not be in the future; period_start|period_end: must be on or after 1990-01-01; period_end: must not be before period_start; period_end: period must be shorter than a year (not for broker csv); rows[i].\u003cfield\u003e: \u003cmessage\u003e (the transaction validation errors, e.g. rows[3].fee: must not exceed amount); rows[i].date: must be within \u003cperiod_start\u003e – \u003cperiod_end\u003e (or the day before period_start or the day after period_end); aliases: must have at most 200 entries; aliases[i].symbol: must be 1 to 200 characters; aliases[i].symbol: must not contain control characters; aliases[i].instrument_id: unknown instrument; names: must have at most 200 entries; names[i].symbol: must be 1 to 200 characters; names[i].symbol: must not contain control characters; names[i].instrument_id: unknown instrument",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "already_imported (import_id, period_start and period_end name the earlier import of the same period in this portfolio, to undo first, also when the same file is committed again; when this file is already imported with another period or currency, e.g. a CSV committed again with other rows, or into another of the user's portfolios, import_id, portfolio_id and portfolio_name name that import and its portfolio instead)",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                },
+                                "import_id": {
+                                    "type": "integer"
+                                },
+                                "period_end": {
+                                    "type": "string"
+                                },
+                                "period_start": {
+                                    "type": "string"
+                                },
+                                "portfolio_id": {
+                                    "type": "integer"
+                                },
+                                "portfolio_name": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "413": {
+                        "description": "rows: larger than 2 MB",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/imports/funds": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "imports"
+                ],
+                "summary": "Look up a TEFAS fund by code",
+                "parameters": [
+                    {
+                        "description": "fund code, three letters or digits; trimmed and upper-cased",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "code": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the known or newly created TEFAS fund",
+                        "schema": {
+                            "$ref": "#/definitions/statement.fundResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; code: must be a TEFAS fund code",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "fund not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "too many requests: the client IP asked TEFAS about 20 codes this minute, here and in previews together",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/imports/parse": {
+            "post": {
+                "description": "Reads an uploaded PDF statement (a CSV file for broker csv) and returns the proposed rows for review. Writes no user data; it may add shared market data: the instruments and prices described below, and the prices and FX rates fetched to price an opening buy. A TEFAS row whose fund code is no instrument is asked about on TEFAS, at most 10 codes a request and within the client IP's 20 TEFAS lookups a minute shared with /imports/funds, and the fund TEFAS confirms is added; a code not asked stays unknown_instrument. A trade or dividend in BIST whose symbol is no instrument, such as a share delisted since, is looked up again after the BIST bulletin of its date is synced, fetching at most 5 bulletins a request and within the client IP's 10 bulletin fetches a minute; the sync adds the symbols that bulletin lists as instruments, shared market data like their prices. The TEFAS lookups and bulletin syncs of one request share a 15 s deadline; none starts after it, and the rows they would have resolved stay unknown_instrument. With broker auto, a PDF goes through every PDF parser in key order and the first that accepts it picks the broker: the response's broker is that key, and everything below uses it as if it had been sent. A symbol that resolves to no instrument takes the instrument the user picked for it in an earlier commit of the same broker (commit's aliases); such a row has resolved_by \"alias\" and names that instrument in instrument_symbol and instrument_name. A holding resolves through the same pick, so its reconciliation entry and opening follow it. The optional picks are the instruments the user picked in this preview so far, in the shape of commit's aliases: for this request only, each resolves its symbol like a stored pick and wins over one, so rows, openings and the reconciliation follow it; nothing is stored. When the statement holds more of an instrument at period end than the portfolio would with the ok rows, and the portfolio has no transaction of it before period_start, an opening buy of the difference dated the day before period_start is proposed (opening true), priced with the average cost the statement prints for the holding when it is in the instrument's currency and the preview has no buy of it (cost_price true), else with the stored price on or before that date, for a BIST instrument also once the BIST bulletin of the last weekday on or before that date is synced (one sync a request, within the client IP's 10 bulletin fetches a minute and the opening fetches' deadline), else the statement's own price when the holding is in the instrument's currency (approximate_price true), else returned as an error row with code opening_price; one opening deposit per currency pays for the priced buys. When the statement lists holdings and the portfolio would hold more of an instrument at period end than the statement, holding it before period_start, a closing sell of the difference, at most what it held the day before period_start, is proposed on that day (closing true), priced like an opening buy but never with the average cost, else returned as an error row with code closing_price; one closing withdrawal per currency (closing true) takes the priced sells' proceeds out again, rounded down to the cent. Closing rows are left out of the reconciliation, as the page starts the sells unchecked and books the withdrawal in step with the checked ones. Nothing is proposed while any buy or sell row is unknown_instrument, unless the units of every such symbol's buy and sell rows net to zero. The reconciliation includes them. names lists each fund name the balances print (Garanti fund statements) with the instrument of its code, for the commit's names; its instrument_id is 0 when they print it for two codes or its code resolves to no instrument. A symbol that neither an instrument nor a pick resolves takes the one instrument of the learned names that equal it, start with it or that it starts with, with resolved_by \"name\" and instrument_symbol and instrument_name set; matches of more than one instrument leave it unknown_instrument, and so does a symbol that is one of the statement's holding codes or that matches one of its own balance names the same way (the parser leaves such a name unmapped only when it names two funds). A garanti TEFAS row's symbol none of that resolves, and that is neither such a holding code nor such a balance name, takes the one TEFAS fund whose name it is cut or abbreviated from: word by word, GPY and GP read as GARANTİ PORTFÖY and 1., 2., 3. as BİRİNCİ, İKİNCİ, ÜÇÜNCÜ, each of its words starts the fund name's word in the same place, case and punctuation ignored. A fund of the same words, else of the same words but a cut last one, wins over the others; it has resolved_by \"name\" too, and two funds of the closest kind leave it unknown_instrument. The optional names, in the shape of the response's names, are fund names other statements print, such as the later statements of the same upload batch: for this request only, each is a learned name, winning over a stored one of the same name, so a fund renamed on TEFAS that an earlier statement names only by its old name resolves; an entry of instrument_id 0 is ignored and nothing is stored. The body is capped at 5 MB instead of 64 KB.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "imports"
+                ],
+                "summary": "Parse a broker statement",
+                "parameters": [
+                    {
+                        "enum": [
+                            "auto",
+                            "midas",
+                            "csv",
+                            "garanti",
+                            "garanti_yatirim"
+                        ],
+                        "type": "string",
+                        "description": "broker key, or auto to detect the broker of a PDF",
+                        "name": "broker",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "portfolio id",
+                        "name": "portfolio_id",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "statement PDF, or CSV (UTF-8, else read as Windows-1254) for broker csv, at most 5 MB",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "JSON array of {symbol, instrument_id}, at most 200 entries: the instruments picked in this preview",
+                        "name": "picks",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "JSON array of {symbol, instrument_id}, at most 200 entries: fund names other statements print, taken as learned names",
+                        "name": "names",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/statement.previewResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "file: invalid upload; broker: unknown broker; portfolio_id: must be a number; file: required; file: not a PDF; file: not a readable PDF; file: no period row found: not a Midas statement; file: not a garanti fund statement; file: not a garanti_yatirim statement; file: not a supported statement (broker auto); file: not a CSV; file: not a readable CSV; file: not a csv statement; file: no rows; file: more than 5000 rows; picks: must be a JSON array of symbol and instrument_id; picks: must have at most 200 entries; picks[i].symbol: must be 1 to 200 characters; picks[i].symbol: must not contain control characters; picks[i].instrument_id: unknown instrument; names: must be a JSON array of symbol and instrument_id; names: must have at most 200 entries; names[i].symbol: must be 1 to 200 characters; names[i].symbol: must not contain control characters; names[i].instrument_id: unknown instrument",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "already_imported (import_id is the user's earlier import of this file, portfolio_id and portfolio_name the portfolio it is in: this one or another of the user's)",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                },
+                                "import_id": {
+                                    "type": "integer"
+                                },
+                                "portfolio_id": {
+                                    "type": "integer"
+                                },
+                                "portfolio_name": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "413": {
+                        "description": "file: larger than 5 MB",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/imports/{id}": {
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "imports"
+                ],
+                "summary": "Undo a statement import",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "import id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "deleted with its transactions"
+                    },
+                    "404": {
+                        "description": "import not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/instruments": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "instruments"
+                ],
+                "summary": "Search instruments",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "symbol or name to search for; each word must appear in the name or start the symbol, in any order; empty returns an empty array",
+                        "name": "q",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "at most 20 matches",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/instrument.instrumentResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/instruments/{id}/prices": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "prices"
+                ],
+                "summary": "List an instrument's prices",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "instrument id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "rows to return, default 30, clamped to 500",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "newest first; source is manual for the caller's own overrides",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/price.priceResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "limit must be a positive integer",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "instrument not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/instruments/{id}/prices/{date}": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "prices"
+                ],
+                "summary": "Set a manual close price",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "instrument id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "market date, YYYY-MM-DD, 1990-01-01 to today",
+                        "name": "date",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "close as a positive decimal string",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/price.closeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "source is manual",
+                        "schema": {
+                            "$ref": "#/definitions/price.priceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "date must be YYYY-MM-DD; date must not be in the future; date must be on or after 1990-01-01; invalid request body; close: must have at most 15 integer and 8 fraction digits; close must be a positive decimal",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "instrument not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "prices"
+                ],
+                "summary": "Delete a manual close price",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "instrument id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "market date, YYYY-MM-DD",
+                        "name": "date",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "deleted"
+                    },
+                    "400": {
+                        "description": "date must be YYYY-MM-DD",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "instrument not found; price not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "description": "Needs a session.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auth.userResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me/reporting-currency": {
+            "put": {
+                "description": "Needs a session.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Set reporting currency",
+                "parameters": [
+                    {
+                        "description": "TRY, USD or EUR",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.reportingCurrencyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auth.userResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; reporting_currency: must be one of TRY, USD, EUR",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolios": {
+            "get": {
+                "description": "Every portfolio of the caller, with total value, cash and unrealized P/L in the reporting currency. unrealized_pl is null when every currency contributing to it has no rate.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "List portfolios",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/server.portfolioListResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Create a portfolio",
+                "parameters": [
+                    {
+                        "description": "name, trimmed, inner whitespace runs collapsed to one space, 1-100 characters",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.nameRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.portfolioResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; name must be 1-100 characters; name must not contain control characters",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "name already used",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolios/{id}": {
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Delete a portfolio",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "portfolio id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "true also deletes the portfolio's transactions; anything else refuses a portfolio that has any",
+                        "name": "force",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "deleted"
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "portfolio has transactions (transaction_count is how many)",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                },
+                                "transaction_count": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Rename a portfolio",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "portfolio id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "new name, trimmed, inner whitespace runs collapsed to one space, 1-100 characters",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/portfolio.nameRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "renamed, empty body"
+                    },
+                    "400": {
+                        "description": "invalid request body; name must be 1-100 characters; name must not contain control characters",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "name already used",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolios/{id}/cash-gaps": {
+            "get": {
+                "description": "Per portfolio and currency, every day the cash balance reaches a new low below zero, with the extra shortfall that day: the deposits that, recorded, keep the cash from going negative (ADR 0011). Ordered by portfolio, date, currency; empty when the cash never goes below zero.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Cash gaps of a portfolio",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "numeric id or `all`",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/server.cashGap"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Recomputes the cash gaps of the scope and inserts one deposit per gap, dated the gap's day, in its currency and portfolio, carrying the note. Returns the new transactions' ids; empty, with nothing inserted, when there are no gaps.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Record the cash gaps as deposits",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "numeric id or `all`",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "note for every deposit, validated like a transaction's note when there is a gap to fill",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.cashGapsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "created transaction ids",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; note: must be at most 500 characters; note: must not contain control characters",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolios/{id}/dividends/expected": {
+            "get": {
+                "description": "Ex-dates up to today on which the portfolio held the instrument, not yet recorded as a dividend transaction and not dismissed, oldest first. Stopaj is pre-filled per market.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dividends"
+                ],
+                "summary": "List expected dividends",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "portfolio id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/server.expectedDividendResponse"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolios/{id}/dividends/expected/dismiss": {
+            "post": {
+                "description": "Hides one expected dividend of the portfolio for good. Idempotent; there is no undo.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dividends"
+                ],
+                "summary": "Dismiss an expected dividend",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "portfolio id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "instrument and ex-date, YYYY-MM-DD",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "date": {
+                                    "type": "string"
+                                },
+                                "instrument_id": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "invalid JSON body; date must be YYYY-MM-DD; date must not be in the future; date must be on or after 1990-01-01; instrument not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolios/{id}/dividends/timeline": {
+            "get": {
+                "description": "Dividends received bucketed by month and year (only non-empty buckets, ascending) and totaled per instrument (net descending, then symbol), in the reporting currency at each transaction's own-date rate. A dividend with an instrument adds to gross (amount), tax (fee) and net; one without adds amount minus fee to interest only. A row whose currency has no rate on or before its date is left out and its currency listed in missing_rates. Amounts are 2-decimal strings.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dividends"
+                ],
+                "summary": "Dividend timeline",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "portfolio id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.dividendTimelineResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolios/{id}/history": {
+            "get": {
+                "description": "One point per day from `from` to `to`, in the reporting currency. A `from` before the first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the first transaction (at most 3660 days back); a `to` after today is clamped to today. The three returns are null when undefined for the range; benchmark is null when no benchmark was requested, and its returns are null when it has no level on or before the first point. Each point's twr is the time-weighted return from the first point to that one, ending on returns.twr, and null on every point when returns.twr is null; benchmark_twr is the same for the benchmark's shadow series.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Portfolio value history",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "numeric id or `all`",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "first day, YYYY-MM-DD",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "last day, YYYY-MM-DD, default today",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "USD, EUR, XU100, TUFE, GOLD, or instrument:\u003cid\u003e for an instrument with a transaction in the scope",
+                        "name": "benchmark",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.historyResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "unknown benchmark; to must be YYYY-MM-DD; from must be YYYY-MM-DD; from must not be after to; range exceeds 3660 days",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolios/{id}/instruments/{instrument_id}/history": {
+            "get": {
+                "description": "One point per day from `from` to `to` for one instrument of the portfolio, in the instrument's own currency (no fx). A `from` before the instrument's first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the instrument's first transaction (at most 3660 days back); a `to` after today is clamped to today.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Position history",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "portfolio id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "instrument id",
+                        "name": "instrument_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "first day, YYYY-MM-DD",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "last day, YYYY-MM-DD, default today",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.positionHistoryResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "to must be YYYY-MM-DD; from must be YYYY-MM-DD; from must not be after to; range exceeds 3660 days",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found; instrument not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolios/{id}/returns/periods": {
+            "get": {
+                "description": "One bucket per calendar month and per calendar year, from the first transaction (at most 3660 days back) to today, oldest first. A bucket's returns are what the history endpoint returns for the same from..to: a year's from..to is the calendar-year preset's range (YYYY-01-01..YYYY-12-31) clamped to the first transaction and to today, a month's likewise. The first and the current bucket are partial. A bucket's benchmark is null without the parameter, or when the benchmark has no level on some day of the bucket.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Portfolio returns per calendar month and year",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "numeric id or `all`",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "USD, EUR, XU100, TUFE, GOLD, or instrument:\u003cid\u003e for an instrument with a transaction in the scope",
+                        "name": "benchmark",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.periodsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "unknown benchmark",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolios/{id}/summary": {
+            "get": {
+                "description": "Open and closed positions with cash and totals as of today (Europe/Istanbul), converted into the reporting currency. positions_value, cost_basis and day_change total the open positions, each rounded once; day_change is null when no open position has a previous close and a rate. unrealized_pl, realized_pl and fx_pl are null when they cannot be converted; missing_rates names the excluded currencies. stats totals deposits, withdrawals, fees, dividends and interest per currency and, when every currency converts, in the reporting currency. net_contribution, dividends_net and each position's total_pl_reporting are worked out unrounded and rounded once.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Portfolio summary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "numeric id or `all`",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.summaryResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolios/{id}/transactions": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "transactions"
+                ],
+                "summary": "List a portfolio's transactions",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "portfolio id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size, default 100, clamped to 500",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "cursor from a previous page's X-Next-Cursor, \u003cYYYY-MM-DD\u003e,\u003cid\u003e",
+                        "name": "before",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "comma-separated types: buy, sell, dividend, deposit, withdrawal, fee",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "only this instrument's transactions",
+                        "name": "instrument_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "only this import's transactions (an id from GET /imports), or none for those entered by hand; another user's import id matches nothing",
+                        "name": "import_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "only transactions on or after this date, YYYY-MM-DD",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "only transactions on or before this date, YYYY-MM-DD",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "newest first",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/transaction.transactionResponse"
+                            }
+                        },
+                        "headers": {
+                            "X-Next-Cursor": {
+                                "type": "string",
+                                "description": "cursor for the next page as ?before=; absent on the last page"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "limit must be a positive integer; before: must be \u003cYYYY-MM-DD\u003e,\u003cid\u003e; type: invalid; instrument_id: must be a positive integer; import_id: must be a positive integer or none; from must be YYYY-MM-DD; to must be YYYY-MM-DD; from must not be after to",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "transactions"
+                ],
+                "summary": "Create a transaction",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "portfolio id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "decimals are strings; quantity and price for buy and sell, amount for the rest; instrument_id required for buy and sell, optional for dividend (none is interest income, currency as for a deposit), not allowed for the rest",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/transaction.Request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/transaction.transactionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; type: must be one of buy, sell, dividend, deposit, withdrawal, fee; date: must be YYYY-MM-DD; date: must not be in the future; date: must be on or after 1990-01-01; instrument_id: required for \u003ctype\u003e; instrument_id: not allowed for \u003ctype\u003e; instrument_id: unknown instrument; quantity|price|amount|fee: required; quantity|price|amount|fee: must have at most 15 integer and 9 fraction digits; quantity|price|amount|fee: must be a positive|non-negative number with at most 15 integer and 9 fraction digits; amount: must be 0 when price is 0; fee: must not exceed amount; fee: must be 0 for a fee transaction; currency: must be one of TRY, USD, EUR; currency: must match instrument currency (\u003ccurrency\u003e); note: must be at most 500 characters; note: must not contain control characters",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolios/{id}/transactions.csv": {
+            "get": {
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "transactions"
+                ],
+                "summary": "Export a portfolio's transactions as CSV",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "portfolio id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "comma-separated types: buy, sell, dividend, deposit, withdrawal, fee",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "only this instrument's transactions",
+                        "name": "instrument_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "only this import's transactions (an id from GET /imports), or none for those entered by hand; another user's import id matches nothing",
+                        "name": "import_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "only transactions on or after this date, YYYY-MM-DD",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "only transactions on or before this date, YYYY-MM-DD",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "columns date,type,symbol,quantity,price,amount,fee,currency,note,market; quantity and price empty outside buy and sell; market empty without an instrument",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "headers": {
+                            "Content-Disposition": {
+                                "type": "string",
+                                "description": "attachment; filename=portfolio-\u003cid\u003e-transactions.csv"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "type: invalid; instrument_id: must be a positive integer; import_id: must be a positive integer or none; from must be YYYY-MM-DD; to must be YYYY-MM-DD; from must not be after to",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/setup/admin": {
+            "post": {
+                "description": "Needs the one-time setup token from the server log. Sets the `session` cookie. Rate-limited per client IP, 10 per minute.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "setup"
+                ],
+                "summary": "Create the first admin",
+                "parameters": [
+                    {
+                        "description": "setup token, email, password and locale (tr or en, default tr)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.setupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/auth.userResponse"
+                        },
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "session=\u003cid\u003e; Path=/; Expires=\u003c30 days\u003e; HttpOnly; SameSite=Lax; Secure when COOKIE_SECURE=true"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; invalid email; email must be at most 254 characters; password must not be only whitespace; password must be at least 8 characters; password must be at most 72 bytes; locale: must be one of tr, en",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "invalid setup token; invalid credentials",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "setup already done; email already registered",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/setup/status": {
+            "get": {
+                "description": "needs_setup is true while no admin exists. Needs no session.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "setup"
+                ],
+                "summary": "Setup status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "needs_setup": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/transactions/{id}": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "transactions"
+                ],
+                "summary": "Update a transaction",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "transaction id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "the whole transaction, as on create; instrument_id is optional for dividend (none is interest income)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/transaction.Request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/transaction.transactionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; type: must be one of buy, sell, dividend, deposit, withdrawal, fee; date: must be YYYY-MM-DD; date: must not be in the future; date: must be on or after 1990-01-01; instrument_id: required for \u003ctype\u003e; instrument_id: not allowed for \u003ctype\u003e; instrument_id: unknown instrument; quantity|price|amount|fee: required; quantity|price|amount|fee: must have at most 15 integer and 9 fraction digits; quantity|price|amount|fee: must be a positive|non-negative number with at most 15 integer and 9 fraction digits; amount: must be 0 when price is 0; fee: must not exceed amount; fee: must be 0 for a fee transaction; currency: must be one of TRY, USD, EUR; currency: must match instrument currency (\u003ccurrency\u003e); note: must be at most 500 characters; note: must not contain control characters",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "transaction not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "transactions"
+                ],
+                "summary": "Delete a transaction",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "transaction id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "deleted"
+                    },
+                    "404": {
+                        "description": "transaction not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "auth.adminUserResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_admin": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "auth.changePasswordRequest": {
+            "type": "object",
+            "properties": {
+                "current_password": {
+                    "type": "string"
+                },
+                "new_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "auth.credentials": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "locale": {
+                    "description": "register only: tr (default) or en; login ignores it",
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "auth.reportingCurrencyRequest": {
+            "type": "object",
+            "properties": {
+                "reporting_currency": {
+                    "type": "string"
+                }
+            }
+        },
+        "auth.setupRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "locale": {
+                    "description": "register only: tr (default) or en; login ignores it",
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "auth.userResponse": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_admin": {
+                    "type": "boolean"
+                },
+                "reporting_currency": {
+                    "type": "string"
+                }
+            }
+        },
+        "instrument.addRequest": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "market": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "symbol": {
+                    "type": "string"
+                }
+            }
+        },
+        "instrument.instrumentResponse": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "market": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "symbol": {
+                    "type": "string"
+                }
+            }
+        },
+        "portfolio.nameRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "portfolio.portfolioResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "price.closeRequest": {
+            "type": "object",
+            "properties": {
+                "close": {
+                    "type": "string"
+                }
+            }
+        },
+        "price.priceResponse": {
+            "type": "object",
+            "properties": {
+                "close": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "instrument_id": {
+                    "type": "integer"
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "scheduler.SourceRun": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "finished_at": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "rows": {
+                    "type": "integer"
+                },
+                "started_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.benchmarkResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "estimated_from": {
+                    "description": "first extrapolated TUFE day, null when none",
+                    "type": "string"
+                },
+                "returns": {
+                    "$ref": "#/definitions/server.returnsResponse"
+                }
+            }
+        },
+        "server.cashGap": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "portfolio_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "server.cashGapsRequest": {
+            "type": "object",
+            "properties": {
+                "note": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.dividendBucket": {
+            "type": "object",
+            "properties": {
+                "gross": {
+                    "type": "string"
+                },
+                "interest": {
+                    "type": "string"
+                },
+                "net": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "tax": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.dividendInstrumentTotal": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "instrument_id": {
+                    "type": "integer"
+                },
+                "last_date": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "net": {
+                    "type": "string"
+                },
+                "symbol": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.dividendTimelineResponse": {
+            "type": "object",
+            "properties": {
+                "by_instrument": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.dividendInstrumentTotal"
+                    }
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "missing_rates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "months": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.dividendBucket"
+                    }
+                },
+                "years": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.dividendBucket"
+                    }
+                }
+            }
+        },
+        "server.expectedDividendResponse": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "gross": {
+                    "type": "string"
+                },
+                "instrument_id": {
+                    "type": "integer"
+                },
+                "market": {
+                    "type": "string"
+                },
+                "net": {
+                    "type": "string"
+                },
+                "per_share": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "string"
+                },
+                "stopaj": {
+                    "type": "string"
+                },
+                "symbol": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.historyEntry": {
+            "type": "object",
+            "properties": {
+                "benchmark_twr": {
+                    "description": "BenchmarkTWR is the same for the benchmark's shadow series: null on\nevery point without a benchmark, when the shadow has no value, or when\nbenchmark.returns.twr is null (ADR 0012, GLG-952).",
+                    "type": "string"
+                },
+                "benchmark_value": {
+                    "description": "BenchmarkValue is the shadow portfolio's value on this day in the\nreporting currency, set only when a benchmark was requested and is\navailable for the range (ADR 0012).",
+                    "type": "string"
+                },
+                "cash": {
+                    "type": "string"
+                },
+                "cost_basis": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "price_unknown": {
+                    "description": "PriceUnknown is set on a point that holds at least one instrument with\nno price on or before its date. Those holdings count at cost in\ntotal_value, so the point is incomplete, not wrong by the whole\nholding (ADR 0003, GLG-254).",
+                    "type": "boolean"
+                },
+                "total_value": {
+                    "type": "string"
+                },
+                "twr": {
+                    "description": "TWR is the time-weighted return from the range's first point to this\none, a fraction with 6 decimals: \"0.000000\" on the first point, the\nrange's returns.twr on the last. null on every point when returns.twr\nis null (ADR 0011, GLG-952).",
+                    "type": "string"
+                }
+            }
+        },
+        "server.historyResponse": {
+            "type": "object",
+            "properties": {
+                "benchmark": {
+                    "description": "Benchmark is the ?benchmark= comparison: the shadow portfolio that\nput the same external flows into the benchmark (ADR 0012,\ndocs/adr/0012-benchmarks.md). null when no benchmark was requested.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/server.benchmarkResponse"
+                        }
+                    ]
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "missing_prices": {
+                    "description": "MissingPrices is the union, over every point with price_unknown, of\nthe symbols held with no price yet on that point's date (GLG-254).",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "missing_rates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "net_flow": {
+                    "description": "NetFlow is the external cash that entered the portfolio after the\nfirst point: deposits minus withdrawals dated after `from`, each\nconverted at its own day's rate like everything else in the series\n(ADR 0003). Anything dated on or before `from` is already inside the\nfirst point's total, so it is not counted here. The chart header\nsubtracts it from last - first, so money put in is not shown as a\ngain (GLG-219). A flow whose currency has no rate on its own day is\ncarried and counted on the first later day that has one, because\nthat is the day its cash enters total_value (GLG-233).\n\nThe gross amount is counted, not the amount net of its fee: a fee is\na cost, and costs belong in the performance the chart shows, exactly\nlike the fee on a buy, a sell or a standalone fee row, none of which\nis a flow either (GLG-232).\n\nIt also holds the first-price jump of every holding the first point\nhad no price for: on the day its first price lands, its value moves\nfrom cost to market in one step, and that move is gain made before\nthe range as much as inside it, so it is counted here rather than as\nthe range's gain (GLG-254).",
+                    "type": "string"
+                },
+                "points": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.historyEntry"
+                    }
+                },
+                "returns": {
+                    "description": "Returns is the range's simple, time-weighted and money-weighted\nreturn (ADR 0011), from each point's total_value and the same\nexternal flows net_flow counts, taken on the day they land. All three\nare null when the first point's total_value is not positive or any\npoint's cash is negative (GLG-641).",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/server.returnsResponse"
+                        }
+                    ]
+                }
+            }
+        },
+        "server.periodBucket": {
+            "type": "object",
+            "properties": {
+                "benchmark": {
+                    "description": "Benchmark is the benchmark's returns over the same range, null\nwithout ?benchmark= or when the benchmark has no level on some day of\nthe range (ADR 0012).",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/server.returnsResponse"
+                        }
+                    ]
+                },
+                "from": {
+                    "description": "first day, the period's first or the first transaction",
+                    "type": "string"
+                },
+                "partial": {
+                    "description": "the first and the current bucket",
+                    "type": "boolean"
+                },
+                "period": {
+                    "description": "\"2026-09\" or \"2026\"",
+                    "type": "string"
+                },
+                "returns": {
+                    "$ref": "#/definitions/server.returnsResponse"
+                },
+                "to": {
+                    "description": "last day, the period's last or today",
+                    "type": "string"
+                }
+            }
+        },
+        "server.periodsResponse": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "months": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.periodBucket"
+                    }
+                },
+                "years": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.periodBucket"
+                    }
+                }
+            }
+        },
+        "server.portfolioListResponse": {
+            "type": "object",
+            "properties": {
+                "cash": {
+                    "description": "Cash and UnrealizedPL in the reporting currency, taken from the same\nholdings.Convert result as TotalValue, so they leave out the same\nMissingRates currencies (GLG-158). UnrealizedPL is null under\nsummaryResponse.UnrealizedPL's rule: when every currency contributing\nto it was excluded for lack of a rate, the sum is 0.00 only because\nnothing was added to it, and a caller must render \"-\" rather than a\nfigure that reads as a real zero (GLG-113, GLG-129).",
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "missing_rates": {
+                    "description": "MissingRates lists the currencies whose amounts TotalValue leaves out\nfor want of a conversion factor -- same field and same semantics as\nsummaryResponse.MissingRates: it names what was excluded, not what is\nabsent from the rate table (see holdings.Totals.Missing, GLG-114).\nWithout it the list silently understates a portfolio (GLG-121).",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "total_value": {
+                    "type": "string"
+                },
+                "unrealized_pl": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.positionHistoryPoint": {
+            "type": "object",
+            "properties": {
+                "avg_cost": {
+                    "type": "string"
+                },
+                "close": {
+                    "description": "latest close on or before date, null before the first price",
+                    "type": "string"
+                },
+                "cost_basis": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "market_value": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.positionHistoryResponse": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "points": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.positionHistoryPoint"
+                    }
+                }
+            }
+        },
+        "server.positionResponse": {
+            "type": "object",
+            "properties": {
+                "avg_cost": {
+                    "type": "string"
+                },
+                "closed": {
+                    "description": "True for a closed position: no quantity left, listed for its\nrealized P/L. A quantity of 0 alone does not mean closed: in the\nall-portfolios view a long and an equal short position in two\nportfolios sum to 0 and stay open (GLG-827).",
+                    "type": "boolean"
+                },
+                "cost_basis": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "day_change": {
+                    "description": "quantity × (last_price − prev_close), in the position's currency.",
+                    "type": "string"
+                },
+                "day_change_reporting": {
+                    "description": "day_change in the reporting currency; also null without a rate.",
+                    "type": "string"
+                },
+                "fx_pl_reporting": {
+                    "description": "The currency part of the position's gain in the reporting currency:\ncost_basis at today's rate minus the cost with each buy converted at\nits own trade date's rate. The price part is unrealized_pl_reporting.\nNull on closed positions, on positions in the reporting currency, and\nwhen today's rate or any open buy's trade-date rate is missing\n(GLG-532).",
+                    "type": "string"
+                },
+                "has_price": {
+                    "type": "boolean"
+                },
+                "instrument_id": {
+                    "type": "integer"
+                },
+                "last_price": {
+                    "type": "string"
+                },
+                "market": {
+                    "description": "BIST, US, TEFAS or CRYPTO (GLG-543)",
+                    "type": "string"
+                },
+                "market_value": {
+                    "type": "string"
+                },
+                "market_value_reporting": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "prev_close": {
+                    "description": "The latest close dated before price_date (manual winning on a date,\nlike last_price), scaled by any split after its date up to today. It,\nprev_price_date, day_change and day_change_reporting are null when\neither price is missing or the position is closed (GLG-542).",
+                    "type": "string"
+                },
+                "prev_price_date": {
+                    "description": "The date of prev_close.",
+                    "type": "string"
+                },
+                "price_date": {
+                    "type": "string"
+                },
+                "price_source": {
+                    "description": "Where last_price came from (\"manual\" for the caller's own entry, else\nthe fetching provider) and the date it is dated. Null when there is no\nprice. The page needs both to tag a manual price and to address it for\ndeletion -- DELETE /api/instruments/{id}/prices/{date} (GLG-134).",
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "string"
+                },
+                "realized_cost": {
+                    "description": "The cost of every share sold, in the position's currency: the base\nrealized_pl is a return on (GLG-1100). Kept after the position closes.\nZero, or even negative, after a short: no base for a percentage.",
+                    "type": "string"
+                },
+                "realized_pl": {
+                    "type": "string"
+                },
+                "realized_pl_reporting": {
+                    "type": "string"
+                },
+                "splits": {
+                    "description": "The splits the holdings engine applied to this position, oldest\nfirst: dated after the instrument's first transaction in this\nportfolio, on or before today, and while shares were held (GLG-406).\nNever null.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.splitResponse"
+                    }
+                },
+                "symbol": {
+                    "type": "string"
+                },
+                "total_pl_reporting": {
+                    "description": "Unrealized plus realized P/L in the reporting currency, summed\nunrounded and rounded once, so it can differ from the two rounded\nfields' sum by a cent (GLG-1354). Null without a rate.",
+                    "type": "string"
+                },
+                "unrealized_pl": {
+                    "type": "string"
+                },
+                "unrealized_pl_reporting": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.providerStatus": {
+            "type": "object",
+            "properties": {
+                "configured": {
+                    "type": "boolean"
+                },
+                "error": {
+                    "description": "Error is \"undecryptable\" when the stored key cannot be read (SECRET_KEY\nchanged), so the admin can enter it again (GLG-320).",
+                    "type": "string"
+                },
+                "last4": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.returnsResponse": {
+            "type": "object",
+            "properties": {
+                "mwr": {
+                    "description": "money-weighted return, null when undefined",
+                    "type": "string"
+                },
+                "simple": {
+                    "description": "simple return, null when undefined",
+                    "type": "string"
+                },
+                "twr": {
+                    "description": "time-weighted return, null when undefined",
+                    "type": "string"
+                }
+            }
+        },
+        "server.scheduleSettings": {
+            "type": "object",
+            "properties": {
+                "backfill_enabled": {
+                    "type": "boolean"
+                },
+                "backfill_from": {
+                    "type": "string"
+                },
+                "catchup_enabled": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.sourceSettings": {
+            "type": "object",
+            "properties": {
+                "at": {
+                    "type": "string"
+                },
+                "can_backfill": {
+                    "type": "boolean"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "last_run": {
+                    "$ref": "#/definitions/scheduler.SourceRun"
+                },
+                "last_success_at": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.splitResponse": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "ratio": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.statsFields": {
+            "type": "object",
+            "properties": {
+                "deposits": {
+                    "type": "string"
+                },
+                "dividends_gross": {
+                    "type": "string"
+                },
+                "dividends_net": {
+                    "type": "string"
+                },
+                "dividends_tax": {
+                    "type": "string"
+                },
+                "fees": {
+                    "type": "string"
+                },
+                "interest": {
+                    "type": "string"
+                },
+                "net_contribution": {
+                    "description": "deposits less withdrawals, and dividends_gross less dividends_tax,\neach worked out unrounded and rounded once, so either can differ from\nthe rounded fields' difference by a cent (GLG-1354).",
+                    "type": "string"
+                },
+                "withdrawals": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.statsResponse": {
+            "type": "object",
+            "properties": {
+                "by_currency": {
+                    "description": "One entry per currency any row moved, in that currency.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/server.statsFields"
+                    }
+                },
+                "first_transaction_date": {
+                    "description": "The earliest transaction date in scope; null with no transactions.",
+                    "type": "string"
+                },
+                "reporting": {
+                    "description": "by_currency summed into the reporting currency at today's rate. Null\nwhen any by_currency entry with a nonzero figure has no rate, rather\nthan a partial sum; missing_rates names that currency.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/server.statsFields"
+                        }
+                    ]
+                }
+            }
+        },
+        "server.summaryResponse": {
+            "type": "object",
+            "properties": {
+                "cash": {
+                    "type": "string"
+                },
+                "cash_by_currency": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "cash_by_currency_reporting": {
+                    "description": "Each cash_by_currency entry converted into the reporting currency,\nkeyed by its own currency. A currency with no rate is left out; it is\nnamed in missing_rates (GLG-543).",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "cost_basis": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "day_change": {
+                    "description": "The open positions' day_change_reporting summed unrounded and rounded\nonce, so it can differ from the rounded rows' sum by a cent (GLG-1204).\nA position with no previous close or no rate is left out; null when\nnone is left, so the page shows \"-\" rather than a zero.",
+                    "type": "string"
+                },
+                "fx_pl": {
+                    "description": "FXPL is the part of the return that neither P/L figure holds: the\ncurrency move on foreign cash and on the cost of foreign positions,\nboth of which unrealized and realized P/L value at today's rate\n(GLG-267). Null when the portfolio has no currency other than the\nreporting one, or when every such currency was excluded for lack of a\nrate -- the same rule as the P/L fields above.",
+                    "type": "string"
+                },
+                "missing_rates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "positions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.positionResponse"
+                    }
+                },
+                "positions_value": {
+                    "description": "The open positions' market value and cost in the reporting currency,\nleaving out the same missing_rates currencies as total_value. Each is\nsummed unrounded and rounded once, so it matches the rows and history's\ncost_basis; total_value less cash less unrealized_pl, each already\nrounded, can be a cent off (GLG-976).",
+                    "type": "string"
+                },
+                "realized_pl": {
+                    "type": "string"
+                },
+                "stats": {
+                    "$ref": "#/definitions/server.statsResponse"
+                },
+                "total_value": {
+                    "type": "string"
+                },
+                "unrealized_pl": {
+                    "description": "Null when every currency contributing to the total was excluded for\nlack of a rate (see totalKnown): the sum is then 0.00, which reads as\na real zero next to the per-position figures. The caller renders \"-\"\ninstead, the way it already does for a position with no reporting\nvalue. Cash and total value stay plain strings: the page can tell the\nsame thing for those from cash_by_currency and market_value_reporting\n(GLG-113), but realized P/L also counts closed positions, whose\ncurrencies reach no other field of this response (GLG-129).",
+                    "type": "string"
+                }
+            }
+        },
+        "statement.aliasRequest": {
+            "type": "object",
+            "properties": {
+                "instrument_id": {
+                    "type": "integer"
+                },
+                "symbol": {
+                    "type": "string"
+                }
+            }
+        },
+        "statement.cashReconcileEntry": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "match": {
+                    "type": "boolean"
+                },
+                "portfolio_amount": {
+                    "type": "string"
+                },
+                "statement_amount": {
+                    "type": "string"
+                }
+            }
+        },
+        "statement.commitRequest": {
+            "type": "object",
+            "properties": {
+                "aliases": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/statement.aliasRequest"
+                    }
+                },
+                "broker": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "names": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/statement.aliasRequest"
+                    }
+                },
+                "period_end": {
+                    "type": "string"
+                },
+                "period_start": {
+                    "type": "string"
+                },
+                "portfolio_id": {
+                    "type": "integer"
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/transaction.Request"
+                    }
+                },
+                "sha256": {
+                    "type": "string"
+                }
+            }
+        },
+        "statement.commitResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "period_end": {
+                    "type": "string"
+                },
+                "period_start": {
+                    "type": "string"
+                },
+                "transaction_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "statement.fundResponse": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "market": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "symbol": {
+                    "type": "string"
+                }
+            }
+        },
+        "statement.holdingResponse": {
+            "type": "object",
+            "properties": {
+                "avg_cost": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "string"
+                },
+                "symbol": {
+                    "type": "string"
+                }
+            }
+        },
+        "statement.importResponse": {
+            "type": "object",
+            "properties": {
+                "broker": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "currency": {
+                    "description": "Currency is the statement's account currency, \"\" when unknown or a\nCSV. It tells the TRY and USD statements of the same month apart\n(GLG-375).",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "period_end": {
+                    "type": "string"
+                },
+                "period_start": {
+                    "type": "string"
+                },
+                "portfolio_id": {
+                    "type": "integer"
+                },
+                "transaction_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "statement.previewResponse": {
+            "type": "object",
+            "properties": {
+                "broker": {
+                    "type": "string"
+                },
+                "cash_reconciliation": {
+                    "description": "CashReconciliation is null when the statement printed no cash\nbalance or no currency (GLG-419).",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/statement.cashReconcileEntry"
+                        }
+                    ]
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "holdings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/statement.holdingResponse"
+                    }
+                },
+                "names": {
+                    "description": "Names are the fund names the balances printed, each once with the\ninstrument of its code (0: see statementNames), in the shape of\ncommit's aliases, for the client to send back as commit's names\n(GLG-766). Left out for a statement that prints none.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/statement.aliasRequest"
+                    }
+                },
+                "period_end": {
+                    "type": "string"
+                },
+                "period_start": {
+                    "type": "string"
+                },
+                "reconciliation": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/statement.reconcileEntry"
+                    }
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/statement.previewRow"
+                    }
+                },
+                "sha256": {
+                    "type": "string"
+                },
+                "warnings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/statement.warning"
+                    }
+                }
+            }
+        },
+        "statement.previewRow": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "string"
+                },
+                "approximate_price": {
+                    "description": "ApproximatePrice marks an opening buy priced with the statement's own\nperiod-end price, as no stored price exists for its date (GLG-737).",
+                    "type": "boolean"
+                },
+                "closing": {
+                    "description": "Closing marks a sell the preview proposes, dated the day before\nperiod_start, for what the portfolio holds and the statement does not\n(GLG-1190). It starts unchecked: the gap may be months not imported.",
+                    "type": "boolean"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "cost_price": {
+                    "description": "CostPrice marks an opening buy priced with the average cost the\nstatement prints for the holding (GLG-1185).",
+                    "type": "boolean"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "currency_fallback": {
+                    "description": "CurrencyFallback marks a row the file gave no currency for: Currency\nis the instrument's, TRY when none (GLG-622), so a pick in the page\ntakes the picked instrument's (GLG-1320).",
+                    "type": "boolean"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "duplicate_of": {
+                    "description": "DuplicateOf is the date of an earlier transaction, hand-entered or\nimported, this row likely repeats (see flagDuplicates); the client\nstarts such a row unchecked (GLG-415, GLG-559, GLG-627).",
+                    "type": "string"
+                },
+                "fee": {
+                    "type": "string"
+                },
+                "instrument_id": {
+                    "type": "integer"
+                },
+                "instrument_name": {
+                    "type": "string"
+                },
+                "instrument_symbol": {
+                    "description": "InstrumentSymbol and InstrumentName name the instrument of a row\nresolved by an earlier pick, whose symbol is the statement's own, so\nthe user sees what the pick resolved it to (GLG-750).",
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "market": {
+                    "description": "Market is the row's own market hint, as a CSV row can carry one; empty\nwhen it has none.",
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "opening": {
+                    "description": "Opening marks a row the preview proposes for what the account held\nbefore period_start: a buy dated the day before it, or the deposit\nthat pays for those buys (GLG-737).",
+                    "type": "boolean"
+                },
+                "price": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "string"
+                },
+                "raw": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "resolved_by": {
+                    "description": "ResolvedBy is \"alias\" when the instrument is the user's own earlier\npick for this symbol rather than a match of it (GLG-735), \"name\" when\nit is the fund an earlier statement's balances printed under this name\n(GLG-766).",
+                    "type": "string"
+                },
+                "section": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "symbol": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "unknown_instrument": {
+                    "description": "UnknownInstrument marks an error row whose symbol is unknown as well,\nso the preview still says so once checkRow made it an error (GLG-678).",
+                    "type": "boolean"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "statement.reconcileEntry": {
+            "type": "object",
+            "properties": {
+                "instrument_id": {
+                    "type": "integer"
+                },
+                "match": {
+                    "type": "boolean"
+                },
+                "portfolio_quantity": {
+                    "type": "string"
+                },
+                "statement_quantity": {
+                    "type": "string"
+                },
+                "symbol": {
+                    "type": "string"
+                }
+            }
+        },
+        "statement.warning": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "import_id": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "period_end": {
+                    "type": "string"
+                },
+                "period_start": {
+                    "type": "string"
+                }
+            }
+        },
+        "transaction.Request": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "fee": {
+                    "type": "string"
+                },
+                "instrument_id": {
+                    "description": "InstrumentID is required for buy and sell, optional for dividend (a\ndividend with none is interest income), and rejected for the rest.",
+                    "type": "integer"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "transaction.transactionResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "fee": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "import_id": {
+                    "description": "ImportID is null for a hand-entered transaction, set for one that came\nfrom a broker statement import.",
+                    "type": "integer"
+                },
+                "instrument_id": {
+                    "type": "integer"
+                },
+                "instrument_name": {
+                    "type": "string"
+                },
+                "instrument_symbol": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "portfolio_id": {
+                    "type": "integer"
+                },
+                "price": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

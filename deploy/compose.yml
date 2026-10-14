@@ -1,0 +1,97 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '5'
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/backend.Dockerfile
+    environment:
+      PORT: '8080'
+      DB_PATH: /data/gelirgider.db
+      COOKIE_SECURE: 'true'
+      TRUST_PROXY: 'true'
+      # Caddy then nginx, each appending to X-Forwarded-For (see nginx.conf).
+      TRUSTED_PROXY_HOPS: '2'
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in deploy/.env}
+    volumes:
+      # Owned by uid 65532 (the image's nonroot user), mode 700: see README.md.
+      - ./data:/data
+    # The server parses untrusted PDFs: no root, no capabilities, and a
+    # read-only filesystem except /data and a /tmp for SQLite's temp files.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    healthcheck:
+      test: ['CMD', '/server', '-healthcheck']
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    restart: unless-stopped
+    logging: *default-logging
+    networks:
+      - gelirgider
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/frontend.Dockerfile
+    environment:
+      BACKEND_UPSTREAM: backend:8080
+    depends_on:
+      backend:
+        condition: service_healthy
+    # nginx runs as uid 101 (nginx-unprivileged). Read-only root filesystem:
+    # /tmp holds the pid file and temp paths, /etc/nginx/conf.d the config
+    # the entrypoint renders from nginx.conf at start, so it must be owned by
+    # uid 101 (without it nginx starts with no server block and never listens).
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /etc/nginx/conf.d:uid=101,gid=101
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    # busybox wget from the alpine image; 127.0.0.1, not localhost, because
+    # localhost may resolve to ::1 and nginx.conf listens on IPv4 only.
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:8080/']
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    restart: unless-stopped
+    logging: *default-logging
+    networks:
+      - gelirgider
+
+  caddy:
+    image: caddy:2.11
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+    networks:
+      - gelirgider
+
+networks:
+  gelirgider:
+
+volumes:
+  caddy-data:
+  caddy-config:

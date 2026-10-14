@@ -1,0 +1,7 @@
+{
+  "format": ["typescript", "tsx"],
+  "minLines": 6,
+  "path": ["src"],
+  "ignore": ["**/*.test.ts", "**/*.test.tsx"],
+  "exitCode": 1
+}

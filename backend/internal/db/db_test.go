@@ -1,0 +1,239 @@
+package db_test
+
+import (
+	"context"
+	"database/sql"
+	"os"
+	"path/filepath"
+	"runtime"
+	"testing"
+	"time"
+
+	"github.com/dogauzun/gelirgider/backend/internal/db"
+	"github.com/dogauzun/gelirgider/backend/internal/user"
+)
+
+func TestOpen_SchemaAndReopen(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.db")
+
+	conn, err := db.Open(path)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer conn.Close()
+
+	repo := user.NewRepo(conn)
+	created, err := repo.Create(context.Background(), "alice@example.com", "hash123")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	fetched, err := repo.GetByEmail(context.Background(), "alice@example.com")
+	if err != nil {
+		t.Fatalf("GetByEmail: %v", err)
+	}
+	if fetched.ID != created.ID || fetched.Email != created.Email {
+		t.Fatalf("fetched user %+v does not match created %+v", fetched, created)
+	}
+	conn.Close()
+
+	// Reopening the same file must not fail or re-apply schema, and data
+	// must still be there.
+	conn2, err := db.Open(path)
+	if err != nil {
+		t.Fatalf("second Open: %v", err)
+	}
+	defer conn2.Close()
+
+	repo2 := user.NewRepo(conn2)
+	again, err := repo2.GetByEmail(context.Background(), "alice@example.com")
+	if err != nil {
+		t.Fatalf("GetByEmail after reopen: %v", err)
+	}
+	if again.ID != created.ID {
+		t.Fatalf("expected user to persist across reopen, got %+v", again)
+	}
+}
+
+func TestBackup(t *testing.T) {
+	srcPath := filepath.Join(t.TempDir(), "source.db")
+	conn, err := db.Open(srcPath)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer conn.Close()
+
+	// VACUUM INTO needs SQLite 3.27+; modernc.org/sqlite bundles a much
+	// newer version, but assert it so a downgrade fails loudly here rather
+	// than as a mysterious VACUUM INTO error.
+	var version string
+	if err := conn.QueryRow("SELECT sqlite_version()").Scan(&version); err != nil {
+		t.Fatalf("sqlite_version: %v", err)
+	}
+	if version < "3.27.0" {
+		t.Skipf("VACUUM INTO needs SQLite 3.27+, got %s", version)
+	}
+
+	repo := user.NewRepo(conn)
+	created, err := repo.Create(context.Background(), "bob@example.com", "hash456")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	backupPath := filepath.Join(t.TempDir(), "backup.db")
+	if err := db.Backup(context.Background(), conn, backupPath); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+
+	// Backup must refuse to overwrite an existing target.
+	if err := db.Backup(context.Background(), conn, backupPath); err == nil {
+		t.Fatalf("expected second Backup to the same path to fail")
+	}
+
+	copyConn, err := db.Open(backupPath)
+	if err != nil {
+		t.Fatalf("Open backup: %v", err)
+	}
+	defer copyConn.Close()
+
+	copyRepo := user.NewRepo(copyConn)
+	fetched, err := copyRepo.GetByEmail(context.Background(), "bob@example.com")
+	if err != nil {
+		t.Fatalf("GetByEmail from backup: %v", err)
+	}
+	if fetched.ID != created.ID || fetched.Email != created.Email {
+		t.Fatalf("backup user %+v does not match original %+v", fetched, created)
+	}
+}
+
+// Pragmas must hold on every pooled connection, not just the one that
+// happened to serve the first Exec after Open.
+func TestOpen_PragmasOnEveryPooledConn(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer conn.Close()
+
+	ctx := context.Background()
+	// Hold several connections at once so the pool has to open new ones.
+	var held []*sql.Conn
+	for i := 0; i < 3; i++ {
+		c, err := conn.Conn(ctx)
+		if err != nil {
+			t.Fatalf("Conn %d: %v", i, err)
+		}
+		defer c.Close()
+		held = append(held, c)
+	}
+
+	for i, c := range held {
+		var busy, fk int
+		if err := c.QueryRowContext(ctx, "PRAGMA busy_timeout").Scan(&busy); err != nil {
+			t.Fatalf("conn %d busy_timeout: %v", i, err)
+		}
+		if busy != 5000 {
+			t.Errorf("conn %d busy_timeout = %d, want 5000", i, busy)
+		}
+		if err := c.QueryRowContext(ctx, "PRAGMA foreign_keys").Scan(&fk); err != nil {
+			t.Fatalf("conn %d foreign_keys: %v", i, err)
+		}
+		if fk != 1 {
+			t.Errorf("conn %d foreign_keys = %d, want 1", i, fk)
+		}
+	}
+}
+
+// A transaction that reads before it writes must wait for a concurrent
+// writer instead of failing at once with SQLITE_BUSY: SQLite never runs the
+// busy handler when a read transaction tries to upgrade to a write lock
+// (GLG-401).
+func TestOpen_ReadThenWriteTxWaitsForConcurrentWriter(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer conn.Close()
+	repo := user.NewRepo(conn)
+	ctx := context.Background()
+
+	tx, err := conn.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatalf("BeginTx: %v", err)
+	}
+	defer tx.Rollback()
+	var n int
+	if err := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM users").Scan(&n); err != nil {
+		t.Fatalf("select: %v", err)
+	}
+
+	// Another connection writes and commits between the SELECT and the
+	// INSERT. Once tx holds the write lock this writer has to wait, so give
+	// it a moment and move on.
+	done := make(chan error, 1)
+	go func() {
+		_, err := repo.Create(context.Background(), "other@example.com", "hash")
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		done <- err
+	case <-time.After(300 * time.Millisecond):
+	}
+
+	if _, err := tx.ExecContext(ctx,
+		"INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)",
+		"tx@example.com", "hash", time.Now().UTC().Format(time.RFC3339),
+	); err != nil {
+		t.Fatalf("insert after concurrent write: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+	if err := <-done; err != nil {
+		t.Fatalf("concurrent write: %v", err)
+	}
+}
+
+// The database and its snapshots hold password hashes and encrypted
+// provider keys: Open and Backup must create every file owner-only, whatever
+// the process umask (GLG-1128).
+func TestOpenAndBackup_FilesOwnerOnly(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows has no unix permission bits")
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.db")
+	conn, err := db.Open(path)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer conn.Close()
+	if _, err := user.NewRepo(conn).Create(context.Background(), "carol@example.com", "hash789"); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	backupPath := filepath.Join(dir, "backup.db")
+	if err := db.Backup(context.Background(), conn, backupPath); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+
+	for _, p := range []string{path, path + "-wal", path + "-shm", backupPath} {
+		info, err := os.Stat(p)
+		if err != nil {
+			t.Fatalf("stat: %v", err)
+		}
+		if mode := info.Mode().Perm(); mode != 0o600 {
+			t.Errorf("%s mode = %o, want 600", filepath.Base(p), mode)
+		}
+	}
+}
+
+func TestInList(t *testing.T) {
+	placeholders, args := db.InList([]string{"USD", "EUR", "TRY"})
+	if placeholders != "?,?,?" {
+		t.Errorf("placeholders = %q, want %q", placeholders, "?,?,?")
+	}
+	if len(args) != 3 || args[0] != "USD" || args[2] != "TRY" {
+		t.Errorf("args = %v, want [USD EUR TRY]", args)
+	}
+}

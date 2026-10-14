@@ -1,0 +1,1388 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UI v2 core pages mockup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        --border: #d9dee6;
+        margin: 24px auto;
+        padding: 0 16px;
+        font-family: system-ui, sans-serif;
+        color: #1a2233;
+        max-width: 1040px;
+      }
+      h1 {
+        font-size: 18px;
+      }
+      p.lead {
+        color: #606b7c;
+        font-size: 14px;
+        margin-bottom: 28px;
+      }
+
+      .oz {
+        --g: #f6f8fb;
+        --sf: #fff;
+        --bd: #e3e8ee;
+        --tx: #1a2233;
+        --mu: #606b7c;
+        --fa: #828d9d;
+        --well: #eaeef3;
+        --ac: #2563eb;
+        --acs: #eaf0fe;
+        --gain: #0a7d55;
+        --gs: #e1f6ec;
+        --loss: #cc2d43;
+        --ls: #fdecef;
+        --warn: #b45309;
+        --ws: #fef3c7;
+        --plum: #6941c6;
+        --sh:
+          0 0 0 1px rgb(16 24 40 / 0.05), 0 1px 2px rgb(16 24 40 / 0.06),
+          0 6px 16px -4px rgb(16 24 40 / 0.08);
+        background: var(--g);
+        color: var(--tx);
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 12px;
+        line-height: 1.4;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.006em;
+        padding: 18px 18px 22px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        margin: 0 0 26px;
+        text-align: left;
+        position: relative;
+      }
+      .oz * {
+        box-sizing: border-box;
+      }
+      .oz-tag {
+        position: absolute;
+        top: -11px;
+        left: 14px;
+        background: var(--tx);
+        color: var(--g);
+        font-weight: 600;
+        font-size: 11px;
+        padding: 3px 10px;
+        border-radius: 999px;
+      }
+      .oz-h {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+      .oz-h b {
+        font-size: 17px;
+        font-weight: 600;
+      }
+      .oz-btn {
+        background: var(--ac);
+        color: #fff;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-weight: 500;
+      }
+      .oz-tabs {
+        display: flex;
+        gap: 18px;
+        border-bottom: 1px solid var(--bd);
+        margin-bottom: 14px;
+        color: var(--mu);
+      }
+      .oz-tabs span {
+        padding: 7px 0;
+      }
+      .oz-tabs .on {
+        color: var(--tx);
+        font-weight: 500;
+        box-shadow: 0 2px 0 var(--ac);
+      }
+      .oz-c {
+        background: var(--sf);
+        border-radius: 12px;
+        box-shadow: var(--sh);
+        padding: 14px 16px;
+      }
+      .oz-row {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+      .oz-l {
+        color: var(--mu);
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .oz-big {
+        font-size: 28px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+      }
+      .oz-mid {
+        font-size: 17px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .g {
+        color: var(--gain);
+      }
+      .r {
+        color: var(--loss);
+      }
+      .m {
+        color: var(--mu);
+      }
+      .f {
+        color: var(--fa);
+      }
+      .oz-pill {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        border-radius: 999px;
+        padding: 2px 9px;
+        font-size: 11px;
+        font-weight: 500;
+        background: var(--well);
+        color: var(--mu);
+      }
+      .oz-pill.g {
+        background: var(--gs);
+        color: var(--gain);
+      }
+      .oz-pill.r {
+        background: var(--ls);
+        color: var(--loss);
+      }
+      .oz-pill.w {
+        background: var(--ws);
+        color: var(--warn);
+      }
+      .oz-pill.a {
+        background: var(--acs);
+        color: var(--ac);
+      }
+      .oz-seg {
+        display: inline-flex;
+        background: var(--well);
+        border-radius: 8px;
+        padding: 2px;
+        gap: 1px;
+        font-size: 11px;
+      }
+      .oz-seg span {
+        padding: 3px 8px;
+        border-radius: 6px;
+        color: var(--mu);
+      }
+      .oz-seg .on {
+        background: var(--sf);
+        color: var(--tx);
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgb(16 24 40 / 0.12);
+      }
+      .oz-sel {
+        border: 1px solid var(--bd);
+        border-radius: 8px;
+        padding: 4px 22px 4px 9px;
+        font-size: 11px;
+        background: var(--sf);
+        position: relative;
+      }
+      .oz-sel::after {
+        content: '⌄';
+        position: absolute;
+        right: 7px;
+        top: 1px;
+        color: var(--fa);
+      }
+      .oz-ctl {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .oz svg.ch {
+        display: block;
+        width: 100%;
+      }
+      .oz-at h6 {
+        margin: 10px 0 4px;
+        font-size: 10.5px;
+        font-weight: 600;
+        color: var(--fa);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .oz-at h6:first-of-type {
+        margin-top: 6px;
+      }
+      .oz-it {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+        padding: 4px 0;
+        border-top: 1px solid var(--g);
+      }
+      .oz-it:first-of-type {
+        border-top: 0;
+      }
+      .oz-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 7px;
+        flex: none;
+      }
+      .oz-mini {
+        border: 1px solid var(--bd);
+        border-radius: 6px;
+        padding: 1px 7px;
+        font-size: 10.5px;
+        color: var(--tx);
+        background: var(--sf);
+      }
+      .oz-kpi {
+        display: grid;
+        gap: 1px;
+        background: var(--bd);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--sh);
+        margin-bottom: 14px;
+      }
+      .oz-kpi > div {
+        background: var(--sf);
+        padding: 10px 14px;
+      }
+      .oz table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .oz th {
+        text-align: right;
+        font-weight: 500;
+        color: var(--fa);
+        font-size: 11px;
+        padding: 7px 8px;
+        border-bottom: 1px solid var(--bd);
+      }
+      .oz td {
+        text-align: right;
+        padding: 8px 8px;
+        border-bottom: 1px solid var(--g);
+        white-space: nowrap;
+      }
+      .oz th:first-child,
+      .oz td:first-child {
+        text-align: left;
+        padding-left: 0;
+      }
+      .oz td:last-child,
+      .oz th:last-child {
+        padding-right: 0;
+      }
+      .oz td b {
+        font-weight: 600;
+      }
+      .oz td small {
+        color: var(--fa);
+        margin-left: 6px;
+        font-size: 11px;
+      }
+      .oz-bar {
+        display: inline-block;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--ac);
+        vertical-align: middle;
+        margin-right: 6px;
+        opacity: 0.7;
+      }
+      .oz-fold {
+        border-top: 2px dashed var(--loss);
+        position: relative;
+        margin: 4px -18px 14px;
+        opacity: 0.55;
+      }
+      .oz-fold span {
+        position: absolute;
+        right: 18px;
+        top: -9px;
+        background: var(--g);
+        padding: 0 6px;
+        font-size: 10.5px;
+        color: var(--loss);
+      }
+      .oz-ph {
+        border: 1px dashed var(--bd);
+        border-radius: 12px;
+        padding: 12px 16px;
+        color: var(--fa);
+        background: color-mix(in srgb, var(--sf) 60%, transparent);
+      }
+      .oz-strip {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+      .oz-note {
+        color: var(--mu);
+        font-size: 12px;
+        margin: 10px 0 0;
+      }
+
+      .oz {
+        --g: #f6f8fb;
+        --sf: #fff;
+        --bd: #e3e8ee;
+        --tx: #1a2233;
+        --mu: #606b7c;
+        --fa: #828d9d;
+        --well: #eaeef3;
+        --ac: #2563eb;
+        --acs: #eaf0fe;
+        --gain: #0a7d55;
+        --gs: #e1f6ec;
+        --loss: #cc2d43;
+        --ls: #fdecef;
+        --warn: #b45309;
+        --ws: #fef3c7;
+        --plum: #6941c6;
+        --ps: #f1ecfb;
+        --sh:
+          0 0 0 1px rgb(16 24 40 / 0.05), 0 1px 2px rgb(16 24 40 / 0.06),
+          0 6px 16px -4px rgb(16 24 40 / 0.08);
+        background: var(--g);
+        color: var(--tx);
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 12px;
+        line-height: 1.4;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.006em;
+        padding: 18px 18px 16px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        margin: 0 0 30px;
+        text-align: left;
+        position: relative;
+      }
+      .oz * {
+        box-sizing: border-box;
+      }
+      .oz-tag {
+        position: absolute;
+        top: -11px;
+        left: 14px;
+        background: var(--tx);
+        color: var(--g);
+        font-weight: 600;
+        font-size: 11px;
+        padding: 3px 10px;
+        border-radius: 999px;
+      }
+      .oz-h {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+      .oz-h b {
+        font-size: 17px;
+        font-weight: 600;
+      }
+      .oz-btn {
+        background: var(--ac);
+        color: #fff;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-weight: 500;
+        display: inline-block;
+      }
+      .oz-btn2 {
+        background: var(--sf);
+        color: var(--tx);
+        border-radius: 8px;
+        padding: 5px 12px;
+        font-weight: 500;
+        box-shadow:
+          0 0 0 1px var(--bd),
+          0 1px 2px rgb(16 24 40 / 0.06);
+        display: inline-block;
+      }
+      .oz-tabs {
+        display: flex;
+        gap: 18px;
+        border-bottom: 1px solid var(--bd);
+        margin-bottom: 14px;
+        color: var(--mu);
+      }
+      .oz-tabs span {
+        padding: 7px 0;
+      }
+      .oz-tabs .on {
+        color: var(--tx);
+        font-weight: 500;
+        box-shadow: 0 2px 0 var(--ac);
+      }
+      .oz-c {
+        background: var(--sf);
+        border-radius: 12px;
+        box-shadow: var(--sh);
+        padding: 14px 16px;
+        margin-bottom: 14px;
+      }
+      .oz-row {
+        display: flex;
+        gap: 14px;
+      }
+      .oz-l {
+        color: var(--mu);
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .oz-big {
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+      }
+      .oz-mid {
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .g {
+        color: var(--gain);
+      }
+      .r {
+        color: var(--loss);
+      }
+      .m {
+        color: var(--mu);
+      }
+      .f {
+        color: var(--fa);
+      }
+      .oz-pill {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        border-radius: 999px;
+        padding: 2px 9px;
+        font-size: 11px;
+        font-weight: 500;
+        background: var(--well);
+        color: var(--mu);
+      }
+      .oz-pill.g {
+        background: var(--gs);
+        color: var(--gain);
+      }
+      .oz-pill.r {
+        background: var(--ls);
+        color: var(--loss);
+      }
+      .oz-pill.w {
+        background: var(--ws);
+        color: var(--warn);
+      }
+      .oz-pill.a {
+        background: var(--acs);
+        color: var(--ac);
+      }
+      .oz-pill.p {
+        background: var(--ps);
+        color: var(--plum);
+      }
+      .oz-seg {
+        display: inline-flex;
+        background: var(--well);
+        border-radius: 8px;
+        padding: 2px;
+        gap: 1px;
+        font-size: 11px;
+      }
+      .oz-seg span {
+        padding: 3px 8px;
+        border-radius: 6px;
+        color: var(--mu);
+      }
+      .oz-seg .on {
+        background: var(--sf);
+        color: var(--tx);
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgb(16 24 40 / 0.12);
+      }
+      .oz-sel {
+        border: 1px solid var(--bd);
+        border-radius: 8px;
+        padding: 4px 22px 4px 9px;
+        font-size: 11px;
+        background: var(--sf);
+        position: relative;
+        display: inline-block;
+      }
+      .oz-sel::after {
+        content: '⌄';
+        position: absolute;
+        right: 7px;
+        top: 1px;
+        color: var(--fa);
+      }
+      .oz-in {
+        border: 1px solid var(--bd);
+        border-radius: 8px;
+        padding: 4px 9px;
+        font-size: 11px;
+        background: var(--sf);
+        color: var(--fa);
+        display: inline-block;
+        min-width: 170px;
+      }
+      .oz-ctl {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .oz svg.ch {
+        display: block;
+        width: 100%;
+      }
+      .oz-kpi {
+        display: grid;
+        gap: 1px;
+        background: var(--bd);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--sh);
+        margin-bottom: 14px;
+      }
+      .oz-kpi > div {
+        background: var(--sf);
+        padding: 10px 14px;
+      }
+      .oz table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .oz th {
+        text-align: right;
+        font-weight: 500;
+        color: var(--fa);
+        font-size: 11px;
+        padding: 7px 8px;
+        border-bottom: 1px solid var(--bd);
+      }
+      .oz td {
+        text-align: right;
+        padding: 8px 8px;
+        border-bottom: 1px solid var(--g);
+        white-space: nowrap;
+      }
+      .oz th:first-child,
+      .oz td:first-child {
+        text-align: left;
+        padding-left: 0;
+      }
+      .oz td:last-child,
+      .oz th:last-child {
+        padding-right: 0;
+      }
+      .oz td.l,
+      .oz th.l {
+        text-align: left;
+      }
+      .oz td b {
+        font-weight: 600;
+      }
+      .oz td small {
+        color: var(--fa);
+        margin-left: 6px;
+        font-size: 11px;
+      }
+      .oz-grp td {
+        background: var(--g);
+        color: var(--mu);
+        font-weight: 500;
+        font-size: 11px;
+        padding: 4px 8px;
+        text-align: left;
+      }
+      .oz-ic {
+        color: var(--fa);
+        letter-spacing: 6px;
+      }
+      .oz-bar {
+        display: inline-block;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--ac);
+        vertical-align: middle;
+        margin-right: 6px;
+        opacity: 0.7;
+      }
+      .oz-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+      }
+      .oz-mini {
+        border: 1px solid var(--bd);
+        border-radius: 6px;
+        padding: 1px 7px;
+        font-size: 10.5px;
+        color: var(--tx);
+        background: var(--sf);
+      }
+      .oz-ph {
+        border: 1px dashed var(--bd);
+        border-radius: 12px;
+        padding: 10px 16px;
+        color: var(--fa);
+        background: color-mix(in srgb, var(--sf) 60%, transparent);
+        margin-bottom: 14px;
+      }
+      .oz-chg {
+        margin: 4px 0 0;
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: var(--sf);
+        box-shadow: 0 0 0 1px var(--bd);
+        color: var(--mu);
+        font-size: 12px;
+      }
+      .oz-chg b {
+        color: var(--tx);
+      }
+      .oz-chg li {
+        margin: 2px 0;
+      }
+      .oz-chg ul {
+        margin: 4px 0 0;
+        padding-left: 18px;
+      }
+      .oz-ban {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--acs);
+        color: var(--ac);
+        border-radius: 10px;
+        padding: 7px 12px;
+        margin-bottom: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>UI v2 core pages: approved layouts</h1>
+    <p class="lead">
+      Reference for the core pages spec (2026-10-05), desktop at 1280 px inside the existing sidebar
+      shell (the sidebar is not drawn). Synthetic numbers. This is a mockup, not the implementation:
+      sizes and wording are indicative, the spec is binding.
+    </p>
+    <div class="oz">
+      <span class="oz-tag">Özet · layout A: return and attention side by side</span>
+      <div class="oz-h"><b>Ana portföy</b><span class="oz-btn">+ İşlem ekle</span></div>
+      <div class="oz-tabs">
+        <span class="on">Özet</span><span>İşlemler</span><span>Temettü</span><span>İçe aktar</span>
+      </div>
+      <div class="oz-row">
+        <div class="oz-c" style="flex: 1.95">
+          <div class="oz-ctl" style="justify-content: space-between">
+            <div>
+              <div class="oz-l">Getiri · son 3 ay</div>
+              <span class="oz-big g">+%6,6</span>
+              <span class="g" style="font-weight: 500; margin-left: 6px">+₺416.965</span>
+              <span class="oz-pill r" style="margin-left: 8px">Dolar +%8,2 · fark −%1,6</span>
+            </div>
+            <div class="oz-ctl">
+              <span class="oz-sel">Dolar</span><span class="oz-sel">Para ağırlıklı</span>
+            </div>
+          </div>
+          <div class="oz-ctl" style="margin: 8px 0 4px">
+            <span class="oz-seg"
+              ><span>1A</span><span class="on">3A</span><span>1Y</span><span>Tümü</span
+              ><span>YBİ</span><span>Özel</span></span
+            >
+          </div>
+          <svg class="ch" viewBox="0 0 600 190" preserveAspectRatio="none" style="height: 190px">
+            <defs>
+              <linearGradient id="oza" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#2563eb" stop-opacity=".16" />
+                <stop offset="1" stop-color="#2563eb" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <g stroke="#e3e8ee" stroke-dasharray="3 4">
+              <line x1="0" x2="600" y1="30" y2="30" />
+              <line x1="0" x2="600" y1="80" y2="80" />
+              <line x1="0" x2="600" y1="130" y2="130" />
+            </g>
+            <path
+              d="M0 120 L40 112 L80 118 L120 96 L160 104 L200 82 L240 90 L280 70 L320 78 L360 60 L400 66 L440 44 L480 52 L520 36 L560 42 L600 30 L600 190 L0 190 Z"
+              fill="url(#oza)"
+            />
+            <path
+              d="M0 120 L40 112 L80 118 L120 96 L160 104 L200 82 L240 90 L280 70 L320 78 L360 60 L400 66 L440 44 L480 52 L520 36 L560 42 L600 30"
+              fill="none"
+              stroke="#2563eb"
+              stroke-width="1.75"
+            />
+            <path
+              d="M0 120 L60 108 L120 100 L180 86 L240 76 L300 64 L360 52 L420 42 L480 32 L540 24 L600 16"
+              fill="none"
+              stroke="#6941c6"
+              stroke-width="1.25"
+              stroke-dasharray="1 3"
+              stroke-linecap="round"
+            />
+          </svg>
+        </div>
+        <div class="oz-c oz-at" style="flex: 1">
+          <div class="oz-ctl" style="justify-content: space-between">
+            <b style="font-size: 13px">Dikkat</b><span class="oz-pill w">5</span>
+          </div>
+          <h6>Veri</h6>
+          <div class="oz-it">
+            <span
+              ><i class="oz-dot" style="background: var(--warn)"></i>EUR kuru yok · 1 pozisyon
+              toplam dışında</span
+            >
+          </div>
+          <div class="oz-it">
+            <span
+              ><i class="oz-dot" style="background: var(--warn)"></i>3 elle fiyat 7 günden
+              eski</span
+            ><span class="oz-mini">Güncelle</span>
+          </div>
+          <h6>Temettü onayı</h6>
+          <div class="oz-it">
+            <span><i class="oz-dot" style="background: var(--ac)"></i>TUPRS · ₺4.800 · 12 Eki</span
+            ><span><span class="oz-mini">Ekle</span> <span class="oz-mini">Yoksay</span></span>
+          </div>
+          <h6>Bugün</h6>
+          <div class="oz-it"><span>GARAN</span><span class="g">+₺5.600 · +%1,8</span></div>
+          <div class="oz-it"><span>PGSUS</span><span class="r">−₺2.610 · −%1,0</span></div>
+          <h6>Yoğunlaşma</h6>
+          <div class="oz-it"><span>Nakit</span><span class="m">%46,6</span></div>
+          <div class="oz-it"><span>USD varlıklar</span><span class="m">%15,4</span></div>
+        </div>
+      </div>
+      <div class="oz-kpi" style="grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr">
+        <div>
+          <div class="oz-l">Toplam değer</div>
+          <div class="oz-mid">₺6.802.919</div>
+        </div>
+        <div>
+          <div class="oz-l">Günlük</div>
+          <div class="oz-mid g">+₺12.841</div>
+        </div>
+        <div>
+          <div class="oz-l">Nakit</div>
+          <div class="oz-mid">₺3.166.759</div>
+        </div>
+        <div>
+          <div class="oz-l">Gerçekleşmemiş K/Z</div>
+          <div class="oz-mid g">+₺356.911</div>
+        </div>
+        <div>
+          <div class="oz-l">Gerçekleşmiş K/Z</div>
+          <div class="oz-mid g">+₺1.812.501</div>
+        </div>
+      </div>
+      <div class="oz-c" style="margin-bottom: 14px">
+        <div class="oz-ctl" style="justify-content: space-between; margin-bottom: 2px">
+          <b style="font-size: 13px"
+            >Pozisyonlar <span class="f" style="font-weight: 400">· 15</span></b
+          ><span class="oz-ctl"
+            ><span class="oz-seg"><span class="on">Açık</span><span>Kapalı</span></span
+            ><span class="oz-mini">AI için kopyala</span></span
+          >
+        </div>
+        <table>
+          <tr>
+            <th>Enstrüman</th>
+            <th>Ağırlık</th>
+            <th>Adet</th>
+            <th>Ort. maliyet</th>
+            <th>Fiyat</th>
+            <th>Günlük</th>
+            <th>Değer ↓</th>
+            <th>K/Z</th>
+            <th></th>
+          </tr>
+          <tr>
+            <td><b>AAPL</b><small>Apple Inc. · USD</small></td>
+            <td><i class="oz-bar" style="width: 26px"></i>%8,5</td>
+            <td>60</td>
+            <td>$220,81</td>
+            <td>$209,57</td>
+            <td class="g">+%1,0</td>
+            <td>₺575.273</td>
+            <td class="r">−₺29.434 · −%5,1</td>
+            <td class="f">⋯</td>
+          </tr>
+          <tr>
+            <td><b>MSFT</b><small>Microsoft Corporation · USD</small></td>
+            <td><i class="oz-bar" style="width: 21px"></i>%6,9</td>
+            <td>20</td>
+            <td>$450,03</td>
+            <td>$515,06</td>
+            <td class="g">+%0,8</td>
+            <td>₺471.283</td>
+            <td class="g">+₺59.714 · +%14,5</td>
+            <td class="f">⋯</td>
+          </tr>
+        </table>
+      </div>
+      <div class="oz-fold"><span>first screen ends here (1280×900)</span></div>
+      <div class="oz-c" style="margin-bottom: 14px">
+        <table>
+          <tr>
+            <td><b>ASELS</b><small>ASELSAN</small></td>
+            <td><i class="oz-bar" style="width: 16px"></i>%5,2</td>
+            <td>2.600</td>
+            <td>₺62,19</td>
+            <td>₺137,18 <span class="oz-pill w" style="padding: 0 6px">elle</span></td>
+            <td class="r">−%0,3</td>
+            <td>₺356.668</td>
+            <td class="g">+₺194.984 · +%120,6</td>
+            <td class="f">⋯</td>
+          </tr>
+          <tr>
+            <td><b>GARAN</b><small>GARANTI BANKASI</small></td>
+            <td><i class="oz-bar" style="width: 14px"></i>%4,6</td>
+            <td>2.500</td>
+            <td>₺103,80</td>
+            <td>₺125,52</td>
+            <td class="g">+%1,8</td>
+            <td>₺313.800</td>
+            <td class="g">+₺54.310 · +%20,9</td>
+            <td class="f">⋯</td>
+          </tr>
+          <tr>
+            <td class="f" colspan="9" style="text-align: left">
+              … 11 more rows, 40 px each (today 109–133 px). Al / Sat / fiyat gir live in the ⋯ menu
+              and on the position page.
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div class="oz-row" style="margin-bottom: 0">
+        <div class="oz-ph" style="flex: 1">Dağılım (allocation)</div>
+        <div class="oz-ph" style="flex: 1">
+          İstatistikler (net katkı, temettü, faiz, komisyon, ilk işlem)
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ İşlemler ============ -->
+    <div class="oz">
+      <span class="oz-tag">İşlemler · check imports, add by hand</span>
+      <div class="oz-h"><b>Ana portföy</b><span class="oz-btn">+ İşlem ekle</span></div>
+      <div class="oz-tabs">
+        <span>Özet</span><span class="on">İşlemler</span><span>Temettü</span><span>İçe aktar</span>
+      </div>
+      <div class="oz-ban">
+        <span><b>Midas · Haziran 2026</b> içe aktarıldı · 3 işlem</span
+        ><span class="oz-ctl"
+          ><span class="oz-mini">Sadece bunları göster</span><span>✕</span></span
+        >
+      </div>
+      <div class="oz-ctl" style="justify-content: space-between; margin-bottom: 12px">
+        <div class="oz-ctl">
+          <span class="oz-in">Enstrüman ara…</span
+          ><span class="oz-seg"
+            ><span class="on">Tümü</span><span>Alış</span><span>Satış</span><span>Temettü</span
+            ><span>Nakit</span></span
+          ><span class="oz-sel">Tarih: tümü</span><span class="oz-sel">Kaynak: tümü</span>
+        </div>
+        <div class="oz-ctl"><span class="m">68 işlem</span><span class="oz-btn2">CSV</span></div>
+      </div>
+      <div class="oz-c" style="padding-top: 4px">
+        <table>
+          <tr>
+            <th class="l">Tarih</th>
+            <th class="l">Tür</th>
+            <th class="l">Enstrüman</th>
+            <th>Adet × fiyat</th>
+            <th>Kesinti</th>
+            <th>Tutar</th>
+            <th class="l">Kaynak</th>
+            <th></th>
+          </tr>
+          <tr class="oz-grp">
+            <td colspan="8">Ekim 2026</td>
+          </tr>
+          <tr>
+            <td>02 Eki</td>
+            <td class="l"><span class="oz-pill g">Alış</span></td>
+            <td class="l"><b>GARAN</b><small>GARANTI BANKASI</small></td>
+            <td>500 × ₺125,52</td>
+            <td class="f">₺31,38</td>
+            <td><b class="r">−₺62.791,38</b></td>
+            <td class="l f">Elle</td>
+            <td class="oz-ic">✎⧉🗑</td>
+          </tr>
+          <tr>
+            <td>01 Eki</td>
+            <td class="l"><span class="oz-pill a">Temettü</span></td>
+            <td class="l"><b>TUPRS</b><small>TUPRAS</small></td>
+            <td class="f">800 × ₺6,00</td>
+            <td class="f">₺720,00</td>
+            <td><b class="g">+₺4.080,00</b></td>
+            <td class="l f">Elle</td>
+            <td class="oz-ic">✎⧉🗑</td>
+          </tr>
+          <tr class="oz-grp">
+            <td colspan="8">Haziran 2026</td>
+          </tr>
+          <tr>
+            <td>18 Haz</td>
+            <td class="l"><span class="oz-pill g">Alış</span></td>
+            <td class="l"><b>MSFT</b><small>Microsoft Corporation · USD</small></td>
+            <td>5 × $447,20</td>
+            <td class="f">$1,50</td>
+            <td><b class="r">−$2.237,50</b></td>
+            <td class="l"><span class="oz-pill p">Midas · Haz 2026</span></td>
+            <td class="oz-ic">✎⧉🗑</td>
+          </tr>
+          <tr>
+            <td>12 Haz</td>
+            <td class="l"><span class="oz-pill">Para yatırma</span></td>
+            <td class="l f">Nakit · USD<small>maaş aktarımı</small></td>
+            <td></td>
+            <td></td>
+            <td><b class="g">+$3.000,00</b></td>
+            <td class="l"><span class="oz-pill p">Midas · Haz 2026</span></td>
+            <td class="oz-ic">✎⧉🗑</td>
+          </tr>
+          <tr>
+            <td class="f" colspan="8" style="text-align: left">
+              … 44 px rows (today 57–71 px). The table fits the card: no sideways scroll, action
+              icons always visible.
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div class="oz-chg">
+        <b>Changes against today</b>
+        <ul>
+          <li>
+            Toolbar is one row: the two date inputs become one "Tarih" popover; "CSV" moves next to
+            the count.
+          </li>
+          <li>
+            New "Kaynak" column and filter: "Elle" or the import it came from. After an import, a
+            banner offers "Sadece bunları göster". <b>Needs a small backend addition</b>: filter
+            transactions by import, and return the import's name.
+          </li>
+          <li>
+            Adet and Fiyat share one cell; Komisyon and Stopaj become one "Kesinti" cell; a note
+            shows as grey text after the name (full text on hover). Full instrument names fit.
+          </li>
+          <li>
+            Add dialog: a visible "Ekle ve yeni" button next to "Ekle" (today only a ⌘↵ hint); it
+            keeps the type and the date for the next entry.
+          </li>
+          <li>
+            Phone: filters collapse behind one "Filtrele" button; list rows keep amount
+            right-aligned on the first line.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ============ Position ============ -->
+    <div class="oz">
+      <span class="oz-tag">Position page · my result on it</span>
+      <div class="oz-h"><b>Ana portföy</b><span class="oz-btn">+ İşlem ekle</span></div>
+      <div class="oz-tabs">
+        <span class="on">Özet</span><span>İşlemler</span><span>Temettü</span><span>İçe aktar</span>
+      </div>
+      <div class="oz-ctl" style="justify-content: space-between; margin-bottom: 12px">
+        <div>
+          <span class="m">Özet ›</span> <b style="font-size: 18px; margin-left: 4px">THYAO</b>
+          <span class="m" style="margin-left: 6px">TURK HAVA YOLLARI · BIST</span>
+          <span style="margin-left: 14px; font-size: 15px; font-weight: 600">₺302,33</span>
+          <span class="oz-pill g" style="margin-left: 4px">+%0,5 bugün</span>
+        </div>
+        <div class="oz-ctl">
+          <span class="oz-btn2">Al</span><span class="oz-btn2">Sat</span
+          ><span class="oz-btn2">Fiyat gir</span>
+        </div>
+      </div>
+      <div class="oz-kpi" style="grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr 1fr">
+        <div>
+          <div class="oz-l">Toplam sonuç</div>
+          <div class="oz-big r">−₺3.612</div>
+          <div class="m" style="font-size: 11px">K/Z + temettü, tüm zamanlar</div>
+        </div>
+        <div>
+          <div class="oz-l">Piyasa değeri</div>
+          <div class="oz-mid">₺30.233</div>
+          <div class="m" style="font-size: 11px">100 adet · portföyün %0,4'ü</div>
+        </div>
+        <div>
+          <div class="oz-l">Gerçekleşmemiş</div>
+          <div class="oz-mid g">+₺433</div>
+          <div class="g" style="font-size: 11px">+%1,5</div>
+        </div>
+        <div>
+          <div class="oz-l">Gerçekleşmiş</div>
+          <div class="oz-mid r">−₺4.525</div>
+        </div>
+        <div>
+          <div class="oz-l">Temettü</div>
+          <div class="oz-mid g">+₺480</div>
+          <div class="m" style="font-size: 11px">2 ödeme</div>
+        </div>
+        <div>
+          <div class="oz-l">Ort. maliyet</div>
+          <div class="oz-mid">₺298,00</div>
+        </div>
+      </div>
+      <div class="oz-c">
+        <div class="oz-ctl" style="justify-content: space-between">
+          <span class="oz-seg"><span class="on">Fiyat</span><span>Değer ve maliyet</span></span
+          ><span class="oz-seg"
+            ><span>1A</span><span class="on">3A</span><span>1Y</span><span>Tümü</span
+            ><span>YBİ</span><span>Özel</span></span
+          >
+        </div>
+        <svg
+          class="ch"
+          viewBox="0 0 900 170"
+          preserveAspectRatio="none"
+          style="height: 170px; margin-top: 8px"
+        >
+          <defs>
+            <linearGradient id="ozb" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#2563eb" stop-opacity=".16" />
+              <stop offset="1" stop-color="#2563eb" stop-opacity="0" />
+            </linearGradient>
+          </defs>
+          <g stroke="#e3e8ee" stroke-dasharray="3 4">
+            <line x1="0" x2="900" y1="35" y2="35" />
+            <line x1="0" x2="900" y1="85" y2="85" />
+            <line x1="0" x2="900" y1="135" y2="135" />
+          </g>
+          <path
+            d="M0 90 L50 70 L100 84 L150 50 L200 66 L250 40 L300 72 L350 110 L400 96 L450 120 L500 84 L550 100 L600 70 L650 92 L700 60 L750 78 L800 58 L850 70 L900 62 L900 170 L0 170 Z"
+            fill="url(#ozb)"
+          />
+          <path
+            d="M0 90 L50 70 L100 84 L150 50 L200 66 L250 40 L300 72 L350 110 L400 96 L450 120 L500 84 L550 100 L600 70 L650 92 L700 60 L750 78 L800 58 L850 70 L900 62"
+            fill="none"
+            stroke="#2563eb"
+            stroke-width="1.75"
+          />
+          <line x1="0" x2="900" y1="80" y2="80" stroke="#828d9d" stroke-dasharray="4 3" />
+          <path d="M20 106 l7 -11 h-14 Z" fill="#0a7d55" stroke="#fff" stroke-width="1.5" />
+          <path d="M350 92 l7 11 h-14 Z" fill="#cc2d43" stroke="#fff" stroke-width="1.5" />
+          <path d="M500 102 l7 -11 h-14 Z" fill="#0a7d55" stroke="#fff" stroke-width="1.5" />
+        </svg>
+      </div>
+      <div class="oz-ph">
+        Bu enstrümandaki işlemler: same compact table as İşlemler, with the result of each sale
+      </div>
+      <div class="oz-chg">
+        <b>Changes against today</b>
+        <ul>
+          <li>
+            One title row replaces the back link plus two stacked headings (saves about 120 px);
+            last price and today's change sit in it; Al / Sat / Fiyat gir are buttons here.
+          </li>
+          <li>
+            New lead figure "Toplam sonuç" = unrealized + realized + dividends received. New cells:
+            Temettü, weight in the portfolio.
+          </li>
+          <li>
+            The two charts (990 px together) become one card with a "Fiyat | Değer ve maliyet"
+            switch.
+          </li>
+          <li>"+ İşlem ekle" opens prefilled with this instrument.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ============ Temettü ============ -->
+    <div class="oz">
+      <span class="oz-tag">Temettü · income over time</span>
+      <div class="oz-h"><b>Ana portföy</b><span class="oz-btn">+ İşlem ekle</span></div>
+      <div class="oz-tabs">
+        <span>Özet</span><span>İşlemler</span><span class="on">Temettü</span><span>İçe aktar</span>
+      </div>
+      <div
+        class="oz-c"
+        style="
+          box-shadow:
+            0 0 0 1px var(--ac),
+            var(--sh);
+        "
+      >
+        <div class="oz-ctl" style="justify-content: space-between">
+          <b style="font-size: 13px"
+            >Onay bekleyen temettüler <span class="oz-pill a" style="margin-left: 4px">2</span></b
+          ><span class="oz-mini">Tümünü ekle</span>
+        </div>
+        <table style="margin-top: 4px">
+          <tr>
+            <td><b>TUPRS</b><small>12 Eki 2026 · 800 adet × ₺6,00</small></td>
+            <td class="f">stopaj ₺720</td>
+            <td><b>net ₺4.080</b></td>
+            <td><span class="oz-mini">Ekle</span> <span class="oz-mini">Yoksay</span></td>
+          </tr>
+          <tr>
+            <td><b>FROTO</b><small>15 Eki 2026 · 150 adet × ₺12,00</small></td>
+            <td class="f">stopaj ₺270</td>
+            <td><b>net ₺1.530</b></td>
+            <td><span class="oz-mini">Ekle</span> <span class="oz-mini">Yoksay</span></td>
+          </tr>
+        </table>
+      </div>
+      <div class="oz-kpi" style="grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr">
+        <div>
+          <div class="oz-l">Son 12 ay net</div>
+          <div class="oz-big">₺458.963</div>
+        </div>
+        <div>
+          <div class="oz-l">Maliyete göre verim</div>
+          <div class="oz-mid">%14,0</div>
+          <div class="m" style="font-size: 11px">son 12 ay / maliyet</div>
+        </div>
+        <div>
+          <div class="oz-l">Bu yıl net</div>
+          <div class="oz-mid">₺8.963</div>
+        </div>
+        <div>
+          <div class="oz-l">Toplam net</div>
+          <div class="oz-mid">₺1.749.114</div>
+        </div>
+        <div>
+          <div class="oz-l">Stopaj · faiz</div>
+          <div class="oz-mid">₺259 · ₺0</div>
+        </div>
+      </div>
+      <div class="oz-c">
+        <div class="oz-ctl" style="justify-content: space-between">
+          <b style="font-size: 13px">Alınan temettüler</b
+          ><span class="oz-seg"><span class="on">Aylık</span><span>Yıllık</span></span>
+        </div>
+        <svg
+          class="ch"
+          viewBox="0 0 900 120"
+          preserveAspectRatio="none"
+          style="height: 120px; margin-top: 8px"
+        >
+          <g stroke="#e3e8ee" stroke-dasharray="3 4">
+            <line x1="0" x2="900" y1="20" y2="20" />
+            <line x1="0" x2="900" y1="70" y2="70" />
+          </g>
+          <line x1="0" x2="900" y1="119" y2="119" stroke="#e3e8ee" />
+          <g fill="#2563eb">
+            <rect x="20" y="116" width="22" height="3" rx="1.5" />
+            <rect x="96" y="60" width="22" height="59" rx="3" />
+            <rect x="172" y="118" width="22" height="1" />
+            <rect x="248" y="116" width="22" height="3" rx="1.5" />
+            <rect x="324" y="20" width="22" height="99" rx="3" />
+            <rect x="400" y="118" width="22" height="1" />
+            <rect x="476" y="100" width="22" height="19" rx="3" />
+            <rect x="552" y="118" width="22" height="1" />
+            <rect x="628" y="82" width="22" height="37" rx="3" />
+            <rect x="704" y="116" width="22" height="3" rx="1.5" />
+            <rect x="780" y="118" width="22" height="1" />
+            <rect x="856" y="110" width="22" height="9" rx="3" />
+          </g>
+        </svg>
+      </div>
+      <div class="oz-c" style="padding-top: 4px">
+        <table>
+          <tr>
+            <th class="l">Enstrüman</th>
+            <th>Ödeme sayısı</th>
+            <th>Pay</th>
+            <th>Net ↓</th>
+            <th>Son ödeme</th>
+          </tr>
+          <tr>
+            <td><b>GARAN</b><small>GARANTI BANKASI</small></td>
+            <td>8</td>
+            <td><i class="oz-bar" style="width: 60px"></i>%97,2</td>
+            <td><b>₺1.700.000</b></td>
+            <td>12 Ağu 2026</td>
+          </tr>
+          <tr>
+            <td><b>MSFT</b><small>Microsoft Corporation · USD</small></td>
+            <td>2</td>
+            <td><i class="oz-bar" style="width: 3px"></i>%0,03</td>
+            <td><b>₺596</b> <span class="f">($17,00)</span></td>
+            <td>10 Eyl 2026</td>
+          </tr>
+        </table>
+      </div>
+      <div class="oz-chg">
+        <b>Changes against today</b>
+        <ul>
+          <li>
+            Expected dividends move from the bottom (collapsed) to the top, shown only when there
+            are some.
+          </li>
+          <li>New cell "Maliyete göre verim" (last 12 months net / cost of what you hold now).</li>
+          <li>
+            A small non-zero month draws as a 3 px bar; a zero month stays a 1 px line, so they no
+            longer look the same.
+          </li>
+          <li>
+            Table: "Adet" becomes "Ödeme sayısı"; share of total; the date carries its year; a
+            foreign dividend shows its own currency amount too; fits at 375 px.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ============ Tüm portföyler ============ -->
+    <div class="oz">
+      <span class="oz-tag"
+        >Tüm portföyler · combined Özet + comparison (replaces the old home page)</span
+      >
+      <div class="oz-h"><b>Tüm portföyler</b><span class="oz-btn2">+ Yeni portföy</span></div>
+      <div class="oz-ph" style="margin-top: 10px">
+        Same top as Özet layout A, summed over all portfolios: return card with yardstick and chart
+        · "Dikkat" list · KPI strip
+      </div>
+      <div class="oz-c" style="padding-top: 10px">
+        <b style="font-size: 13px"
+          >Portföyler <span class="f" style="font-weight: 400">· 3</span></b
+        >
+        <table style="margin-top: 2px">
+          <tr>
+            <th class="l">Portföy</th>
+            <th>Değer</th>
+            <th class="l">Pay</th>
+            <th>Getiri · 3 ay</th>
+            <th style="width: 120px"></th>
+            <th>Günlük</th>
+          </tr>
+          <tr>
+            <td><i class="oz-dot" style="background: #2563eb"></i><b>Ana portföy</b></td>
+            <td>₺1.284.560</td>
+            <td class="l"><i class="oz-bar" style="width: 53px"></i>%53,1</td>
+            <td class="g">+%8,1</td>
+            <td>
+              <svg viewBox="0 0 120 22" style="width: 120px; height: 22px">
+                <path
+                  d="M0 18 L15 15 L30 16 L45 11 L60 12 L75 7 L90 9 L105 4 L120 3"
+                  fill="none"
+                  stroke="#0a7d55"
+                  stroke-width="1.5"
+                />
+              </svg>
+            </td>
+            <td class="g">+₺4.210</td>
+          </tr>
+          <tr>
+            <td><i class="oz-dot" style="background: #0e9384"></i><b>Emeklilik</b></td>
+            <td>₺842.300</td>
+            <td class="l"><i class="oz-bar" style="width: 35px"></i>%34,8</td>
+            <td class="g">+%3,2</td>
+            <td>
+              <svg viewBox="0 0 120 22" style="width: 120px; height: 22px">
+                <path
+                  d="M0 14 L15 13 L30 15 L45 12 L60 13 L75 10 L90 11 L105 9 L120 8"
+                  fill="none"
+                  stroke="#0a7d55"
+                  stroke-width="1.5"
+                />
+              </svg>
+            </td>
+            <td class="r">−₺1.120</td>
+          </tr>
+          <tr>
+            <td><i class="oz-dot" style="background: #d98a1f"></i><b>Kripto</b></td>
+            <td>₺291.400</td>
+            <td class="l"><i class="oz-bar" style="width: 12px"></i>%12,1</td>
+            <td class="r">−%6,4</td>
+            <td>
+              <svg viewBox="0 0 120 22" style="width: 120px; height: 22px">
+                <path
+                  d="M0 5 L15 8 L30 6 L45 12 L60 10 L75 15 L90 13 L105 18 L120 17"
+                  fill="none"
+                  stroke="#cc2d43"
+                  stroke-width="1.5"
+                />
+              </svg>
+            </td>
+            <td class="g">+₺860</td>
+          </tr>
+        </table>
+      </div>
+      <div class="oz-ph">Tüm pozisyonlar (merged, compact rows) · Dağılım · İstatistikler</div>
+      <div class="oz-chg">
+        <b>Changes against today</b>
+        <ul>
+          <li>
+            The home page (<code>/</code>) goes away: <code>/</code> and the logo open this page.
+            The three numbers that were shown on both pages are shown once.
+          </li>
+          <li>
+            New "Portföyler" table: value, share, return for the chosen range with a sparkline,
+            today's change; a row opens that portfolio. Rename and delete stay in each portfolio's
+            own menu.
+          </li>
+          <li>"Dikkat" here lists items across all portfolios, each naming its portfolio.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="oz" style="margin-bottom: 8px">
+      <span class="oz-tag">Rules behind "Dikkat" (defaults; say if you want other numbers)</span>
+      <div class="oz-chg" style="box-shadow: none; padding: 6px 0 0">
+        <ul>
+          <li>
+            <b>Veri:</b> a position without a price; a currency without an FX rate; a manual price
+            older than 7 days; a benchmark value that is an estimate.
+          </li>
+          <li>
+            <b>Temettü onayı:</b> every expected dividend not yet recorded or dismissed, with Ekle /
+            Yoksay.
+          </li>
+          <li>
+            <b>Bugün:</b> the two positions that moved the portfolio most today, up or down, by
+            amount.
+          </li>
+          <li>
+            <b>Yoğunlaşma:</b> one position above 25% of the total; cash above 40%; assets in one
+            foreign currency above 50%. Shown as facts, no advice.
+          </li>
+          <li>
+            A group with nothing to show is hidden. With nothing at all, the card says "Her şey
+            yolunda" and stays small.
+          </li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

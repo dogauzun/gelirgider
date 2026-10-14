@@ -1,0 +1,7 @@
+{$DOMAIN} {
+	encode gzip
+	# Other security headers are set by the frontend image, see nginx.conf.
+	header Strict-Transport-Security "max-age=31536000"
+	header /api/* Cache-Control no-store
+	reverse_proxy frontend:8080
+}

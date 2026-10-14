@@ -1,0 +1,191 @@
+symbol,name
+0G-TRY,0G
+2Z-TRY,DoubleZero
+AAVE-TRY,Aave
+ACM-TRY,AC Milan
+ADA-TRY,Cardano
+AERO-TRY,Aerodrome Finance
+AFC-TRY,Arsenal
+AIOZ-TRY,AIOZ Network
+AIXBT-TRY,Aixbt By Virtuals
+ALGO-TRY,Algorand
+ALLO-TRY,Allora
+AMP-TRY,Amp
+ANIME-TRY,Animecoin
+ANKR-TRY,Ankr
+APE-TRY,ApeCoin
+API3-TRY,API3
+APT-TRY,Aptos
+ARB-TRY,Arbitrum
+ARKM-TRY,Arkham
+ARPA-TRY,Arpa
+ARX-TRY,Arcium
+ASR-TRY,Roma
+ATH-TRY,Aethir
+ATM-TRY,Atletico De Madrid
+ATOM-TRY,Cosmos
+AUDIO-TRY,Audius
+AVAX-TRY,Avalanche
+AVNT-TRY,Avantis
+AXL-TRY,Axelar
+AXS-TRY,Axie Infinity
+BAND-TRY,Band
+BAR-TRY,FC Barcelona
+BARD-TRY,Lombard
+BAT-TRY,Basic Attention Token
+BEAM-TRY,Beam
+BILL-TRY,Billions Network
+BIO-TRY,Bio Protocol
+BLUR-TRY,Blur
+BNT-TRY,Bancor
+BONK-TRY,Bonk
+BTC-TRY,Bitcoin
+CFG-TRY,Centrifuge
+CHZ-TRY,Chiliz
+CITY-TRY,Manchester City
+COMP-TRY,Compound
+CRV-TRY,Curve DAO Token
+CTSI-TRY,Cartesi
+CVC-TRY,Civic
+DASH-TRY,Dash
+DOGE-TRY,Dogecoin
+DOT-TRY,Polkadot
+EIGEN-TRY,EigenLayer
+ENA-TRY,Ethena
+ENJ-TRY,Enjin Coin
+ENS-TRY,Ethereum Name Service
+EOS-TRY,Eos
+ERA-TRY,Caldera
+ETC-TRY,Ethereum Classic
+ETH-TRY,Ethereum
+ETHFI-TRY,etherfi
+ETHW-TRY,EthereumPoW
+FB-TRY,Fenerbahçe
+FET-TRY,Fetch.ai
+FIDA-TRY,Bonfida
+FIL-TRY,Filecoin
+FLOKI-TRY,FLOKI
+FLOW-TRY,Flow
+FLR-TRY,Flare
+GAL-TRY,Galatasaray
+GALA-TRY,Gala
+GLM-TRY,Golem
+GLMR-TRY,Moonbeam
+GMT-TRY,Green Metaverse Token
+GRAM-TRY,Gram
+GRT-TRY,The Graph
+GRVT-TRY,GRVT
+H-TRY,Humanity Protocol
+HBAR-TRY,Hedera
+HNT-TRY,Helium
+HOT-TRY,Holo
+HYPE-TRY,Hyperliquid
+IMX-TRY,Immutable X
+INJ-TRY,Injective
+INTER-TRY,Inter Milan
+IO-TRY,IO.NET
+JASMY-TRY,JasmyCoin
+JTO-TRY,Jito
+JUP-TRY,Jupiter
+JUV-TRY,Juventus
+KAITO-TRY,Kaito
+KAVA-TRY,Kava
+KITE-TRY,Kite
+KSM-TRY,Kusama
+LAYER-TRY,Solayer
+LDO-TRY,Lido DAO
+LINEA-TRY,Linea
+LINK-TRY,ChainLink
+LIT-TRY,Lighter
+LPT-TRY,Livepeer
+LRC-TRY,Loopring
+LTC-TRY,Litecoin
+LUNA-TRY,Terra
+MAGIC-TRY,Magic
+MANA-TRY,Decentraland
+MANTRA-TRY,Mantra
+MASK-TRY,Mask Network
+ME-TRY,Magic Eden
+MELANIA-TRY,Melania Official Meme
+MEME-TRY,Memecoin
+MET-TRY,Meteora
+MIRA-TRY,Mira
+MNT-TRY,Mantle
+MON-TRY,Monad
+MORPHO-TRY,Morpho
+MOVE-TRY,Movement
+NAP-TRY,Napoli
+NEAR-TRY,Near Protocol
+NEO-TRY,Neo
+NMR-TRY,Numeraire
+OGN-TRY,Origin Protocol
+OMG-TRY,Omg Network
+ONDO-TRY,Ondo Finance
+OP-TRY,Optimism
+ORCA-TRY,Orca
+PAXG-TRY,PAX Gold
+PENGU-TRY,Pudgy Penguins
+PEPE-TRY,Pepe
+PNUT-TRY,Peanut the Squirrel
+POL-TRY,Polygon
+PSG-TRY,Paris Saint-Germain
+PUMP-TRY,Pump.fun
+PYTH-TRY,Pyth Network
+QNT-TRY,Quant
+RAD-TRY,Radworks
+RARE-TRY,SuperRare
+RAY-TRY,Raydium
+RE-TRY,Re
+RED-TRY,RedStone
+RENDER-TRY,Render Token
+RLC-TRY,iExec RLC
+RUNE-TRY,ThorChain
+S-TRY,Sonic
+SAHARA-TRY,Sahara AI
+SAND-TRY,The Sandbox
+SEI-TRY,SEI
+SENT-TRY,Sentient
+SHIB-TRY,Shiba Inu
+SKL-TRY,SKALE Network
+SKY-TRY,Sky
+SNX-TRY,Synthetix
+SOL-TRY,Solana
+SPELL-TRY,Spell Token
+SPK-TRY,Spark
+STORJ-TRY,Storj
+STRK-TRY,Starknet
+STX-TRY,Stacks
+SUI-TRY,SUI
+SUPER-TRY,SuperVerse
+SUSHI-TRY,SushiSwap
+T-TRY,Threshold
+TIA-TRY,Celestia
+TRA-TRY,Trabzonspor
+TRB-TRY,Tellor
+TRUMP-TRY,Official Trump
+TRX-TRY,Tron
+TURBO-TRY,Turbo
+UMA-TRY,Universal Market Access
+UNI-TRY,Uniswap
+USDC-TRY,USD Coin
+USDT-TRY,Tether
+VANA-TRY,Vana
+VIRTUAL-TRY,Virtuals Protocol
+VVV-TRY,Venice Token
+W-TRY,Wormhole
+WAL-TRY,Walrus
+WCT-TRY,WalletConnect Token
+WIF-TRY,Dogwifhat
+WLD-TRY,Worldcoin
+WLFI-TRY,World Liberty Financial
+XAUT-TRY,Tether Gold
+XCN-TRY,Onyxcoin
+XLM-TRY,Stellar
+XPL-TRY,Plasma
+XRP-TRY,Ripple
+XTZ-TRY,Tezos
+ZK-TRY,ZKsync
+ZKC-TRY,Boundless
+ZORA-TRY,Zora
+ZRO-TRY,LayerZero
+ZRX-TRY,0x Protocol

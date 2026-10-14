@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>gelirgider UI v2 visual reference</title>
+    <style>
+      :root {
+        --border: #d1d1d6;
+        --bg-secondary: #fff;
+        --text-primary: #1d1d1f;
+        --accent: #2563eb;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        font-family: system-ui, sans-serif;
+        background: #eceef2;
+        color: #1d1d1f;
+      }
+      h2 {
+        margin: 0 0 4px;
+        font-size: 20px;
+      }
+      .subtitle {
+        margin: 0 0 16px;
+        color: #666;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <h2>gelirgider UI v2: visual reference</h2>
+    <p class="subtitle">
+      Skin, shell and accent approved on 2026-10-04. Mock data. See
+      2026-10-04-ui-v2-design-language-and-shell-design.md.
+    </p>
+
+    <style>
+      .gx-ctl {
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        margin: 0 0 14px;
+        flex-wrap: wrap;
+      }
+      .gx-ctl b {
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-right: 6px;
+      }
+      .gx-ctl button {
+        font: inherit;
+        font-size: 0.8rem;
+        padding: 5px 12px 5px 9px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .gx-ctl button.on {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px var(--accent);
+      }
+      .gx-ctl button i {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .gx {
+        --g: #f6f8fb;
+        --sf: #fff;
+        --bd: #e3e8ee;
+        --bd2: #edf1f5;
+        --tx: #1a2233;
+        --tx2: #414c60;
+        --mu: #606b7c;
+        --th: #fafbfc;
+        --seg: #eaeef3;
+        --seg-on: #fff;
+        --gain: #0a7d55;
+        --loss: #cc2d43;
+        --on-ac: #fff;
+        --sh:
+          0 0 0 1px rgb(16 24 40 / 0.05), 0 1px 2px rgb(16 24 40 / 0.06),
+          0 6px 16px -4px rgb(16 24 40 / 0.08);
+        --sh-s: 0 1px 2px rgb(16 24 40 / 0.08), 0 0 0 1px rgb(16 24 40 / 0.04);
+        --ac-soft: color-mix(in srgb, var(--ac) 11%, var(--sf));
+        --gain-soft: color-mix(in srgb, var(--gain) 13%, var(--sf));
+        --loss-soft: color-mix(in srgb, var(--loss) 11%, var(--sf));
+        display: flex;
+        min-height: 640px;
+        text-align: left;
+        font-family: 'Inter', system-ui, sans-serif;
+        color: var(--tx);
+        background: var(--g);
+        font-size: 13px;
+        line-height: 1.45;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.006em;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+      .gx[data-theme='dark'] {
+        --g: #0d1016;
+        --sf: #161a22;
+        --bd: #272d39;
+        --bd2: #1f2530;
+        --tx: #e9ecf1;
+        --tx2: #b9c0cc;
+        --mu: #8791a2;
+        --th: #131720;
+        --seg: #0d1016;
+        --seg-on: #232936;
+        --gain: #3ecf8e;
+        --loss: #f26d78;
+        --sh:
+          0 0 0 1px rgb(255 255 255 / 0.07), 0 1px 0 rgb(255 255 255 / 0.04) inset,
+          0 8px 20px -8px rgb(0 0 0 / 0.6);
+        --sh-s: 0 0 0 1px rgb(255 255 255 / 0.08);
+      }
+      .gx[data-ac='blue'] {
+        --ac: #2563eb;
+      }
+      .gx[data-ac='blue'][data-theme='dark'] {
+        --ac: #5c9dff;
+      }
+      .gx[data-ac='blue'][data-theme='dark'] {
+        --on-ac: #0d1016;
+      }
+      .gx * {
+        box-sizing: border-box;
+      }
+      .gx-sb {
+        width: 220px;
+        flex-shrink: 0;
+        padding: 12px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .gx-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px 12px;
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .gx-mark {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        background: var(--tx);
+        color: var(--g);
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .gx-nl {
+        color: var(--mu);
+        font-size: 11px;
+        padding: 12px 8px 4px;
+        font-weight: 500;
+        display: flex;
+        justify-content: space-between;
+      }
+      .gx-ni {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        color: var(--tx2);
+        font-weight: 500;
+      }
+      .gx-ni i {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        border: 1.5px solid currentColor;
+        opacity: 0.5;
+        flex-shrink: 0;
+      }
+      .gx-ni.on {
+        background: var(--seg-on);
+        color: var(--tx);
+        box-shadow: var(--sh-s);
+      }
+      .gx-ni span {
+        margin-left: auto;
+        color: var(--mu);
+        font-weight: 400;
+        font-size: 11.5px;
+      }
+      .gx-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin: 0 3px;
+      }
+      .gx-me {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        color: var(--tx2);
+        font-size: 12px;
+      }
+      .gx-av {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--ac-soft);
+        color: var(--ac);
+        display: grid;
+        place-items: center;
+        font-size: 10px;
+        font-weight: 600;
+      }
+      .gx-mn {
+        flex: 1;
+        min-width: 0;
+        padding: 18px 24px 24px;
+      }
+      .gx-top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .gx-top h4 {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0 auto 0 0;
+        letter-spacing: -0.015em;
+      }
+      .gx-btn {
+        height: 30px;
+        padding: 0 11px;
+        border-radius: 8px;
+        border: 0;
+        background: var(--sf);
+        font: inherit;
+        font-weight: 500;
+        color: var(--tx);
+        display: inline-flex;
+        align-items: center;
+        box-shadow: var(--sh-s);
+        white-space: nowrap;
+      }
+      .gx-btn.pri {
+        background: var(--ac);
+        color: var(--on-ac);
+        box-shadow: 0 1px 2px rgb(16 24 40 / 0.15);
+      }
+      .gx-tabs {
+        display: flex;
+        gap: 2px;
+        border-bottom: 1px solid var(--bd);
+        margin-bottom: 16px;
+        height: 34px;
+      }
+      .gx-tabs span {
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        color: var(--mu);
+        font-weight: 500;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+      }
+      .gx-tabs span.on {
+        color: var(--tx);
+        border-color: var(--ac);
+      }
+      .gx-hero {
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .gx-hero .lbl,
+      .gx-kpi .lbl {
+        color: var(--mu);
+        font-size: 12px;
+      }
+      .gx-hero .big {
+        font-size: 36px;
+        font-weight: 600;
+        letter-spacing: -0.025em;
+        line-height: 1.1;
+      }
+      .gx-hero .big span {
+        color: var(--mu);
+        font-weight: 400;
+      }
+      .gx-chip {
+        display: inline-flex;
+        align-items: center;
+        height: 22px;
+        padding: 0 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 500;
+        background: var(--gain-soft);
+        color: var(--gain);
+        margin-bottom: 5px;
+      }
+      .gx-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+      .gx-c {
+        background: var(--sf);
+        border-radius: 12px;
+        box-shadow: var(--sh);
+      }
+      .gx-kpi {
+        padding: 12px 14px;
+      }
+      .gx-kpi .v {
+        font-size: 17px;
+        font-weight: 600;
+        margin-top: 3px;
+        letter-spacing: -0.02em;
+      }
+      .gx-kpi .s {
+        font-size: 12px;
+        color: var(--mu);
+      }
+      .gx .g {
+        color: var(--gain);
+      }
+      .gx .r {
+        color: var(--loss);
+      }
+      .gx-ch {
+        padding: 14px 14px 8px;
+        margin-bottom: 14px;
+      }
+      .gx-chh {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+      .gx-chh b,
+      .gx-tbh b {
+        font-weight: 600;
+      }
+      .gx-leg {
+        color: var(--mu);
+        font-size: 12px;
+        display: flex;
+        gap: 12px;
+        margin-right: auto;
+      }
+      .gx-leg span::before {
+        content: '';
+        display: inline-block;
+        width: 10px;
+        height: 2px;
+        background: var(--ac);
+        margin-right: 5px;
+        vertical-align: middle;
+      }
+      .gx-leg span + span::before {
+        background: var(--mu);
+        opacity: 0.6;
+      }
+      .gx-seg {
+        display: inline-flex;
+        background: var(--seg);
+        border-radius: 8px;
+        padding: 2px;
+      }
+      .gx-seg span {
+        padding: 3px 9px;
+        border-radius: 6px;
+        color: var(--mu);
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .gx-seg span.on {
+        background: var(--seg-on);
+        color: var(--tx);
+        box-shadow: var(--sh-s);
+      }
+      .gx-ch svg {
+        display: block;
+        width: 100%;
+        height: 170px;
+      }
+      .gx-tb {
+        overflow-x: auto;
+      }
+      .gx-tbh {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 14px;
+      }
+      .gx-tbh span {
+        color: var(--mu);
+        font-size: 12px;
+      }
+      .gx table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .gx th {
+        text-align: right;
+        font-weight: 500;
+        color: var(--mu);
+        font-size: 11.5px;
+        padding: 7px 14px;
+        background: var(--th);
+        border-top: 1px solid var(--bd2);
+        border-bottom: 1px solid var(--bd2);
+        white-space: nowrap;
+      }
+      .gx td {
+        text-align: right;
+        padding: 9px 14px;
+        border-bottom: 1px solid var(--bd2);
+        white-space: nowrap;
+      }
+      .gx tr:last-child td {
+        border-bottom: 0;
+      }
+      .gx th:first-child,
+      .gx td:first-child {
+        text-align: left;
+      }
+      .gx-in {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .gx-lg {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 9.5px;
+        font-weight: 600;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .gx-in b {
+        font-weight: 600;
+      }
+      .gx-in small,
+      .gx td small {
+        display: block;
+        color: var(--mu);
+        font-size: 11.5px;
+      }
+      .gx td.g small,
+      .gx td.r small {
+        color: inherit;
+      }
+      .gx-tag {
+        font-size: 10.5px;
+        color: var(--mu);
+        background: var(--seg);
+        border-radius: 4px;
+        padding: 1px 5px;
+        margin-left: 6px;
+        font-weight: 500;
+      }
+    </style>
+
+    <div class="gx-ctl">
+      <div>
+        <b>Accent</b>
+        <button data-set="ac:blue" class="on"><i style="background: #2563eb"></i>Blue</button>
+      </div>
+      <div>
+        <b>Theme</b>
+        <button data-set="theme:light" class="on">Light</button>
+        <button data-set="theme:dark">Dark</button>
+      </div>
+    </div>
+
+    <div class="gx" id="gx" data-ac="blue" data-theme="light">
+      <aside class="gx-sb">
+        <div class="gx-brand"><span class="gx-mark">g</span>gelirgider</div>
+        <div class="gx-ni"><i></i>Tüm portföyler<span>₺2,41 Mn</span></div>
+        <div class="gx-nl">Portföyler<b style="font-weight: 500">+</b></div>
+        <div class="gx-ni on">
+          <span class="gx-dot" style="background: var(--ac); margin: 0 3px"></span>Ana portföy<span
+            >₺1,28 Mn</span
+          >
+        </div>
+        <div class="gx-ni">
+          <span class="gx-dot" style="background: #0b8a5f; margin: 0 3px"></span>Emeklilik<span
+            >₺842 B</span
+          >
+        </div>
+        <div class="gx-ni">
+          <span class="gx-dot" style="background: #f59e0b; margin: 0 3px"></span>Kripto<span
+            >₺291 B</span
+          >
+        </div>
+        <div class="gx-nl">Genel</div>
+        <div class="gx-ni"><i></i>Yönetim</div>
+        <div class="gx-me"><span class="gx-av">A</span>ayse@example.com</div>
+      </aside>
+      <main class="gx-mn">
+        <div class="gx-top">
+          <h4>Ana portföy</h4>
+          <span class="gx-seg"><span class="on">TRY</span><span>USD</span></span
+          ><button class="gx-btn">AI için kopyala</button
+          ><button class="gx-btn pri">+ İşlem ekle</button>
+        </div>
+        <div class="gx-tabs">
+          <span class="on">Özet</span><span>İşlemler</span><span>Temettü</span
+          ><span>İçe aktar</span>
+        </div>
+        <div class="gx-hero">
+          <div>
+            <div class="lbl">Toplam değer</div>
+            <div class="big">₺1.284.650<span>,40</span></div>
+          </div>
+          <span class="gx-chip">+₺18.420,15 · +%1,45 bugün</span>
+        </div>
+        <div class="gx-kpis">
+          <div class="gx-c gx-kpi">
+            <div class="lbl">Gerçekleşmemiş K/Z</div>
+            <div class="v g">+₺312.480,90</div>
+            <div class="s">+%34,2 maliyete göre</div>
+          </div>
+          <div class="gx-c gx-kpi">
+            <div class="lbl">Gerçekleşmiş K/Z</div>
+            <div class="v g">+₺48.115,00</div>
+            <div class="s">7 kapanan pozisyon</div>
+          </div>
+          <div class="gx-c gx-kpi">
+            <div class="lbl">Getiri (TWR, 1Y)</div>
+            <div class="v g">+%41,8</div>
+            <div class="s">USD bazında +%9,3</div>
+          </div>
+          <div class="gx-c gx-kpi">
+            <div class="lbl">Nakit</div>
+            <div class="v">₺58.200,00</div>
+            <div class="s">$1.250,00 dahil</div>
+          </div>
+        </div>
+        <div class="gx-c gx-ch">
+          <div class="gx-chh">
+            <b>Değer</b>
+            <div class="gx-leg"><span>Portföy</span><span>USD/TRY</span></div>
+            <span class="gx-seg"
+              ><span>1A</span><span>3A</span><span>6A</span><span>YBB</span
+              ><span class="on">1Y</span><span>Tümü</span></span
+            >
+          </div>
+          <svg viewBox="0 0 800 170" preserveAspectRatio="none" id="gx-chart"></svg>
+        </div>
+        <div class="gx-c gx-tb">
+          <div class="gx-tbh"><b>Pozisyonlar</b><span>5 pozisyon, TRY olarak</span></div>
+          <table>
+            <thead>
+              <tr>
+                <th>Enstrüman</th>
+                <th>Adet</th>
+                <th>Ort. maliyet</th>
+                <th>Son fiyat</th>
+                <th>Günlük</th>
+                <th>Piyasa değeri</th>
+                <th>K/Z</th>
+              </tr>
+            </thead>
+            <tbody id="gx-rows"></tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      ;(function () {
+        var rows = [
+          [
+            'THYAO',
+            'Türk Hava Yolları',
+            'BIST',
+            '#c8102e',
+            '1.200',
+            '₺212,40',
+            '₺318,75',
+            '+%2,10',
+            '₺382.500,00',
+            '+₺127.620,00',
+            '+%50,1',
+          ],
+          [
+            'TTE',
+            'İş Portföy BIST Teknoloji Fonu',
+            'TEFAS',
+            '#1f6feb',
+            '84.000',
+            '₺2,914',
+            '₺4,102',
+            '+%0,64',
+            '₺344.568,00',
+            '+₺99.792,00',
+            '+%40,8',
+          ],
+          [
+            'VOO',
+            'Vanguard S&P 500 ETF',
+            'US',
+            '#8b1e2d',
+            '12,5',
+            '$498,20',
+            '$561,34',
+            '−%0,38',
+            '₺291.896,80',
+            '+₺61.340,50',
+            '+%26,6',
+          ],
+          [
+            'TUPRS',
+            'Tüpraş',
+            'BIST',
+            '#00529b',
+            '900',
+            '₺171,10',
+            '₺158,30',
+            '−%1,25',
+            '₺142.470,00',
+            '−₺11.520,00',
+            '−%7,5',
+          ],
+          [
+            'BTC-TRY',
+            'Bitcoin',
+            'Kripto',
+            '#f7931a',
+            '0,0152',
+            '₺3.480.000',
+            '₺4.276.000',
+            '+%3,02',
+            '₺64.995,20',
+            '+₺12.099,20',
+            '+%22,9',
+          ],
+        ]
+        document.getElementById('gx-rows').innerHTML = rows
+          .map(function (r) {
+            var day = r[7][0] === '+' ? 'g' : 'r',
+              pl = r[9][0] === '+' ? 'g' : 'r'
+            return (
+              '<tr><td><div class="gx-in"><span class="gx-lg" style="background:' +
+              r[3] +
+              '">' +
+              r[0].slice(0, 2) +
+              '</span><div><b>' +
+              r[0] +
+              '</b><span class="gx-tag">' +
+              r[2] +
+              '</span><small>' +
+              r[1] +
+              '</small></div></div></td><td>' +
+              r[4] +
+              '</td><td>' +
+              r[5] +
+              '</td><td>' +
+              r[6] +
+              '</td><td class="' +
+              day +
+              '">' +
+              r[7] +
+              '</td><td>' +
+              r[8] +
+              '</td><td class="' +
+              pl +
+              '">' +
+              r[9] +
+              '<small>' +
+              r[10] +
+              '</small></td></tr>'
+            )
+          })
+          .join('')
+        var s = 7,
+          pts = [],
+          bench = [],
+          v = 92,
+          b = 100
+        function rnd() {
+          s = (s * 16807) % 2147483647
+          return s / 2147483647
+        }
+        for (var i = 0; i < 80; i++) {
+          v += (rnd() - 0.42) * 7
+          b += (rnd() - 0.46) * 2.4
+          pts.push(v)
+          bench.push(b)
+        }
+        var hi = Math.max.apply(null, pts) + 6
+        function path(a) {
+          return a
+            .map(function (y, i) {
+              return (
+                (i ? 'L' : 'M') +
+                ((i * 800) / 79).toFixed(1) +
+                ' ' +
+                (160 - ((y - 80) / (hi - 80)) * 150).toFixed(1)
+              )
+            })
+            .join(' ')
+        }
+        var grid = [20, 65, 110, 155]
+          .map(function (y) {
+            return (
+              '<line x1="0" x2="800" y1="' +
+              y +
+              '" y2="' +
+              y +
+              '" stroke="var(--bd2)" vector-effect="non-scaling-stroke"/>'
+            )
+          })
+          .join('')
+        document.getElementById('gx-chart').innerHTML =
+          '<defs><linearGradient id="gxa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--ac)" stop-opacity=".18"/><stop offset="1" stop-color="var(--ac)" stop-opacity="0"/></linearGradient></defs>' +
+          grid +
+          '<path d="' +
+          path(pts) +
+          ' L800 170 L0 170 Z" fill="url(#gxa)"/><path d="' +
+          path(bench) +
+          '" fill="none" stroke="var(--mu)" stroke-opacity=".6" stroke-width="1.25" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/><path d="' +
+          path(pts) +
+          '" fill="none" stroke="var(--ac)" stroke-width="1.75" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'
+        var gx = document.getElementById('gx')
+        document.querySelectorAll('.gx-ctl button').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var kv = btn.dataset.set.split(':')
+            gx.dataset[kv[0]] = kv[1]
+            btn.parentNode.querySelectorAll('button').forEach(function (o) {
+              o.classList.toggle('on', o === btn)
+            })
+          })
+        })
+      })()
+    </script>
+  </body>
+</html>

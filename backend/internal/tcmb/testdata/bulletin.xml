@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Tarih_Date Tarih="11.09.2026" Date="09/11/2026" Bulten_No="2026/171">
+<Currency CrossOrder="0" Kod="USD" CurrencyCode="USD">
+<Unit>1</Unit><Isim>ABD DOLARI</Isim><CurrencyName>US DOLLAR</CurrencyName>
+<ForexBuying>48.4305</ForexBuying><ForexSelling>48.5178</ForexSelling>
+<BanknoteBuying>48.3966</BanknoteBuying><BanknoteSelling>48.5906</BanknoteSelling>
+</Currency>
+<Currency CrossOrder="1" Kod="EUR" CurrencyCode="EUR">
+<Unit>1</Unit><Isim>EURO</Isim><CurrencyName>EURO</CurrencyName>
+<ForexBuying>52.1090</ForexBuying><ForexSelling>52.2100</ForexSelling>
+<BanknoteBuying>52.0500</BanknoteBuying><BanknoteSelling>52.2900</BanknoteSelling>
+</Currency>
+<Currency CrossOrder="2" Kod="GBP" CurrencyCode="GBP">
+<Unit>1</Unit><Isim>INGILIZ STERLINI</Isim><CurrencyName>POUND STERLING</CurrencyName>
+<ForexBuying>61.2200</ForexBuying><ForexSelling>61.3500</ForexSelling>
+<BanknoteBuying>61.1000</BanknoteBuying><BanknoteSelling>61.4200</BanknoteSelling>
+</Currency>
+<Currency CrossOrder="3" Kod="JPY" CurrencyCode="JPY">
+<Unit>100</Unit><Isim>JAPON YENI</Isim><CurrencyName>JAPANESE YEN</CurrencyName>
+<ForexBuying></ForexBuying><ForexSelling></ForexSelling>
+<BanknoteBuying></BanknoteBuying><BanknoteSelling></BanknoteSelling>
+</Currency>
+</Tarih_Date>

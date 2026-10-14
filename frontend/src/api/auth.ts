@@ -1,0 +1,304 @@
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type Query,
+  type QueryClient,
+} from '@tanstack/react-query'
+import { apiFetch } from '../api'
+import { getLocale } from '../i18n/strings'
+import { clearToasts, flushToasts } from '../lib/toast'
+import { portfoliosQueryKey } from './portfolios'
+
+export interface Me {
+  id: string
+  email: string
+  reporting_currency: string
+  is_admin: boolean
+}
+
+export const meQueryKey = ['me'] as const
+
+function register(email: string, password: string): Promise<Me> {
+  return apiFetch<Me>('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, locale: getLocale() }),
+  })
+}
+
+// Public install config the login and register pages read before anyone
+// is logged in.
+export interface AuthConfig {
+  registration_open: boolean
+}
+
+export const authConfigQueryKey = ['auth-config'] as const
+
+// Whether an admin exists yet; SetupGate reads it on every page.
+export const setupStatusQueryKey = ['setup-status'] as const
+
+export function useAuthConfig() {
+  return useQuery({
+    queryKey: authConfigQueryKey,
+    queryFn: () => apiFetch<AuthConfig>('/api/auth/config'),
+  })
+}
+
+export function useSetupStatus() {
+  return useQuery({
+    queryKey: setupStatusQueryKey,
+    queryFn: () => apiFetch<{ needs_setup: boolean }>('/api/setup/status'),
+  })
+}
+
+// Step 1 of the setup wizard (ADR 0010): makes the first admin, or promotes an
+// existing account whose password matches, and signs them in. mutate() takes
+// no variables, so the password never lands in the mutation cache.
+// `onCreated` runs once me and the setup status have refetched.
+export function useSetupAdmin(
+  admin: { token: string; email: string; password: string },
+  onCreated: () => void,
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<Me>('/api/setup/admin', {
+        method: 'POST',
+        body: JSON.stringify({ ...admin, locale: getLocale() }),
+      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: meQueryKey }),
+        queryClient.invalidateQueries({ queryKey: setupStatusQueryKey }),
+      ])
+      onCreated()
+    },
+  })
+}
+
+// Admin only.
+function setRegistrationOpen(open: boolean): Promise<void> {
+  return apiFetch<void>('/api/admin/registration', {
+    method: 'PUT',
+    body: JSON.stringify({ open }),
+  })
+}
+
+export function useSetRegistrationOpen() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: setRegistrationOpen,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: authConfigQueryKey }),
+  })
+}
+
+// Where to go after logging in: the page ProtectedRoute sent the visitor away
+// from (its location rides along in router state as `from`), search and hash
+// included, else home. Only an in-app path: "//host" and "/\host" are read by
+// the browser as another origin, and the auth pages would just bounce.
+export function loginRedirectPath(state: unknown): string {
+  const from = (state as { from?: { pathname?: unknown; search?: unknown; hash?: unknown } } | null)
+    ?.from
+  const pathname = from?.pathname
+  if (
+    typeof pathname !== 'string' ||
+    !pathname.startsWith('/') ||
+    pathname.startsWith('//') ||
+    pathname.startsWith('/\\') ||
+    pathname === '/login' ||
+    pathname === '/register'
+  ) {
+    return '/'
+  }
+  const search = typeof from?.search === 'string' ? from.search : ''
+  const hash = typeof from?.hash === 'string' ? from.hash : ''
+  return pathname + search + hash
+}
+
+function login(email: string, password: string): Promise<Me> {
+  return apiFetch<Me>('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  })
+}
+
+// `onLoggedIn` runs once me has refetched.
+export function useLogin(onLoggedIn: () => void) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ email, password }: { email: string; password: string }) =>
+      login(email, password),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: meQueryKey })
+      onLoggedIn()
+    },
+  })
+}
+
+// Register doesn't set a session cookie (only login does), so log the new
+// user in with the same credentials right after. If that second call fails
+// the account still exists: `onDone` gets false, and the caller sends them to
+// the login page. Logged in, it runs once me has refetched.
+export function useRegister(onDone: (loggedIn: boolean) => void) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ email, password }: { email: string; password: string }) => {
+      await register(email, password)
+      try {
+        await login(email, password)
+        return true
+      } catch {
+        return false
+      }
+    },
+    onSuccess: async (loggedIn) => {
+      if (loggedIn) await queryClient.invalidateQueries({ queryKey: meQueryKey })
+      onDone(loggedIn)
+    },
+  })
+}
+
+// Whether the last session ended by a logout the user chose. ProtectedRoute
+// reads it so the null me that follows is not called an expired session: the
+// move to /login is a transition, and the protected page can render that null
+// me before it commits (GLG-833). The next signed-in /api/me clears it.
+let loggedOut = false
+
+export function loggedOutByUser(): boolean {
+  return loggedOut
+}
+
+export async function logout(): Promise<void> {
+  await apiFetch<void>('/api/auth/logout', { method: 'POST' })
+  loggedOut = true
+}
+
+// A delete still waiting behind its undo toast is sent first, while the
+// session lasts (GLG-795). Then me goes null before `onLoggedOut` runs, so
+// GuestRoute does not bounce /login back home; the protected page may still
+// see it before the caller's navigation commits, which logout() has told
+// ProtectedRoute is no expired session (GLG-833).
+export function useLogout(onLoggedOut: () => void) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      await flushToasts()
+      await logout()
+    },
+    onSuccess: async () => {
+      queryClient.setQueryData(meQueryKey, null)
+      onLoggedOut()
+      await queryClient.invalidateQueries({ queryKey: meQueryKey })
+    },
+  })
+}
+
+function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  return apiFetch<void>('/api/account/password', {
+    method: 'POST',
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  })
+}
+
+function updateReportingCurrency(currency: string): Promise<Me> {
+  return apiFetch<Me>('/api/me/reporting-currency', {
+    method: 'PUT',
+    body: JSON.stringify({ reporting_currency: currency }),
+  })
+}
+
+// mutate() takes no variables, so the passwords never land in the mutation
+// cache. `onChanged` runs on success.
+export function useChangePassword(
+  currentPassword: string,
+  newPassword: string,
+  onChanged: () => void,
+) {
+  return useMutation({
+    mutationFn: () => changePassword(currentPassword, newPassword),
+    onSuccess: onChanged,
+  })
+}
+
+// The portfolio list's values are in the reporting currency, and the sidebar
+// showing them stays mounted (GLG-875). Exact: the per-portfolio keys share
+// the prefix and refetch on their own pages' mount. `onSaved` runs last.
+export function useUpdateReportingCurrency(onSaved: () => void) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (currency: string) => updateReportingCurrency(currency),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(meQueryKey, updated)
+      queryClient.invalidateQueries({ queryKey: portfoliosQueryKey, exact: true })
+      onSaved()
+    },
+  })
+}
+
+// GET /api/me returns 401 when logged out. That's a normal, expected
+// response here, not a query error: report it as `null` instead of throwing.
+async function fetchMe(): Promise<Me | null> {
+  const res = await fetch('/api/me', { credentials: 'include' })
+  if (res.status === 401) {
+    return null
+  }
+  if (!res.ok) {
+    throw new Error(`failed to load session: ${res.status}`)
+  }
+  loggedOut = false
+  return res.json() as Promise<Me>
+}
+
+export function useMe() {
+  return useQuery({ queryKey: meQueryKey, queryFn: fetchMe })
+}
+
+// Me, and the public queries: they hold no user's data, are the same for
+// everybody, and SetupGate and the login, register and setup pages read them,
+// so a change of user leaves them alone.
+const keptQueryKeys: readonly unknown[] = [
+  meQueryKey[0],
+  authConfigQueryKey[0],
+  setupStatusQueryKey[0],
+]
+
+// Everything else in the cache belongs to the user in me. When that user
+// leaves, drop it so the next user never sees it rendered (GLG-389). Logged
+// out (logout, an expired session): the protected pages unmount, so remove
+// it; a query still on screen goes once its page has unmounted. The page can
+// render once more before it does, and a query removed under it would be
+// built and fetched again, without a session (GLG-999). Another account
+// signed in from another tab: the mounted page stays, so reset it, which
+// refetches what is on screen. The kept queries stay.
+// Toasts go too, their held-back commits unsent but undone: logout has flushed them
+// already, an expired session or another account would only see them fail
+// or show them to the wrong user. On a login as well, for one that a late
+// response added after the user left (GLG-849), and the cache is reset then
+// too: a request sent without a session may still be in flight, and the next
+// user's page would join it and get its 401 (GLG-998).
+export function dropDataOnUserChange(queryClient: QueryClient) {
+  // undefined until /api/me first answers, null while signed out.
+  let cachedUserId: string | null | undefined
+  const queryCache = queryClient.getQueryCache()
+  const unseen = (query: Query) =>
+    !keptQueryKeys.includes(query.queryKey[0]) && query.getObserversCount() === 0
+  queryCache.subscribe((event) => {
+    if (event.type === 'observerRemoved' && cachedUserId === null && unseen(event.query)) {
+      queryCache.remove(event.query)
+    }
+    if (event.type !== 'updated' || event.query.queryKey[0] !== meQueryKey[0]) return
+    const me = event.query.state.data as Me | null | undefined
+    if (me === undefined) return
+    const id = me?.id ?? null
+    if (id === cachedUserId) return
+    clearToasts()
+    if (cachedUserId !== undefined) {
+      if (id === null) queryClient.removeQueries({ predicate: unseen })
+      else
+        queryClient.resetQueries({
+          predicate: (query) => !keptQueryKeys.includes(query.queryKey[0]),
+        })
+    }
+    cachedUserId = id
+  })
+}

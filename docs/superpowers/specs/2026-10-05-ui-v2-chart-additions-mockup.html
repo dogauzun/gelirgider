@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UI v2 chart additions mockup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        --border: #d9dee6;
+        margin: 24px auto;
+        padding: 0 16px;
+        font-family: system-ui, sans-serif;
+        color: #1a2233;
+        max-width: 1040px;
+      }
+      h1 {
+        font-size: 18px;
+      }
+      p.lead {
+        color: #606b7c;
+        font-size: 14px;
+        margin-bottom: 28px;
+      }
+
+      .oz {
+        --g: #f6f8fb;
+        --sf: #fff;
+        --bd: #e3e8ee;
+        --tx: #1a2233;
+        --mu: #606b7c;
+        --fa: #828d9d;
+        --well: #eaeef3;
+        --ac: #2563eb;
+        --gain: #0a7d55;
+        --loss: #cc2d43;
+        --sh:
+          0 0 0 1px rgb(16 24 40 / 0.05), 0 1px 2px rgb(16 24 40 / 0.06),
+          0 6px 16px -4px rgb(16 24 40 / 0.08);
+        background: var(--g);
+        color: var(--tx);
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 12px;
+        line-height: 1.4;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.006em;
+        padding: 18px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        margin: 0 0 22px;
+        text-align: left;
+        position: relative;
+      }
+      .oz * {
+        box-sizing: border-box;
+      }
+      .oz-tag {
+        position: absolute;
+        top: -11px;
+        left: 14px;
+        background: var(--tx);
+        color: var(--g);
+        font-weight: 600;
+        font-size: 11px;
+        padding: 3px 10px;
+        border-radius: 999px;
+      }
+      .oz-c {
+        background: var(--sf);
+        border-radius: 12px;
+        box-shadow: var(--sh);
+        padding: 14px 16px;
+        flex: 1;
+        min-width: 0;
+      }
+      .oz-row {
+        display: flex;
+        gap: 14px;
+      }
+      .oz-ctl {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .oz-seg {
+        display: inline-flex;
+        background: var(--well);
+        border-radius: 8px;
+        padding: 2px;
+        gap: 1px;
+        font-size: 11px;
+      }
+      .oz-seg span {
+        padding: 3px 8px;
+        border-radius: 6px;
+        color: var(--mu);
+      }
+      .oz-seg .on {
+        background: var(--sf);
+        color: var(--tx);
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgb(16 24 40 / 0.12);
+      }
+      .g {
+        color: var(--gain);
+      }
+      .r {
+        color: var(--loss);
+      }
+      .m {
+        color: var(--mu);
+      }
+      .f {
+        color: var(--fa);
+      }
+      .oz-leg {
+        display: grid;
+        grid-template-columns: auto 1fr auto auto;
+        gap: 5px 10px;
+        align-items: center;
+        flex: 1;
+      }
+      .oz-leg i {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        display: block;
+      }
+      .oz-pl {
+        display: grid;
+        grid-template-columns: 64px 1fr 110px;
+        gap: 6px 8px;
+        align-items: center;
+        margin-top: 10px;
+      }
+      .oz-pl .bar {
+        height: 14px;
+        position: relative;
+      }
+      .oz-pl .bar::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: -3px;
+        bottom: -3px;
+        width: 1px;
+        background: var(--bd);
+      }
+      .oz-pl .bar b {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        border-radius: 3px;
+      }
+      .oz-pl .bar b.g {
+        left: 50%;
+        background: var(--gain);
+        opacity: 0.85;
+      }
+      .oz-pl .bar b.r {
+        right: 50%;
+        background: var(--loss);
+        opacity: 0.85;
+      }
+      .oz-note {
+        color: var(--mu);
+        margin: 10px 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>UI v2 chart additions: approved designs</h1>
+    <p class="lead">
+      Reference for the chart additions spec (2026-10-05): the allocation donut, the "Katkı" card
+      and drag to zoom, at 1280 px. Synthetic numbers. A mockup, not the implementation: the spec is
+      binding.
+    </p>
+
+    <div class="oz">
+      <span class="oz-tag">Row under the positions table</span>
+      <div class="oz-row">
+        <div class="oz-c">
+          <div class="oz-ctl">
+            <b style="font-size: 13px">Dağılım</b
+            ><span class="oz-seg"
+              ><span class="on">Sembol</span><span>Pazar</span><span>Para birimi</span></span
+            >
+          </div>
+          <div style="display: flex; gap: 18px; align-items: center; margin-top: 10px">
+            <svg viewBox="0 0 120 120" style="width: 150px; height: 150px; flex: none">
+              <g fill="none" stroke-width="16" transform="rotate(-90 60 60)">
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="46"
+                  stroke="#667085"
+                  stroke-dasharray="134.7 289"
+                  stroke-dashoffset="0"
+                  opacity=".45"
+                />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="46"
+                  stroke="#2563eb"
+                  stroke-dasharray="24.6 289"
+                  stroke-dashoffset="-136.2"
+                />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="46"
+                  stroke="#0e9384"
+                  stroke-dasharray="19.9 289"
+                  stroke-dashoffset="-162.3"
+                />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="46"
+                  stroke="#d98a1f"
+                  stroke-dasharray="15 289"
+                  stroke-dashoffset="-183.7"
+                />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="46"
+                  stroke="#7a5af8"
+                  stroke-dasharray="13.3 289"
+                  stroke-dashoffset="-200.2"
+                />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="46"
+                  stroke="#e0563b"
+                  stroke-dasharray="13 289"
+                  stroke-dashoffset="-215"
+                />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="46"
+                  stroke="#667085"
+                  stroke-dasharray="58 289"
+                  stroke-dashoffset="-229.5"
+                />
+              </g>
+              <text
+                x="60"
+                y="56"
+                text-anchor="middle"
+                font-size="8"
+                fill="#606b7c"
+                font-family="Inter"
+              >
+                Toplam
+              </text>
+              <text
+                x="60"
+                y="69"
+                text-anchor="middle"
+                font-size="11"
+                font-weight="600"
+                fill="#1a2233"
+                font-family="Inter"
+              >
+                ₺6,80 Mn
+              </text>
+            </svg>
+            <div class="oz-leg">
+              <i style="background: #667085; opacity: 0.45"></i><span>Nakit</span
+              ><span class="m">₺3.166.759</span><b>%46,6</b> <i style="background: #2563eb"></i
+              ><span>AAPL</span><span class="m">₺575.273</span><b>%8,5</b>
+              <i style="background: #0e9384"></i><span>MSFT</span><span class="m">₺471.283</span
+              ><b>%6,9</b> <i style="background: #d98a1f"></i><span>ASELS</span
+              ><span class="m">₺356.668</span><b>%5,2</b> <i style="background: #7a5af8"></i
+              ><span>GARAN</span><span class="m">₺313.800</span><b>%4,6</b>
+              <i style="background: #e0563b"></i><span>AKBNK</span><span class="m">₺305.200</span
+              ><b>%4,5</b> <i style="background: #667085"></i><span>Diğer (10)</span
+              ><span class="m">₺1.613.936</span><b>%23,7</b>
+            </div>
+          </div>
+        </div>
+        <div class="oz-c">
+          <div class="oz-ctl">
+            <b style="font-size: 13px"
+              >Katkı <span class="f" style="font-weight: 400">· pozisyon başına K/Z</span></b
+            ><span class="oz-seg"><span class="on">Toplam</span><span>Bugün</span></span>
+          </div>
+          <div class="oz-pl">
+            <b>ASELS</b>
+            <div class="bar"><b class="g" style="width: 46%"></b></div>
+            <span class="g" style="text-align: right">+₺194.984</span> <b>MSFT</b>
+            <div class="bar"><b class="g" style="width: 14%"></b></div>
+            <span class="g" style="text-align: right">+₺59.714</span> <b>GARAN</b>
+            <div class="bar"><b class="g" style="width: 13%"></b></div>
+            <span class="g" style="text-align: right">+₺54.310</span> <b>BTC-TRY</b>
+            <div class="bar"><b class="g" style="width: 8.5%"></b></div>
+            <span class="g" style="text-align: right">+₺35.924</span> <b>FROTO</b>
+            <div class="bar"><b class="r" style="width: 3.2%"></b></div>
+            <span class="r" style="text-align: right">−₺13.364</span> <b>KCHOL</b>
+            <div class="bar"><b class="r" style="width: 4.4%"></b></div>
+            <span class="r" style="text-align: right">−₺18.749</span> <b>TTE</b>
+            <div class="bar"><b class="r" style="width: 4.6%"></b></div>
+            <span class="r" style="text-align: right">−₺19.270</span> <b>AAPL</b>
+            <div class="bar"><b class="r" style="width: 7%"></b></div>
+            <span class="r" style="text-align: right">−₺29.434</span>
+          </div>
+          <p class="oz-note">
+            Four best and four worst; "Tümünü göster" opens the full list. A bar is a link to the
+            position.
+          </p>
+        </div>
+      </div>
+      <p class="oz-note">
+        İstatistikler (net katkı, temettü, faiz, komisyon, ilk işlem) moves to a full-width strip
+        under this row.
+      </p>
+    </div>
+
+    <div class="oz">
+      <span class="oz-tag">Drag to zoom on the value chart (desktop)</span>
+      <div class="oz-c">
+        <div class="oz-ctl">
+          <span
+            ><b style="font-size: 13px">Getiri · 12 Ağu – 03 Eyl</b>
+            <span class="g" style="font-weight: 600; margin-left: 6px">+%2,1</span></span
+          ><span class="oz-seg"
+            ><span>1A</span><span>3A</span><span>1Y</span><span>Tümü</span
+            ><span class="on">Özel ✕</span></span
+          >
+        </div>
+        <svg
+          viewBox="0 0 900 150"
+          preserveAspectRatio="none"
+          style="display: block; width: 100%; height: 150px; margin-top: 8px"
+        >
+          <defs>
+            <linearGradient id="zg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#2563eb" stop-opacity=".16" />
+              <stop offset="1" stop-color="#2563eb" stop-opacity="0" />
+            </linearGradient>
+          </defs>
+          <g stroke="#e3e8ee" stroke-dasharray="3 4">
+            <line x1="0" x2="900" y1="30" y2="30" />
+            <line x1="0" x2="900" y1="75" y2="75" />
+            <line x1="0" x2="900" y1="120" y2="120" />
+          </g>
+          <path
+            d="M0 110 L60 100 L120 106 L180 84 L240 92 L300 70 L360 78 L420 58 L480 66 L540 46 L600 52 L660 34 L720 42 L780 28 L840 34 L900 22 L900 150 L0 150 Z"
+            fill="url(#zg)"
+          />
+          <path
+            d="M0 110 L60 100 L120 106 L180 84 L240 92 L300 70 L360 78 L420 58 L480 66 L540 46 L600 52 L660 34 L720 42 L780 28 L840 34 L900 22"
+            fill="none"
+            stroke="#2563eb"
+            stroke-width="1.75"
+          />
+          <rect x="330" y="0" width="210" height="150" fill="#2563eb" opacity=".10" />
+          <line x1="330" x2="330" y1="0" y2="150" stroke="#2563eb" />
+          <line x1="540" x2="540" y1="0" y2="150" stroke="#2563eb" />
+        </svg>
+        <p class="oz-note">
+          Press and drag across the plot: the shaded span becomes the range. The headline return,
+          the yardstick and the URL follow, exactly as if "Özel" had been filled in. "✕" returns to
+          the previous range. On a phone a drag keeps scrubbing the tooltip; zoom is desktop only.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

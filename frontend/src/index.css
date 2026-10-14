@@ -1,0 +1,256 @@
+@import 'tailwindcss';
+
+/* Dark is driven by the tokens below, so `dark:` is only for the rare one-off. */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* `static` keeps every token in the output even when no utility uses it yet, so
+   charts reading var(--color-cat-*) work and light/dark stay in sync. */
+@theme static {
+  --color-paper: #f6f8fb;
+  --color-surface: #ffffff;
+  --color-line: #e3e8ee;
+  --color-line-strong: #cfd7e0;
+  --color-ink: #1a2233;
+  --color-ink-2: #414c60;
+  /* Text and graphics drawn on a solid `ink`, `accent` or `loss` fill. Not
+     `paper`: the page ground and a label on a filled button are different
+     jobs. The fills are dark in light mode and light in dark mode, so one
+     token serves them. */
+  --color-on-ink: #ffffff;
+  --color-muted: #606b7c;
+  --color-faint: #828d9d;
+  --color-chip: #eaeef3;
+  /* The sunken track of a segmented control. */
+  --color-well: #eaeef3;
+  /* The raised, selected item on a well. */
+  --color-raised: #ffffff;
+  /* The hover fill of a raised control. */
+  --color-raised-hover: #f1f4f8;
+  /* Dialog backdrop. The alpha is part of the token so the dark scrim can be
+     stronger than the light one instead of inverting with `ink`. */
+  --color-scrim: rgb(16 24 40 / 0.4);
+  --color-accent: #2563eb;
+  --color-accent-ink: #1d4fd0;
+  --color-accent-soft: #eaf0fe;
+  --color-accent-line: #c7d7fb;
+  --color-gain: #0a7d55;
+  --color-gain-soft: #e1f6ec;
+  --color-loss: #cc2d43;
+  --color-loss-soft: #fdecef;
+  --color-loss-line: #f6c5cc;
+  --color-warn: #8a5a00;
+  --color-warn-soft: #fdf4dc;
+  --color-warn-line: #f0dca0;
+  --color-plum: #6941c6;
+  --color-plum-soft: #f1ecfb;
+  --color-cash: #8b939f;
+  --color-cat-1: #2563eb;
+  --color-cat-2: #0e9384;
+  --color-cat-3: #d98a1f;
+  --color-cat-4: #7a5af8;
+  --color-cat-5: #e0563b;
+  --color-cat-6: #344054;
+
+  /* Resting cards, controls (buttons, inputs, active tab or segment), and
+     floating layers (menus, dialogs, toasts, tooltips). Each carries its own
+     1px ring, so a surface with a shadow needs no border. Tailwind copies a
+     --shadow-* value into its shadow-* utility instead of referencing it, so
+     the values live in --elevation-*, which the dark blocks can redefine. */
+  --shadow-card: var(--elevation-card);
+  --shadow-ctl: var(--elevation-ctl);
+  --shadow-pop: var(--elevation-pop);
+
+  --radius-card: 12px;
+  --radius-ctl: 8px;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+  --elevation-card:
+    0 0 0 1px rgb(16 24 40 / 0.05), 0 1px 2px rgb(16 24 40 / 0.06),
+    0 6px 16px -4px rgb(16 24 40 / 0.08);
+  --elevation-ctl: 0 0 0 1px rgb(16 24 40 / 0.1), 0 1px 2px rgb(16 24 40 / 0.08);
+  --elevation-pop:
+    0 0 0 1px rgb(16 24 40 / 0.06), 0 2px 6px rgb(16 24 40 / 0.06),
+    0 8px 24px -4px rgb(16 24 40 / 0.16);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --color-paper: #0d1016;
+  --color-surface: #161a22;
+  --color-line: #272d39;
+  --color-line-strong: #353c4a;
+  --color-ink: #e9ecf1;
+  --color-ink-2: #b9c0cc;
+  --color-on-ink: #0d1016;
+  --color-muted: #949eaf;
+  --color-faint: #6f7888;
+  --color-chip: #232936;
+  --color-well: #0d1016;
+  --color-raised: #232936;
+  --color-raised-hover: #2d3545;
+  --color-scrim: rgb(0 0 0 / 0.6);
+  --color-accent: #5c9dff;
+  --color-accent-ink: #a9c8ff;
+  --color-accent-soft: #16233d;
+  --color-accent-line: #26406e;
+  --color-gain: #3ecf8e;
+  --color-gain-soft: #10291f;
+  --color-loss: #f57882;
+  --color-loss-soft: #3a1c20;
+  --color-loss-line: #5c2a31;
+  --color-warn: #e0b45a;
+  --color-warn-soft: #2e2510;
+  --color-warn-line: #4a3a14;
+  --color-plum: #b69df8;
+  --color-plum-soft: #251d3a;
+  --color-cash: #c0c7d2;
+  --color-cat-1: #5c9dff;
+  --color-cat-2: #3fc1b0;
+  --color-cat-3: #e5a84b;
+  --color-cat-4: #a48afb;
+  --color-cat-5: #f0806a;
+  --color-cat-6: #5f6879;
+  /* Shadows do not read on a dark ground: a light ring plus a top highlight. */
+  --elevation-card:
+    0 0 0 1px rgb(255 255 255 / 0.07), inset 0 1px 0 rgb(255 255 255 / 0.04),
+    0 8px 20px -8px rgb(0 0 0 / 0.6);
+  --elevation-ctl: 0 0 0 1px rgb(255 255 255 / 0.08);
+  --elevation-pop: 0 0 0 1px rgb(255 255 255 / 0.1), 0 12px 32px -6px rgb(0 0 0 / 0.7);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --color-paper: #0d1016;
+    --color-surface: #161a22;
+    --color-line: #272d39;
+    --color-line-strong: #353c4a;
+    --color-ink: #e9ecf1;
+    --color-ink-2: #b9c0cc;
+    --color-on-ink: #0d1016;
+    --color-muted: #949eaf;
+    --color-faint: #6f7888;
+    --color-chip: #232936;
+    --color-well: #0d1016;
+    --color-raised: #232936;
+    --color-raised-hover: #2d3545;
+    --color-scrim: rgb(0 0 0 / 0.6);
+    --color-accent: #5c9dff;
+    --color-accent-ink: #a9c8ff;
+    --color-accent-soft: #16233d;
+    --color-accent-line: #26406e;
+    --color-gain: #3ecf8e;
+    --color-gain-soft: #10291f;
+    --color-loss: #f57882;
+    --color-loss-soft: #3a1c20;
+    --color-loss-line: #5c2a31;
+    --color-warn: #e0b45a;
+    --color-warn-soft: #2e2510;
+    --color-warn-line: #4a3a14;
+    --color-plum: #b69df8;
+    --color-plum-soft: #251d3a;
+    --color-cash: #c0c7d2;
+    --color-cat-1: #5c9dff;
+    --color-cat-2: #3fc1b0;
+    --color-cat-3: #e5a84b;
+    --color-cat-4: #a48afb;
+    --color-cat-5: #f0806a;
+    --color-cat-6: #5f6879;
+    /* Shadows do not read on a dark ground: a light ring plus a top highlight. */
+    --elevation-card:
+      0 0 0 1px rgb(255 255 255 / 0.07), inset 0 1px 0 rgb(255 255 255 / 0.04),
+      0 8px 20px -8px rgb(0 0 0 / 0.6);
+    --elevation-ctl: 0 0 0 1px rgb(255 255 255 / 0.08);
+    --elevation-pop: 0 0 0 1px rgb(255 255 255 / 0.1), 0 12px 32px -6px rgb(0 0 0 / 0.7);
+  }
+}
+
+/* Inter (variable weight), SIL Open Font License 1.1 (public/fonts/OFL-Inter.txt).
+   Files and unicode-range from @fontsource-variable/inter 5.3.0. Turkish
+   letters (ğ, ş, İ) and the lira sign (₺) are in latin-ext. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/InterVariable-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/InterVariable-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* @apply, not raw declarations: shadow-card has to go through Tailwind's
+   --tw-shadow so a ring-* on the same element composes with it. */
+@utility card {
+  @apply rounded-card bg-surface shadow-card;
+}
+
+body {
+  @apply bg-paper text-ink antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Keyboard focus never scrolls a control under a sticky or fixed bar
+   (GLG-1067, WCAG 2.4.11); 4px more keeps the focus ring clear. Below lg the
+   app's top bar (h-12) sticks, below sm a portfolio page's tab row (h-10 and
+   its 1px rule) sticks under it, and below md a portfolio page's add button
+   floats 1rem above the bottom (size-14). A bottom bar sets its own padding
+   (lib/bottomBar.ts). */
+@media (width < 64rem) {
+  html {
+    scroll-padding-top: calc(3rem + 4px);
+  }
+}
+@media (width < 40rem) {
+  html:has([data-sticky-tabs]) {
+    scroll-padding-top: calc(5.5rem + 5px);
+  }
+}
+@media (width < 48rem) {
+  html:has([data-fab]) {
+    scroll-padding-bottom: calc(5rem + 4px);
+  }
+}
+
+/* In the base layer, so a control that draws its own focus (inputClass's
+   border and ring, menu and select items' highlight) can turn it off with
+   outline-none. Unlayered, it beat every utility (GLG-884). */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  /* Chromium tabs to a date input's calendar icon and draws its own black
+     ring on it. The field shows the focus instead, through inputClass's
+     focus-within border and ring (GLG-892). Chromium matches no :focus or
+     :focus-visible on this pseudo-element, so the ring goes off outright. */
+  ::-webkit-calendar-picker-indicator {
+    outline: none;
+  }
+}
+
+/* Base UI injects this rule as a <style> element, which the production CSP
+   (deploy/nginx.conf, no style-src) blocks. main.tsx turns that off with
+   CSPProvider disableStyleElements, so the rule lives here instead. */
+.base-ui-disable-scrollbar {
+  scrollbar-width: none;
+}
+.base-ui-disable-scrollbar::-webkit-scrollbar {
+  display: none;
+}

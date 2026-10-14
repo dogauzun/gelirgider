@@ -1,0 +1,11 @@
+# Build context is the repo root (deploy/compose.yml, make build). Keep
+# secrets, databases and host build output out of it: patterns here are
+# anchored to the context root, so nested paths need **/.
+.git
+.claude
+**/node_modules
+**/*.db*
+deploy/data
+**/.env*
+!**/.env.example
+frontend/dist

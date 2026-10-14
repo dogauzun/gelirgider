@@ -1,0 +1,60 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - dupl
+    - forbidigo
+    - funlen
+    - gocognit
+    - nestif
+    - noctx
+    - revive
+    - usestdlibvars
+  settings:
+    dupl:
+      threshold: 45
+    forbidigo:
+      forbid:
+        - pattern: '^time\.LoadLocation$'
+          msg: use price.Istanbul
+        - pattern: '^strings\.Repeat$'
+          msg: use db.InList
+        - pattern: '^price\.MinDate$'
+          msg: use price.CheckDate
+        - pattern: '^price\.Istanbul$'
+          msg: use the price day helpers
+    funlen:
+      lines: 150
+      statements: -1
+      ignore-comments: true
+    gocognit:
+      min-complexity: 45
+    nestif:
+      min-complexity: 10
+    revive:
+      rules:
+        - name: argument-limit
+          arguments: [6]
+    usestdlibvars:
+      time-layout: true
+  exclusions:
+    rules:
+      - path: internal/price/price\.go
+        linters: [forbidigo]
+      - path: internal/us/us(_test)?\.go
+        linters: [forbidigo]
+      - path: _test\.go$
+        linters: [dupl, funlen, gocognit, noctx]
+      - path: (_test\.go|internal/db/db\.go)$
+        linters: [forbidigo]
+        text: use db\.InList
+      # Tests use MinDate as the boundary value they probe.
+      - path: _test\.go$
+        linters: [forbidigo]
+        text: use price\.CheckDate
+      # The scheduler clock, the manual run's clock and the TEFAS period
+      # window want the zone itself, not a day boundary; tests build
+      # fixtures in it.
+      - path: internal/scheduler/|internal/server/schedule\.go|internal/tefas/tefas\.go|_test\.go$
+        linters: [forbidigo]
+        text: use the price day helpers

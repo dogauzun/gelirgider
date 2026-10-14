@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">
+  <!-- Hex values mirror the light `ink` (#1a2233) and `paper` (#f6f8fb) tokens
+       of frontend/src/index.css (ADR 0023) by hand: a favicon cannot read CSS
+       variables. The three PNG icons next to this file are rendered from it. -->
+  <rect width="22" height="22" rx="6" fill="#1a2233" />
+  <polyline points="5,15 9,10 12,12.5 17,6" fill="none" stroke="#f6f8fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="17" cy="6" r="1.6" fill="#f6f8fb" />
+</svg>
