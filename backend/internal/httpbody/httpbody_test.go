@@ -55,7 +55,7 @@ func TestFetch(t *testing.T) {
 	}
 }
 
-// TestFetchNilClientTimesOut covers GLG-396: with a nil client, a server
+// TestFetchNilClientTimesOut checks that with a nil client, a server
 // that never answers fails the fetch at the default client's timeout
 // instead of holding it until the caller's context ends.
 func TestFetchNilClientTimesOut(t *testing.T) {

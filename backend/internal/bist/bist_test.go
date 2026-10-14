@@ -101,7 +101,7 @@ func TestFetchClosesParsesEquityAndETFRowsOnly(t *testing.T) {
 }
 
 // TestFetchClosesKeepsGoldCertificate covers ALTIN.S1, the Darphane gold
-// certificate, the only instrument in bulletin group EMS (GLG-1174).
+// certificate, the only instrument in bulletin group EMS.
 func TestFetchClosesKeepsGoldCertificate(t *testing.T) {
 	zipBytes := bulletinZip(t, "TARIH;ISLEM  KODU;BULTEN ADI;ENSTRUMAN GRUBU;KAPANIS FIYATI\n"+
 		"TRADE DATE;INSTRUMENT SERIES CODE;INSTRUMENT NAME;INSTRUMENT GROUP;CLOSING PRICE\n"+
@@ -126,7 +126,7 @@ func TestFetchClosesKeepsGoldCertificate(t *testing.T) {
 // UMPAS (empty close) and ISKUR (zero close) included with a zero Close,
 // and the one suffix mismatch (OYAKC.TE) counted. The CSV starts with a
 // UTF-8 BOM, as the 2025-05-02 bulletin does, which hid the first header
-// column (GLG-636).
+// column.
 func TestFetchBulletinKeepsSuspendedRowsAndStripsUTF8BOM(t *testing.T) {
 	zipBytes := bulletinZip(t, "\xef\xbb\xbf"+bulletinCSV)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +179,7 @@ func TestFetchCloses404IsNotAnError(t *testing.T) {
 
 // TestSyncAddsUnknownSymbolsAndOverwritesExistingPrice covers the two pieces
 // of non-trivial logic in Sync: a bulletin symbol with no instrument row
-// gets one inserted from the bulletin's name column (GLG-228), and an
+// gets one inserted from the bulletin's name column, and an
 // existing prices row for the same instrument/date is overwritten by the
 // bulletin.
 func TestSyncAddsUnknownSymbolsAndOverwritesExistingPrice(t *testing.T) {
@@ -231,7 +231,7 @@ func TestSyncAddsUnknownSymbolsAndOverwritesExistingPrice(t *testing.T) {
 	if kuyas.Name != "KUYAS GAYRIMENKUL" || kuyas.Currency != "TRY" {
 		t.Fatalf("KUYAS instrument = %+v, want name=KUYAS GAYRIMENKUL currency=TRY", kuyas)
 	}
-	// The GLG-212 suffix filter still holds: the default-settlement
+	// The suffix filter still holds: the default-settlement
 	// OYAKC.TE row must not become an instrument of its own.
 	for _, junk := range []string{"OYAKC.TE", "OYAKC", "WARANT1", "TKFEN122612C36"} {
 		if _, err := instruments.BySymbol(ctx, "BIST", junk); !errors.Is(err, instrument.ErrNotFound) {
@@ -260,7 +260,7 @@ func TestSyncAddsUnknownSymbolsAndOverwritesExistingPrice(t *testing.T) {
 }
 
 // TestSyncStoresDayMonthYearBulletinDateAsISO covers the 21 May to 9 June
-// 2020 bulletins, whose date cell reads "21.05.2020" (GLG-783): the price is
+// 2020 bulletins, whose date cell reads "21.05.2020": the price is
 // stored under 2020-05-21, and a bulletin with an unreadable date cell
 // stores nothing and fails.
 func TestSyncStoresDayMonthYearBulletinDateAsISO(t *testing.T) {

@@ -61,7 +61,7 @@ func setUp(t *testing.T) (mux http.Handler, sessions *auth.Repo, users *user.Rep
 }
 
 // TestPutRejectsOutOfRangeDate covers the PUT handler's date bounds: a date
-// after today (Europe/Istanbul) or before MinDate (GLG-354) is rejected with
+// after today (Europe/Istanbul) or before MinDate is rejected with
 // 400; today and MinDate themselves are accepted.
 func TestPutRejectsOutOfRangeDate(t *testing.T) {
 	mux, sessions, users, _, _ := setUp(t)
@@ -91,7 +91,7 @@ func TestPutRejectsOutOfRangeDate(t *testing.T) {
 	}
 }
 
-// TestPutIsPerUserAndDoesNotTouchSharedPrices covers the GLG-103 fix: two
+// TestPutIsPerUserAndDoesNotTouchSharedPrices checks that two
 // users' manual prices for the same instrument/date don't clobber each
 // other, and neither write touches the shared prices table (which fetched
 // sources own).
@@ -155,7 +155,7 @@ func TestPutIsPerUserAndDoesNotTouchSharedPrices(t *testing.T) {
 	}
 }
 
-// TestDeleteManualPriceIsPerUser covers the GLG-134 fix: DELETE removes the
+// TestDeleteManualPriceIsPerUser checks that DELETE removes the
 // caller's own manual row, leaves another user's row for the same
 // instrument and date alone, and 404s when the caller has no such row.
 func TestDeleteManualPriceIsPerUser(t *testing.T) {
@@ -220,10 +220,10 @@ type historyRow struct {
 	Source string `json:"source"`
 }
 
-// TestHistoryIncludesOnlyCallersManualRows covers the other half of
-// GLG-134: the caller's manual entries appear in the history tagged
-// source "manual", another user's do not, and a manual row on the same date
-// as a fetched one replaces it (the rule valuation applies).
+// TestHistoryIncludesOnlyCallersManualRows checks that the caller's manual
+// entries appear in the history tagged source "manual", another user's do not,
+// and a manual row on the same date as a fetched one replaces it (the rule
+// valuation applies).
 func TestHistoryIncludesOnlyCallersManualRows(t *testing.T) {
 	mux, sessions, users, prices, manual := setUp(t)
 	alice, err := users.Create(context.Background(), "alice@example.com", "hash")
@@ -312,7 +312,7 @@ func TestHistoryLimitCountsMergedRows(t *testing.T) {
 	}
 }
 
-// TestPutNamesDigitLimit covers GLG-456: a positive close past the digit
+// TestPutNamesDigitLimit checks that a positive close past the digit
 // limit is reported with the limit, not as "must be a positive decimal".
 func TestPutNamesDigitLimit(t *testing.T) {
 	mux, sessions, users, _, _ := setUp(t)
@@ -336,7 +336,7 @@ func TestPutNamesDigitLimit(t *testing.T) {
 }
 
 // TestPutNormalizesClose: a close with leading and trailing zeros is stored
-// and returned in decimal.String() form, like transaction amounts (GLG-684).
+// and returned in decimal.String() form, like transaction amounts.
 func TestPutNormalizesClose(t *testing.T) {
 	mux, sessions, users, _, _ := setUp(t)
 	usr, err := users.Create(context.Background(), "alice@example.com", "hash")

@@ -75,7 +75,7 @@ func listImports(e *transactionTestEnv, sessionID string) []map[string]any {
 	return imports
 }
 
-// TestImportCommitCreatesTransactions covers the happy path of GLG-204: every
+// TestImportCommitCreatesTransactions checks that every
 // committed row becomes a transaction carrying the new import's id and the
 // generic period note, and the import is listed with that row count.
 func TestImportCommitCreatesTransactions(t *testing.T) {
@@ -84,7 +84,7 @@ func TestImportCommitCreatesTransactions(t *testing.T) {
 	portfolioID := e.createPortfolio(session, "Import")
 
 	// The buy carries the 9 decimals a real Midas fractional-share row
-	// prints (GLG-214).
+	// prints.
 	body := importBody(portfolioID, fakeSHA("ok"),
 		map[string]any{"type": "buy", "date": "2025-09-26", "instrument_id": e.instrumentID, "quantity": "0.006218342", "price": "331.82", "fee": "0", "currency": "TRY"},
 		map[string]any{"type": "dividend", "date": "2025-09-26", "instrument_id": e.instrumentID, "amount": "2.65", "fee": "0.53", "currency": "TRY"},
@@ -136,7 +136,7 @@ func TestImportCommitCreatesTransactions(t *testing.T) {
 	}
 }
 
-// TestImportCommitRecordsEmptyStatement covers GLG-360: a month whose every
+// TestImportCommitRecordsEmptyStatement checks that a month whose every
 // section is empty commits with no rows, is listed with 0 transactions so a
 // re-upload of the period is caught, and can still be undone.
 func TestImportCommitRecordsEmptyStatement(t *testing.T) {
@@ -242,7 +242,7 @@ func TestImportCommitRejectsDuplicateFile(t *testing.T) {
 	}
 }
 
-// TestImportRefusesFileOfAnotherPortfolio covers GLG-1182: a statement file
+// TestImportRefusesFileOfAnotherPortfolio checks that a statement file
 // belongs to one account, so a file already imported into one of the user's
 // portfolios is refused by parse and commit in another, naming the portfolio
 // that holds it. Another user's copy of the same file is theirs to import.
@@ -303,12 +303,12 @@ func TestImportRefusesFileOfAnotherPortfolio(t *testing.T) {
 	}
 }
 
-// TestImportCommitRefusesSameStatement covers GLG-361:Midas regenerates the
-// PDF on every download, so a re-downloaded month passes the hash check. The
-// same broker, portfolio, currency and period is refused while the earlier
-// import exists, naming it; the other currency's statement of the month is a
-// different account and imports, and so does the month once undone. An
-// import with no known currency matches either.
+// TestImportCommitRefusesSameStatement checks that a month downloaded again is
+// refused. Midas regenerates the PDF on every download, so it passes the hash
+// check. The same broker, portfolio, currency and period is refused while the
+// earlier import exists, naming it; the other currency's statement of the
+// month is a different account and imports, and so does the month once undone.
+// An import with no known currency matches either.
 func TestImportCommitRefusesSameStatement(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	session := e.login("redownload@example.com")
@@ -363,7 +363,7 @@ func TestImportCommitRefusesSameStatement(t *testing.T) {
 	created(commit("usd", "USD", usd))
 
 	// The two statements of the month are told apart by their currency in
-	// the list, newest first (GLG-375).
+	// the list, newest first.
 	imports := listImports(e, session)
 	if len(imports) != 2 || imports[0]["currency"] != "USD" || imports[1]["currency"] != "TRY" {
 		t.Fatalf("imports = %v, want the USD then the TRY statement, each with its currency", imports)
@@ -400,7 +400,7 @@ func commitError(e *transactionTestEnv, sessionID string, body map[string]any) s
 	return errBody.Error
 }
 
-// TestImportCommitRejectsMalformedSHA256 covers GLG-241: the duplicate check
+// TestImportCommitRejectsMalformedSHA256 checks that the duplicate check
 // keys on the hash, so anything but the 64 lowercase hex characters parse
 // returns is a 400.
 func TestImportCommitRejectsMalformedSHA256(t *testing.T) {
@@ -419,7 +419,7 @@ func TestImportCommitRejectsMalformedSHA256(t *testing.T) {
 	}
 }
 
-// TestImportCommitRejectsRowOutsidePeriod covers GLG-241: a row dated outside
+// TestImportCommitRejectsRowOutsidePeriod checks that a row dated outside
 // the statement period is a 400 naming the row, and the whole import rolls
 // back.
 func TestImportCommitRejectsRowOutsidePeriod(t *testing.T) {
@@ -442,9 +442,9 @@ func TestImportCommitRejectsRowOutsidePeriod(t *testing.T) {
 	}
 }
 
-// TestImportCommitAcceptsInterestDayAfterPeriod covers GLG-1180: Midas books
-// a month's interest on the 1st of the next month and prints it in the month
-// it accrued, so a row dated the day after period_end commits; two days after
+// TestImportCommitAcceptsInterestDayAfterPeriod checks that a row dated the
+// day after period_end commits, because Midas books a month's interest on the
+// 1st of the next month and prints it in the month it accrued; two days after
 // is still refused.
 func TestImportCommitAcceptsInterestDayAfterPeriod(t *testing.T) {
 	e := newTransactionTestEnv(t)
@@ -470,7 +470,7 @@ func TestImportCommitAcceptsInterestDayAfterPeriod(t *testing.T) {
 	}
 }
 
-// TestImportCommitRejectsBogusPeriod covers GLG-377: an empty statement with
+// TestImportCommitRejectsBogusPeriod checks that an empty statement with
 // an out-of-range period is a 400, not an import that overlaps every later
 // statement of the account.
 func TestImportCommitRejectsBogusPeriod(t *testing.T) {
@@ -538,10 +538,10 @@ func TestImportDeleteIsUndoAndUserScoped(t *testing.T) {
 	}
 }
 
-// TestImportCommitAcceptsBodyOverGlobalLimit covers GLG-216: the reviewed
-// rows of a real statement run past the global 64 KB body limit, so the
-// commit route is exempt from it and caps itself at 2 MB, answering 413 --
-// not a generic 400 -- above that.
+// TestImportCommitAcceptsBodyOverGlobalLimit checks that the commit route is
+// exempt from the global 64 KB body limit and caps itself at 2 MB, answering
+// 413 -- not a generic 400 -- above that, because the reviewed rows of a real
+// statement run past 64 KB.
 func TestImportCommitAcceptsBodyOverGlobalLimit(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	session := e.login("bigimport@example.com")
@@ -573,7 +573,7 @@ func TestImportCommitAcceptsBodyOverGlobalLimit(t *testing.T) {
 	}
 }
 
-// TestImportCommitRejectsTooManyInstrumentIDs covers GLG-1293: a hand-crafted
+// TestImportCommitRejectsTooManyInstrumentIDs checks that a hand-crafted
 // commit naming more distinct instrument ids than sqlite allows variables
 // (32766) is the 400 of its first unknown instrument, not a 500 "too many SQL
 // variables".
@@ -596,11 +596,11 @@ func TestImportCommitRejectsTooManyInstrumentIDs(t *testing.T) {
 	}
 }
 
-// TestImportCommitCSVFeeRows covers GLG-598: a CSV's fee row and a deposit
+// TestImportCommitCSVFeeRows checks that a CSV's fee row and a deposit
 // carrying a fee go from the preview to a fee transaction and a deposit with
 // that fee, both part of the import and noted as a CSV one, and the undo
 // removes both. The same file again is already imported. The file spans more
-// than a year, which a CSV may and a broker statement may not (GLG-611).
+// than a year, which a CSV may and a broker statement may not.
 func TestImportCommitCSVFeeRows(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	session := e.login("csv-commit@example.com")

@@ -32,7 +32,7 @@ func (e *periodsEnv) post(t *testing.T, session, path, body string, wantStatus i
 
 // TestCashGaps lists the cash gaps of portfolios with buys and no deposits,
 // writes them as deposits, and checks the history's returns are then
-// defined (GLG-1109).
+// defined.
 func TestCashGaps(t *testing.T) {
 	e := newPeriodsEnv(t)
 	ctx := context.Background()
@@ -124,8 +124,8 @@ func TestCashGaps(t *testing.T) {
 }
 
 // TestCashGapsFractionDigits fills the gap of a manual buy whose amount,
-// quantity × price, has more fraction digits than a deposit accepts
-// (GLG-476): the POST must still write it, and the cash stay non-negative.
+// quantity × price, has more fraction digits than a deposit accepts:
+// the POST must still write it, and the cash stay non-negative.
 func TestCashGapsFractionDigits(t *testing.T) {
 	e := newPeriodsEnv(t)
 	userID, session := e.user(t, "digits@example.com")

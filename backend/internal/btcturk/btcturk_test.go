@@ -113,7 +113,7 @@ func TestPairRejectsOtherQuotes(t *testing.T) {
 
 // TestSyncFailsWhenEveryPairFails: with the only tracked pair answering 500,
 // Sync must return an error, so the run is stored as failed and not as a
-// success with 0 rows (GLG-413).
+// success with 0 rows.
 func TestSyncFailsWhenEveryPairFails(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "down", http.StatusInternalServerError)

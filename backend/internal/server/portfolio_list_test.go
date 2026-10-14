@@ -21,9 +21,9 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// TestPortfolioListTotalValueUsesManualPrice covers the GLG-104 fix: the
-// list endpoint's total_value must reflect the caller's own manual price
-// override the same way GET /api/portfolios/{id}/summary does (GLG-103),
+// TestPortfolioListTotalValueUsesManualPrice checks that the
+// list endpoint's total_value reflects the caller's own manual price
+// override the same way GET /api/portfolios/{id}/summary does,
 // not just the fetched price.
 //
 //	buy 10 @ 5 (fee 0): cost basis 50, cash -50
@@ -104,9 +104,9 @@ func TestPortfolioListTotalValueUsesManualPrice(t *testing.T) {
 	}
 }
 
-// TestPortfolioListMissingRates covers GLG-121: a USD deposit with no USD
-// rate is dropped from total_value by holdings.Convert, so the list must
-// report the excluded currency instead of serving a bare understated total.
+// TestPortfolioListMissingRates checks that the list reports the
+// excluded currency when a USD deposit with no USD rate is dropped from
+// total_value by holdings.Convert, instead of serving a bare understated total.
 func TestPortfolioListMissingRates(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
@@ -165,14 +165,14 @@ func TestPortfolioListMissingRates(t *testing.T) {
 	}
 }
 
-// TestPortfolioListCashAndUnrealizedPL covers GLG-158: the list carries the
+// TestPortfolioListCashAndUnrealizedPL checks that the list carries the
 // same reporting-currency cash and unrealized P/L the summary endpoint
 // computes, and nulls unrealized_pl under the same rule.
 //
 // One TRY position (buy 10 @ 5, price 8 => unrealized 30 TRY) plus $700 cash,
 // reporting USD. Without a USD rate nothing converts into USD except USD
 // itself, so the TRY unrealized P/L is excluded outright and the field is
-// null rather than a 0.00 that reads as a real zero (GLG-113). With USD = 40
+// null rather than a 0.00 that reads as a real zero. With USD = 40
 // the whole portfolio converts.
 func TestPortfolioListCashAndUnrealizedPL(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
@@ -287,7 +287,7 @@ func TestPortfolioListCashAndUnrealizedPL(t *testing.T) {
 
 // TestPortfolioListClosedPositionCurrencyNotMissing: the list values a
 // portfolio through the summary's pipeline, so a closed position's currency
-// is looked up like the summary does for its realized P/L (GLG-218). A USD
+// is looked up like the summary does for its realized P/L. A USD
 // instrument bought and sold in full with TRY cash legs (the repository
 // stores a row's currency as given) leaves USD in no cash or open-position
 // entry, only in the closed position and its realized P/L; with a USD rate

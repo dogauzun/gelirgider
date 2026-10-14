@@ -7,7 +7,7 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/statement"
 )
 
-// TestParseStatementMatchesGarantiFundNames covers GLG-1188: a Garanti fund
+// TestParseStatementMatchesGarantiFundNames checks that a Garanti fund
 // name cut to its column or abbreviated the bank's way resolves to the one
 // TEFAS fund it names, marked like a learned name; a name two funds start
 // with stays unknown.

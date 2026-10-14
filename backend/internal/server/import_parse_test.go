@@ -43,7 +43,7 @@ func init() {
 }
 
 // aliasStatement holds and buys ZZZZZ, a symbol no instrument has, which
-// the alias test maps to TEST with a stored pick (GLG-751).
+// the alias test maps to TEST with a stored pick.
 var aliasStatement = statement.Statement{
 	Broker: "test-alias", PeriodStart: "2026-01-01", PeriodEnd: "2026-01-31", Currency: "TRY",
 	Trades: []statement.Trade{
@@ -55,7 +55,7 @@ var aliasStatement = statement.Statement{
 }
 
 // bonusStatement is a bonus issue as the garanti_yatirim parser books it: a
-// buy at price 0 and amount 0 with a fractional quantity (GLG-739).
+// buy at price 0 and amount 0 with a fractional quantity.
 var bonusStatement = statement.Statement{
 	Broker: "test-bonus", PeriodStart: "2023-08-01", PeriodEnd: "2023-08-31", Currency: "TRY",
 	Trades: []statement.Trade{
@@ -63,7 +63,7 @@ var bonusStatement = statement.Statement{
 	},
 }
 
-// lookupStatement names funds no instrument exists for (GLG-699): GJH twice,
+// lookupStatement names funds no instrument exists for: GJH twice,
 // NOP that TEFAS does not know, a fund name that is no code, A01..A08 and
 // then A09, the 11th distinct code, and XYZ without a market hint.
 var lookupStatement = func() statement.Statement {
@@ -82,7 +82,7 @@ var lookupStatement = func() statement.Statement {
 }()
 
 // fundStatement is a TRY statement whose holdings are TEFAS funds, which its
-// Market says: TRY alone would read them as BIST shares (GLG-695).
+// Market says: TRY alone would read them as BIST shares.
 var fundStatement = statement.Statement{
 	Broker:      "test-fund",
 	PeriodStart: "2025-12-01",
@@ -117,7 +117,7 @@ var stubStatement = statement.Statement{
 	// The quantity a portfolio that already held 1 TEST ends the period on,
 	// once the buy above is applied: the reconciliation test builds exactly
 	// that history and expects a match, while a portfolio with no history at
-	// all is short of it (GLG-207).
+	// all is short of it.
 	Holdings: []statement.Holding{
 		{Symbol: "TEST", Quantity: dec("1.006218342"), AvgCost: dec("587.42"), Currency: "TRY"},
 	},
@@ -286,7 +286,7 @@ func parsePreview(t *testing.T, rec *httptest.ResponseRecorder) preview {
 	return p
 }
 
-// TestParseStatementPreview covers the preview GLG-203 promises: a known
+// TestParseStatementPreview covers the preview: a known
 // symbol resolves to an instrument, an unknown one and an unsupported
 // currency are reported per row, and skipped and unreadable rows come back
 // with their reason, message and raw cells. The upload is deliberately larger
@@ -317,7 +317,7 @@ func TestParseStatementPreview(t *testing.T) {
 	}
 
 	// This portfolio has no history, so the preview's own buy is everything
-	// it holds and the statement's position is short of it (GLG-207).
+	// it holds and the statement's position is short of it.
 	if len(p.Reconciliation) != 1 {
 		t.Fatalf("reconciliation = %+v, want one entry for the statement's only holding", p.Reconciliation)
 	}
@@ -376,7 +376,7 @@ func TestParseStatementPreview(t *testing.T) {
 	}
 }
 
-// TestParseStatementPassesBonusBuy covers GLG-739: a bonus issue's buy at
+// TestParseStatementPassesBonusBuy checks that a bonus issue's buy at
 // price 0 and amount 0 passes the commit's validation in the preview.
 func TestParseStatementPassesBonusBuy(t *testing.T) {
 	e := newTransactionTestEnv(t)
@@ -392,7 +392,7 @@ func TestParseStatementPassesBonusBuy(t *testing.T) {
 	}
 }
 
-// TestParseStatementFlagsDuplicateBookedBonus covers GLG-1173: the preview
+// TestParseStatementFlagsDuplicateBookedBonus checks that the preview
 // reads List's rows, which move a stored bonus buy to the ex-date of the
 // split it books, and the duplicate check still pairs it on its own date.
 func TestParseStatementFlagsDuplicateBookedBonus(t *testing.T) {
@@ -412,7 +412,7 @@ func TestParseStatementFlagsDuplicateBookedBonus(t *testing.T) {
 	}
 }
 
-// TestParseStatementReconciliation covers GLG-207: the statement's period-end
+// TestParseStatementReconciliation checks that the statement's period-end
 // snapshot is compared against the positions the portfolio would hold once
 // the preview's ok rows are committed, and a position the statement never
 // mentions is reported with no statement quantity at all.
@@ -463,7 +463,7 @@ func TestParseStatementReconciliation(t *testing.T) {
 	}
 }
 
-// TestParseStatementReconcilesMarketHint covers GLG-695: a statement's
+// TestParseStatementReconcilesMarketHint checks that a statement's
 // Market, not its currency, picks the market of its holdings and of the
 // positions it is silent about, so a TRY fund statement matches the TEFAS
 // fund and says nothing about a BIST share.
@@ -497,7 +497,7 @@ func TestParseStatementReconcilesMarketHint(t *testing.T) {
 	}
 }
 
-// TestParseStatementReconcilesCash covers GLG-419: the statement's cash
+// TestParseStatementReconcilesCash checks that the statement's cash
 // balance is compared against the portfolio's cash in the statement currency
 // once the preview's ok rows are applied. The stub's ok rows leave TRY cash
 // at 8237.46 - 2.06 + (2.65 - 0.53) = 8237.52; the EUR buy and the unknown
@@ -525,7 +525,7 @@ func TestParseStatementReconcilesCash(t *testing.T) {
 	}
 }
 
-// TestParseStatementWithoutRowsReturnsEmptyRows covers GLG-1205: a quiet
+// TestParseStatementWithoutRowsReturnsEmptyRows checks that a quiet
 // month's statement, a cash balance and nothing else, proposes no opening
 // or closing, and its rows are an empty array, not null, which the import
 // page maps over.
@@ -552,7 +552,7 @@ func TestParseStatementWithoutRowsReturnsEmptyRows(t *testing.T) {
 	}
 }
 
-// TestParseStatementReconcilesCashWithoutDuplicateDividend covers GLG-500:
+// TestParseStatementReconcilesCashWithoutDuplicateDividend checks that
 // a statement dividend flagged as repeating a hand-entered one starts
 // unchecked, so the cash comparison leaves it out. The hand-entered dividend
 // already put its net 2.12 in cash, so the stub's deposit and buy end on
@@ -579,8 +579,8 @@ func TestParseStatementReconcilesCashWithoutDuplicateDividend(t *testing.T) {
 // TestParseStatementRejectsDuplicateAndOverlap covers the checks against
 // importing the same trades twice: the identical file is a 409 carrying the
 // import to undo, a different file of the same statement is a same_period
-// warning (GLG-361), a period that only overlaps is an overlap warning, and
-// the other account's statement is neither (GLG-367).
+// warning, a period that only overlaps is an overlap warning, and
+// the other account's statement is neither.
 func TestParseStatementRejectsDuplicateAndOverlap(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	session := e.login("duplicate-parse@example.com")
@@ -657,8 +657,8 @@ func TestParseStatementRejectsDuplicateAndOverlap(t *testing.T) {
 	}
 
 	// Both earlier imports are of the TRY account. The USD account's
-	// statement of the month is the other account and warns about neither
-	// (GLG-367); a statement that printed no currency may be either account,
+	// statement of the month is the other account and warns about neither;
+	// a statement that printed no currency may be either account,
 	// so it still gets both.
 	for _, c := range []struct {
 		currency string
@@ -674,8 +674,8 @@ func TestParseStatementRejectsDuplicateAndOverlap(t *testing.T) {
 	}
 }
 
-// TestParseStatementKeepsMidasParser covers GLG-610: the overlap test swaps
-// the real Midas parser for a stub and must put it back when it is done.
+// TestParseStatementKeepsMidasParser checks that the overlap test, which swaps
+// the real Midas parser for a stub, puts it back when it is done.
 func TestParseStatementKeepsMidasParser(t *testing.T) {
 	t.Run("overlap", TestParseStatementRejectsDuplicateAndOverlap)
 	if statement.Parsers["midas"] == nil {
@@ -683,12 +683,12 @@ func TestParseStatementKeepsMidasParser(t *testing.T) {
 	}
 }
 
-// TestParseStatementFlagsDuplicateDividend covers GLG-415: a statement
+// TestParseStatementFlagsDuplicateDividend checks that a statement
 // dividend inside the expected-dividends matching window of a hand-entered
 // dividend of the same instrument carries that dividend's date, which the
 // page shows as a warning and starts the row unchecked on. One imported with
-// an earlier statement (GLG-627) is dated on the payment date like the row,
-// so only the same payment repeated counts, not last month's (GLG-640).
+// an earlier statement is dated on the payment date like the row,
+// so only the same payment repeated counts, not last month's.
 func TestParseStatementFlagsDuplicateDividend(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	session := e.login("dup-dividend@example.com")
@@ -740,11 +740,11 @@ func TestParseStatementFlagsDuplicateDividend(t *testing.T) {
 	}
 }
 
-// TestParseStatementFlagsDuplicateTradesAndCash covers GLG-559: a statement
+// TestParseStatementFlagsDuplicateTradesAndCash checks that a statement
 // trade repeating a hand-entered one of the same instrument, side, date and
 // quantity, and a cash row repeating one of the same type, date, currency and
 // amount, carry that transaction's date. Each earlier transaction, hand-entered
-// or imported (GLG-627), accounts for one row only.
+// or imported, accounts for one row only.
 func TestParseStatementFlagsDuplicateTradesAndCash(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	session := e.login("dup-trade@example.com")
@@ -803,7 +803,7 @@ func TestParseStatementFlagsDuplicateTradesAndCash(t *testing.T) {
 	}
 }
 
-// TestParseCSVAgainstEarlierImports covers GLG-627: a CSV is one file, not an
+// TestParseCSVAgainstEarlierImports checks that a CSV is one file, not an
 // account, so its import is recorded with no account currency. A second CSV
 // over the same dates is the same period whatever its majority currency, and
 // one over part of them overlaps. A row an earlier import already booked
@@ -878,7 +878,7 @@ func TestParseCSVAgainstEarlierImports(t *testing.T) {
 		if c.code != "same_period" {
 			continue
 		}
-		// Both rows: a CSV's period is the dates it commits (GLG-638).
+		// Both rows: a CSV's period is the dates it commits.
 		rec := commit(p,
 			map[string]any{"type": "buy", "date": "2025-05-02", "instrument_id": usx, "quantity": "1", "price": "100", "currency": "USD"},
 			map[string]any{"type": "sell", "date": "2025-05-05", "instrument_id": usx, "quantity": "1", "price": "110", "currency": "USD"},
@@ -889,7 +889,7 @@ func TestParseCSVAgainstEarlierImports(t *testing.T) {
 	}
 }
 
-// TestParseStatementWarnsAboutRefusedPeriod covers GLG-435: a period the
+// TestParseStatementWarnsAboutRefusedPeriod checks that a period the
 // commit refuses (ending after today, starting before 1990, a year or longer)
 // comes back from the parse step as a "period" warning carrying the commit's
 // error, so the preview can block İçe aktar before the user clicks it.
@@ -945,7 +945,7 @@ func TestParseStatementRejectsBadUploads(t *testing.T) {
 	}
 }
 
-// TestParseStatementDetectsBroker covers GLG-764 at the endpoint: under
+// TestParseStatementDetectsBroker covers broker detection at the endpoint: under
 // broker auto every real PDF parser rejects the empty PDF and the first stub
 // in key order, test, accepts it, so the preview is test's, byte for byte.
 // With the stubs gone no parser accepts it, and a CSV is not a PDF. Each
@@ -983,7 +983,7 @@ func TestParseStatementDetectsBroker(t *testing.T) {
 	}
 }
 
-// TestParseCSVStatement covers GLG-598:a ";"-separated CSV saved with a BOM
+// TestParseCSVStatement checks that a ";"-separated CSV saved with a BOM
 // goes through the real csv parser. A TRY symbol BIST does not know resolves
 // in the one other TRY market that has it, one that two of them have needs a
 // market hint, a hint is looked up directly, and a fee row previews as a fee.
@@ -1039,7 +1039,7 @@ func TestParseCSVStatement(t *testing.T) {
 		"trade-2": {"unknown_instrument", "buy", "", 0},
 		"trade-3": {"ok", "buy", "TEFAS", ids["TEFAS:DUP"]},
 		// Quoted in USD, so the TRY cell contradicts the hinted instrument:
-		// the row says so rather than unknown_instrument (GLG-622).
+		// the row says so rather than unknown_instrument.
 		"trade-4": {"error", "buy", "US", ids["US:USX"]},
 		"trade-5": {"unknown_instrument", "buy", "", 0},
 		"cash-0":  {"ok", "fee", "", 0},
@@ -1085,10 +1085,10 @@ func TestParseCSVStatement(t *testing.T) {
 	}
 }
 
-// TestParseCSVCurrencyFromInstrument covers GLG-622: a CSV without a currency
+// TestParseCSVCurrencyFromInstrument checks that a CSV without a currency
 // column resolves a hinted row to the instrument and takes its currency, TRY
 // only when nothing matches, and the resolved rows commit. Each row says its
-// currency is that fallback, so a pick in the page may switch it (GLG-1320).
+// currency is that fallback, so a pick in the page may switch it.
 func TestParseCSVCurrencyFromInstrument(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	session := e.login("csv-currency@example.com")
@@ -1148,7 +1148,7 @@ func TestParseCSVCurrencyFromInstrument(t *testing.T) {
 	}
 }
 
-// TestParseCSVWithoutAPeriod covers GLG-624: a header-only CSV is refused,
+// TestParseCSVWithoutAPeriod checks that a header-only CSV is refused,
 // and one whose every row is an error row, so that no row gives it a period,
 // previews those rows without a warning about that empty period.
 func TestParseCSVWithoutAPeriod(t *testing.T) {
@@ -1168,7 +1168,7 @@ func TestParseCSVWithoutAPeriod(t *testing.T) {
 	}
 }
 
-// TestParseCSVWindows1254 covers GLG-1261: Turkish Excel's plain "CSV" save
+// TestParseCSVWindows1254 covers Turkish Excel's plain "CSV" save, which
 // is Windows-1254, not UTF-8. Its "İşlem" header was not found, so the file
 // was refused as not a csv statement, and a type word read as "Yat\uFFFDrma".
 // Such a file is decoded as Windows-1254, its 0x80–0x9F range included.
@@ -1192,8 +1192,8 @@ func TestParseCSVWindows1254(t *testing.T) {
 	}
 }
 
-// TestParseCSVRefusesTooManyRows covers GLG-989: a CSV under the 5 MB cap
-// with millions of short rows drove the preview to gigabytes, so the parse
+// TestParseCSVRefusesTooManyRows covers a CSV under the 5 MB cap
+// with millions of short rows, which drove the preview to gigabytes: the parse
 // reads at most 5000 records under the header and refuses the file past that.
 func TestParseCSVRefusesTooManyRows(t *testing.T) {
 	e := newTransactionTestEnv(t)
@@ -1210,8 +1210,8 @@ func TestParseCSVRefusesTooManyRows(t *testing.T) {
 	}
 }
 
-// TestParseStatementRefusesTooManyRows covers GLG-1269: a PDF statement
-// under the 5 MB cap parsed to tens of thousands of rows, and the preview
+// TestParseStatementRefusesTooManyRows covers a PDF statement
+// under the 5 MB cap that parsed to tens of thousands of rows, so the preview
 // spent minutes of CPU on them. Every parser's statement is held to the CSV
 // cap of 5000 rows, holdings, skipped and error rows counted too.
 func TestParseStatementRefusesTooManyRows(t *testing.T) {
@@ -1242,7 +1242,7 @@ func TestParseStatementRefusesTooManyRows(t *testing.T) {
 	}
 }
 
-// TestCommitCSVTakesItsRowsPeriod covers GLG-638: a CSV prints no period, so
+// TestCommitCSVTakesItsRowsPeriod checks that, since a CSV prints no period,
 // a row fixed in the preview commits even when the preview had none, and the
 // import records the committed rows' dates, not the period sent.
 func TestCommitCSVTakesItsRowsPeriod(t *testing.T) {
@@ -1265,7 +1265,7 @@ func TestCommitCSVTakesItsRowsPeriod(t *testing.T) {
 	}
 }
 
-// TestCommitCSVOfRefusedDatesReturnsTheRowError covers GLG-655: a CSV commit
+// TestCommitCSVOfRefusedDatesReturnsTheRowError checks that a CSV commit
 // whose every row date is refused has no period, and answers with the row's
 // own date error, not the empty period's.
 func TestCommitCSVOfRefusedDatesReturnsTheRowError(t *testing.T) {
@@ -1284,7 +1284,7 @@ func TestCommitCSVOfRefusedDatesReturnsTheRowError(t *testing.T) {
 	}
 }
 
-// TestCSVPeriodSameInParseAndCommit covers GLG-1279: the preview and the
+// TestCSVPeriodSameInParseAndCommit checks that the preview and the
 // commit leave the same dates out of a CSV's period, so a row whose date only
 // sorts like one widens neither.
 func TestCSVPeriodSameInParseAndCommit(t *testing.T) {
@@ -1327,12 +1327,12 @@ func TestCSVPeriodSameInParseAndCommit(t *testing.T) {
 	}
 }
 
-// TestParseCSVFlagsRowsTheCommitRefuses covers GLG-617: a row the commit's
+// TestParseCSVFlagsRowsTheCommitRefuses checks that a row the commit's
 // validation refuses is an error row in the preview, a cash row in a currency
 // the app does not support is unsupported_currency, and the rest of the file
 // still commits, even with an error row dated before 1990 or in the future.
-// A row of an unknown symbol is checked the same way, short of its instrument
-// (GLG-654), and still says its instrument is unknown (GLG-678).
+// A row of an unknown symbol is checked the same way, short of its instrument,
+// and still says its instrument is unknown.
 func TestParseCSVFlagsRowsTheCommitRefuses(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	session := e.login("csv-invalid@example.com")
@@ -1355,7 +1355,7 @@ func TestParseCSVFlagsRowsTheCommitRefuses(t *testing.T) {
 	p := parsePreview(t, upload(e, session, "csv", portfolioID, file))
 
 	// A date the commit refuses stays out of the period, so it does not
-	// block the other rows (GLG-618).
+	// block the other rows.
 	if p.PeriodStart != "2025-05-01" || p.PeriodEnd != "2025-05-08" || len(p.Warnings) != 0 {
 		t.Errorf("period = %s – %s, warnings %+v; want 2025-05-01 – 2025-05-08 and none", p.PeriodStart, p.PeriodEnd, p.Warnings)
 	}
@@ -1375,7 +1375,7 @@ func TestParseCSVFlagsRowsTheCommitRefuses(t *testing.T) {
 		"cash-2":  {"error", "amount: must be a positive number with at most 15 integer and 9 fraction digits", false},
 		"cash-3":  {"unsupported_currency", "", false},
 		"cash-4":  {"error", "date: must be on or after 1990-01-01", false},
-		// The negative withdrawal is already unreadable to the parser (GLG-615).
+		// The negative withdrawal is already unreadable to the parser.
 		"err-0": {"error", "unreadable number", false},
 		"err-1": {"error", "unknown type", false},
 	}
@@ -1401,7 +1401,7 @@ func TestParseCSVFlagsRowsTheCommitRefuses(t *testing.T) {
 	}
 }
 
-// TestParseStatementCreatesConfirmedFund covers GLG-699: a TEFAS row's
+// TestParseStatementCreatesConfirmedFund checks that a TEFAS row's
 // unknown fund code is created as a TRY TEFAS fund named as the lookup names
 // it, once per code per request and for at most 10 codes; a code the lookup
 // does not know, a symbol that is no code, and a row without the TEFAS hint
@@ -1484,7 +1484,7 @@ func TestParseStatementCreatesConfirmedFund(t *testing.T) {
 	}
 }
 
-// TestLookupFundCreatesConfirmedFund covers GLG-733: the preview picker's
+// TestLookupFundCreatesConfirmedFund checks that the preview picker's
 // fund lookup creates the fund TEFAS confirms, returns it again without a
 // second lookup, answers 404 for a code TEFAS does not know and 400 for text
 // that is no fund code.
@@ -1543,7 +1543,7 @@ func TestLookupFundCreatesConfirmedFund(t *testing.T) {
 	}
 }
 
-// TestFundLookupsShareClientLimit covers GLG-850: the preview's TEFAS
+// TestFundLookupsShareClientLimit checks that the preview's TEFAS
 // lookups and the fund route's count against one budget of 20 a minute per
 // client IP, so repeated previews cannot crawl TEFAS; a row over the budget
 // stays unknown_instrument and the fund route answers 429 once it is spent.
@@ -1586,7 +1586,7 @@ func TestFundLookupsShareClientLimit(t *testing.T) {
 	}
 }
 
-// TestFundLookupsTefasOffSpendNoBudget covers GLG-897: with the tefas
+// TestFundLookupsTefasOffSpendNoBudget checks that with the tefas
 // source off, the server's fund lookup asks TEFAS nothing, so the fund
 // route answers 404 past the client's budget of 20 lookups a minute, not
 // 429.
@@ -1604,10 +1604,10 @@ func TestFundLookupsTefasOffSpendNoBudget(t *testing.T) {
 	}
 }
 
-// TestImportAliasResolvesLaterPreview covers GLG-735: a commit stores the
+// TestImportAliasResolvesLaterPreview checks that a commit stores the
 // user's pick for a symbol the preview did not know, the next preview of the
 // same broker resolves that symbol with it and says so, naming the picked
-// instrument (GLG-750), a real match wins over a stored pick, and another
+// instrument, a real match wins over a stored pick, and another
 // user's preview never sees it.
 func TestImportAliasResolvesLaterPreview(t *testing.T) {
 	e := newTransactionTestEnv(t)
@@ -1656,7 +1656,7 @@ func TestImportAliasResolvesLaterPreview(t *testing.T) {
 	}
 
 	// Another file of the same rows: the same file is refused in a second
-	// portfolio (GLG-1182).
+	// portfolio.
 	got := statusOf(parsePreview(t, upload(e, session, "csv", second, append(file, '\n'))))
 	want := map[string]string{
 		"GARANTI PORTFOY PARA PIYASASI": fmt.Sprintf("ok %d alias TEST Test A.S.", e.instrumentID),
@@ -1673,7 +1673,7 @@ func TestImportAliasResolvesLaterPreview(t *testing.T) {
 	}
 }
 
-// TestImportAliasResolvesHoldings covers GLG-751: a holding of a symbol the
+// TestImportAliasResolvesHoldings checks that a holding of a symbol the
 // user picked an instrument for resolves through that pick like the trade
 // rows do, so it reconciles against the picked instrument's position with
 // no separate entry for it, and an empty portfolio gets an opening for it.
@@ -1713,7 +1713,7 @@ func TestImportAliasResolvesHoldings(t *testing.T) {
 	}
 }
 
-// TestImportCommitRejectsUnknownAliasInstrument covers GLG-735: an alias of
+// TestImportCommitRejectsUnknownAliasInstrument checks that an alias of
 // an instrument that does not exist is a 400 naming the field, and nothing
 // is written.
 func TestImportCommitRejectsUnknownAliasInstrument(t *testing.T) {
@@ -1738,7 +1738,7 @@ func TestImportCommitRejectsUnknownAliasInstrument(t *testing.T) {
 	}
 }
 
-// TestParseStatementProposesOpenings covers GLG-737: an instrument the
+// TestParseStatementProposesOpenings checks that an instrument the
 // statement holds more of than the portfolio can explain, and one sold below
 // zero, get an opening buy dated the day before period_start, priced with
 // the stored price on or before that date, else after an on-demand fetch,
@@ -1830,7 +1830,7 @@ func TestParseStatementProposesOpenings(t *testing.T) {
 
 	p := parsePreview(t, upload(e, session, "opening", empty, emptyPDF(0)))
 	open, approximate, reconciled := summarize(p)
-	// Keyed by instrument and currency, so a re-preview keeps them (GLG-820).
+	// Keyed by instrument and currency, so a re-preview keeps them.
 	key := func(symbol string) string { return fmt.Sprintf("open-%d", ids[symbol]) }
 	want := []opening{
 		{"open-cash-TRY", "ok", "deposit", "", "", "", "275", ""},
@@ -1869,7 +1869,7 @@ func TestParseStatementProposesOpenings(t *testing.T) {
 		t.Errorf("commit with the opening rows: status = %d, body %s; want 201", rec.Code, rec.Body.String())
 	}
 
-	// Another file: the same file is refused in a second portfolio (GLG-1182).
+	// Another file: the same file is refused in a second portfolio.
 	open, _, reconciled = summarize(parsePreview(t, upload(e, session, "opening", traded, emptyPDF(1))))
 	for _, o := range open {
 		if o.symbol == "OPA" {
@@ -1881,7 +1881,7 @@ func TestParseStatementProposesOpenings(t *testing.T) {
 	}
 }
 
-// TestImportPriceFetchesShareOneDeadline covers GLG-854: with every price
+// TestImportPriceFetchesShareOneDeadline checks that with every price
 // fetch hanging until its context ends, neither the preview's opening
 // fetches nor the commit's fetches take OnDemandFetchTimeout per instrument;
 // both answer within about one timeout in all.
@@ -1947,7 +1947,7 @@ func TestImportPriceFetchesShareOneDeadline(t *testing.T) {
 	}
 }
 
-// TestImportLookupsShareOneDeadline covers GLG-896: with TEFAS and the
+// TestImportLookupsShareOneDeadline checks that with TEFAS and the
 // bulletin host hanging until the context ends, a preview naming three
 // unknown fund codes and an unknown BIST symbol on two dates answers within
 // about one PreviewLookupTimeout in all, not one per lookup, and the rows
@@ -2012,8 +2012,8 @@ func TestImportLookupsShareOneDeadline(t *testing.T) {
 	}
 }
 
-// TestParseMidasStatementPricesOpeningsAtAverageCost covers GLG-816 and
-// GLG-1185: the first Midas statement of an empty portfolio prices its
+// TestParseMidasStatementPricesOpeningsAtAverageCost checks that the
+// first Midas statement of an empty portfolio prices its
 // opening buys with the holding's printed Ortalama Maliyet (cost_price), not
 // with Toplam Değeri / Adet nor a stored price of the day before, and a
 // deposit pays for them. Synthetic values.
@@ -2072,10 +2072,10 @@ func TestParseMidasStatementPricesOpeningsAtAverageCost(t *testing.T) {
 	}
 }
 
-// TestParseStatementOpeningSkipsAverageCostAfterInPeriodBuy covers
-// GLG-1185: the period-end average cost includes the period's own buys, so
-// an instrument bought in the period prices its opening without it, here
-// with the period-end price. Synthetic values.
+// TestParseStatementOpeningSkipsAverageCostAfterInPeriodBuy checks that, since
+// the period-end average cost includes the period's own buys, an instrument
+// bought in the period prices its opening without it, here with the period-end
+// price. Synthetic values.
 func TestParseStatementOpeningSkipsAverageCostAfterInPeriodBuy(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	session := e.login("opening-bought@example.com")
@@ -2109,7 +2109,7 @@ func TestParseStatementOpeningSkipsAverageCostAfterInPeriodBuy(t *testing.T) {
 	}
 }
 
-// TestParseStatementOpeningBeforeInPeriodSplit covers GLG-1198: the
+// TestParseStatementOpeningBeforeInPeriodSplit covers the case where the
 // statement lists its period-end holding after a 2:1 split dated inside the
 // period, and the opening buy, dated before the split, is scaled by it once
 // committed. So the opening is the pre-split quantity, priced at the
@@ -2159,7 +2159,7 @@ func TestParseStatementOpeningBeforeInPeriodSplit(t *testing.T) {
 	}
 }
 
-// TestParseStatementClosingBeforeInPeriodSplit covers GLG-1212: the
+// TestParseStatementClosingBeforeInPeriodSplit covers the case where the
 // portfolio holds 10 bought before the period, a 2:1 split is dated inside
 // it, and the statement lists 10 at period end. Held at period end is 20, so
 // the excess is 10 post-split, but the closing sell is dated before the
@@ -2208,7 +2208,7 @@ func TestParseStatementClosingBeforeInPeriodSplit(t *testing.T) {
 	}
 }
 
-// TestParseStatementProposesClosings covers GLG-1190: a position the
+// TestParseStatementProposesClosings checks that a position the
 // portfolio has held since before the period and the statement's holdings
 // omit gets one closing sell of the held quantity, dated the day before the
 // period at the stored price of that day, and a withdrawal of its proceeds
@@ -2275,8 +2275,8 @@ func TestParseStatementProposesClosings(t *testing.T) {
 	}
 }
 
-// TestParseStatementOpeningIgnoresForeignCurrencyPrice covers GLG-852: a
-// Garanti foreign-currency fund prints a USD unit price for a TRY fund, so
+// TestParseStatementOpeningIgnoresForeignCurrencyPrice covers a
+// Garanti foreign-currency fund that prints a USD unit price for a TRY fund:
 // with no stored price the opening is an opening_price error, not a TRY buy
 // at the USD price.
 func TestParseStatementOpeningIgnoresForeignCurrencyPrice(t *testing.T) {
@@ -2309,11 +2309,11 @@ func TestParseStatementOpeningIgnoresForeignCurrencyPrice(t *testing.T) {
 	}
 }
 
-// TestParseStatementProposesNoOpeningsWithUnknownTrades covers GLG-737: a
-// buy of an unknown instrument may belong to a holding that resolves, so a
+// TestParseStatementProposesNoOpeningsWithUnknownTrades checks that, since a
+// buy of an unknown instrument may belong to a holding that resolves, a
 // preview with one proposes no opening rows at all. Unknown rows whose units
 // net to zero, a fund bought and sold within the month, cannot change a
-// holding and do not block them (GLG-819).
+// holding and do not block them.
 func TestParseStatementProposesNoOpeningsWithUnknownTrades(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	session := e.login("opening-unknown@example.com")
@@ -2368,7 +2368,7 @@ func TestParseStatementProposesNoOpeningsWithUnknownTrades(t *testing.T) {
 	}
 }
 
-// TestParseStatementSyncsBulletinForUnknownBIST covers GLG-782: a BIST row
+// TestParseStatementSyncsBulletinForUnknownBIST checks that a BIST row
 // whose symbol is no instrument, such as a share delisted since, resolves
 // once the bulletin of its date is synced, and the preview proposes opening
 // positions again. A symbol that bulletin does not list stays
@@ -2438,7 +2438,7 @@ func TestParseStatementSyncsBulletinForUnknownBIST(t *testing.T) {
 	if want := "[deposit:: buy:ZZOLD:100]"; fmt.Sprint(openings) != want {
 		t.Errorf("opening rows = %v, want %s", openings, want)
 	}
-	// Then the opening's, of the day before the period (GLG-1189).
+	// Then the opening's, of the day before the period.
 	if want := "[2018-03-05 2018-02-28]"; fmt.Sprint(synced) != want {
 		t.Errorf("synced bulletins = %v, want %s", synced, want)
 	}
@@ -2488,7 +2488,7 @@ func TestParseStatementSyncsBulletinForUnknownBIST(t *testing.T) {
 	}
 }
 
-// TestBulletinSyncsShareClientLimit covers GLG-861: the preview's bulletin
+// TestBulletinSyncsShareClientLimit checks that the preview's bulletin
 // fetches count against a budget of 10 a minute per client IP, so repeated
 // previews whose bulletins keep failing cannot hammer the bulletin host; a
 // row over the budget stays unknown_instrument.
@@ -2524,7 +2524,7 @@ func TestBulletinSyncsShareClientLimit(t *testing.T) {
 	}
 }
 
-// TestParseStatementSyncsBulletinForOpenings covers GLG-1189: BIST opening
+// TestParseStatementSyncsBulletinForOpenings checks that BIST opening
 // rows with no stored price for the day before the period sync that day's
 // bulletin once, the last weekday on or before it, and take its closes; a
 // symbol the bulletin lacks stays an opening_price error. With the bist
@@ -2609,7 +2609,7 @@ func TestParseStatementSyncsBulletinForOpenings(t *testing.T) {
 	}
 }
 
-// TestParseStatementFollowsPicks covers GLG-752: a sell of a fund named by
+// TestParseStatementFollowsPicks checks that a sell of a fund named by
 // its name blocks every opening row, and the same preview requested again
 // with the user's pick for it resolves the sell, so the held fund gets its
 // opening buy and reconciles. The pick wins over a stored one for the same
@@ -2691,7 +2691,7 @@ func TestParseStatementFollowsPicks(t *testing.T) {
 	}
 }
 
-// TestImportLearnsFundNames covers GLG-766: a committed garanti statement's
+// TestImportLearnsFundNames checks that a committed garanti statement's
 // balance names, sent back as the commit's names, resolve a later
 // statement's sells named by a cut name with resolved_by "name", which lets
 // the preview propose openings again; a name of two instruments stays
@@ -2856,7 +2856,7 @@ func TestImportLearnsFundNames(t *testing.T) {
 	}
 }
 
-// TestImportLearnsCreatedFundName covers GLG-766 with GLG-699: a fund that
+// TestImportLearnsCreatedFundName checks that a fund that
 // TEFAS confirms while the preview resolves this month's buy is the
 // holding's instrument too, so it reconciles once and matching, its name is
 // offered with that instrument, and a later sell by its cut name resolves.
@@ -2914,7 +2914,7 @@ func TestImportLearnsCreatedFundName(t *testing.T) {
 	}
 }
 
-// TestParseStatementTakesBatchNames covers GLG-1181: a fund TEFAS renamed is
+// TestParseStatementTakesBatchNames covers a fund TEFAS renamed. It is
 // named in an early statement only by its old name, which no instrument
 // carries, and the statement holds no balance of it. A later statement of
 // the same batch prints that name next to the code; sent as names, it

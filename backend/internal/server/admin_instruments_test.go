@@ -15,11 +15,11 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/settings"
 )
 
-// TestAdminAddInstrument covers POST /api/admin/instruments (GLG-561): an
+// TestAdminAddInstrument covers POST /api/admin/instruments: an
 // admin adds NVDA with the symbol upper-cased, a second identical POST gives
 // the same id, a pair no seed list uses, an empty name and a name or symbol
-// made only of combining marks (GLG-1003) are 400, a symbol over 32 or a
-// name over 300 characters is 400 and stored nothing (GLG-1310), a
+// made only of combining marks are 400, a symbol over 32 or a
+// name over 300 characters is 400 and stored nothing, a
 // non-admin gets 403, and the new row is found by GET /api/instruments.
 func TestAdminAddInstrument(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
@@ -79,10 +79,10 @@ func TestAdminAddInstrument(t *testing.T) {
 		{"market": "US", "symbol": "NVDA", "name": "  ", "currency": "USD"},
 		{"market": "US", "symbol": "NVDA", "name": "NVI\nDIA", "currency": "USD"},
 		{"market": "US", "symbol": "", "name": "NVIDIA", "currency": "USD"},
-		// Only combining marks render blank (GLG-1003).
+		// Only combining marks render blank.
 		{"market": "US", "symbol": "AMD", "name": "̶̶̶", "currency": "USD"},
 		{"market": "US", "symbol": "́́", "name": "Blank", "currency": "USD"},
-		// Over-long values would be listed in every user's search (GLG-1310).
+		// Over-long values would be listed in every user's search.
 		{"market": "US", "symbol": strings.Repeat("Y", 1000), "name": "long", "currency": "USD"},
 		{"market": "US", "symbol": "LONGNAME", "name": strings.Repeat("ş", 301), "currency": "USD"},
 	} {

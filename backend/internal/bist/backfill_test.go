@@ -10,8 +10,8 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/bist"
 )
 
-// TestBackfillRangeStoredRangeLogsNothing covers GLG-688: a walk over a
-// fully stored range must not log one line per skipped day.
+// TestBackfillRangeStoredRangeLogsNothing checks that a walk over a
+// fully stored range does not log one line per skipped day.
 func TestBackfillRangeStoredRangeLogsNothing(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -36,7 +36,7 @@ func TestBackfillRangeStoredRangeLogsNothing(t *testing.T) {
 // TestBulletinBackfillSourceName pins the bulletin walk's Name to the
 // scheduler source name, not the prices source value: the on-demand
 // backfill queue logs the walk in source_runs under it, and the admin
-// sources page reads that log by scheduler name (GLG-1154).
+// sources page reads that log by scheduler name.
 func TestBulletinBackfillSourceName(t *testing.T) {
 	if got := bist.BulletinBackfillSource(nil, nil, nil).Name; got != "bist" {
 		t.Fatalf("Name = %q, want bist", got)

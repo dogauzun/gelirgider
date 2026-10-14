@@ -45,7 +45,7 @@ func TestCreateDuplicateHash(t *testing.T) {
 	if _, err := repo.Commit(ctx, NewImport{UserID: 1, PortfolioID: 1, Broker: "midas", Currency: "TRY", PeriodStart: "2026-01-01", PeriodEnd: "2026-01-31", SHA256: "abc"}, nil, nil, nil); err != nil {
 		t.Fatalf("Commit: %v", err)
 	}
-	// Another period, so the same-statement check (GLG-361) does not answer
+	// Another period, so the same-statement check does not answer
 	// first.
 	if _, err := repo.Commit(ctx, NewImport{UserID: 1, PortfolioID: 1, Broker: "midas", Currency: "TRY", PeriodStart: "2026-02-01", PeriodEnd: "2026-02-28", SHA256: "abc"}, nil, nil, nil); !errors.Is(err, ErrDuplicate) {
 		t.Fatalf("second Commit: got %v, want ErrDuplicate", err)
@@ -101,7 +101,7 @@ func TestDeleteRemovesTransactionsAndIsUserScoped(t *testing.T) {
 }
 
 // TestCommitRollsBackOnFailedRow: a row insert that fails after the import
-// row and an earlier row went in leaves nothing behind (GLG-1273).
+// row and an earlier row went in leaves nothing behind.
 func TestCommitRollsBackOnFailedRow(t *testing.T) {
 	repo := openTestDB(t)
 	ctx := context.Background()
@@ -128,8 +128,8 @@ func TestCommitRollsBackOnFailedRow(t *testing.T) {
 	}
 }
 
-// TestDeletedImportIDNotReused covers GLG-1009: SQLite handed an undone
-// import's id to the next import, so a stale tab's undo of the old import
+// TestDeletedImportIDNotReused checks that an undone import's id is not reused.
+// SQLite handed it to the next import, so a stale tab's undo of the old import
 // deleted the new one. The new id must be above the deleted one, and the
 // repeated delete must find nothing and leave the new import in place.
 func TestDeletedImportIDNotReused(t *testing.T) {
@@ -209,7 +209,7 @@ func countTransactions(t *testing.T, repo *ImportRepo, importID int64) int {
 }
 
 // A Midas statement prints its trades before its cash section, so the rows
-// reach the preview grouped by section rather than dated (GLG-230).
+// reach the preview grouped by section rather than dated.
 func TestSortByDateKeepsSectionOrderWithinADate(t *testing.T) {
 	rows := []previewRow{
 		{Key: "trade-0", Date: "2025-09-26"},
@@ -227,7 +227,7 @@ func TestSortByDateKeepsSectionOrderWithinADate(t *testing.T) {
 	}
 }
 
-// TestAliasUpsertIsUserScoped covers GLG-735: a second pick for the same
+// TestAliasUpsertIsUserScoped checks that a second pick for the same
 // (user, broker, symbol) replaces the first, and one user's pick is never
 // read for another.
 func TestAliasUpsertIsUserScoped(t *testing.T) {
@@ -267,7 +267,7 @@ func TestAliasUpsertIsUserScoped(t *testing.T) {
 	}
 }
 
-// TestLearnedNameNeverReplacesAPick covers GLG-766: a learned name is no
+// TestLearnedNameNeverReplacesAPick checks that a learned name is no
 // pick, replaces an earlier learned name, never replaces a pick, and a pick
 // replaces it.
 func TestLearnedNameNeverReplacesAPick(t *testing.T) {
@@ -323,7 +323,7 @@ func TestLearnedNameNeverReplacesAPick(t *testing.T) {
 	}
 }
 
-// TestLearnedNameFollowsPeriod covers GLG-773: statements committed out of
+// TestLearnedNameFollowsPeriod checks that statements committed out of
 // period order leave the newest statement's name, for a learned name and for
 // a forgotten one, and a name learned before periods were stored counts as
 // older than any statement.
@@ -372,7 +372,7 @@ func TestLearnedNameFollowsPeriod(t *testing.T) {
 	}
 }
 
-// TestForgottenNameFollowsPeriod covers GLG-821: a name a newer statement
+// TestForgottenNameFollowsPeriod checks that a name a newer statement
 // forgot is not learned again by an older one committed afterwards, while a
 // statement of the same or a later period learns it, for this user and
 // broker only.
@@ -424,7 +424,7 @@ func TestForgottenNameFollowsPeriod(t *testing.T) {
 	}
 }
 
-// TestLearnedName covers the prefix rule of GLG-766: equal, cut shorter or
+// TestLearnedName checks the prefix rule: equal, cut shorter or
 // longer resolves; matches of two instruments or none do not.
 func TestLearnedName(t *testing.T) {
 	learned := map[string]int64{

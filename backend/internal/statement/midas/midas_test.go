@@ -139,7 +139,7 @@ func TestParseUSDStatement(t *testing.T) {
 	}
 
 	// The deposit, then the Döviz Satış as this account's own leg: the
-	// dollars leave. The lira side is on the TRY statement (GLG-363).
+	// dollars leave. The lira side is on the TRY statement.
 	wantCash := []struct{ kind, currency, amount string }{
 		{"deposit", "USD", "8237.46"},
 		{"withdrawal", "USD", "8237.46"},
@@ -178,9 +178,9 @@ func TestParseUSDStatement(t *testing.T) {
 	}
 }
 
-// TestParseHoldingPrice covers GLG-816: a holding's price is Toplam Değeri /
+// TestParseHoldingPrice checks that a holding's price is Toplam Değeri /
 // Adet rounded to 6 places, the period-end price an opening position falls
-// back on (GLG-737). An unreadable value leaves it zero and is no error.
+// back on. An unreadable value leaves it zero and is no error.
 func TestParseHoldingPrice(t *testing.T) {
 	rows := usdSample()
 	rows[18] = []string{"VOO - S&P 500 Endeks Fonu...", "1,003417529", "597,13 USD", "15,00 USD", "-"}
@@ -228,7 +228,7 @@ func TestParseTRYStatement(t *testing.T) {
 	// the commission rebate, as data instead of mistaking it for a column
 	// header. Döviz Satış on the TRY account: only the lira bought arrive.
 	// Then the monthly interest (Diğer Gelir), a dividend with no instrument
-	// that keeps its description (GLG-533).
+	// that keeps its description.
 	if len(st.Cash) != 3 {
 		t.Fatalf("cash = %+v, want the rebate, the lira leg and the interest", st.Cash)
 	}
@@ -264,7 +264,7 @@ func TestParseTRYStatement(t *testing.T) {
 }
 
 // Ücretsiz İşlem is a credit Midas pays into the cash account; skipping it
-// left cash below the statement's Nakit Bakiye (GLG-1187).
+// left cash below the statement's Nakit Bakiye.
 func TestParseCommissionRebate(t *testing.T) {
 	rows := append(trySample()[:21:21],
 		[]string{"HESAP İŞLEMLERİ (", "01/02/26", "-", "28/02/26", ")"},
@@ -312,7 +312,7 @@ func TestParsePartialRows(t *testing.T) {
 }
 
 // An exponent is not a number the statement prints: unchecked, "1e2000000000"
-// panics on Mul and "1e3000000" renders a multi-MB preview (GLG-629).
+// panics on Mul and "1e3000000" renders a multi-MB preview.
 func TestParseExponentIsUnreadable(t *testing.T) {
 	for _, cell := range []string{"1e2000000000", "1e3000000", "-1E5"} {
 		rows := append(trySample()[:20:20],
@@ -371,8 +371,7 @@ func TestParseUnknownCashType(t *testing.T) {
 }
 
 // Diğer Gider is a tax or expense debit, so far only the Stopaj on the
-// monthly interest: a fee for the positive amount, keeping its description
-// (GLG-1177).
+// monthly interest: a fee for the positive amount, keeping its description.
 func TestParseOtherExpenseIsFee(t *testing.T) {
 	rows := append(trySample()[:22:22],
 		[]string{"23/09/26 00:00:00", "23/09/26 00:00:00", "Diğer Gider", "Stopaj", "Gerçekleşti", "-66,15 TRY"},
@@ -393,7 +392,7 @@ func TestParseOtherExpenseIsFee(t *testing.T) {
 	}
 }
 
-// A conversion books only the amount cell's own currency (GLG-363). The first
+// A conversion books only the amount cell's own currency. The first
 // two rows are the same conversion as printed on the USD and on the TRY
 // account: importing both statements gives each currency one leg.
 func TestParseFXConversionOwnLeg(t *testing.T) {
@@ -432,8 +431,7 @@ func TestParseFXConversionOwnLeg(t *testing.T) {
 	}
 }
 
-// Table cells are Turkish even without a comma: "1.000" is a thousand
-// (GLG-498).
+// Table cells are Turkish even without a comma: "1.000" is a thousand.
 func TestParseTurkishThousands(t *testing.T) {
 	cases := map[string]string{
 		"1.000 TRY":        "1000",
@@ -459,7 +457,7 @@ func TestParseTurkishThousands(t *testing.T) {
 }
 
 // With a comma the dots are thousands, so they must be 3-digit groups: a
-// broken group fails the row instead of booking another number (GLG-908).
+// broken group fails the row instead of booking another number.
 func TestParseMalformedThousandsIsUnreadable(t *testing.T) {
 	for _, cell := range []string{"1.2.3,4 TRY", "1000.000,5 TRY", "1.23,4 TRY"} {
 		rows := append(trySample()[:22:22],
@@ -476,7 +474,7 @@ func TestParseMalformedThousandsIsUnreadable(t *testing.T) {
 }
 
 // The header block prints plain decimals, so a Nakit Bakiye of "1.500 USD"
-// is one and a half, unlike a table cell's "1.000" (GLG-419).
+// is one and a half, unlike a table cell's "1.000".
 func TestParseCashBalance(t *testing.T) {
 	cases := map[string]string{
 		"0.74 USD":         "0.74",
@@ -504,7 +502,7 @@ func TestParseNotAStatement(t *testing.T) {
 	}
 }
 
-// TestDetect covers GLG-764: with every PDF parser registered, a Midas
+// TestDetect checks that with every PDF parser registered, a Midas
 // statement is detected as midas and parses as an explicit pick does.
 func TestDetect(t *testing.T) {
 	key, got, err := statement.Detect(usdSample())

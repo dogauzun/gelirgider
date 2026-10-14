@@ -40,7 +40,7 @@ func (c *countingInstruments) All(ctx context.Context, market string) ([]instrum
 }
 
 // A statement that repeats a few symbols on many rows looks each symbol up
-// once, an unknown one included, not once per row (GLG-1272).
+// once, an unknown one included, not once per row.
 func TestPreviewLooksUpEachSymbolOnce(t *testing.T) {
 	repo := openTestDB(t)
 	if _, err := repo.db.Exec(`INSERT INTO instruments (id, symbol, market, name, currency) VALUES (1, 'AAA', 'BIST', 'A', 'TRY'), (2, 'BBB', 'US', 'B', 'USD')`); err != nil {
@@ -77,7 +77,7 @@ func TestPreviewLooksUpEachSymbolOnce(t *testing.T) {
 
 // A garanti statement that repeats a few cut fund names on many rows reads
 // the TEFAS fund list once, and once more after createFund adds a fund the
-// later names must match (GLG-1336).
+// later names must match.
 func TestPreviewLoadsTefasFundsOnce(t *testing.T) {
 	repo := openTestDB(t)
 	if _, err := repo.db.Exec(`INSERT INTO instruments (id, symbol, market, name, currency) VALUES
@@ -121,7 +121,7 @@ func TestPreviewLoadsTefasFundsOnce(t *testing.T) {
 }
 
 // A batch's names and picks load their instruments in one query, not one
-// per entry, and an unknown one still answers with its own index (GLG-1330).
+// per entry, and an unknown one still answers with its own index.
 func TestAliasInstrumentsLoadInOneQuery(t *testing.T) {
 	repo := openTestDB(t)
 	if _, err := repo.db.Exec(`INSERT INTO instruments (id, symbol, market, name, currency) VALUES (1, 'AAA', 'TEFAS', 'A', 'TRY'), (2, 'BBB', 'TEFAS', 'B', 'TRY'), (3, 'CCC', 'TEFAS', 'C', 'TRY')`); err != nil {
@@ -131,7 +131,7 @@ func TestAliasInstrumentsLoadInOneQuery(t *testing.T) {
 	h := &handler{imports: repo, instruments: store}
 
 	// 47 names over three instruments, one symbol named twice and one name
-	// of instrument 0 to forget (GLG-766): 50 entries.
+	// of instrument 0 to forget: 50 entries.
 	var names []aliasRequest
 	for i := range 47 {
 		names = append(names, aliasRequest{Symbol: fmt.Sprintf("FUND %d", i), InstrumentID: int64(i%3 + 1)})

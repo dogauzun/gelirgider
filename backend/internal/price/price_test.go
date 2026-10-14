@@ -59,7 +59,7 @@ func TestValidDate(t *testing.T) {
 
 // TestCheckDate covers the shared user-date check: each caller prefixes its
 // field name to these message tails, and the frontend translates the
-// prefixed messages, so the tails must not change (GLG-1275).
+// prefixed messages, so the tails must not change.
 func TestCheckDate(t *testing.T) {
 	tomorrow := time.Now().In(price.Istanbul).AddDate(0, 0, 1).Format(time.DateOnly)
 	cases := map[string]string{
@@ -95,7 +95,7 @@ func TestYesterday(t *testing.T) {
 // TestUpsertAndLatest covers that Upsert overwrites an existing row for the
 // same (instrument, date) instead of duplicating it, and that Latest picks
 // the newest date per instrument while ignoring rows dated after asOf, in
-// one call for several ids, omitting an id with no row (GLG-1234).
+// one call for several ids, omitting an id with no row.
 func TestUpsertAndLatest(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -168,7 +168,7 @@ func TestUpsertAndLatest(t *testing.T) {
 
 // TestManualLatest covers ManualRepo.Latest in one call for several ids:
 // each id's newest row on or before asOf, a future row ignored, an id with
-// no row of this user's omitted even when another user has one (GLG-1234).
+// no row of this user's omitted even when another user has one.
 func TestManualLatest(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -235,7 +235,7 @@ func TestManualLatest(t *testing.T) {
 	}
 }
 
-// TestManualUpsertConcurrentNewKey covers GLG-1019: concurrent saves of the
+// TestManualUpsertConcurrentNewKey checks that concurrent saves of the
 // same new manual price all succeed and leave one row. Before the fix two
 // saves could both miss on UPDATE and both INSERT, and the second failed on
 // the primary key.
@@ -288,7 +288,7 @@ func TestManualUpsertConcurrentNewKey(t *testing.T) {
 	}
 }
 
-// TestFetchUpsertConcurrentNewKey covers GLG-1025: the fetch writers
+// TestFetchUpsertConcurrentNewKey checks that the fetch writers
 // (prices, fx rates, splits, dividends, benchmark values) let concurrent
 // writes of one new key all succeed and leave one row. Before the fix two
 // writers could both miss on UPDATE and both INSERT, and the second failed

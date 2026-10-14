@@ -37,8 +37,7 @@ func newTestServer(t *testing.T) *httptest.Server {
 	return srv
 }
 
-// openRegistration turns the sign-up toggle on: an unset toggle means closed
-// (GLG-1117).
+// openRegistration turns the sign-up toggle on: an unset toggle means closed.
 func openRegistration(t *testing.T, conn *sql.DB) {
 	t.Helper()
 	if err := settings.NewRepo(conn, nil).Set(context.Background(), "auth.registration_open", "true"); err != nil {

@@ -8,8 +8,8 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/db"
 )
 
-// TestHasSourceQuerySeeks guards GLG-691: the backfill walk runs HasSource
-// once per weekday, so neither EXISTS arm may scan its table. The plan is
+// TestHasSourceQuerySeeks checks that neither EXISTS arm of HasSource,
+// which the backfill walk runs once per weekday, scans its table. The plan is
 // asserted rather than a timing budget because it is stable across
 // machines and needs no seeded rows.
 func TestHasSourceQuerySeeks(t *testing.T) {

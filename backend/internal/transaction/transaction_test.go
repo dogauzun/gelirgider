@@ -13,10 +13,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// TestListReadsNullNoteAsEmpty guards GLG-143: transactions.note is nullable
-// and rows written by an import or a hand-run SQL fix can leave it NULL. The
-// scan must read those as an empty note instead of failing, which used to
-// turn summary, history and the transaction list into a 500 for the whole
+// TestListReadsNullNoteAsEmpty checks that a NULL transactions.note reads
+// as an empty note. The column is nullable and rows written by an import or a
+// hand-run SQL fix can leave it NULL; the scan used to fail on them, which
+// turned summary, history and the transaction list into a 500 for the whole
 // portfolio.
 func TestListReadsNullNoteAsEmpty(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
@@ -51,7 +51,7 @@ func TestListReadsNullNoteAsEmpty(t *testing.T) {
 	}
 }
 
-// TestListPageFiltersByType covers GLG-173: the type filter runs in SQL,
+// TestListPageFiltersByType checks that the type filter runs in SQL,
 // before the cursor and the limit, so a filtered walk pages over the
 // filtered rows and nothing else.
 func TestListPageFiltersByType(t *testing.T) {
@@ -109,7 +109,7 @@ func TestListPageFiltersByType(t *testing.T) {
 	}
 }
 
-// TestListPageFiltersByInstrument covers GLG-333: the instrument filter runs
+// TestListPageFiltersByInstrument checks that the instrument filter runs
 // in SQL, before the cursor and the limit, so a filtered walk pages over that
 // instrument's rows and nothing else.
 func TestListPageFiltersByInstrument(t *testing.T) {
@@ -164,7 +164,7 @@ func TestListPageFiltersByInstrument(t *testing.T) {
 	}
 }
 
-// TestImportIDSurvivesUpdate covers GLG-201: a transaction created by a
+// TestImportIDSurvivesUpdate checks that a transaction created by a
 // statement import stays attached to that import when it is edited, and the
 // id is read back by List.
 func TestImportIDSurvivesUpdate(t *testing.T) {
@@ -224,10 +224,10 @@ func TestImportIDSurvivesUpdate(t *testing.T) {
 	}
 }
 
-// TestDeletedIDNotReused covers GLG-1009: SQLite handed the highest deleted
-// transaction id to the next transaction, so a stale row's edit or delete
-// changed the new one. The new id must be above the deleted one, and the
-// stale edit and delete must find nothing.
+// TestDeletedIDNotReused checks that a deleted transaction's id is not reused.
+// SQLite handed the highest deleted id to the next transaction, so a stale
+// row's edit or delete changed the new one. The new id must be above the
+// deleted one, and the stale edit and delete must find nothing.
 func TestDeletedIDNotReused(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -273,7 +273,7 @@ func TestDeletedIDNotReused(t *testing.T) {
 	}
 }
 
-// TestCreateAndUpdateReturnInstrument covers GLG-759: the rows Create and
+// TestCreateAndUpdateReturnInstrument checks that the rows Create and
 // Update return carry the instrument's symbol, name and market, the same
 // shape List returns, so the POST and PUT responses match the list.
 func TestCreateAndUpdateReturnInstrument(t *testing.T) {
@@ -335,7 +335,7 @@ func transactionIDs(txs []Transaction) []int64 {
 	return out
 }
 
-// TestListSkipsFutureSplits covers GLG-321: a split dated after today is
+// TestListSkipsFutureSplits checks that a split dated after today is
 // not returned by List, so the summary does not apply it to today's
 // position; one dated today is.
 func TestListSkipsFutureSplits(t *testing.T) {
@@ -381,12 +381,12 @@ func TestListSkipsFutureSplits(t *testing.T) {
 	}
 }
 
-// TestListDropsSplitBookedByZeroPriceBuy covers GLG-741: a split is left
+// TestListDropsSplitBookedByZeroPriceBuy checks that a split is left
 // out for a portfolio holding a zero-price buy of the instrument within 10
 // days of the ex-date, since that buy already books the bonus shares. A
 // zero-price buy 30 days out does not count, and another portfolio
 // holding the instrument with no such buy still gets the split. List moves
-// the booking buy to the ex-date; ListStored keeps its own date (GLG-828).
+// the booking buy to the ex-date; ListStored keeps its own date.
 func TestListDropsSplitBookedByZeroPriceBuy(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -460,7 +460,7 @@ func TestListDropsSplitBookedByZeroPriceBuy(t *testing.T) {
 	}
 }
 
-// TestBookedBonusBuySortsFirstOnExDate covers GLG-851: the bonus buy
+// TestBookedBonusBuySortsFirstOnExDate checks that the bonus buy
 // DropBookedSplits moves to the ex-date applies before a sell of that date
 // entered earlier (lower id), as the split it replaces would, so the sell
 // realizes against the post-split average cost.

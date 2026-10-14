@@ -88,7 +88,7 @@ func TestFetchRatesSkipsEmptyForexBuying(t *testing.T) {
 }
 
 // TestFetchRatesRejectsZeroUnit: a Unit of 0 used to panic in Div and take
-// down the sync goroutine; it must be an error instead (GLG-465).
+// down the sync goroutine; it must be an error instead.
 func TestFetchRatesRejectsZeroUnit(t *testing.T) {
 	const xmlBody = `<Tarih_Date>
 <Currency CurrencyCode="USD"><Unit>0</Unit><ForexBuying>41.10</ForexBuying></Currency>
@@ -200,7 +200,7 @@ func TestSyncOverwritesExistingRow(t *testing.T) {
 	}
 }
 
-// TestFetchRatesRejectsOversizedBody covers GLG-1119: a valid bulletin
+// TestFetchRatesRejectsOversizedBody checks that a valid bulletin
 // padded past the 8 MB read cap fails the fetch instead of being read whole.
 func TestFetchRatesRejectsOversizedBody(t *testing.T) {
 	body := append(bulletinXML(t), bytes.Repeat([]byte(" "), 8<<20)...)

@@ -8,8 +8,8 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/price"
 )
 
-// TestFromRequestRejectsInstrumentOnCashTypes guards GLG-49: deposit,
-// withdrawal and fee must reject instrument_id instead of dropping it.
+// TestFromRequestRejectsInstrumentOnCashTypes checks that deposit,
+// withdrawal and fee reject instrument_id instead of dropping it.
 func TestFromRequestRejectsInstrumentOnCashTypes(t *testing.T) {
 	id, amount := int64(5), "100"
 	for _, typ := range []string{TypeDeposit, TypeWithdrawal, TypeFee} {
@@ -24,8 +24,8 @@ func TestFromRequestRejectsInstrumentOnCashTypes(t *testing.T) {
 	}
 }
 
-// TestFromRequestCapsDecimalMagnitude guards GLG-48: exponents and oversized
-// digit counts must be rejected before qty.Mul(price) can overflow.
+// TestFromRequestCapsDecimalMagnitude checks that exponents and oversized
+// digit counts are rejected before qty.Mul(price) can overflow.
 func TestFromRequestCapsDecimalMagnitude(t *testing.T) {
 	id := int64(5)
 	mk := func(qty, price, fee string) Request {
@@ -51,7 +51,7 @@ func TestFromRequestCapsDecimalMagnitude(t *testing.T) {
 		t.Errorf("amount = %s", tx.Amount.String())
 	}
 
-	// GLG-214: Midas prints fractional US shares with 9 decimals, and the
+	// Midas prints fractional US shares with 9 decimals, and the
 	// amount must stay exact.
 	tx, err = fromRequest(mk("0.006218342", "331.82", "0"))
 	if err != nil {
@@ -62,7 +62,7 @@ func TestFromRequestCapsDecimalMagnitude(t *testing.T) {
 	}
 }
 
-// TestFromRequestNamesDigitLimit guards GLG-446: a positive value past the
+// TestFromRequestNamesDigitLimit checks that a positive value past the
 // digit limit is reported as too long, not as "must be positive", for every
 // decimal field; zero and non-numbers keep their own messages.
 func TestFromRequestNamesDigitLimit(t *testing.T) {
@@ -90,7 +90,7 @@ func TestFromRequestNamesDigitLimit(t *testing.T) {
 	}
 }
 
-// TestFromRequestKeepsTradeAmount guards GLG-366: a statement's rounded
+// TestFromRequestKeepsTradeAmount checks that a statement's rounded
 // İşlem Tutarı is stored as sent, and only a trade without one gets
 // quantity × price.
 func TestFromRequestKeepsTradeAmount(t *testing.T) {
@@ -106,7 +106,7 @@ func TestFromRequestKeepsTradeAmount(t *testing.T) {
 		}
 	}
 
-	// A priced trade needs a positive amount, buy or sell (GLG-501); only a
+	// A priced trade needs a positive amount, buy or sell; only a
 	// buy at price 0 may send amount 0, in any spelling.
 	zero := "0"
 	for _, typ := range []string{TypeBuy, TypeSell} {
@@ -120,7 +120,7 @@ func TestFromRequestKeepsTradeAmount(t *testing.T) {
 	if _, err := fromRequest(req); err != nil {
 		t.Errorf("buy at price 0 with amount 0.00: unexpected error %v", err)
 	}
-	// A free buy moves no cash, so any other amount is rejected (GLG-505).
+	// A free buy moves no cash, so any other amount is rejected.
 	five := "5"
 	req.Amount = &five
 	if _, err := fromRequest(req); err == nil || err.Error() != "amount: must be 0 when price is 0" {
@@ -128,9 +128,10 @@ func TestFromRequestKeepsTradeAmount(t *testing.T) {
 	}
 }
 
-// TestFromRequestAcceptsOwnTradeAmount guards GLG-476: quantity × price can
-// carry more fraction digits than the parser accepts, and the edit form sends
-// that stored amount back, so it must pass while a typed one stays capped.
+// TestFromRequestAcceptsOwnTradeAmount checks that a stored
+// quantity × price amount, which can carry more fraction digits than the parser
+// accepts and which the edit form sends back, passes while a typed one stays
+// capped.
 func TestFromRequestAcceptsOwnTradeAmount(t *testing.T) {
 	id, qty, price := int64(5), "0.123456789", "150.25"
 	created, err := fromRequest(Request{Type: TypeBuy, Date: "2026-01-02", InstrumentID: &id, Quantity: &qty, Price: &price})
@@ -154,7 +155,7 @@ func TestFromRequestAcceptsOwnTradeAmount(t *testing.T) {
 	}
 }
 
-// TestFromRequestAllowsZeroPriceBuy guards GLG-340: a buy at price 0 records
+// TestFromRequestAllowsZeroPriceBuy checks that a buy at price 0 records
 // units received for free (ADR 0007); a sell at price 0 stays rejected.
 func TestFromRequestAllowsZeroPriceBuy(t *testing.T) {
 	id, qty, zero := int64(5), "0.001", "0"
@@ -172,8 +173,8 @@ func TestFromRequestAllowsZeroPriceBuy(t *testing.T) {
 	}
 }
 
-// TestFromRequestRejectsLongNote guards GLG-100: a note over 500 characters
-// must be rejected instead of stretching the transactions table off screen.
+// TestFromRequestRejectsLongNote checks that a note over 500 characters
+// is rejected instead of stretching the transactions table off screen.
 func TestFromRequestRejectsLongNote(t *testing.T) {
 	amount := "100"
 	ok := strings.Repeat("a", 500)
@@ -203,9 +204,9 @@ func TestFromRequestRejectsLongNote(t *testing.T) {
 	}
 }
 
-// TestFromRequestTrimsNote guards GLG-144: surrounding whitespace must not be
-// stored, nor count against the 500-character limit. fromRequest is the only
-// note path, so create and update are both covered.
+// TestFromRequestTrimsNote checks that surrounding whitespace is not stored and
+// does not count against the 500-character limit. fromRequest is the only note
+// path, so create and update are both covered.
 func TestFromRequestTrimsNote(t *testing.T) {
 	amount := "100"
 	mk := func(note string) Request {
@@ -232,7 +233,7 @@ func TestFromRequestTrimsNote(t *testing.T) {
 	}
 }
 
-// TestFromRequestRejectsInvisibleNote guards GLG-354: control and format
+// TestFromRequestRejectsInvisibleNote checks that control and format
 // characters in a note are rejected like in a portfolio name; plain Turkish
 // text passes.
 func TestFromRequestRejectsInvisibleNote(t *testing.T) {
@@ -249,9 +250,9 @@ func TestFromRequestRejectsInvisibleNote(t *testing.T) {
 	}
 }
 
-// TestFromRequestRejectsBlankLookingNote guards GLG-1003: a note made only of
+// TestFromRequestRejectsBlankLookingNote checks that a note made only of
 // combining marks (and spaces between them) renders blank, so it gets the
-// same 400 as a portfolio name (GLG-429). A mark on a base letter and an
+// same 400 as a portfolio name. A mark on a base letter and an
 // empty note still pass.
 func TestFromRequestRejectsBlankLookingNote(t *testing.T) {
 	amount := "100"
@@ -269,8 +270,8 @@ func TestFromRequestRejectsBlankLookingNote(t *testing.T) {
 	}
 }
 
-// TestFromRequestRejectsFutureDate guards GLG-53: a date after today
-// (Europe/Istanbul) must be rejected; today itself is accepted.
+// TestFromRequestRejectsFutureDate checks that a date after today
+// (Europe/Istanbul) is rejected; today itself is accepted.
 func TestFromRequestRejectsFutureDate(t *testing.T) {
 	amount := "100"
 	today := price.Today()
@@ -284,7 +285,7 @@ func TestFromRequestRejectsFutureDate(t *testing.T) {
 	}
 }
 
-// TestFromRequestRejectsAncientDate guards GLG-339: a mistyped year before
+// TestFromRequestRejectsAncientDate checks that a mistyped year before
 // price.MinDate is rejected; price.MinDate itself is accepted.
 func TestFromRequestRejectsAncientDate(t *testing.T) {
 	amount := "100"
@@ -296,7 +297,7 @@ func TestFromRequestRejectsAncientDate(t *testing.T) {
 	}
 }
 
-// TestParseLimit guards GLG-141: the list page size defaults when absent, is
+// TestParseLimit checks that the list page size defaults when absent, is
 // clamped to the maximum rather than letting one request pull a whole
 // history, and refuses a non-positive value.
 func TestParseLimit(t *testing.T) {
@@ -325,7 +326,7 @@ func TestParseLimit(t *testing.T) {
 	}
 }
 
-// TestParseTypes guards GLG-173: an unknown or empty entry is a 400 rather
+// TestParseTypes checks that an unknown or empty entry is a 400 rather
 // than a silently wider result, and an absent filter stays unfiltered.
 func TestParseTypes(t *testing.T) {
 	got, err := parseTypes("deposit,withdrawal,fee")
@@ -345,7 +346,7 @@ func TestParseTypes(t *testing.T) {
 	}
 }
 
-// TestParseCursor guards GLG-141: the cursor carries both halves of the page
+// TestParseCursor checks that the cursor carries both halves of the page
 // order (date, id), and a malformed one is rejected instead of quietly
 // restarting the list from the newest row.
 func TestParseCursor(t *testing.T) {
@@ -366,10 +367,10 @@ func TestParseCursor(t *testing.T) {
 	}
 }
 
-// TestFromRequestRejectsFeeAboveAmount guards GLG-229: for the types whose
-// fee is deducted from the amount, a larger fee would book a negative
-// dividend or cash movement. Buy keeps accepting it: there the fee is added
-// to the cost.
+// TestFromRequestRejectsFeeAboveAmount checks that, for the types whose fee is
+// deducted from the amount, a larger fee is rejected: it would book a negative
+// dividend or cash movement. Buy keeps accepting it: there the fee is added to
+// the cost.
 func TestFromRequestRejectsFeeAboveAmount(t *testing.T) {
 	id, amount, big, equal := int64(5), "100", "200", "100"
 	for _, typ := range []string{TypeDividend, TypeDeposit, TypeWithdrawal} {
@@ -394,9 +395,9 @@ func TestFromRequestRejectsFeeAboveAmount(t *testing.T) {
 	}
 }
 
-// TestFromRequestRejectsFeeOnFeeType guards GLG-378: a fee row's amount is
-// the fee, so a fee on top of it (amount 1, fee 1000) must not take 1001 out
-// of cash. A zero or absent fee is still accepted.
+// TestFromRequestRejectsFeeOnFeeType checks that a fee row's amount is
+// the fee, so a fee on top of it (amount 1, fee 1000) is rejected instead of
+// taking 1001 out of cash. A zero or absent fee is still accepted.
 func TestFromRequestRejectsFeeOnFeeType(t *testing.T) {
 	amount, big, zero := "1", "1000", "0.00"
 	req := Request{Type: TypeFee, Date: "2026-01-02", Amount: &amount, Fee: &big}

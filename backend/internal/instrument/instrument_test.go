@@ -161,9 +161,9 @@ func TestSearchFoldsTurkishDiacritics(t *testing.T) {
 	}
 }
 
-// TestSearchTrimsQuery covers GLG-424: a pasted "THYAO " must still find
-// THYAO, and a blank query must match nothing rather than everything.
-// GLG-903: neither must a query holding a NUL.
+// TestSearchTrimsQuery checks that a pasted "THYAO " still finds
+// THYAO, and a blank query matches nothing rather than everything. So does a
+// query holding a NUL.
 func TestSearchTrimsQuery(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -193,8 +193,7 @@ func TestSearchTrimsQuery(t *testing.T) {
 		}
 	}
 
-	// A NUL cuts SQLite's LIKE pattern, so it must not act as a wildcard
-	// (GLG-903).
+	// A NUL cuts SQLite's LIKE pattern, so it must not act as a wildcard.
 	for _, q := range []string{" ", "\x00", "THY\x00ZZZ"} {
 		results, err := repo.Search(ctx, q, 20)
 		if err != nil {
@@ -206,8 +205,8 @@ func TestSearchTrimsQuery(t *testing.T) {
 	}
 }
 
-// TestSearchIgnoresOverlongQuery covers GLG-758: a query past SQLite's LIKE
-// pattern limit (50,000 bytes) must match nothing, not fail.
+// TestSearchIgnoresOverlongQuery checks that a query past SQLite's LIKE
+// pattern limit (50,000 bytes) matches nothing instead of failing.
 func TestSearchIgnoresOverlongQuery(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -230,9 +229,9 @@ func TestSearchIgnoresOverlongQuery(t *testing.T) {
 
 }
 
-// TestSearchMatchesNamesWithTurkishDiacritics covers GLG-110: TEFAS names
-// are seeded with their Turkish characters ("ATA PORTFÖY PARA PİYASASI"), so
-// a name query must match whether it is typed with diacritics or without.
+// TestSearchMatchesNamesWithTurkishDiacritics checks that a name query
+// matches TEFAS names, which are seeded with their Turkish characters ("ATA
+// PORTFÖY PARA PİYASASI"), whether it is typed with diacritics or without.
 func TestSearchMatchesNamesWithTurkishDiacritics(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -263,7 +262,7 @@ func TestSearchMatchesNamesWithTurkishDiacritics(t *testing.T) {
 	}
 }
 
-// TestSearchMatchesEveryWordAnywhere covers GLG-1192: a query of several
+// TestSearchMatchesEveryWordAnywhere checks that a query of several
 // words matches a name holding each of them, in any order and with other
 // words between them, so "garanti para piyasası" finds GARANTİ PORTFÖY
 // BİRİNCİ PARA PİYASASI (TL) FONU. A word may also be the start of the
@@ -310,11 +309,11 @@ func TestSearchMatchesEveryWordAnywhere(t *testing.T) {
 	}
 }
 
-// TestSearchNameMatchesAreNotFilledByOneMarket covers GLG-213: more BIST
-// ETFs are named "... PORTFOY ..." than the API's limit of 20, so a
-// BIST-first tie-break inside the name-match bucket hid all ~1000 TEFAS
-// funds carrying the same word. Run against the real seeded CSVs so the
-// regression cannot come back when a market gains instruments.
+// TestSearchNameMatchesAreNotFilledByOneMarket checks that one market does not
+// fill the name matches: more BIST ETFs are named "... PORTFOY ..." than the
+// API's limit of 20, so a BIST-first tie-break inside the name-match bucket hid
+// all ~1000 TEFAS funds carrying the same word. Run against the real seeded
+// CSVs so the regression cannot come back when a market gains instruments.
 func TestSearchNameMatchesAreNotFilledByOneMarket(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -355,7 +354,7 @@ func TestSearchNameMatchesAreNotFilledByOneMarket(t *testing.T) {
 	}
 }
 
-// TestSearchFindsGoldByMarketWord covers GLG-1094: "altın" (tr) and "gold"
+// TestSearchFindsGoldByMarketWord checks that "altın" (tr) and "gold"
 // (en), the GOLD market's own label, list all five GOLD instruments first
 // instead of letting gold funds and stocks fill the limit. An exact symbol
 // match (GOLD on US, ALTIN on BIST) still ranks above them.
@@ -403,7 +402,7 @@ func TestSearchFindsGoldByMarketWord(t *testing.T) {
 		}
 	}
 
-	// GLG-1306: the market word also counts as one word of a multi-word
+	// The market word also counts as one word of a multi-word
 	// query, in any order, so the en "gram gold" finds Gram Altın as the tr
 	// "gram altın" does.
 	for _, q := range []string{"gram gold", "gold gram"} {
@@ -417,10 +416,10 @@ func TestSearchFindsGoldByMarketWord(t *testing.T) {
 	}
 }
 
-// TestSearchRanksExactAndPrefixMatchesFirst covers GLG-96: an exact symbol
+// TestSearchRanksExactAndPrefixMatchesFirst checks that an exact symbol
 // match ranks above other prefix matches, prefix matches rank above
-// name-substring matches, and BIST breaks ties ahead of US. GLG-274 adds
-// crypto pairs (BTC-TRY for "btc") right after the exact match.
+// name-substring matches, and BIST breaks ties ahead of US. Crypto pairs
+// (BTC-TRY for "btc") rank right after the exact match.
 func TestSearchRanksExactAndPrefixMatchesFirst(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -460,7 +459,7 @@ func TestSearchRanksExactAndPrefixMatchesFirst(t *testing.T) {
 		t.Fatalf("Search(%q) = %+v, want GARAN first", "gar", garResults)
 	}
 
-	// GLG-274: a crypto pair whose base is the query ranks right after the
+	// A crypto pair whose base is the query ranks right after the
 	// exact symbol match, ahead of BIST prefix matches.
 	btcResults, err := repo.Search(ctx, "btc", 20)
 	if err != nil {
@@ -528,12 +527,12 @@ func TestTrackedReturnsOnlyInstrumentsWithATransaction(t *testing.T) {
 	}
 }
 
-// TestEachTrackedContinuesPastFailure covers GLG-1333's shared loop: a
+// TestEachTrackedContinuesPastFailure checks the shared loop: a
 // failing instrument is logged once and the rest still run; every attempted
 // one failing is an error, with a skipped one beside them too; a pause
 // follows each request except the last, none follows a skipped one; a
 // cancel during the pause returns at once with the rows so far and logs
-// nothing (GLG-467, GLG-507).
+// nothing.
 func TestEachTrackedContinuesPastFailure(t *testing.T) {
 	var logs bytes.Buffer
 	prevLog := slog.Default()
@@ -618,7 +617,7 @@ func rowCount(t *testing.T, conn *sql.DB) int {
 	return n
 }
 
-// TestRenameSurvivesSeed covers GLG-698: Rename changes a fund's name, and
+// TestRenameSurvivesSeed checks that Rename changes a fund's name, and
 // a later Seed keeps it, since Seed only inserts missing rows.
 func TestRenameSurvivesSeed(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))

@@ -146,7 +146,7 @@ func TestParse(t *testing.T) {
 	bad.Errors = []statement.ParseError{{Section: "ledger", Row: badRow, Code: "bad_number", Value: "-500.00", Message: "amount is not price x quantity", Date: "2024-02-01"}}
 
 	// A statement printed in Turkish number format; the description prices
-	// stay US (GLG-725).
+	// stay US.
 	trBalance := d("-6750.50")
 	tr := statement.Statement{
 		Broker: "garanti_yatirim", PeriodStart: "2023-11-01", PeriodEnd: "2023-11-30", Currency: "TRY", CashBalance: &trBalance,
@@ -164,7 +164,7 @@ func TestParse(t *testing.T) {
 		"22/11/2023", "20/11/2023 Ref = 2 HA 150.10x5.00 ARCLK", "-750,50", "-6.750,50")
 
 	// Sells (HS) and the "Komisyon Tutarı ve BSMV" text of statements from
-	// May 2024 on (GLG-728).
+	// May 2024 on.
 	marStatus := page("Hesap Durumu", "Tarih", ":", "31/03/2025", "Cari Bakiye", "Mevcudu", "Rezervi (T + 1)", "0.00", "0.00", "MEVCUT MENKUL KIYMETLER", "Hisse toplamı :", "0.000", "0.00", "0.000")
 	marLedger := page("Hesap Ekstresi", "Dönemi", ":", "01/03/2025 - 31/03/2025", "Tarih", "Açıklama", "İşlem", "Kalan",
 		"14/03/2025", "12/03/2025 Ref = 11 HS 30.00x200.00 YKBNK", "+6,000.00", "6,000.00",
@@ -190,7 +190,7 @@ func TestParse(t *testing.T) {
 
 	// A Banka Takas deposit pays for the buys of its value date: it is dated
 	// on their earliest trade date, so cash does not go negative in between;
-	// a withdrawal keeps its value date, as in mar (GLG-818).
+	// a withdrawal keeps its value date, as in mar.
 	julStatus := page("Hesap Durumu", "Tarih", ":", "31/07/2023", "Cari Bakiye", "Mevcudu", "Rezervi (T + 1)", "0.00", "0.00")
 	julLedger := page("Hesap Ekstresi", "Dönemi", ":", "01/07/2023 - 31/07/2023", "Tarih", "Açıklama", "İşlem", "Kalan",
 		"05/07/2023", "03/07/2023 Ref = 21 HA 10.00x100.00 THYAO", "-1,000.00", "-1,000.00",
@@ -221,7 +221,7 @@ func TestParse(t *testing.T) {
 	}
 
 	// Buys and sells of equal totals: each side gets one of the two
-	// commissions, not the buys both (GLG-747).
+	// commissions, not the buys both.
 	evenLedger := page("Hesap Ekstresi", "Dönemi", ":", "01/03/2025 - 31/03/2025", "Tarih", "Açıklama", "İşlem", "Kalan",
 		"21/03/2025", "19/03/2025 Ref = 16 HA 10.00x100.00 AAA", "-1,000.00", "-1,000.00",
 		"21/03/2025", "19/03/2025 Ref = 17 HS 20.00x50.00 BBB", "+1,000.00", "0.00",
@@ -236,7 +236,7 @@ func TestParse(t *testing.T) {
 	}
 
 	// Near-equal totals: the exact Matrah wins over one a kuruş off, so the
-	// fees do not swap even when the sell's commission comes first (GLG-753).
+	// fees do not swap even when the sell's commission comes first.
 	nearLedger := page("Hesap Ekstresi", "Dönemi", ":", "01/03/2025 - 31/03/2025", "Tarih", "Açıklama", "İşlem", "Kalan",
 		"21/03/2025", "19/03/2025 Ref = 18 HA 10.00x100.00 ASELS", "-1,000.00", "-1,000.00",
 		"21/03/2025", "19/03/2025 Ref = 19 HS 1000.01x1.00 THYAO", "+1,000.01", "0.01",
@@ -250,7 +250,7 @@ func TestParse(t *testing.T) {
 		},
 	}
 
-	// April 2024 prints the holdings without the name cell (GLG-726).
+	// April 2024 prints the holdings without the name cell.
 	aprStatus := page("Hesap Durumu", "Tarih", ":", "30/04/2024", "Cari Bakiye", "Mevcudu", "Rezervi (T + 1)", "0.00", "0.00", "MEVCUT MENKUL KIYMETLER",
 		"HS", "AEFES", "100.000", "15,000.00", "0.000", "HS", "AKBNK", "200.000", "12,000.00", "0.000",
 		"Hisse toplamı :", "300.000", "27,000.00", "0.000")
@@ -264,7 +264,7 @@ func TestParse(t *testing.T) {
 
 	// MKK, account-keeping and order-cancel charges and the transfers that
 	// pay them; one description wraps into a second cell, and the second
-	// ledger page repeats the header (GLG-729).
+	// ledger page repeats the header.
 	feeLedger := page("Hesap Ekstresi", "Dönemi", ":", "01/03/2025 - 31/03/2025", "Tarih", "Açıklama", "İşlem", "Kalan",
 		"19/03/2025", "1234-6000001 Nolu Hesabın Banka MKK Masraf Transfer İşlemi", "+5.00", "5.00",
 		"19/03/2025", "ŞUBAT 2025  MKK'ya Ödenen Ücret- MKK Hesap Bakım", "-3.00", "2.00",
@@ -290,7 +290,7 @@ func TestParse(t *testing.T) {
 	}
 
 	// 2018 statements print a letter before the trade reference, and move a
-	// dividend to the bank with "Temettü Transferi işlemi" (GLG-763).
+	// dividend to the bank with "Temettü Transferi işlemi".
 	jun2018Ledger := page("Hesap Ekstresi", "Dönemi", ":", "01/06/2018 - 30/06/2018", "Tarih", "Açıklama", "İşlem", "Kalan",
 		"14/06/2018", "12/06/2018 Ref = A12345 HA 5.50x10 AKBNK", "-55.00", "-55.00",
 		"14/06/2018", "12/06/2018 Ref = A12346 HS 6.00x10 AKBNK", "+60.00", "5.00",
@@ -319,7 +319,7 @@ func TestParse(t *testing.T) {
 	}
 
 	// A cash dividend is paid and moved on to the bank account in two rows;
-	// an ETF prints .F and its quantity may be fractional (GLG-730).
+	// an ETF prints .F and its quantity may be fractional.
 	divLedger := page("Hesap Ekstresi", "Dönemi", ":", "01/03/2025 - 31/03/2025", "Tarih", "Açıklama", "İşlem", "Kalan",
 		"20/03/2025", "AEFES.E Temettü 100 Adet Temettü Oranı : 95.9090909", "+95.91", "95.91",
 		"20/03/2025", "AEFES.E Temettü 100 Adet Temettü Oranı : 95.9090909-1234567-102", "-95.91", "0.00",
@@ -339,7 +339,7 @@ func TestParse(t *testing.T) {
 
 	// The Hareket Listesi books a bonus issue as a buy at price 0 and a
 	// priced transfer in at its price; HS Alış and HS Satış are the ledger's
-	// trades. The page header repeats on the second page (GLG-739).
+	// trades. The page header repeats on the second page.
 	augStatus := page("Hesap Durumu", "Tarih", ":", "31/08/2023", "Cari Bakiye", "Mevcudu", "Rezervi (T + 1)", "0.00", "0.00", "MEVCUT MENKUL KIYMETLER", "Hisse toplamı :", "0.000", "0.00", "0.000")
 	moves := func(records ...string) []string {
 		return page(append([]string{
@@ -382,7 +382,7 @@ func TestParse(t *testing.T) {
 
 	// An IPO's money comes in for the full request and is blocked, the part
 	// not allotted comes back and returns to the bank; a fractional share is
-	// cashed out as a sell of the fraction (GLG-740).
+	// cashed out as a sell of the fraction.
 	ipoLedger := page("Hesap Ekstresi", "Dönemi", ":", "01/04/2024 - 30/04/2024", "Tarih", "Açıklama", "İşlem", "Kalan",
 		"10/04/2024", "123456 100 adet RGYAS Halka Arz Tahsil", "+10,000.00", "10,000.00",
 		"10/04/2024", "123456 100 adet RGYAS Halka Arz Tahsil", "-10,000.00", "0.00",
@@ -404,8 +404,7 @@ func TestParse(t *testing.T) {
 
 	// A fractional share cashed out is also a trade list transfer out at
 	// price 0: the ledger's sell books it, the transfer out is skipped. Without
-	// the ledger row it is a transfer to another institution, left to the user
-	// (GLG-767).
+	// the ledger row it is a transfer to another institution, left to the user.
 	cashOutMove := []string{"THYAO", "TÜRK HAVA YOLLARI A.O.", "11/03/2025", "-0.500", "HS-Virman Çıkış", "0.000000"}
 	cashOutNoName := []string{"THYAO", "11/03/2025", "-0.500", "HS-Virman Çıkış", "0.000000"}
 	marMoves := func(rec []string) []string {
@@ -429,7 +428,7 @@ func TestParse(t *testing.T) {
 
 	// A statement from before the 2019 rebrand prints the old website cell;
 	// a 2019 one has a Hesap Durumu page only, so the period comes from the
-	// statement date (GLG-727).
+	// statement date.
 	may2019Status := page("Hesap Durumu", "Tarih", ":", "31/05/2019", "Cari Bakiye", "Mevcudu", "Rezervi (T + 1)", "0.00", "0.00", "MEVCUT MENKUL KIYMETLER",
 		"HS", "AKBNK", "AKBANK T.A.Ş.", "100.000", "700.00", "0.000",
 		"Hisse toplamı :", "100.000", "700.00", "0.000")
@@ -483,7 +482,7 @@ func TestParse(t *testing.T) {
 			same(t, got, tc.want)
 		})
 		// Every fixture parses the same with the pre-rebrand website cell,
-		// including the page header date on a second ledger page (GLG-727).
+		// including the page header date on a second ledger page.
 		t.Run(tc.name+", old website", func(t *testing.T) {
 			var rows [][]string
 			for _, row := range tc.rows {
@@ -507,7 +506,7 @@ func TestParse(t *testing.T) {
 const oldWebsite = "www.garantiyatirim.com.tr"
 
 // An IPO request of 100 XYZAS at 50.00: the trade list prints the allotment
-// at the price of the row above it, 80.00, not the IPO price (GLG-768).
+// at the price of the row above it, 80.00, not the IPO price.
 func ipoMoves(allotted string, more ...string) []string {
 	return page(append([]string{
 		"Menkul Kıymet Hareket Listesi", "Dönemi", ":", "01/09/2024 - 30/09/2024",
@@ -573,7 +572,7 @@ var badIPO = statement.Statement{
 }
 
 // TestParseIPONetCash checks that a partly allotted IPO's buy, cash rows and
-// skipped rows net to the statement's 0.00 balance (GLG-768).
+// skipped rows net to the statement's 0.00 balance.
 func TestParseIPONetCash(t *testing.T) {
 	got, err := garantiyatirim.Parse(ipoRows(ipoMoves("20.000"), ipoRefund("4,000.00")...))
 	if err != nil {
@@ -628,7 +627,7 @@ func TestParseRefundHidesName(t *testing.T) {
 	}
 }
 
-// TestDetect covers GLG-764: with every PDF parser registered, a Garanti
+// TestDetect checks that with every PDF parser registered, a Garanti
 // BBVA Yatırım statement is detected as garanti_yatirim and parses as an
 // explicit pick does.
 func TestDetect(t *testing.T) {
@@ -653,7 +652,7 @@ func TestParseNotGarantiYatirim(t *testing.T) {
 // A crafted statement with many trades and Komisyon rows must parse in time
 // linear in its size: each Komisyon scanned every trade, and a day with many
 // Komisyon rows re-split its trades for each, so an upload cost seconds of
-// CPU (GLG-1271). Half the trades sit one per value date with its Komisyon,
+// CPU. Half the trades sit one per value date with its Komisyon,
 // half on one date with as many Komisyon rows.
 func TestParseManyCommissions(t *testing.T) {
 	const n = 5000

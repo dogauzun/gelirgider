@@ -16,11 +16,11 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/settings"
 )
 
-// TestDeletedUserIDNotReused covers GLG-1013: SQLite handed a deleted user's
-// id to the next user, so a stale admin tab's "make admin", "reset password"
-// or "delete" hit the newer account. The new id must be above the deleted
-// one, and every stale action must answer 404 and leave the new user as it
-// was.
+// TestDeletedUserIDNotReused checks that a deleted user's id is not reused.
+// SQLite handed it to the next user, so a stale admin tab's "make admin",
+// "reset password" or "delete" hit the newer account. The new id must be above
+// the deleted one, and every stale action must answer 404 and leave the new
+// user as it was.
 func TestDeletedUserIDNotReused(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {

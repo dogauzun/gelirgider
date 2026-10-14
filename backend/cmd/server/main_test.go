@@ -12,7 +12,7 @@ import (
 )
 
 // A malformed date sorts after today as a string, so it must be rejected
-// as malformed before the future-date check (GLG-686).
+// as malformed before the future-date check.
 func TestRunAddSplitRejectsMalformedDate(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -55,8 +55,8 @@ func TestFindSource(t *testing.T) {
 }
 
 // A parameter flag without the flag it belongs to, or a one-shot flag set
-// to an empty value, is a usage error, not a server start (GLG-1088,
-// GLG-1362). Set maps each flag flag.Visit saw to its value; want is the
+// to an empty value, is a usage error, not a server start.
+// Set maps each flag flag.Visit saw to its value; want is the
 // text the message must hold, "" for no error.
 func TestOrphanFlag(t *testing.T) {
 	for _, tc := range []struct {

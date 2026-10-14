@@ -68,7 +68,7 @@ func TestBodyLimitRejectsOversizedBody(t *testing.T) {
 	}
 }
 
-// TestCrossOriginRequestRejected covers GLG-407: a signed-in POST from
+// TestCrossOriginRequestRejected checks that a signed-in POST from
 // another origin, even a same-site one sending a text/plain form, gets 403,
 // while the app's own frontend, same-origin by Sec-Fetch-Site or by an
 // Origin that matches Host, still gets through.
@@ -159,10 +159,10 @@ func TestWithRecoverReturns500AndKeepsServing(t *testing.T) {
 	}
 }
 
-// TestInternalErrorIsLogged covers GLG-132: the graceful 500 path used to
-// drop the error, leaving only the INFO request line. Dropping the
+// TestInternalErrorIsLogged checks that the graceful 500 path logs the
+// error it used to drop, which left only the INFO request line. Dropping the
 // transactions table makes the summary handler's repository call fail; the
-// response must stay generic while exactly one ERROR line names the failing
+// response must stay generic while exactly one ERROR line carries the failing
 // query, the request and the user.
 func TestInternalErrorIsLogged(t *testing.T) {
 	var logs bytes.Buffer
@@ -238,7 +238,7 @@ func TestInternalErrorIsLogged(t *testing.T) {
 	}
 }
 
-// TestUnknownRouteJSONError covers GLG-980: signed in, an unknown /api/ path
+// TestUnknownRouteJSONError checks that signed in, an unknown /api/ path
 // and a wrong method answer with the JSON error body, not ServeMux's plain
 // text, and the 405 keeps its Allow header. Signed out, an unknown path is
 // still 401.

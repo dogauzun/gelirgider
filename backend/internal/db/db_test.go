@@ -146,8 +146,7 @@ func TestOpen_PragmasOnEveryPooledConn(t *testing.T) {
 
 // A transaction that reads before it writes must wait for a concurrent
 // writer instead of failing at once with SQLITE_BUSY: SQLite never runs the
-// busy handler when a read transaction tries to upgrade to a write lock
-// (GLG-401).
+// busy handler when a read transaction tries to upgrade to a write lock.
 func TestOpen_ReadThenWriteTxWaitsForConcurrentWriter(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -197,7 +196,7 @@ func TestOpen_ReadThenWriteTxWaitsForConcurrentWriter(t *testing.T) {
 
 // The database and its snapshots hold password hashes and encrypted
 // provider keys: Open and Backup must create every file owner-only, whatever
-// the process umask (GLG-1128).
+// the process umask.
 func TestOpenAndBackup_FilesOwnerOnly(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Windows has no unix permission bits")

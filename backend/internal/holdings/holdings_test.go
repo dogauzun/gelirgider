@@ -162,7 +162,7 @@ func TestComputeZeroQuantityDropped(t *testing.T) {
 		t.Errorf("RealizedPL[TRY] = %s, want 25", summary.RealizedPL["TRY"])
 	}
 	// The closed position is still reported, so the summary page can show
-	// where that realized 25 came from (GLG-218).
+	// where that realized 25 came from.
 	if len(summary.Closed) != 1 {
 		t.Fatalf("len(Closed) = %d, want 1", len(summary.Closed))
 	}
@@ -180,7 +180,7 @@ func TestComputeZeroQuantityDropped(t *testing.T) {
 }
 
 // TestComputeRealizedCost covers the base of a closed position's realized
-// percentage (GLG-1100): the cost of the shares sold, kept after the position
+// percentage: the cost of the shares sold, kept after the position
 // closes and summed across portfolios. A sell's fee lowers the proceeds, not
 // the cost of what was sold.
 func TestComputeRealizedCost(t *testing.T) {
@@ -210,7 +210,7 @@ func TestComputeRealizedCost(t *testing.T) {
 // TestComputeSameDaySellFirst covers a day trade entered sell-first (a
 // newest-first broker history): the buy still applies before the sell on
 // that day, so the sale is not booked at an average cost of 0 and the next
-// buy starts from a clean cost basis (GLG-372).
+// buy starts from a clean cost basis.
 func TestComputeSameDaySellFirst(t *testing.T) {
 	var instrumentID int64 = 576
 
@@ -235,8 +235,8 @@ func TestComputeSameDaySellFirst(t *testing.T) {
 	}
 }
 
-// TestApplyCoverOversold covers a buy that covers an oversold quantity
-// (GLG-1106): it books realized P/L for the covered part, the short's
+// TestApplyCoverOversold covers a buy that covers an oversold quantity: it
+// books realized P/L for the covered part, the short's
 // proceeds less the cover's cost and fee share, and only the rest of the
 // buy becomes cost basis. Each row is on its own date and FactorOn is 2.
 func TestApplyCoverOversold(t *testing.T) {
@@ -298,8 +298,7 @@ func TestApplyCoverOversold(t *testing.T) {
 
 // TestComputeSameDaySellThenRebuy covers a sell and a same-day rebuy entered
 // in trade order: the sell realizes against the old lot and the rebuy starts
-// a new one, since the sell has the shares and so keeps its id order
-// (GLG-411).
+// a new one, since the sell has the shares and so keeps its id order.
 func TestComputeSameDaySellThenRebuy(t *testing.T) {
 	var instrumentID int64 = 576
 
@@ -437,7 +436,7 @@ func TestConvertMissingRate(t *testing.T) {
 }
 
 // TestConvertMissingReportingRate pins the contract documented on
-// Totals.Missing (GLG-114): when the reporting currency itself has no rate,
+// Totals.Missing: when the reporting currency itself has no rate,
 // the factor rates[currency]/rates[reporting] cannot be built for anything
 // else, so every other currency is excluded and listed -- including TRY,
 // which needs no rate of its own. Missing names what was left out of the
@@ -463,7 +462,7 @@ func TestConvertMissingReportingRate(t *testing.T) {
 	}
 }
 
-// TestMergeSeries covers GLG-103's merge rule: manual wins on a date both
+// TestMergeSeries checks the merge rule: manual wins on a date both
 // series have, dates found in only one series pass through untouched, and
 // the result stays date-ascending regardless of which series is longer.
 func TestMergeSeries(t *testing.T) {
@@ -529,7 +528,7 @@ func TestLatestClose(t *testing.T) {
 }
 
 // TestStateMatchesCompute pins the incremental path the history sweep now
-// uses (GLG-131) to the batch one it replaced: applying transactions one at
+// uses to the batch one it replaced: applying transactions one at
 // a time and snapshotting must equal Compute over the same prefix, for
 // every prefix. A history point is a pure function of that snapshot, so
 // equal snapshots mean an unchanged series. The generated set spans a
@@ -586,7 +585,7 @@ func TestStateMatchesCompute(t *testing.T) {
 }
 
 // TestSummarizeAllMatchesMerge pins the `all` history sweep's snapshot
-// (GLG-685) to the Merge of per-portfolio Summarize calls it replaced:
+// to the Merge of per-portfolio Summarize calls it replaced:
 // after every transaction, every field the sweep reads and every converted
 // total must be equal. Four portfolios trade five instruments in three
 // currencies, one with no price; instrument 5 is sold short in portfolio 0
@@ -672,7 +671,7 @@ func TestSummarizeAllMatchesMerge(t *testing.T) {
 	}
 }
 
-// TestComputeCashFee covers GLG-232: the fee on a cash movement moves cash
+// TestComputeCashFee checks that the fee on a cash movement moves cash
 // too. Deposit 1000 fee 5 = +995, withdrawal 200 fee 3 = -203, fee 50 fee 2
 // = -52, so cash is 740.
 func TestComputeCashFee(t *testing.T) {
@@ -724,7 +723,7 @@ func TestComputeSplit(t *testing.T) {
 	}
 }
 
-// TestComputeReportingCost covers GLG-527: with FactorOn set, each buy adds
+// TestComputeReportingCost checks that with FactorOn set, each buy adds
 // its cost at its own date's rate, a sell shrinks it by the same ratio as
 // the native cost, a split leaves it alone, and a close resets it.
 func TestComputeReportingCost(t *testing.T) {
@@ -775,7 +774,7 @@ func TestComputeReportingCost(t *testing.T) {
 	}
 }
 
-// TestMergeOne covers GLG-657: one summary comes back as is, with the
+// TestMergeOne checks that one summary comes back as is, with the
 // average cost Apply kept across the sell rather than CostBasis / Quantity
 // recomputed.
 func TestMergeOne(t *testing.T) {
@@ -790,7 +789,7 @@ func TestMergeOne(t *testing.T) {
 	}
 }
 
-// TestMerge covers GLG-528: per-portfolio summaries sum per instrument and
+// TestMerge checks that per-portfolio summaries sum per instrument and
 // per currency into one all-portfolios summary.
 func TestMerge(t *testing.T) {
 	split := holdings.Split{Date: "2024-06-01", Ratio: d("2")}
@@ -824,7 +823,7 @@ func TestMerge(t *testing.T) {
 				MarketValue: d("360"), UnrealizedPL: d("60"), RealizedPL: d("70"), Splits: []holdings.Split{split}},
 		},
 		{
-			// GLG-827: long in A, oversold by as much in B. The quantities
+			// Long in A, oversold by as much in B. The quantities
 			// cancel, but the row is open, so its value and cost stay in
 			// the totals.
 			name: "long in one portfolio, oversold in another",
@@ -909,7 +908,7 @@ func toStrings(m map[string]decimal.Decimal) map[string]string {
 	return out
 }
 
-// TestComputeStats covers GLG-595: every row type adds to its currency's
+// TestComputeStats checks that every row type adds to its currency's
 // stats, and Merge sums them per currency.
 func TestComputeStats(t *testing.T) {
 	var id int64 = 1

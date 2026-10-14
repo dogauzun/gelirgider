@@ -13,7 +13,7 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/db"
 )
 
-// TestValidNameCountsRunes guards GLG-118: the limit is 100 characters, not
+// TestValidNameCountsRunes checks that the limit is 100 characters, not
 // 100 bytes, so 100 two-byte Turkish letters must still be accepted.
 func TestValidNameCountsRunes(t *testing.T) {
 	if !validName(strings.Repeat("ş", maxNameLen)) {
@@ -27,11 +27,12 @@ func TestValidNameCountsRunes(t *testing.T) {
 	}
 }
 
-// TestCheckNameRejectsFormatChars guards GLG-334: a zero-width space renders
-// as nothing and an RTL override reverses the text after it. It also guards
-// GLG-429: Hangul fillers, the Braille blank and bare combining marks render
-// as a blank name. And GLG-683: the line and paragraph separators are line
-// breaks like newline, not whitespace to collapse.
+// TestCheckNameRejectsFormatChars checks that checkName answers 400 for a
+// name that would mislead or look blank: a zero-width space renders as nothing
+// and an RTL override reverses the text after it; Hangul fillers, the Braille
+// blank and bare combining marks render as a blank name; the line and
+// paragraph separators are line breaks like newline, not whitespace to
+// collapse.
 func TestCheckNameRejectsFormatChars(t *testing.T) {
 	for _, name := range []string{
 		"\u200b", "Emeklilik\u202e",
@@ -46,8 +47,9 @@ func TestCheckNameRejectsFormatChars(t *testing.T) {
 	}
 }
 
-// TestCheckNameAcceptsMarksOnLetters guards against GLG-429 going too far: a
-// combining mark on a base letter (NFD "Döviz", Devanagari) is visible.
+// TestCheckNameAcceptsMarksOnLetters checks that the blank-name check does not
+// go too far: a combining mark on a base letter (NFD "Döviz", Devanagari) is
+// visible.
 func TestCheckNameAcceptsMarksOnLetters(t *testing.T) {
 	for _, name := range []string{"Do\u0308viz", "हिंदी", "-"} {
 		w := httptest.NewRecorder()
@@ -57,7 +59,7 @@ func TestCheckNameAcceptsMarksOnLetters(t *testing.T) {
 	}
 }
 
-// TestCheckNameLimitsStoredLength guards GLG-855: the 100-character limit
+// TestCheckNameLimitsStoredLength checks that the 100-character limit
 // applies to the name after inner whitespace runs collapse, not before.
 func TestCheckNameLimitsStoredLength(t *testing.T) {
 	w := httptest.NewRecorder()
@@ -67,7 +69,7 @@ func TestCheckNameLimitsStoredLength(t *testing.T) {
 	}
 }
 
-// TestOwnedRejectsForeignPortfolio guards GLG-1280: Owned answers 404 for
+// TestOwnedRejectsForeignPortfolio checks that Owned answers 404 for
 // another user's portfolio id, as the handler preambles it replaced did, and
 // hands the caller's own portfolio through.
 func TestOwnedRejectsForeignPortfolio(t *testing.T) {
