@@ -74,12 +74,13 @@ Asking for the source by name still fetches from TEFAS while it is off: its
 `go run ./cmd/symbols -market tefas`.
 
 ```
-(cd frontend && npm ci)
+make setup
 make dev
 ```
 
-`npm ci` installs the frontend dependencies (again after
-`frontend/package-lock.json` changes). `make dev` starts both dev servers; the
+`make setup` installs the frontend dependencies with `npm ci` (again after
+`frontend/package-lock.json` changes; in a git worktree it clones the main
+checkout's `node_modules` when the lockfile matches). `make dev` starts both dev servers; the
 backend fetches prices with its built-in scheduler. Ctrl+C stops both.
 
 - Backend: http://localhost:8080

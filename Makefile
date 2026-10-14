@@ -10,10 +10,61 @@ endif
 # Hand them to every target, like compose does for the backend in prod.
 export
 
-.PHONY: dev dev-backend dev-frontend test test-backend test-frontend build-frontend build lint swagger swagger-check notices screenshots help
+.PHONY: setup prune-worktrees dev dev-backend dev-frontend test test-backend test-frontend build-frontend build lint swagger swagger-check notices screenshots help
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*##' $(firstword $(MAKEFILE_LIST)) | awk 'BEGIN {FS = ":.*##"}; {printf "  %-15s %s\n", $$1, $$2}'
+
+# Install the frontend dependencies for this checkout. A worktree cut from the
+# same lockfile as the main tree clones the main tree's node_modules instead of
+# running npm ci (copy-on-write on APFS and btrfs/xfs, a plain copy elsewhere).
+# Never symlink it: npm ci follows the link and deletes the target tree. The
+# lockfile checksum in node_modules/.lockfile-sha256 makes a rerun a no-op. A
+# main tree without that file (installed by plain npm ci) counts as current
+# only when npm wrote its node_modules/.package-lock.json after the lockfile
+# last changed; otherwise the worktree runs npm ci itself.
+setup: ## Install frontend dependencies, cloning the main checkout's node_modules when the lockfile matches
+	@cd frontend && \
+	sha() { if command -v sha256sum >/dev/null; then sha256sum "$$1"; else shasum -a 256 "$$1"; fi | cut -d' ' -f1; } && \
+	want=$$(sha package-lock.json) && \
+	if [ "$$(cat node_modules/.lockfile-sha256 2>/dev/null)" = "$$want" ]; then echo "node_modules up to date"; exit 0; fi && \
+	main=$$(git worktree list --porcelain | sed -n '1s/^worktree //p') && \
+	if [ "$$(cd .. && pwd -P)" != "$$(cd "$$main" && pwd -P)" ] && [ -d "$$main/frontend/node_modules" ] \
+		&& [ "$$(sha "$$main/frontend/package-lock.json")" = "$$want" ] \
+		&& { [ "$$(cat "$$main/frontend/node_modules/.lockfile-sha256" 2>/dev/null)" = "$$want" ] \
+			|| [ "$$main/frontend/node_modules/.package-lock.json" -nt "$$main/frontend/package-lock.json" ]; }; then \
+		echo "cloning node_modules from $$main"; rm -rf node_modules; \
+		if [ "$$(uname)" = Darwin ]; then cp -Rc "$$main/frontend/node_modules" node_modules || { rm -rf node_modules; cp -R "$$main/frontend/node_modules" node_modules; }; \
+		else cp -R --reflink=auto "$$main/frontend/node_modules" node_modules || { rm -rf node_modules; cp -R "$$main/frontend/node_modules" node_modules; }; fi; \
+	else npm ci; fi && \
+	echo "$$want" > node_modules/.lockfile-sha256
+
+# Remove the worktrees whose work is finished: not locked, nothing uncommitted,
+# and the branch is either an ancestor of origin/main or pushed once and gone
+# from origin now (GitHub deletes the branch when its PR merges or closes). A
+# never-pushed branch with commits, a detached HEAD and a branch that is
+# exactly origin/main (just cut, nothing done yet) stay. DRY=1 only prints.
+prune-worktrees: ## Remove finished worktrees and their local branches (DRY=1 only prints)
+	@git fetch --prune origin && \
+	git worktree list --porcelain | awk -v RS= -F'\n' 'NR > 1 { p = ""; b = "-"; l = 0; \
+		for (i = 1; i <= NF; i++) { if ($$i ~ /^worktree /) p = substr($$i, 10); \
+			else if ($$i ~ /^branch refs\/heads\//) b = substr($$i, 19); else if ($$i ~ /^locked/) l = 1 } \
+		print p "\t" b "\t" l }' | \
+	while IFS="$$(printf '\t')" read -r p b l; do \
+		if [ "$$l" = 1 ]; then echo "kept    $$p: locked"; continue; fi; \
+		if [ "$$b" = - ]; then echo "kept    $$p: detached HEAD"; continue; fi; \
+		if [ -n "$$(git -C "$$p" status --porcelain 2>&1)" ]; then echo "kept    $$p ($$b): uncommitted changes"; continue; fi; \
+		tip=$$(git rev-parse "refs/heads/$$b") && why=""; \
+		if [ "$$tip" = "$$(git rev-parse origin/main)" ]; then echo "kept    $$p ($$b): at origin/main, may be just cut"; continue; \
+		elif git merge-base --is-ancestor "$$tip" origin/main; then why="merged into origin/main"; \
+		elif up=$$(git rev-parse --abbrev-ref "$$b@{upstream}" 2>/dev/null); then \
+			case "$$up" in origin/*) ;; *) echo "kept    $$p ($$b): upstream $$up is not on origin"; continue;; esac; \
+			if r=$$(git ls-remote --heads origin "$${up#origin/}") && [ -z "$$r" ]; then why="upstream $$up is gone"; \
+			else echo "kept    $$p ($$b): pushed and still on origin"; continue; fi; \
+		else echo "kept    $$p ($$b): never pushed, commits not on origin/main"; continue; fi; \
+		if [ -n "$(DRY)" ]; then echo "removable $$p ($$b): $$why"; continue; fi; \
+		git worktree remove "$$p" && git branch -D "$$b" >/dev/null && echo "removed $$p ($$b): $$why"; \
+	done && git worktree prune
 
 dev: ## Run backend and frontend together (Ctrl+C stops both)
 	@trap 'kill 0' INT TERM EXIT; \

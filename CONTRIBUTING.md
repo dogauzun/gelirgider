@@ -18,7 +18,7 @@ Prerequisites, provider API keys and first-run notes are in the
 [README](README.md#development). From the repository root:
 
 ```
-(cd frontend && npm ci)  # install frontend dependencies
+make setup               # install frontend dependencies (reuses the main checkout's when the lockfile matches)
 make dev                 # backend on :8080 and frontend on :5173, Ctrl+C stops both
 make test                # backend and frontend tests
 make lint                # linters and format checks

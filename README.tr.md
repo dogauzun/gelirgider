@@ -74,12 +74,13 @@ adıyla istemek yine de TEFAS'tan çeker: kaynağın "Şimdi çalıştır" ve "G
 doldur" düğmeleri, `server -fetch tefas` ve `go run ./cmd/symbols -market tefas`.
 
 ```
-(cd frontend && npm ci)
+make setup
 make dev
 ```
 
-`npm ci` frontend bağımlılıklarını kurar (`frontend/package-lock.json`
-değiştiğinde yeniden çalıştır). `make dev` iki geliştirme sunucusunu da başlatır;
+`make setup` frontend bağımlılıklarını `npm ci` ile kurar
+(`frontend/package-lock.json` değiştiğinde yeniden çalıştır; bir git worktree'de
+lockfile aynıysa ana checkout'un `node_modules` klasörünü kopyalar). `make dev` iki geliştirme sunucusunu da başlatır;
 backend fiyatları yerleşik zamanlayıcısıyla çeker. Ctrl+C ikisini de durdurur.
 
 - Backend: http://localhost:8080
