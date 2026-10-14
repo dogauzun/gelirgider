@@ -1,6 +1,6 @@
 import type { Summary } from '../api/summary'
 import { marketLabel, t } from '../i18n/strings'
-import { returnRatio, weightOf, weightTotal } from './positions'
+import { holdingsTotal, returnRatio, weightOf } from './positions'
 
 // A ratio as a plain percentage with two decimals, '-' without one.
 function percent(ratio: number | null): string {
@@ -15,7 +15,7 @@ export function buildAiPrompt(summary: Summary, portfolioName: string, today: st
   const open = summary.positions.filter((p) => !p.closed)
   // The weight base is the allocation card's, not total_value, which nets
   // negative cash and pushed weights past 100%.
-  const total = weightTotal(summary)
+  const total = holdingsTotal(summary)
   const row = (cells: string[]) => `| ${cells.join(' | ')} |`
   const headers = [
     'symbol',
