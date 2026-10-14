@@ -28,13 +28,14 @@ export function toImportRow(row: Row): ImportRow | null {
   return out
 }
 
-// An unknown_cash_type row is a HESAP İŞLEMLERİ row of a type the parser does
+// An unknown_type row of the HESAP İŞLEMLERİ section is a row of a type the parser does
 // not know (Talep Tarihi|İşlem Tarihi|İşlem Tipi|Açıklama|Durum|Tutar). Its
 // last cell, "47,93 TRY", still gives the amount and currency.
 // Statement text is Turkish format whatever the UI locale, so "1.000 TRY" is
 // a thousand: it is read here, not with the UI-locale parseDecimalInput.
 function unknownCash(row: Row | null): { amount: string; currency: string } | null {
-  if (row?.code !== 'unknown_cash_type' || row.raw?.length !== 6) return null
+  if (row?.code !== 'unknown_type' || row.section !== 'HESAP İŞLEMLERİ' || row.raw?.length !== 6)
+    return null
   // Not parseDecimalInput: that reads by UI locale, the statement is Turkish
   // in every locale. Same first-group rule though.
   const match = /^([1-9]\d{0,2}(?:\.\d{3})*(?:,\d+)?|\d+(?:,\d+)?) (TRY|USD|EUR)$/.exec(
