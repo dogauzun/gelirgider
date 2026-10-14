@@ -149,8 +149,7 @@ deposit was rejected: it would invent flows the user never recorded.
 > Amended 2026-10-07 (GLG-1109): implicit deposits are still rejected. The
 > app may propose recorded deposits for the cash gaps, one per day a
 > currency's cash reaches a new low below zero, and writes them only when
-> the user confirms (`GET` and `POST /api/portfolios/{id}/cash-gaps`, see
-> [the design](../superpowers/specs/2026-10-07-cash-gap-deposits-design.md)).
+> the user confirms (`GET` and `POST /api/portfolios/{id}/cash-gaps`).
 
 ### simple
 
