@@ -27,7 +27,7 @@ Makefile    single entrypoint: make dev / test / lint / build / swagger
 
 1. Work is tracked in Jira project `GLG` (stockpuppet.atlassian.net, kanban board "gelirgider"). Plan and create tickets (or a GitHub issue for outside contributors) before implementation begins. No ticket, no code.
 2. Tickets are small and independent. Minimize dependencies so many tickets can run in parallel. Short but never missing important context.
-3. No story points, no sprints. Kanban only. A ticket that looks like more than a day of work gets split.
+3. No story points, no sprints. Kanban only. A ticket that looks like more than a day of work gets split. A mechanical change that one reviewer would read as one unit (a rename, removing one comment pattern, clearing one lint exception) is one ticket and one PR, however many files it touches; small tickets are for logic, not for file count.
 4. Problem found that is unrelated to current ticket: create a new GLG ticket. Do not fix it in the current PR.
 5. One PR per ticket. Branch name `GLG-<n>-short-slug`.
 6. Address every review comment and every failing required check on the PR head before merge, and resolve each addressed thread; an out-of-scope finding becomes a new GLG ticket (rule 4). See `docs/PRINCIPLES.md` #6.
