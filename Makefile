@@ -51,15 +51,19 @@ setup: ## Install frontend dependencies, cloning the main checkout's node_module
 # the worktree it runs in, a branch exactly at origin/main and a branch whose
 # reflog holds only its creation (both mean just cut: such a branch turns into
 # an ancestor of origin/main as soon as any other PR merges). DRY=1 changes
-# nothing: it skips the removals and the remote and worktree prunes.
+# nothing: it skips the removals and the remote prune. It never runs
+# git worktree prune: a worktree whose directory is missing is the user's to
+# repair or prune.
 prune-worktrees: ## Remove finished worktrees and their local branches (DRY=1 only prints)
-	@git fetch origin && heads=$$(git ls-remote --heads origin | cut -f2) && cur=$$(cd "$$(git rev-parse --show-toplevel)" && pwd -P) && \
+	@git fetch origin && heads=$$(git ls-remote --heads origin) && \
+	{ printf '%s\n' "$$heads" | grep -q 'refs/heads/main$$' || { echo "git ls-remote origin failed or lists no main: stopping"; exit 1; }; } && \
+	heads=$$(printf '%s\n' "$$heads" | cut -f2) && cur=$$(cd "$$(git rev-parse --show-toplevel)" && pwd -P) && \
 	git worktree list --porcelain | awk -v RS= -F'\n' 'NR > 1 { p = ""; b = "-"; l = 0; \
 		for (i = 1; i <= NF; i++) { if ($$i ~ /^worktree /) p = substr($$i, 10); \
 			else if ($$i ~ /^branch refs\/heads\//) b = substr($$i, 19); else if ($$i ~ /^locked/) l = 1 } \
 		print p "\t" b "\t" l }' | \
 	while IFS="$$(printf '\t')" read -r p b l; do \
-		if [ ! -d "$$p" ]; then echo "kept    $$p ($$b): directory missing (git worktree repair or prune)"; continue; fi; \
+		if [ ! -d "$$p" ]; then echo "kept    $$p ($$b): directory missing (repair it with git worktree repair, or git worktree prune; never done here)"; continue; fi; \
 		if [ "$$(cd "$$p" && pwd -P)" = "$$cur" ]; then echo "kept    $$p ($$b): current worktree"; continue; fi; \
 		if [ "$$l" = 1 ]; then echo "kept    $$p: locked"; continue; fi; \
 		if [ "$$b" = - ]; then echo "kept    $$p: detached HEAD"; continue; fi; \
@@ -79,7 +83,7 @@ prune-worktrees: ## Remove finished worktrees and their local branches (DRY=1 on
 			why="upstream $$up is gone, every commit was pushed"; fi; \
 		if [ -n "$(DRY)" ]; then echo "removable $$p ($$b): $$why"; continue; fi; \
 		git worktree remove "$$p" && git branch -D "$$b" >/dev/null && echo "removed $$p ($$b): $$why"; \
-	done && { [ -n "$(DRY)" ] || { git remote prune origin && git worktree prune; }; }
+	done && { [ -n "$(DRY)" ] || git remote prune origin; }
 
 dev: ## Run backend and frontend together (Ctrl+C stops both)
 	@trap 'kill 0' INT TERM EXIT; \
