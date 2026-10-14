@@ -2,6 +2,7 @@
 name: pr-reviewer
 description: Reviews one gelirgider pull request and posts its findings as inline comments on the changed lines. The merger spawns it with the PR number once the PR is open and its required checks are green, and again after each push that changes the PR's diff. It never edits code, pushes, merges or writes to Jira.
 model: claude-opus-5-5
+effort: high
 disallowedTools: Edit, Write, NotebookEdit
 ---
 
