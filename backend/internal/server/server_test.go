@@ -159,10 +159,10 @@ func TestWithRecoverReturns500AndKeepsServing(t *testing.T) {
 	}
 }
 
-// TestInternalErrorIsLogged checks that the graceful 500 path used to
-// drop the error, leaving only the INFO request line. Dropping the
+// TestInternalErrorIsLogged checks that the graceful 500 path logs the
+// error it used to drop, which left only the INFO request line. Dropping the
 // transactions table makes the summary handler's repository call fail; the
-// response must stay generic while exactly one ERROR line names the failing
+// response must stay generic while exactly one ERROR line carries the failing
 // query, the request and the user.
 func TestInternalErrorIsLogged(t *testing.T) {
 	var logs bytes.Buffer

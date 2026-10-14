@@ -442,9 +442,9 @@ func TestImportCommitRejectsRowOutsidePeriod(t *testing.T) {
 	}
 }
 
-// TestImportCommitAcceptsInterestDayAfterPeriod checks that Midas books
-// a month's interest on the 1st of the next month and prints it in the month
-// it accrued, so a row dated the day after period_end commits; two days after
+// TestImportCommitAcceptsInterestDayAfterPeriod checks that a row dated the
+// day after period_end commits, because Midas books a month's interest on the
+// 1st of the next month and prints it in the month it accrued; two days after
 // is still refused.
 func TestImportCommitAcceptsInterestDayAfterPeriod(t *testing.T) {
 	e := newTransactionTestEnv(t)
@@ -538,10 +538,10 @@ func TestImportDeleteIsUndoAndUserScoped(t *testing.T) {
 	}
 }
 
-// TestImportCommitAcceptsBodyOverGlobalLimit checks that the reviewed
-// rows of a real statement run past the global 64 KB body limit, so the
-// commit route is exempt from it and caps itself at 2 MB, answering 413 --
-// not a generic 400 -- above that.
+// TestImportCommitAcceptsBodyOverGlobalLimit checks that the commit route is
+// exempt from the global 64 KB body limit and caps itself at 2 MB, answering
+// 413 -- not a generic 400 -- above that, because the reviewed rows of a real
+// statement run past 64 KB.
 func TestImportCommitAcceptsBodyOverGlobalLimit(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	session := e.login("bigimport@example.com")

@@ -27,11 +27,12 @@ func TestValidNameCountsRunes(t *testing.T) {
 	}
 }
 
-// TestCheckNameRejectsFormatChars checks that a zero-width space renders
-// as nothing and an RTL override reverses the text after it. It also checks
-// that Hangul fillers, the Braille blank and bare combining marks render as a
-// blank name, and that the line and paragraph separators are line breaks like
-// newline, not whitespace to collapse.
+// TestCheckNameRejectsFormatChars checks that checkName answers 400 for a
+// name that would mislead or look blank: a zero-width space renders as nothing
+// and an RTL override reverses the text after it; Hangul fillers, the Braille
+// blank and bare combining marks render as a blank name; the line and
+// paragraph separators are line breaks like newline, not whitespace to
+// collapse.
 func TestCheckNameRejectsFormatChars(t *testing.T) {
 	for _, name := range []string{
 		"\u200b", "Emeklilik\u202e",
