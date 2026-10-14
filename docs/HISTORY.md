@@ -1413,3 +1413,8 @@ from one commit holding the former private repository's `main` at that date
 `dogauzun/gelirgider-private`. Pull request numbers cited above and in commit
 subjects before this date refer to that former repository; the numbering
 starts again at 1 here.
+
+GitHub Actions runs `make lint`, `make test` and `make build-frontend` on every
+pull request and on `main` (GLG-1372, #4) and checks pull request titles
+(GLG-1374, #3). The four checks are required on `main` and, green on the PR
+head, are the merge bar in place of the merger's local run (GLG-1373, #7).
