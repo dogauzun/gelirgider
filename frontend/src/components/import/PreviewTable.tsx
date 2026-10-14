@@ -54,6 +54,7 @@ const errorKey: Record<string, StringKey> = {
   bad_number: 'import.error.badNumber',
   ambiguous_number: 'import.error.ambiguousNumber',
   unknown_type: 'import.error.unknownType',
+  unknown_market: 'import.error.unknownMarket',
   missing_field: 'import.error.missingField',
   fee_on_fee: 'import.error.feeOnFee',
   // The Garanti parsers' codes (GLG-696, GLG-697). Both Garanti fund and

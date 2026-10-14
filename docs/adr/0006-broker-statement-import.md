@@ -121,6 +121,19 @@ against these aliases; only date and type are required:
 > Windows-1254 by a 32-entry table in the `parse` handler (no new dependency);
 > UTF-8 files, with or without a BOM, read as before.
 
+> Amended 2026-10-14 (GLG-1370): a `market` cell is read through aliases too,
+> the codes the export writes and the market names the app shows. Any other
+> non-empty value is an error row with code `unknown_market` naming the cell,
+> instead of a hint that matches nothing. An empty cell is no hint, as before.
+
+| Market | Market aliases           |
+| ------ | ------------------------ |
+| BIST   | `bist`, `borsa istanbul` |
+| US     | `us`, `abd`              |
+| TEFAS  | `tefas`                  |
+| CRYPTO | `crypto`, `kripto`       |
+| GOLD   | `gold`, `altın`, `altin` |
+
 Dates are `2006-01-02`, `02.01.2006` or `02/01/2006`, and numbers such as
 `1.234,56` are accepted. A value with one kind of separator in thousands
 shape, such as `1.000`, `1,000` or `1.000.000`, is an `ambiguous_number`

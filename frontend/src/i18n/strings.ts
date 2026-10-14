@@ -372,7 +372,7 @@ export const tr = {
   'import.broker': 'Aracı kurum',
   'import.brokerAuto': 'Otomatik (PDF)',
   'import.csv.fileHint':
-    'Sütunlar: date, type, symbol, quantity, price, amount, fee, currency, note, market (market isteğe bağlı). İşlem türleri: buy, sell, dividend, interest, deposit, withdrawal, fee. Türkçe başlıklar (Tarih, İşlem, Sembol, Adet, Fiyat, Tutar, Komisyon, Para birimi, Piyasa) ve ; ayırıcı da olur. Örnek düzen İşlemler sayfasının CSV dışa aktarımıdır.',
+    'Sütunlar: date, type, symbol, quantity, price, amount, fee, currency, note, market (market isteğe bağlı). İşlem türleri: buy, sell, dividend, interest, deposit, withdrawal, fee. Piyasalar: BIST, ABD (US), TEFAS, Kripto (CRYPTO), Altın (GOLD). Türkçe başlıklar (Tarih, İşlem, Sembol, Adet, Fiyat, Tutar, Komisyon, Para birimi, Piyasa) ve ; ayırıcı da olur. Örnek düzen İşlemler sayfasının CSV dışa aktarımıdır.',
   'import.garanti.fileHint':
     "Garanti BBVA'nın e-postayla gönderdiği aylık Yatırım Ekstresi: fon bakiyeleri ve fon alım-satımları. Fonları banka hesabından aldığın için her günün net tutarı para yatırma ya da çekme olarak eklenir. Birden fazla ay seçebilirsin.",
   'import.garantiYatirim.fileHint':
@@ -463,6 +463,7 @@ export const tr = {
   'import.error.badNumber': 'Sayı okunamadı: {value}',
   'import.error.ambiguousNumber': '{value}: Binlik ayırıcı mı? 1000 veya 1.000,00 yaz',
   'import.error.unknownType': 'Bilinmeyen işlem türü: {value}',
+  'import.error.unknownMarket': 'Bilinmeyen piyasa: {value}',
   'import.error.missingField': 'Eksik alan: {value}',
   'import.error.feeOnFee': 'Ücret satırında ayrıca komisyon olamaz',
   'import.error.unknownRow': 'Tanınmayan ekstre satırı: {value}',
@@ -1305,7 +1306,7 @@ const en: Strings = {
   'import.broker': 'Broker',
   'import.brokerAuto': 'Automatic (PDF)',
   'import.csv.fileHint':
-    'Columns: date, type, symbol, quantity, price, amount, fee, currency, note, market (market is optional). Types: buy, sell, dividend, interest, deposit, withdrawal, fee. Turkish headers (Tarih, İşlem, Sembol, Adet, Fiyat, Tutar, Komisyon, Para birimi, Piyasa) and ; separators work too. The CSV export on the Transactions page is the reference layout.',
+    'Columns: date, type, symbol, quantity, price, amount, fee, currency, note, market (market is optional). Types: buy, sell, dividend, interest, deposit, withdrawal, fee. Markets: BIST, US (ABD), TEFAS, Crypto (Kripto), Gold (Altın). Turkish headers (Tarih, İşlem, Sembol, Adet, Fiyat, Tutar, Komisyon, Para birimi, Piyasa) and ; separators work too. The CSV export on the Transactions page is the reference layout.',
   'import.garanti.fileHint':
     "The monthly investment statement Garanti BBVA e-mails: fund balances and fund buys and sells. Funds are paid from the bank account, so each day's net amount is added as a deposit or a withdrawal. You can pick several months.",
   'import.garantiYatirim.fileHint':
@@ -1396,6 +1397,7 @@ const en: Strings = {
   'import.error.badNumber': 'Unreadable number: {value}',
   'import.error.ambiguousNumber': '{value}: Thousands separator? Write 1000 or 1,000.00',
   'import.error.unknownType': 'Unknown type: {value}',
+  'import.error.unknownMarket': 'Unknown market: {value}',
   'import.error.missingField': 'Missing field: {value}',
   'import.error.feeOnFee': 'A fee row cannot carry a fee',
   'import.error.unknownRow': 'Unrecognized statement row: {value}',

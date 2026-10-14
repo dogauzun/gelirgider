@@ -105,6 +105,37 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
+			name: "market names the app shows, and an unknown market",
+			rows: [][]string{
+				{"date", "type", "symbol", "quantity", "price", "amount", "Piyasa"},
+				{"2026-04-01", "buy", "BTC-TRY", "1", "10", "", "Kripto"},
+				{"2026-04-01", "buy", "GRAM", "1", "10", "", "Altın"},
+				{"2026-04-01", "buy", "GRAM", "1", "10", "", "ALTIN"},
+				{"2026-04-01", "buy", "AAPL", "1", "10", "", "ABD"},
+				{"2026-04-01", "buy", "THYAO", "1", "10", "", "bist"},
+				{"2026-04-01", "buy", "GRAM", "1", "10", "", "GOLD"},
+				{"2026-04-01", "buy", "THYAO", "1", "10", "", ""},
+				{"2026-04-02", "dividend", "THYAO", "", "", "5", "XYZ"},
+				{"2026-04-03", "deposit", "", "", "", "5", "xyz"},
+			},
+			want: statement.Statement{
+				Broker: "csv", Currency: "TRY",
+				Trades: []statement.Trade{
+					{Date: "2026-04-01", Symbol: "BTC-TRY", Side: "buy", Quantity: d("1"), Price: d("10"), Amount: d("10"), Market: "CRYPTO"},
+					{Date: "2026-04-01", Symbol: "GRAM", Side: "buy", Quantity: d("1"), Price: d("10"), Amount: d("10"), Market: "GOLD"},
+					{Date: "2026-04-01", Symbol: "GRAM", Side: "buy", Quantity: d("1"), Price: d("10"), Amount: d("10"), Market: "GOLD"},
+					{Date: "2026-04-01", Symbol: "AAPL", Side: "buy", Quantity: d("1"), Price: d("10"), Amount: d("10"), Market: "US"},
+					{Date: "2026-04-01", Symbol: "THYAO", Side: "buy", Quantity: d("1"), Price: d("10"), Amount: d("10"), Market: "BIST"},
+					{Date: "2026-04-01", Symbol: "GRAM", Side: "buy", Quantity: d("1"), Price: d("10"), Amount: d("10"), Market: "GOLD"},
+					{Date: "2026-04-01", Symbol: "THYAO", Side: "buy", Quantity: d("1"), Price: d("10"), Amount: d("10")},
+				},
+				Errors: []statement.ParseError{
+					{Code: "unknown_market", Value: "XYZ", Date: "2026-04-02"},
+					{Code: "unknown_market", Value: "xyz", Date: "2026-04-03"},
+				},
+			},
+		},
+		{
 			name: "majority currency",
 			rows: [][]string{
 				{"DATE", "TYPE", "AMOUNT", "CURRENCY"},

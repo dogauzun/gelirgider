@@ -61,6 +61,17 @@ var typeAliases = map[string]string{
 	"fee": "fee", "ücret": "fee", "masraf": "fee",
 }
 
+// marketAliases maps a lower-cased market cell to its market code: the codes
+// the export writes and the market names the app shows, in tr and en
+// (GLG-1370).
+var marketAliases = map[string]string{
+	"bist": "BIST", "borsa istanbul": "BIST",
+	"us": "US", "abd": "US",
+	"tefas":  "TEFAS",
+	"crypto": "CRYPTO", "kripto": "CRYPTO",
+	"gold": "GOLD", "altın": "GOLD", "altin": "GOLD",
+}
+
 // lookup finds a cell in an alias map. Turkish lower-casing reads "İşlem" and
 // "ALIŞ" right but turns an English "PRICE" into "prıce", so the plain
 // lower-casing is tried as well.
@@ -168,9 +179,12 @@ func parseRow(st *statement.Statement, col map[string]int, row []string, currenc
 	// (GLG-622). A cash row has no instrument, so it is TRY.
 	currency := strings.ToUpper(cell("currency"))
 	sym := symbol(cell("symbol"))
-	market := strings.ToUpper(cell("market"))
+	market, known := marketHint(cell("market"))
 
 	switch {
+	case !known:
+		st.Errors = append(st.Errors, statement.ParseError{Section: "CSV", Row: row, Code: "unknown_market", Value: cell("market"), Message: "unknown market", Date: date})
+		return
 	case trade:
 		if sym == "" {
 			st.Errors = append(st.Errors, statement.ParseError{Section: "CSV", Row: row, Code: "missing_field", Value: "symbol", Message: "missing field", Date: date})
@@ -222,6 +236,16 @@ func parseRow(st *statement.Statement, col map[string]int, row []string, currenc
 	if currency != "" {
 		currencies[currency]++
 	}
+}
+
+// marketHint reads a market cell through marketAliases. An empty cell is no
+// hint; any other value must name a market, or the row would silently resolve
+// to nothing (GLG-1370), so ok is false for it.
+func marketHint(cell string) (string, bool) {
+	if cell == "" {
+		return "", true
+	}
+	return lookup(marketAliases, cell)
 }
 
 // majority is the most frequent row currency; a tie, or no rows, is TRY.
