@@ -85,9 +85,11 @@ A PR merges when all of these hold (CLAUDE.md rules 6 and 7):
    resolved no conflict;
 2. every review thread, from the reviewer or a human, is fixed or
    answered and resolved;
-3. the required checks are green on the current head, the commit that
-   merges. GitHub runs them again on every push, and `main` requires the
-   branch to be up to date.
+3. the required checks are green on the current head. The merger turns on
+   auto-merge (`gh pr merge --auto --squash`) and GitHub merges as soon as
+   they pass; the branch does not have to be up to date with `main`, so no
+   rebase is needed first. A push run on `main` that fails after a merge is
+   a bug ticket for the merger that landed it.
 
 A push that changes the PR's own diff gets a new review. A push that only
 rebases the branch onto `main` does not, and neither does a finding that
