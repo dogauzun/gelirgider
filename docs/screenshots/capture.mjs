@@ -23,12 +23,14 @@ if (!front) {
 const email = 'demo@example.com'
 const password = 'demo-password'
 
-// Each page's path under /portfolios/<id> and the DOM condition that says its
-// data has rendered: a drawn chart series or table rows.
+// Each page's path under /portfolios/<id>, its viewport height at 1440 wide
+// (the summary is taller so the first position rows show), and the DOM
+// condition that says its data has rendered: a drawn chart series or table
+// rows.
 const pages = [
-  ['summary', '', `document.querySelector('.recharts-surface path')`],
-  ['performance', '/performance', `document.querySelector('.recharts-surface path')`],
-  ['transactions', '/transactions', `document.querySelector('tbody tr')`],
+  ['summary', '', 1240, `document.querySelector('.recharts-surface path')`],
+  ['performance', '/performance', 900, `document.querySelector('.recharts-surface path')`],
+  ['transactions', '/transactions', 900, `document.querySelector('tbody tr')`],
 ]
 
 function findChrome() {
@@ -68,6 +70,9 @@ const chrome = spawn(chromeBin, [
 ])
 let failed = false
 try {
+  // vite preview and the backend start in the background: wait for both
+  // before the first navigation.
+  await waitFor('the backend', () => fetch(`${front}/api/health`).then((r) => r.ok))
   const wsUrl = await new Promise((resolve, reject) => {
     let err = ''
     chrome.stderr.on('data', (chunk) => {
@@ -115,12 +120,13 @@ try {
   }
 
   await page('Page.enable')
-  await page('Emulation.setDeviceMetricsOverride', {
-    width: 1440,
-    height: 900,
-    deviceScaleFactor: 2,
-    mobile: false,
-  })
+  const resize = (height) =>
+    page('Emulation.setDeviceMetricsOverride', {
+      width: 1440,
+      height,
+      deviceScaleFactor: 2,
+      mobile: false,
+    })
   // Reduced motion makes Recharts draw its final frame without the entry
   // animation, whose first frames look empty.
   await page('Emulation.setEmulatedMedia', {
@@ -134,12 +140,12 @@ try {
   })
 
   const navigate = async (url) => {
-    await page('Page.navigate', { url })
+    const { errorText } = await page('Page.navigate', { url })
+    if (errorText) throw new Error(`${url}: ${errorText}`)
     await waitFor(url, () => evaluate(`document.readyState === 'complete'`))
   }
 
   await navigate(`${front}/login`)
-  await waitFor('the backend', () => evaluate(`fetch('/api/health').then((r) => r.ok)`))
   const status = await evaluate(`fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -151,12 +157,24 @@ try {
   )
   if (!id) throw new Error('no Demo portfolio: was the database seeded with -demo?')
 
-  for (const [name, path, ready] of pages) {
+  for (const [name, path, height, ready] of pages) {
+    await resize(height)
     await navigate(`${front}/portfolios/${id}${path}`)
     await waitFor(`the ${name} page`, () =>
       evaluate(`!!(${ready}) && !document.querySelector('.animate-pulse, [aria-busy="true"]')
         && document.fonts.status === 'loaded'`),
     )
+    // Switch every element's font away and back: text first laid out before
+    // Inter loaded can keep a dotted underline of the fallback font's
+    // thickness, which varies from run to run.
+    await evaluate(`{
+      const sheet = new CSSStyleSheet()
+      sheet.replaceSync('* { font-family: serif !important }')
+      document.adoptedStyleSheets = [sheet]
+      document.body.offsetWidth
+      document.adoptedStyleSheets = []
+      document.body.offsetWidth
+    }`)
     await sleep(500)
     const { data } = await page('Page.captureScreenshot', {
       format: 'png',
@@ -173,7 +191,7 @@ try {
 } finally {
   chrome.kill()
   await new Promise((resolve) =>
-    chrome.exitCode === null ? chrome.on('exit', resolve) : resolve(),
+    chrome.exitCode !== null || chrome.signalCode !== null ? resolve() : chrome.on('exit', resolve),
   )
   rmSync(profile, { recursive: true, force: true })
 }
