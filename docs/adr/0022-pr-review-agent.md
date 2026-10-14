@@ -65,7 +65,7 @@ The merger does not read the whole diff. It:
    `Go tests`, `Web tests` and `Web build` (workflow `ci`) and `Title`
    (workflow `pr`), see `docs/PRINCIPLES.md` #6;
 2. checks hygiene: no AI attribution in commits or the PR body, the PR body
-   follows the template, the branch contains current `main`, non-trivial logic
+   follows the template, non-trivial logic
    ships with a test, a bug fix's Testing section names a test that failed
    before the fix or says why no test can express the bug, and a new or
    changed route has its swag annotation (the missing tests and documentation
@@ -85,9 +85,11 @@ A PR merges when all of these hold (CLAUDE.md rules 6 and 7):
    resolved no conflict;
 2. every review thread, from the reviewer or a human, is fixed or
    answered and resolved;
-3. the required checks are green on the current head, the commit that
-   merges. GitHub runs them again on every push, and `main` requires the
-   branch to be up to date.
+3. the required checks are green on the current head. The merger turns on
+   auto-merge (`gh pr merge --auto --squash --subject "<PR title> (#<n>)" --body "<the PR's Description text>"`) and GitHub merges as soon as
+   they pass; the branch does not have to be up to date with `main`, so no
+   rebase is needed first. A push run on `main` that fails after a merge is
+   a bug ticket for the merger that landed it. Auto-merge is turned on only as the last step, after the reviewer has reviewed the current head and every thread is resolved; before any push that changes the diff after that, the merger runs `gh pr merge --disable-auto` and turns auto-merge on again only after the new review.
 
 A push that changes the PR's own diff gets a new review. A push that only
 rebases the branch onto `main` does not, and neither does a finding that
@@ -98,7 +100,9 @@ A PR branch changes only through git under the owner's identity, never
 through the GitHub contents API or the update-branch endpoint, which decode
 escape sequences and add merge commits. A merge passes an explicit commit
 title and message, because the merge tool adds a `Co-authored-by` trailer
-otherwise (CLAUDE.md rule 9).
+otherwise (CLAUDE.md rule 9) and the repository's squash defaults would
+land a single-commit PR under the commit's subject and copy branch commit
+trailers into `main`.
 
 A round is one review that posted findings; after six rounds on one PR
 the merger parks the ticket with the `needs-decision` label instead of a
