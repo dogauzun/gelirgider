@@ -191,6 +191,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           </div>
           <PrivacyToggle />
         </div>
+        {/* Set by the image build; a local build is dev and shows nothing. */}
+        {__APP_VERSION__ !== 'dev' && (
+          <p className="px-2 text-[11px] text-muted">
+            {t('nav.version', { version: __APP_VERSION__ })}
+          </p>
+        )}
       </div>
 
       {creating && (
