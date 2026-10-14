@@ -206,7 +206,9 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             onNavigate?.()
             // The empty list's opener is gone by now: the new page takes
             // focus unless it moved on, as from the header.
-            navigate(`/portfolios/${id}`, { state: { focusAfterCreate: true } satisfies NavState })
+            void navigate(`/portfolios/${id}`, {
+              state: { focusAfterCreate: true } satisfies NavState,
+            })
           }}
         />
       )}

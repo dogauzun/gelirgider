@@ -3,8 +3,8 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { flushToasts, toast } from '../../lib/toast'
 import { Toaster } from './Toast'
 
-afterEach(() => {
-  flushToasts()
+afterEach(async () => {
+  await flushToasts()
   vi.useRealTimers()
 })
 
@@ -18,16 +18,22 @@ test('keeps an undo toast while hovered and commits it on timeout', () => {
   const region = screen.getByRole('status')
 
   act(() => toast('Deleted', { undo: vi.fn(), commit }))
-  act(() => vi.advanceTimersByTime(5000))
+  act(() => {
+    vi.advanceTimersByTime(5000)
+  })
   expect(region).toHaveTextContent('Deleted')
 
   fireEvent.pointerEnter(screen.getByText('Deleted').parentElement!)
-  act(() => vi.advanceTimersByTime(10000))
+  act(() => {
+    vi.advanceTimersByTime(10000)
+  })
   expect(region).toHaveTextContent('Deleted')
   expect(commit).not.toHaveBeenCalled()
 
   fireEvent.pointerLeave(screen.getByText('Deleted').parentElement!)
-  act(() => vi.advanceTimersByTime(3100))
+  act(() => {
+    vi.advanceTimersByTime(3100)
+  })
   expect(region).not.toHaveTextContent('Deleted')
   expect(commit).toHaveBeenCalledOnce()
 })
@@ -49,7 +55,7 @@ test('drops the commit when undo is pressed', () => {
 
   act(() => toast('Deleted', { undo, commit }))
   fireEvent.click(screen.getByRole('button', { name: 'Geri al' }))
-  flushToasts()
+  void flushToasts()
 
   expect(undo).toHaveBeenCalledOnce()
   expect(commit).not.toHaveBeenCalled()
@@ -67,7 +73,9 @@ test('keeps an error toast in the alert region until closed', () => {
   act(() => toast('Saved'))
   act(() => toast('Copied'))
   expect(commit).not.toHaveBeenCalled()
-  act(() => vi.advanceTimersByTime(5000))
+  act(() => {
+    vi.advanceTimersByTime(5000)
+  })
   expect(screen.getByRole('alert')).toHaveTextContent('Could not delete')
   expect(screen.getByRole('status')).not.toHaveTextContent('Could not delete')
 

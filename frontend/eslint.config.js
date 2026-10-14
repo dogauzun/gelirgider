@@ -24,7 +24,11 @@ export default tseslint.config(
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
+      parserOptions: { projectService: true },
     },
+    // A promise nobody awaits loses its rejection: await it, or mark the
+    // fire-and-forget call with `void`.
+    rules: { '@typescript-eslint/no-floating-promises': 'error' },
   },
   // Layer boundary: lib, api and i18n are leaves, components/ sits above them.
   {

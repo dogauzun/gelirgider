@@ -229,7 +229,7 @@ export function useUpdateReportingCurrency(onSaved: () => void) {
     mutationFn: (currency: string) => updateReportingCurrency(currency),
     onSuccess: (updated) => {
       queryClient.setQueryData(meQueryKey, updated)
-      queryClient.invalidateQueries({ queryKey: portfoliosQueryKey, exact: true })
+      void queryClient.invalidateQueries({ queryKey: portfoliosQueryKey, exact: true })
       onSaved()
     },
   })
@@ -295,7 +295,7 @@ export function dropDataOnUserChange(queryClient: QueryClient) {
     if (cachedUserId !== undefined) {
       if (id === null) queryClient.removeQueries({ predicate: unseen })
       else
-        queryClient.resetQueries({
+        void queryClient.resetQueries({
           predicate: (query) => !keptQueryKeys.includes(query.queryKey[0]),
         })
     }

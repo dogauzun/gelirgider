@@ -71,7 +71,7 @@ function PortfolioRow({
       className={`${ROW_40} cursor-pointer hover:bg-raised-hover`}
       // The name is the link; the rest of the row opens it for a mouse too.
       onClick={(event) => {
-        if (!(event.target as Element).closest('a')) navigate(href)
+        if (!(event.target as Element).closest('a')) void navigate(href)
       }}
     >
       <td className={`${TD} w-full max-w-0`}>

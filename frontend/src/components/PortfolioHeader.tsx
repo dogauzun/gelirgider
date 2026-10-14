@@ -33,14 +33,13 @@ function messageOf(error: unknown): string {
 // The whole two-step delete behind one call: confirm, let the server
 // refuse with 409 plus the transaction count, then confirm again naming that
 // count before sending ?force=true. `error` is the message to render inline;
-// `dialog` has to be rendered by the caller. `remove` resolves true once the
-// portfolio is gone.
+// `dialog` has to be rendered by the caller.
 function useDeletePortfolioFlow() {
   const { confirm, dialog } = useConfirm()
   const mutation = useDeletePortfolio()
   const [error, setError] = useState<string | null>(null)
 
-  async function remove(id: number): Promise<boolean> {
+  async function remove(id: number): Promise<void> {
     setError(null)
     const confirmed = await confirm({
       title: t('portfolios.deleteConfirm'),
@@ -48,11 +47,10 @@ function useDeletePortfolioFlow() {
       danger: true,
     })
     if (!confirmed) {
-      return false
+      return
     }
     try {
       await mutation.mutateAsync({ id })
-      return true
     } catch (refusal) {
       const count =
         refusal instanceof ApiError && refusal.status === 409
@@ -60,7 +58,7 @@ function useDeletePortfolioFlow() {
           : NaN
       if (!Number.isInteger(count) || count <= 0) {
         setError(messageOf(refusal))
-        return false
+        return
       }
       const cascade = await confirm({
         title: t('portfolios.deleteConfirm'),
@@ -70,14 +68,12 @@ function useDeletePortfolioFlow() {
       })
       if (!cascade) {
         setError(messageOf(refusal))
-        return false
+        return
       }
       try {
         await mutation.mutateAsync({ id, force: true })
-        return true
       } catch (cascadeError) {
         setError(messageOf(cascadeError))
-        return false
       }
     }
   }
@@ -195,7 +191,7 @@ export function PortfolioHeader({
   // way, so the state asks Tüm portföyler to place focus.
   useEffect(() => {
     if (removeTried && data && !portfolio) {
-      navigate('/portfolios/all', {
+      void navigate('/portfolios/all', {
         replace: true,
         state: { focusAfterDelete: true } satisfies NavState,
       })
@@ -397,7 +393,7 @@ export function PortfolioHeader({
                     // Set before the delete, so the refetched list never
                     // flashes the not-found message on the way home.
                     setRemovedId(portfolioId)
-                    remove(portfolioId)
+                    void remove(portfolioId)
                   }}
                 >
                   <Icon name="trash" />

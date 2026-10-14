@@ -49,8 +49,8 @@ function deleteUser(id: number): Promise<void> {
 
 // Demoting yourself changes /api/me too, so every user action refreshes both.
 function refreshUsers(queryClient: QueryClient) {
-  queryClient.invalidateQueries({ queryKey: adminUsersQueryKey })
-  queryClient.invalidateQueries({ queryKey: meQueryKey })
+  void queryClient.invalidateQueries({ queryKey: adminUsersQueryKey })
+  void queryClient.invalidateQueries({ queryKey: meQueryKey })
 }
 
 // `onAdded` and the hooks' other callbacks run before the refresh. mutate()

@@ -54,7 +54,7 @@ export function UsersSection() {
   // Without the admin role /admin renders NotFound, so leave for home before
   // the /api/me refetch lands.
   const adminMutation = useToggleAdmin(() => {
-    navigate('/', { replace: true })
+    void navigate('/', { replace: true })
     toast(t('admin.users.demotedSelf'))
   })
   const once = useOneAtATime()
