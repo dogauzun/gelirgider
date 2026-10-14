@@ -42,15 +42,16 @@ setup: ## Install frontend dependencies, cloning the main checkout's node_module
 # Remove the worktrees whose work is finished: not locked, nothing uncommitted,
 # and the branch is either an ancestor of origin/main or pushed once and gone
 # from origin now (GitHub deletes the branch when its PR merges or closes). A
-# never-pushed branch with commits, a detached HEAD and a branch that is
-# exactly origin/main (just cut, nothing done yet) stay. DRY=1 only prints.
+# never-pushed branch with commits and a detached HEAD stay, and so do the
+# worktree it runs in and a branch exactly at origin/main (just cut). DRY=1 only prints.
 prune-worktrees: ## Remove finished worktrees and their local branches (DRY=1 only prints)
-	@git fetch --prune origin && \
+	@git fetch --prune origin && cur=$$(cd "$$(git rev-parse --show-toplevel)" && pwd -P) && \
 	git worktree list --porcelain | awk -v RS= -F'\n' 'NR > 1 { p = ""; b = "-"; l = 0; \
 		for (i = 1; i <= NF; i++) { if ($$i ~ /^worktree /) p = substr($$i, 10); \
 			else if ($$i ~ /^branch refs\/heads\//) b = substr($$i, 19); else if ($$i ~ /^locked/) l = 1 } \
 		print p "\t" b "\t" l }' | \
 	while IFS="$$(printf '\t')" read -r p b l; do \
+		if [ "$$(cd "$$p" && pwd -P)" = "$$cur" ]; then echo "kept    $$p ($$b): current worktree"; continue; fi; \
 		if [ "$$l" = 1 ]; then echo "kept    $$p: locked"; continue; fi; \
 		if [ "$$b" = - ]; then echo "kept    $$p: detached HEAD"; continue; fi; \
 		if [ -n "$$(git -C "$$p" status --porcelain 2>&1)" ]; then echo "kept    $$p ($$b): uncommitted changes"; continue; fi; \
