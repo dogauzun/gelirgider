@@ -1,33 +1,32 @@
 // Package textcheck holds the invisible-character and visible-rune checks
 // shared by the free-text fields and the email address. It imports nothing from the app,
-// so auth can use it although portfolio imports auth (GLG-978).
+// so auth can use it although portfolio imports auth.
 package textcheck
 
 import "unicode"
 
 // HasInvisible reports whether s holds a control or format character, a
 // line or paragraph separator, or a blank filler. Portfolio names, the
-// transaction note (GLG-354), instrument symbols and names, and the email
-// address at registration (GLG-978) reject them.
+// transaction note, instrument symbols and names, and the email
+// address at registration reject them.
 //
 // U+2028 and U+2029 are categories Zl and Zp, not Cc, so IsControl misses
-// them, but they are line breaks like newline and both fields are single-line
-// (GLG-683).
+// them, but they are line breaks like newline and both fields are single-line.
 //
 // The fillers are letters or symbols to Unicode, so no category test catches
-// them, but they render as empty space (GLG-429): Hangul fillers U+115F,
+// them, but they render as empty space: Hangul fillers U+115F,
 // U+1160, U+3164, U+FFA0 and the Braille blank U+2800.
 //
 // The zero-width joiner U+200D is a format character too, but between two
 // emoji it glues them into one visible emoji (family, rainbow flag), so it
-// passes there and only there (GLG-901).
+// passes there and only there.
 //
 // Tag characters U+E0020-E007F are format characters as well, but after a
 // black flag U+1F3F4 the tag letters "gbeng", "gbsct" or "gbwls" closed by
 // CANCEL TAG U+E007F make one visible subdivision flag (England, Scotland,
 // Wales), so those three runs pass. Any other tag run renders as a plain
-// black flag with a hidden payload, which GLG-142 and GLG-334 refuse, so it
-// and every other tag character do not (GLG-907).
+// black flag with a hidden payload, which is refused, so it
+// and every other tag character do not.
 func HasInvisible(s string) bool {
 	rs := []rune(s)
 	for i := 0; i < len(rs); i++ {
@@ -76,7 +75,7 @@ func flagTagsEnd(rs []rune, i int) int {
 // sequences use (health worker, pirate flag, black cat...). Neighbouring
 // symbol blocks such as enclosed letters, alchemical or chess symbols and
 // arrows are left out, as is the symbol category as a whole: "★" + ZWJ + "★"
-// looks like "★★" but is stored differently, which GLG-142 and GLG-334 refuse.
+// looks like "★★" but is stored differently, which is refused.
 func joinsEmoji(rs []rune, i int) bool {
 	j := i - 1
 	for j >= 0 && (rs[j] == '\ufe0f' || (rs[j] >= 0x1f3fb && rs[j] <= 0x1f3ff)) {
@@ -98,8 +97,8 @@ func isEmoji(r rune) bool {
 
 // IsVisible reports whether r draws something on its own: not whitespace and
 // not a combining mark, which only decorates the character before it. A text
-// with no visible rune renders blank: portfolio names (GLG-429), the
-// transaction note and instrument symbols and names (GLG-1003) refuse it.
+// with no visible rune renders blank: portfolio names, the
+// transaction note and instrument symbols and names refuse it.
 func IsVisible(r rune) bool {
 	return !unicode.IsSpace(r) && !unicode.Is(unicode.M, r)
 }

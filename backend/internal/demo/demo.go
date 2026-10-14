@@ -1,5 +1,5 @@
-// Package demo fills an empty database with a synthetic demo account
-// (GLG-1380): one admin user, one portfolio with two years of trades and
+// Package demo fills an empty database with a synthetic demo account:
+// one admin user, one portfolio with two years of trades and
 // dividends, and daily prices and FX rates for the same two years. The
 // numbers come from a fixed-seed random walk, so the seed needs no network
 // and two runs give the same values.

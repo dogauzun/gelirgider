@@ -7,11 +7,11 @@
 // statement.ParseError and the next row is parsed anyway. The returned errors
 // are "not a csv statement", when the header has no date or type column, and
 // "no rows", when no data row follows it: such a file has no period, so there
-// is nothing to preview or record (GLG-624). A ParseError.Message is a fixed
+// is nothing to preview or record. A ParseError.Message is a fixed
 // string and never quotes a cell.
 //
 // A CSV prints no period, so the Statement's is left empty: the parse handler
-// derives it from the rows' dates, which needs the clock (GLG-618).
+// derives it from the rows' dates, which needs the clock.
 package csv
 
 import (
@@ -62,8 +62,7 @@ var typeAliases = map[string]string{
 }
 
 // marketAliases maps a lower-cased market cell to its market code: the codes
-// the export writes and the market names the app shows, in tr and en
-// (GLG-1370).
+// the export writes and the market names the app shows, in tr and en.
 var marketAliases = map[string]string{
 	"bist": "BIST", "borsa istanbul": "BIST",
 	"us": "US", "abd": "US",
@@ -149,8 +148,8 @@ func parseRow(st *statement.Statement, col map[string]int, row []string, currenc
 		}
 		n, err := parseNumber(cell(f))
 		// A trade amount past the digit cap is read on, and kept below only
-		// if it is quantity × price, like the transaction API (GLG-476):
-		// the export writes that product as stored (GLG-853).
+		// if it is quantity × price, like the transaction API:
+		// the export writes that product as stored.
 		if err == errTooLong && f == "amount" && trade {
 			longAmount, err = true, nil
 		}
@@ -175,8 +174,8 @@ func parseRow(st *statement.Statement, col map[string]int, row []string, currenc
 	}
 
 	// An empty currency cell stays empty on a trade or a dividend: the parse
-	// handler takes the currency of the instrument the row resolves to
-	// (GLG-622). A cash row has no instrument, so it is TRY.
+	// handler takes the currency of the instrument the row resolves to.
+	// A cash row has no instrument, so it is TRY.
 	currency := strings.ToUpper(cell("currency"))
 	sym := symbol(cell("symbol"))
 	market, known := marketHint(cell("market"))
@@ -240,7 +239,7 @@ func parseRow(st *statement.Statement, col map[string]int, row []string, currenc
 
 // marketHint reads a market cell through marketAliases. An empty cell is no
 // hint; any other value must name a market, or the row would silently resolve
-// to nothing (GLG-1370), so ok is false for it.
+// to nothing, so ok is false for it.
 func marketHint(cell string) (string, bool) {
 	if cell == "" {
 		return "", true
@@ -288,7 +287,7 @@ var (
 	longShape = regexp.MustCompile(`^\d{1,30}(\.\d{1,18})?$`)
 	// ambiguousShape is one kind of separator in thousands shape: "1.000",
 	// "1,000" or "1.000.000" may be grouping or a decimal point, so it is not
-	// read at all, the same rule as the transaction form (GLG-342, GLG-626).
+	// read at all, the same rule as the transaction form.
 	ambiguousShape = regexp.MustCompile(`^[1-9]\d{0,2}((\.\d{3})+|(,\d{3})+)$`)
 )
 
@@ -311,7 +310,7 @@ func parseNumber(cell string) (decimal.Decimal, error) {
 			sep, mark = ".", ","
 		}
 		// With both separators the thousands groups must be three digits,
-		// or "1.2.3,4" would be read as 123.4 (GLG-902).
+		// or "1.2.3,4" would be read as 123.4.
 		if strings.Contains(s, ".") && !statement.Grouped(s, sep, mark) {
 			return decimal.Decimal{}, errors.New("unreadable number")
 		}

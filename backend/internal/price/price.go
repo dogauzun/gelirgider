@@ -49,7 +49,7 @@ var digitsPattern = regexp.MustCompile(`^\d+(\.\d+)?$`)
 
 // TooManyDigits reports whether s is a positive plain decimal that
 // ValidClose rejects only for its digit counts, so the error can name the
-// limit instead of "must be a positive decimal" (GLG-456).
+// limit instead of "must be a positive decimal".
 func TooManyDigits(s string) bool {
 	return !decimalPattern.MatchString(s) && digitsPattern.MatchString(s) && !isAllZero(s)
 }
@@ -75,7 +75,7 @@ func ValidDate(s string) bool {
 
 // MinDate is the earliest date a user may enter: a transaction, a manual
 // price, the admin backfill start. It only catches mistyped years (0001,
-// 0226 for 2026); any real holding is newer (GLG-339, GLG-354).
+// 0226 for 2026); any real holding is newer.
 const MinDate = "1990-01-01"
 
 // CheckDate checks a user-entered date: a real YYYY-MM-DD calendar date, not
@@ -146,8 +146,8 @@ func NewRepo(db *sql.DB) *Repo {
 // dialect-specific upsert, per project convention of portable SQL, run in
 // one transaction: BeginTx takes the write lock up front (_txlock=immediate),
 // so two overlapping fetches of a new key cannot both miss on UPDATE and
-// both INSERT (GLG-1025). A date that is not YYYY-MM-DD is an error: no
-// query would ever find it (GLG-783).
+// both INSERT. A date that is not YYYY-MM-DD is an error: no
+// query would ever find it.
 func (r *Repo) Upsert(ctx context.Context, instrumentID int64, date, close, source string) error {
 	if !ValidDate(date) {
 		return fmt.Errorf("upsert price: date %q is not YYYY-MM-DD", date)
@@ -184,14 +184,14 @@ func (r *Repo) Upsert(ctx context.Context, instrumentID int64, date, close, sour
 }
 
 // hasSourceQuery is HasSource's lookup. Both EXISTS arms are index seeks:
-// prices on idx_prices_date_source (GLG-691), empty_fetches on its
+// prices on idx_prices_date_source, empty_fetches on its
 // (source, date) primary key. Without the index the prices arm scanned the
 // whole table once per day of every backfill walk.
 const hasSourceQuery = `SELECT EXISTS(SELECT 1 FROM prices WHERE date = ? AND source = ?)
 	OR EXISTS(SELECT 1 FROM empty_fetches WHERE date = ? AND source = ?)`
 
 // HasSource reports whether at least one price row exists for date with the
-// given source, or MarkEmpty recorded date as having no data (GLG-277).
+// given source, or MarkEmpty recorded date as having no data.
 // Used by the historical backfill to skip dates it has already synced.
 func (r *Repo) HasSource(ctx context.Context, date, source string) (bool, error) {
 	var exists int
@@ -220,7 +220,7 @@ func (r *Repo) MarkEmpty(ctx context.Context, date, source string) error {
 // list. The plan walks the requested instrument ids and, per id, seeks the
 // newest date on or before asOf, then the row at that date, all on the
 // (instrument_id, date) primary key, so its cost does not grow with the
-// length of price history (GLG-503) nor cost one query per id (GLG-1234).
+// length of price history nor cost one query per id.
 // A MAX subquery correlated to every stored row re-ran per row instead.
 const latestQuery = `SELECT p.instrument_id, p.date, p.close, p.source
 	FROM instruments i JOIN prices p ON p.instrument_id = i.id

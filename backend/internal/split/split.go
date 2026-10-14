@@ -35,7 +35,7 @@ func NewRepo(db *sql.DB) *Repo {
 // Upsert stores a split for (instrumentID, date), overwriting ratio and
 // source of an existing row (last writer wins). Same UPDATE-then-INSERT
 // shape as price.Repo.Upsert, for portable SQL, in one transaction so
-// overlapping fetches of a new key cannot both INSERT (GLG-1025).
+// overlapping fetches of a new key cannot both INSERT.
 func (r *Repo) Upsert(ctx context.Context, instrumentID int64, date string, ratio decimal.Decimal, source string) error {
 	if !ratio.IsPositive() {
 		return errors.New("split ratio must be > 0")

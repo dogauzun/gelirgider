@@ -3712,7 +3712,7 @@
             "type": "object",
             "properties": {
                 "benchmark_twr": {
-                    "description": "BenchmarkTWR is the same for the benchmark's shadow series: null on\nevery point without a benchmark, when the shadow has no value, or when\nbenchmark.returns.twr is null (ADR 0012, GLG-952).",
+                    "description": "BenchmarkTWR is the same for the benchmark's shadow series: null on\nevery point without a benchmark, when the shadow has no value, or when\nbenchmark.returns.twr is null (ADR 0012).",
                     "type": "string"
                 },
                 "benchmark_value": {
@@ -3729,14 +3729,14 @@
                     "type": "string"
                 },
                 "price_unknown": {
-                    "description": "PriceUnknown is set on a point that holds at least one instrument with\nno price on or before its date. Those holdings count at cost in\ntotal_value, so the point is incomplete, not wrong by the whole\nholding (ADR 0003, GLG-254).",
+                    "description": "PriceUnknown is set on a point that holds at least one instrument with\nno price on or before its date. Those holdings count at cost in\ntotal_value, so the point is incomplete, not wrong by the whole\nholding (ADR 0003).",
                     "type": "boolean"
                 },
                 "total_value": {
                     "type": "string"
                 },
                 "twr": {
-                    "description": "TWR is the time-weighted return from the range's first point to this\none, a fraction with 6 decimals: \"0.000000\" on the first point, the\nrange's returns.twr on the last. null on every point when returns.twr\nis null (ADR 0011, GLG-952).",
+                    "description": "TWR is the time-weighted return from the range's first point to this\none, a fraction with 6 decimals: \"0.000000\" on the first point, the\nrange's returns.twr on the last. null on every point when returns.twr\nis null (ADR 0011).",
                     "type": "string"
                 }
             }
@@ -3756,7 +3756,7 @@
                     "type": "string"
                 },
                 "missing_prices": {
-                    "description": "MissingPrices is the union, over every point with price_unknown, of\nthe symbols held with no price yet on that point's date (GLG-254).",
+                    "description": "MissingPrices is the union, over every point with price_unknown, of\nthe symbols held with no price yet on that point's date.",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -3769,7 +3769,7 @@
                     }
                 },
                 "net_flow": {
-                    "description": "NetFlow is the external cash that entered the portfolio after the\nfirst point: deposits minus withdrawals dated after `from`, each\nconverted at its own day's rate like everything else in the series\n(ADR 0003). Anything dated on or before `from` is already inside the\nfirst point's total, so it is not counted here. The chart header\nsubtracts it from last - first, so money put in is not shown as a\ngain (GLG-219). A flow whose currency has no rate on its own day is\ncarried and counted on the first later day that has one, because\nthat is the day its cash enters total_value (GLG-233).\n\nThe gross amount is counted, not the amount net of its fee: a fee is\na cost, and costs belong in the performance the chart shows, exactly\nlike the fee on a buy, a sell or a standalone fee row, none of which\nis a flow either (GLG-232).\n\nIt also holds the first-price jump of every holding the first point\nhad no price for: on the day its first price lands, its value moves\nfrom cost to market in one step, and that move is gain made before\nthe range as much as inside it, so it is counted here rather than as\nthe range's gain (GLG-254).",
+                    "description": "NetFlow is the external cash that entered the portfolio after the\nfirst point: deposits minus withdrawals dated after `from`, each\nconverted at its own day's rate like everything else in the series\n(ADR 0003). Anything dated on or before `from` is already inside the\nfirst point's total, so it is not counted here. The chart header\nsubtracts it from last - first, so money put in is not shown as a\ngain. A flow whose currency has no rate on its own day is\ncarried and counted on the first later day that has one, because\nthat is the day its cash enters total_value.\n\nThe gross amount is counted, not the amount net of its fee: a fee is\na cost, and costs belong in the performance the chart shows, exactly\nlike the fee on a buy, a sell or a standalone fee row, none of which\nis a flow either.\n\nIt also holds the first-price jump of every holding the first point\nhad no price for: on the day its first price lands, its value moves\nfrom cost to market in one step, and that move is gain made before\nthe range as much as inside it, so it is counted here rather than as\nthe range's gain.",
                     "type": "string"
                 },
                 "points": {
@@ -3779,7 +3779,7 @@
                     }
                 },
                 "returns": {
-                    "description": "Returns is the range's simple, time-weighted and money-weighted\nreturn (ADR 0011), from each point's total_value and the same\nexternal flows net_flow counts, taken on the day they land. All three\nare null when the first point's total_value is not positive or any\npoint's cash is negative (GLG-641).",
+                    "description": "Returns is the range's simple, time-weighted and money-weighted\nreturn (ADR 0011), from each point's total_value and the same\nexternal flows net_flow counts, taken on the day they land. All three\nare null when the first point's total_value is not positive or any\npoint's cash is negative.",
                     "allOf": [
                         {
                             "$ref": "#/definitions/server.returnsResponse"
@@ -3844,7 +3844,7 @@
             "type": "object",
             "properties": {
                 "cash": {
-                    "description": "Cash and UnrealizedPL in the reporting currency, taken from the same\nholdings.Convert result as TotalValue, so they leave out the same\nMissingRates currencies (GLG-158). UnrealizedPL is null under\nsummaryResponse.UnrealizedPL's rule: when every currency contributing\nto it was excluded for lack of a rate, the sum is 0.00 only because\nnothing was added to it, and a caller must render \"-\" rather than a\nfigure that reads as a real zero (GLG-113, GLG-129).",
+                    "description": "Cash and UnrealizedPL in the reporting currency, taken from the same\nholdings.Convert result as TotalValue, so they leave out the same\nMissingRates currencies. UnrealizedPL is null under\nsummaryResponse.UnrealizedPL's rule: when every currency contributing\nto it was excluded for lack of a rate, the sum is 0.00 only because\nnothing was added to it, and a caller must render \"-\" rather than a\nfigure that reads as a real zero.",
                     "type": "string"
                 },
                 "created_at": {
@@ -3857,7 +3857,7 @@
                     "type": "integer"
                 },
                 "missing_rates": {
-                    "description": "MissingRates lists the currencies whose amounts TotalValue leaves out\nfor want of a conversion factor -- same field and same semantics as\nsummaryResponse.MissingRates: it names what was excluded, not what is\nabsent from the rate table (see holdings.Totals.Missing, GLG-114).\nWithout it the list silently understates a portfolio (GLG-121).",
+                    "description": "MissingRates lists the currencies whose amounts TotalValue leaves out\nfor want of a conversion factor -- same field and same semantics as\nsummaryResponse.MissingRates: it names what was excluded, not what is\nabsent from the rate table (see holdings.Totals.Missing).\nWithout it the list silently understates a portfolio.",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -3919,7 +3919,7 @@
                     "type": "string"
                 },
                 "closed": {
-                    "description": "True for a closed position: no quantity left, listed for its\nrealized P/L. A quantity of 0 alone does not mean closed: in the\nall-portfolios view a long and an equal short position in two\nportfolios sum to 0 and stay open (GLG-827).",
+                    "description": "True for a closed position: no quantity left, listed for its\nrealized P/L. A quantity of 0 alone does not mean closed: in the\nall-portfolios view a long and an equal short position in two\nportfolios sum to 0 and stay open.",
                     "type": "boolean"
                 },
                 "cost_basis": {
@@ -3937,7 +3937,7 @@
                     "type": "string"
                 },
                 "fx_pl_reporting": {
-                    "description": "The currency part of the position's gain in the reporting currency:\ncost_basis at today's rate minus the cost with each buy converted at\nits own trade date's rate. The price part is unrealized_pl_reporting.\nNull on closed positions, on positions in the reporting currency, and\nwhen today's rate or any open buy's trade-date rate is missing\n(GLG-532).",
+                    "description": "The currency part of the position's gain in the reporting currency:\ncost_basis at today's rate minus the cost with each buy converted at\nits own trade date's rate. The price part is unrealized_pl_reporting.\nNull on closed positions, on positions in the reporting currency, and\nwhen today's rate or any open buy's trade-date rate is missing.",
                     "type": "string"
                 },
                 "has_price": {
@@ -3950,7 +3950,7 @@
                     "type": "string"
                 },
                 "market": {
-                    "description": "BIST, US, TEFAS or CRYPTO (GLG-543)",
+                    "description": "BIST, US, TEFAS or CRYPTO",
                     "type": "string"
                 },
                 "market_value": {
@@ -3963,7 +3963,7 @@
                     "type": "string"
                 },
                 "prev_close": {
-                    "description": "The latest close dated before price_date (manual winning on a date,\nlike last_price), scaled by any split after its date up to today. It,\nprev_price_date, day_change and day_change_reporting are null when\neither price is missing or the position is closed (GLG-542).",
+                    "description": "The latest close dated before price_date (manual winning on a date,\nlike last_price), scaled by any split after its date up to today. It,\nprev_price_date, day_change and day_change_reporting are null when\neither price is missing or the position is closed.",
                     "type": "string"
                 },
                 "prev_price_date": {
@@ -3974,14 +3974,14 @@
                     "type": "string"
                 },
                 "price_source": {
-                    "description": "Where last_price came from (\"manual\" for the caller's own entry, else\nthe fetching provider) and the date it is dated. Null when there is no\nprice. The page needs both to tag a manual price and to address it for\ndeletion -- DELETE /api/instruments/{id}/prices/{date} (GLG-134).",
+                    "description": "Where last_price came from (\"manual\" for the caller's own entry, else\nthe fetching provider) and the date it is dated. Null when there is no\nprice. The page needs both to tag a manual price and to address it for\ndeletion -- DELETE /api/instruments/{id}/prices/{date}.",
                     "type": "string"
                 },
                 "quantity": {
                     "type": "string"
                 },
                 "realized_cost": {
-                    "description": "The cost of every share sold, in the position's currency: the base\nrealized_pl is a return on (GLG-1100). Kept after the position closes.\nZero, or even negative, after a short: no base for a percentage.",
+                    "description": "The cost of every share sold, in the position's currency: the base\nrealized_pl is a return on. Kept after the position closes.\nZero, or even negative, after a short: no base for a percentage.",
                     "type": "string"
                 },
                 "realized_pl": {
@@ -3991,7 +3991,7 @@
                     "type": "string"
                 },
                 "splits": {
-                    "description": "The splits the holdings engine applied to this position, oldest\nfirst: dated after the instrument's first transaction in this\nportfolio, on or before today, and while shares were held (GLG-406).\nNever null.",
+                    "description": "The splits the holdings engine applied to this position, oldest\nfirst: dated after the instrument's first transaction in this\nportfolio, on or before today, and while shares were held.\nNever null.",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/server.splitResponse"
@@ -4001,7 +4001,7 @@
                     "type": "string"
                 },
                 "total_pl_reporting": {
-                    "description": "Unrealized plus realized P/L in the reporting currency, summed\nunrounded and rounded once, so it can differ from the two rounded\nfields' sum by a cent (GLG-1354). Null without a rate.",
+                    "description": "Unrealized plus realized P/L in the reporting currency, summed\nunrounded and rounded once, so it can differ from the two rounded\nfields' sum by a cent. Null without a rate.",
                     "type": "string"
                 },
                 "unrealized_pl": {
@@ -4019,7 +4019,7 @@
                     "type": "boolean"
                 },
                 "error": {
-                    "description": "Error is \"undecryptable\" when the stored key cannot be read (SECRET_KEY\nchanged), so the admin can enter it again (GLG-320).",
+                    "description": "Error is \"undecryptable\" when the stored key cannot be read (SECRET_KEY\nchanged), so the admin can enter it again.",
                     "type": "string"
                 },
                 "last4": {
@@ -4117,7 +4117,7 @@
                     "type": "string"
                 },
                 "net_contribution": {
-                    "description": "deposits less withdrawals, and dividends_gross less dividends_tax,\neach worked out unrounded and rounded once, so either can differ from\nthe rounded fields' difference by a cent (GLG-1354).",
+                    "description": "deposits less withdrawals, and dividends_gross less dividends_tax,\neach worked out unrounded and rounded once, so either can differ from\nthe rounded fields' difference by a cent.",
                     "type": "string"
                 },
                 "withdrawals": {
@@ -4162,7 +4162,7 @@
                     }
                 },
                 "cash_by_currency_reporting": {
-                    "description": "Each cash_by_currency entry converted into the reporting currency,\nkeyed by its own currency. A currency with no rate is left out; it is\nnamed in missing_rates (GLG-543).",
+                    "description": "Each cash_by_currency entry converted into the reporting currency,\nkeyed by its own currency. A currency with no rate is left out; it is\nnamed in missing_rates.",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
@@ -4175,11 +4175,11 @@
                     "type": "string"
                 },
                 "day_change": {
-                    "description": "The open positions' day_change_reporting summed unrounded and rounded\nonce, so it can differ from the rounded rows' sum by a cent (GLG-1204).\nA position with no previous close or no rate is left out; null when\nnone is left, so the page shows \"-\" rather than a zero.",
+                    "description": "The open positions' day_change_reporting summed unrounded and rounded\nonce, so it can differ from the rounded rows' sum by a cent.\nA position with no previous close or no rate is left out; null when\nnone is left, so the page shows \"-\" rather than a zero.",
                     "type": "string"
                 },
                 "fx_pl": {
-                    "description": "FXPL is the part of the return that neither P/L figure holds: the\ncurrency move on foreign cash and on the cost of foreign positions,\nboth of which unrealized and realized P/L value at today's rate\n(GLG-267). Null when the portfolio has no currency other than the\nreporting one, or when every such currency was excluded for lack of a\nrate -- the same rule as the P/L fields above.",
+                    "description": "FXPL is the part of the return that neither P/L figure holds: the\ncurrency move on foreign cash and on the cost of foreign positions,\nboth of which unrealized and realized P/L value at today's rate.\nNull when the portfolio has no currency other than the\nreporting one, or when every such currency was excluded for lack of a\nrate -- the same rule as the P/L fields above.",
                     "type": "string"
                 },
                 "missing_rates": {
@@ -4195,7 +4195,7 @@
                     }
                 },
                 "positions_value": {
-                    "description": "The open positions' market value and cost in the reporting currency,\nleaving out the same missing_rates currencies as total_value. Each is\nsummed unrounded and rounded once, so it matches the rows and history's\ncost_basis; total_value less cash less unrealized_pl, each already\nrounded, can be a cent off (GLG-976).",
+                    "description": "The open positions' market value and cost in the reporting currency,\nleaving out the same missing_rates currencies as total_value. Each is\nsummed unrounded and rounded once, so it matches the rows and history's\ncost_basis; total_value less cash less unrealized_pl, each already\nrounded, can be a cent off.",
                     "type": "string"
                 },
                 "realized_pl": {
@@ -4208,7 +4208,7 @@
                     "type": "string"
                 },
                 "unrealized_pl": {
-                    "description": "Null when every currency contributing to the total was excluded for\nlack of a rate (see totalKnown): the sum is then 0.00, which reads as\na real zero next to the per-position figures. The caller renders \"-\"\ninstead, the way it already does for a position with no reporting\nvalue. Cash and total value stay plain strings: the page can tell the\nsame thing for those from cash_by_currency and market_value_reporting\n(GLG-113), but realized P/L also counts closed positions, whose\ncurrencies reach no other field of this response (GLG-129).",
+                    "description": "Null when every currency contributing to the total was excluded for\nlack of a rate (see totalKnown): the sum is then 0.00, which reads as\na real zero next to the per-position figures. The caller renders \"-\"\ninstead, the way it already does for a position with no reporting\nvalue. Cash and total value stay plain strings: the page can tell the\nsame thing for those from cash_by_currency and market_value_reporting,\nbut realized P/L also counts closed positions, whose\ncurrencies reach no other field of this response.",
                     "type": "string"
                 }
             }
@@ -4346,7 +4346,7 @@
                     "type": "string"
                 },
                 "currency": {
-                    "description": "Currency is the statement's account currency, \"\" when unknown or a\nCSV. It tells the TRY and USD statements of the same month apart\n(GLG-375).",
+                    "description": "Currency is the statement's account currency, \"\" when unknown or a\nCSV. It tells the TRY and USD statements of the same month apart.",
                     "type": "string"
                 },
                 "id": {
@@ -4373,7 +4373,7 @@
                     "type": "string"
                 },
                 "cash_reconciliation": {
-                    "description": "CashReconciliation is null when the statement printed no cash\nbalance or no currency (GLG-419).",
+                    "description": "CashReconciliation is null when the statement printed no cash\nbalance or no currency.",
                     "allOf": [
                         {
                             "$ref": "#/definitions/statement.cashReconcileEntry"
@@ -4390,7 +4390,7 @@
                     }
                 },
                 "names": {
-                    "description": "Names are the fund names the balances printed, each once with the\ninstrument of its code (0: see statementNames), in the shape of\ncommit's aliases, for the client to send back as commit's names\n(GLG-766). Left out for a statement that prints none.",
+                    "description": "Names are the fund names the balances printed, each once with the\ninstrument of its code (0: see statementNames), in the shape of\ncommit's aliases, for the client to send back as commit's names.\nLeft out for a statement that prints none.",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/statement.aliasRequest"
@@ -4432,25 +4432,25 @@
                     "type": "string"
                 },
                 "approximate_price": {
-                    "description": "ApproximatePrice marks an opening buy priced with the statement's own\nperiod-end price, as no stored price exists for its date (GLG-737).",
+                    "description": "ApproximatePrice marks an opening buy priced with the statement's own\nperiod-end price, as no stored price exists for its date.",
                     "type": "boolean"
                 },
                 "closing": {
-                    "description": "Closing marks a sell the preview proposes, dated the day before\nperiod_start, for what the portfolio holds and the statement does not\n(GLG-1190). It starts unchecked: the gap may be months not imported.",
+                    "description": "Closing marks a sell the preview proposes, dated the day before\nperiod_start, for what the portfolio holds and the statement does not.\nIt starts unchecked: the gap may be months not imported.",
                     "type": "boolean"
                 },
                 "code": {
                     "type": "string"
                 },
                 "cost_price": {
-                    "description": "CostPrice marks an opening buy priced with the average cost the\nstatement prints for the holding (GLG-1185).",
+                    "description": "CostPrice marks an opening buy priced with the average cost the\nstatement prints for the holding.",
                     "type": "boolean"
                 },
                 "currency": {
                     "type": "string"
                 },
                 "currency_fallback": {
-                    "description": "CurrencyFallback marks a row the file gave no currency for: Currency\nis the instrument's, TRY when none (GLG-622), so a pick in the page\ntakes the picked instrument's (GLG-1320).",
+                    "description": "CurrencyFallback marks a row the file gave no currency for: Currency\nis the instrument's, TRY when none, so a pick in the page\ntakes the picked instrument's.",
                     "type": "boolean"
                 },
                 "date": {
@@ -4460,7 +4460,7 @@
                     "type": "string"
                 },
                 "duplicate_of": {
-                    "description": "DuplicateOf is the date of an earlier transaction, hand-entered or\nimported, this row likely repeats (see flagDuplicates); the client\nstarts such a row unchecked (GLG-415, GLG-559, GLG-627).",
+                    "description": "DuplicateOf is the date of an earlier transaction, hand-entered or\nimported, this row likely repeats (see flagDuplicates); the client\nstarts such a row unchecked.",
                     "type": "string"
                 },
                 "fee": {
@@ -4473,7 +4473,7 @@
                     "type": "string"
                 },
                 "instrument_symbol": {
-                    "description": "InstrumentSymbol and InstrumentName name the instrument of a row\nresolved by an earlier pick, whose symbol is the statement's own, so\nthe user sees what the pick resolved it to (GLG-750).",
+                    "description": "InstrumentSymbol and InstrumentName name the instrument of a row\nresolved by an earlier pick, whose symbol is the statement's own, so\nthe user sees what the pick resolved it to.",
                     "type": "string"
                 },
                 "key": {
@@ -4487,7 +4487,7 @@
                     "type": "string"
                 },
                 "opening": {
-                    "description": "Opening marks a row the preview proposes for what the account held\nbefore period_start: a buy dated the day before it, or the deposit\nthat pays for those buys (GLG-737).",
+                    "description": "Opening marks a row the preview proposes for what the account held\nbefore period_start: a buy dated the day before it, or the deposit\nthat pays for those buys.",
                     "type": "boolean"
                 },
                 "price": {
@@ -4506,7 +4506,7 @@
                     "type": "string"
                 },
                 "resolved_by": {
-                    "description": "ResolvedBy is \"alias\" when the instrument is the user's own earlier\npick for this symbol rather than a match of it (GLG-735), \"name\" when\nit is the fund an earlier statement's balances printed under this name\n(GLG-766).",
+                    "description": "ResolvedBy is \"alias\" when the instrument is the user's own earlier\npick for this symbol rather than a match of it, \"name\" when\nit is the fund an earlier statement's balances printed under this name.",
                     "type": "string"
                 },
                 "section": {
@@ -4522,7 +4522,7 @@
                     "type": "string"
                 },
                 "unknown_instrument": {
-                    "description": "UnknownInstrument marks an error row whose symbol is unknown as well,\nso the preview still says so once checkRow made it an error (GLG-678).",
+                    "description": "UnknownInstrument marks an error row whose symbol is unknown as well,\nso the preview still says so once checkRow made it an error.",
                     "type": "boolean"
                 },
                 "value": {

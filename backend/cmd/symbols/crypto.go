@@ -2,8 +2,8 @@
 // and writes two CSVs: internal/instrument/crypto_try_symbols.csv for TRY
 // pairs (symbol BTC-TRY) and crypto_usd_symbols.csv for USDT pairs (symbol
 // BTC-USD, 1 USDT treated as 1 USD). Only TRADING pairs are kept; other
-// quote currencies are skipped. Source and decisions are in epic GLG-245
-// (docs/adr/0007-crypto.md).
+// quote currencies are skipped. Source and decisions are in
+// docs/adr/0007-crypto.md.
 package main
 
 import (

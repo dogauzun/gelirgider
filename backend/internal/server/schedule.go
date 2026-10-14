@@ -40,7 +40,7 @@ type scheduleSettings struct {
 // endpoints to mux, which must sit behind RequireAdmin. Reads go through
 // scheduler.Load, so they show the effective values the scheduler runs
 // with, defaults applied; sources is the scheduler's list, in run order.
-// Run status comes from runs. Run now and backfill now (GLG-314) answer 202
+// Run status comes from runs. Run now and backfill now answer 202
 // and work in the background: run now through runs, whose running flag the
 // scheduler shares, backfill now through backfills.
 func registerScheduleRoutes(mux *http.ServeMux, cfg *settings.Repo, runs *scheduler.RunLog, backfills *backfillQueue, sources []scheduler.Source) {

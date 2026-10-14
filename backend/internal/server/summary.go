@@ -37,7 +37,7 @@ func registerSummaryRoutes(mux *http.ServeMux, d *deps) {
 type summaryHandler struct{ *deps }
 
 // splitResponse is one split that changed a position's quantity: ex-date and
-// new shares per old share as an exact decimal (GLG-273).
+// new shares per old share as an exact decimal.
 type splitResponse struct {
 	Date  string `json:"date"`
 	Ratio string `json:"ratio"`
@@ -47,7 +47,7 @@ type positionResponse struct {
 	InstrumentID int64   `json:"instrument_id"`
 	Symbol       string  `json:"symbol"`
 	Name         string  `json:"name"`
-	Market       string  `json:"market"` // BIST, US, TEFAS or CRYPTO (GLG-543)
+	Market       string  `json:"market"` // BIST, US, TEFAS or CRYPTO
 	Currency     string  `json:"currency"`
 	Quantity     string  `json:"quantity"`
 	AvgCost      string  `json:"avg_cost"`
@@ -57,7 +57,7 @@ type positionResponse struct {
 	// The latest close dated before price_date (manual winning on a date,
 	// like last_price), scaled by any split after its date up to today. It,
 	// prev_price_date, day_change and day_change_reporting are null when
-	// either price is missing or the position is closed (GLG-542).
+	// either price is missing or the position is closed.
 	PrevClose *string `json:"prev_close"`
 	// The date of prev_close.
 	PrevPriceDate *string `json:"prev_price_date"`
@@ -68,14 +68,14 @@ type positionResponse struct {
 	// Where last_price came from ("manual" for the caller's own entry, else
 	// the fetching provider) and the date it is dated. Null when there is no
 	// price. The page needs both to tag a manual price and to address it for
-	// deletion -- DELETE /api/instruments/{id}/prices/{date} (GLG-134).
+	// deletion -- DELETE /api/instruments/{id}/prices/{date}.
 	PriceSource  *string `json:"price_source"`
 	PriceDate    *string `json:"price_date"`
 	MarketValue  string  `json:"market_value"`
 	UnrealizedPL string  `json:"unrealized_pl"`
 	RealizedPL   string  `json:"realized_pl"`
 	// The cost of every share sold, in the position's currency: the base
-	// realized_pl is a return on (GLG-1100). Kept after the position closes.
+	// realized_pl is a return on. Kept after the position closes.
 	// Zero, or even negative, after a short: no base for a percentage.
 	RealizedCost          string  `json:"realized_cost"`
 	MarketValueReporting  *string `json:"market_value_reporting"`
@@ -83,23 +83,22 @@ type positionResponse struct {
 	RealizedPLReporting   *string `json:"realized_pl_reporting"`
 	// Unrealized plus realized P/L in the reporting currency, summed
 	// unrounded and rounded once, so it can differ from the two rounded
-	// fields' sum by a cent (GLG-1354). Null without a rate.
+	// fields' sum by a cent. Null without a rate.
 	TotalPLReporting *string `json:"total_pl_reporting"`
 	// The currency part of the position's gain in the reporting currency:
 	// cost_basis at today's rate minus the cost with each buy converted at
 	// its own trade date's rate. The price part is unrealized_pl_reporting.
 	// Null on closed positions, on positions in the reporting currency, and
-	// when today's rate or any open buy's trade-date rate is missing
-	// (GLG-532).
+	// when today's rate or any open buy's trade-date rate is missing.
 	FXPLReporting *string `json:"fx_pl_reporting"`
 	// True for a closed position: no quantity left, listed for its
 	// realized P/L. A quantity of 0 alone does not mean closed: in the
 	// all-portfolios view a long and an equal short position in two
-	// portfolios sum to 0 and stay open (GLG-827).
+	// portfolios sum to 0 and stay open.
 	Closed bool `json:"closed"`
 	// The splits the holdings engine applied to this position, oldest
 	// first: dated after the instrument's first transaction in this
-	// portfolio, on or before today, and while shares were held (GLG-406).
+	// portfolio, on or before today, and while shares were held.
 	// Never null.
 	Splits []splitResponse `json:"splits"`
 }
@@ -111,7 +110,7 @@ type summaryResponse struct {
 
 	// Each cash_by_currency entry converted into the reporting currency,
 	// keyed by its own currency. A currency with no rate is left out; it is
-	// named in missing_rates (GLG-543).
+	// named in missing_rates.
 	CashByCurrencyReporting map[string]string `json:"cash_by_currency_reporting"`
 
 	TotalValue string `json:"total_value"`
@@ -119,7 +118,7 @@ type summaryResponse struct {
 	// leaving out the same missing_rates currencies as total_value. Each is
 	// summed unrounded and rounded once, so it matches the rows and history's
 	// cost_basis; total_value less cash less unrealized_pl, each already
-	// rounded, can be a cent off (GLG-976).
+	// rounded, can be a cent off.
 	PositionsValue string `json:"positions_value"`
 	CostBasis      string `json:"cost_basis"`
 	// Null when every currency contributing to the total was excluded for
@@ -127,20 +126,20 @@ type summaryResponse struct {
 	// a real zero next to the per-position figures. The caller renders "-"
 	// instead, the way it already does for a position with no reporting
 	// value. Cash and total value stay plain strings: the page can tell the
-	// same thing for those from cash_by_currency and market_value_reporting
-	// (GLG-113), but realized P/L also counts closed positions, whose
-	// currencies reach no other field of this response (GLG-129).
+	// same thing for those from cash_by_currency and market_value_reporting,
+	// but realized P/L also counts closed positions, whose
+	// currencies reach no other field of this response.
 	UnrealizedPL *string `json:"unrealized_pl"`
 	RealizedPL   *string `json:"realized_pl"`
 	// FXPL is the part of the return that neither P/L figure holds: the
 	// currency move on foreign cash and on the cost of foreign positions,
-	// both of which unrealized and realized P/L value at today's rate
-	// (GLG-267). Null when the portfolio has no currency other than the
+	// both of which unrealized and realized P/L value at today's rate.
+	// Null when the portfolio has no currency other than the
 	// reporting one, or when every such currency was excluded for lack of a
 	// rate -- the same rule as the P/L fields above.
 	FXPL *string `json:"fx_pl"`
 	// The open positions' day_change_reporting summed unrounded and rounded
-	// once, so it can differ from the rounded rows' sum by a cent (GLG-1204).
+	// once, so it can differ from the rounded rows' sum by a cent.
 	// A position with no previous close or no rate is left out; null when
 	// none is left, so the page shows "-" rather than a zero.
 	DayChange    *string            `json:"day_change"`
@@ -149,8 +148,7 @@ type summaryResponse struct {
 	Stats        statsResponse      `json:"stats"`
 }
 
-// statsResponse is what the user put in, took out, paid and earned
-// (GLG-595).
+// statsResponse is what the user put in, took out, paid and earned.
 type statsResponse struct {
 	// The earliest transaction date in scope; null with no transactions.
 	FirstTransactionDate *string `json:"first_transaction_date"`
@@ -170,7 +168,7 @@ type statsFields struct {
 	Withdrawals string `json:"withdrawals"`
 	// deposits less withdrawals, and dividends_gross less dividends_tax,
 	// each worked out unrounded and rounded once, so either can differ from
-	// the rounded fields' difference by a cent (GLG-1354).
+	// the rounded fields' difference by a cent.
 	NetContribution string `json:"net_contribution"`
 	Fees            string `json:"fees"`
 	DividendsGross  string `json:"dividends_gross"`
@@ -243,7 +241,7 @@ func buildStats(s holdings.Summary, txs []transaction.Transaction, rates map[str
 //	@Router		/portfolios/{id}/summary [get]
 func (h *summaryHandler) get(w http.ResponseWriter, r *http.Request) {
 	userID := auth.MustUserID(r.Context())
-	// One list per portfolio in scope: a numeric id or "all" (GLG-530).
+	// One list per portfolio in scope: a numeric id or "all".
 	lists, err := scopeTransactions(r.Context(), h.portfolios, h.transactions, userID, r.PathValue("id"))
 	if errors.Is(err, portfolio.ErrNotFound) {
 		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
@@ -310,7 +308,7 @@ func (h *summaryHandler) get(w http.ResponseWriter, r *http.Request) {
 
 	// Closed positions are listed too, with quantity and market value zero
 	// and their realized P/L set: without them the page can only total the
-	// open rows, which disagrees with the realized_pl below (GLG-218).
+	// open rows, which disagrees with the realized_pl below.
 	valued := make([]holdings.Position, 0, len(summary.Positions)+len(summary.Closed))
 	valued = append(valued, summary.Positions...)
 	valued = append(valued, summary.Closed...)
@@ -376,9 +374,9 @@ type prevClose struct {
 
 // prevCloses finds the previous close per priced instrument of v: the same
 // merge as v's, as of the day before the winner's date, so weekends and
-// holidays fall out as the latest stored close before it (GLG-542).
+// holidays fall out as the latest stored close before it.
 // Ids are grouped by that day so each distinct date costs one LatestCloses
-// call, not one per instrument (GLG-1234).
+// call, not one per instrument.
 func (h *summaryHandler) prevCloses(ctx context.Context, userID int64, v valuation) (map[int64]prevClose, error) {
 	idsBefore := make(map[string][]int64)
 	for id, won := range v.winner {
@@ -397,7 +395,7 @@ func (h *summaryHandler) prevCloses(ctx context.Context, userID int64, v valuati
 		}
 		for id, prev := range prevRows {
 			// In today's terms, like last_price, so day_change compares like
-			// with like (GLG-651).
+			// with like.
 			out[id] = prevClose{close: splitScaled(prev.Close, v.splitsOf[id], prev.Date, v.asOf), date: prev.Date}
 		}
 	}
@@ -417,11 +415,11 @@ func positionRow(p holdings.Position, closed bool, v valuation, prev map[int64]p
 		Currency:     p.Currency,
 		// Quantities keep source precision (up to 9 fraction digits for
 		// fractional shares), so the exact scale goes out as-is instead of
-		// being rounded to 6 like the money fields (GLG-222).
+		// being rounded to 6 like the money fields.
 		Quantity: p.Quantity.String(),
 		// Unit prices keep source precision too (TEFAS NAVs carry 6
 		// decimals, often below 1 TL); avg cost is a quotient, so it is
-		// capped at 9 fraction digits like quantities (GLG-237).
+		// capped at 9 fraction digits like quantities.
 		AvgCost:      p.AvgCost.Round(9).String(),
 		CostBasis:    p.CostBasis.StringFixed(2),
 		HasPrice:     p.HasPrice,
@@ -512,7 +510,7 @@ type valuation struct {
 	asOf   string
 	latest map[int64]decimal.Decimal
 	// The winning row itself, kept so each position can report where its
-	// last price came from and on what date (GLG-134).
+	// last price came from and on what date.
 	winner   map[int64]price.Price
 	splitsOf map[int64][]split.Split
 	// Fetched once and reused both for Compute's currencyOf and for each
@@ -523,7 +521,7 @@ type valuation struct {
 
 // value prices ids as of today (Europe/Istanbul, price.Today(); no as_of
 // query parameter exists yet). Per instrument the caller's own manual price
-// wins over the fetched one on the same date (GLG-103), else whichever is
+// wins over the fetched one on the same date, else whichever is
 // more recent, scaled by the splits since its date (splitScaled).
 func (h *summaryHandler) value(ctx context.Context, userID int64, ids []int64) (valuation, error) {
 	v := valuation{
@@ -554,7 +552,7 @@ func (h *summaryHandler) value(ctx context.Context, userID int64, ids []int64) (
 
 // latestRates loads the rate in force on asOf for every currency s needs
 // converted into reporting: every cash and position currency, closed
-// positions included (they are reported too, GLG-218, and their currency is
+// positions included (they are reported too, and their currency is
 // not always one of the cash currencies), plus reporting itself (the divisor
 // whenever a non-reporting currency is converted). TRY is never looked up --
 // its rate is implied 1.
@@ -585,7 +583,7 @@ func (h *summaryHandler) latestRates(ctx context.Context, s holdings.Summary, re
 // every split in splits dated after priceDate and on or before asOf. The
 // instrument's own splits, not the position's: one first bought on or after
 // the ex-date never had the split applied, yet its quantity is post-split
-// too (GLG-542, GLG-651).
+// too.
 func splitScaled(close decimal.Decimal, splits []split.Split, priceDate, asOf string) decimal.Decimal {
 	for _, s := range splits {
 		if s.Date > priceDate && s.Date <= asOf {
@@ -599,7 +597,7 @@ func splitScaled(close decimal.Decimal, splits []split.Split, priceDate, asOf st
 // portfolio's List carries its own synthetic split rows, so several merged
 // would apply a split once per portfolio) with each buy's cost also converted
 // into reporting at its own trade date's rate, so every position carries
-// CostBasisReporting (GLG-527). v's latest and currencyOf are as for
+// CostBasisReporting. v's latest and currencyOf are as for
 // holdings.Compute; rates are read as of v.asOf. txs is not mutated.
 func computeSummary(ctx context.Context, repo *fx.Repo, txs []transaction.Transaction, v valuation, reporting string) (holdings.Summary, error) {
 	sorted := slices.Clone(txs)
@@ -659,7 +657,7 @@ func tradeDateRates(ctx context.Context, repo *fx.Repo, txs []transaction.Transa
 // all of these, mirroring holdings.State.Apply. Those last ones are not
 // currency moves, so leaving them out of this sum would pass them off as
 // fx_pl. A flow whose currency has no rate on its own day is carried to the
-// first later day that has one, exactly as in history (GLG-233); one with no
+// first later day that has one, exactly as in history; one with no
 // rate even at the end is excluded, like its cash is from total_value.
 func ownDateFlows(ctx context.Context, repo *fx.Repo, txs []transaction.Transaction, reporting, asOf string) (decimal.Decimal, error) {
 	total := decimal.Zero
@@ -713,8 +711,8 @@ func ownDateFlows(ctx context.Context, repo *fx.Repo, txs []transaction.Transact
 // unrealizedKnown reports whether a converted unrealized P/L total is worth
 // showing, under totalKnown's rule. Unrealized P/L is contributed by the open
 // positions only -- realized P/L uses summary.RealizedPL, which unlike the
-// positions also carries closed ones (GLG-111). Shared with the portfolio
-// list (GLG-158) so both endpoints null the field on exactly the same input.
+// positions also carries closed ones. Shared with the portfolio
+// list so both endpoints null the field on exactly the same input.
 func unrealizedKnown(s holdings.Summary, rates map[string]decimal.Decimal, reporting string) bool {
 	byCurrency := make(map[string]decimal.Decimal, len(s.Positions))
 	for _, p := range s.Positions {

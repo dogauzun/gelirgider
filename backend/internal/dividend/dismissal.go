@@ -13,7 +13,7 @@ import (
 
 // Dismiss records that userID dismissed the expected dividend of
 // instrumentID on date in portfolioID. Dismissing twice is a no-op, also
-// when both run at once (GLG-376). The caller has already checked that
+// when both run at once. The caller has already checked that
 // userID owns portfolioID.
 //
 // Insert first, and on failure check whether the row is there: plain SQL
@@ -37,9 +37,9 @@ func (r *Repo) Dismiss(ctx context.Context, userID, portfolioID, instrumentID in
 	}
 	// The instrument was checked and is never deleted, so a foreign key
 	// failure is the portfolio, or its user, deleted since the caller's
-	// ownership check (GLG-1002). A duplicate whose row is gone by the count
+	// ownership check. A duplicate whose row is gone by the count
 	// is the same delete, committed after the insert: only a portfolio or
-	// user delete removes dismissals (GLG-1015).
+	// user delete removes dismissals.
 	if n == 0 && (db.IsForeignKeyViolation(insErr) || strings.Contains(strings.ToLower(insErr.Error()), "unique constraint")) {
 		return fmt.Errorf("insert dividend dismissal: %w", portfolio.ErrNotFound)
 	}

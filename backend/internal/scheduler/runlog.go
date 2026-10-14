@@ -78,10 +78,10 @@ func (l *RunLog) Start(ctx context.Context, source, kind string) (int64, error) 
 // is the run's own context; the writes ignore its cancellation.
 // ErrNothingToFetch is a success. A run stopped by shutdown is deleted
 // instead: nothing failed, and the day is not done, so neither the admin
-// panel nor RanSince may see it (GLG-398). That is decided on ctx, not only
+// panel nor RanSince may see it. That is decided on ctx, not only
 // on runErr: a context cancelled with a cause, like signal.NotifyContext's
 // since Go 1.26, makes net/http return the cause, which does not wrap
-// context.Canceled (GLG-412). A timeout (context.DeadlineExceeded) is a
+// context.Canceled. A timeout (context.DeadlineExceeded) is a
 // real failure and is stored.
 func (l *RunLog) Finish(ctx context.Context, id int64, rows int, runErr error) error {
 	stopped := errors.Is(runErr, context.Canceled) || (runErr != nil && errors.Is(ctx.Err(), context.Canceled))
@@ -107,8 +107,8 @@ func (l *RunLog) Finish(ctx context.Context, id int64, rows int, runErr error) e
 // ClearUnfinished deletes every run with no finished_at. It is for server
 // startup, before any run starts: a fresh process has no run going, so such
 // a row was cut off by a hard kill or crash that never reached Finish, and
-// it is dropped like a run stopped by shutdown (GLG-398). Otherwise Latest
-// would report it as running until the source runs again (GLG-402).
+// it is dropped like a run stopped by shutdown. Otherwise Latest
+// would report it as running until the source runs again.
 func (l *RunLog) ClearUnfinished(ctx context.Context) error {
 	if _, err := l.db.ExecContext(ctx, "DELETE FROM source_runs WHERE finished_at IS NULL"); err != nil {
 		return fmt.Errorf("delete unfinished source runs: %w", err)
@@ -133,7 +133,7 @@ func (l *RunLog) Record(ctx context.Context, source, kind string, fn func() (int
 
 // Go is Record in a new goroutine. It returns ErrAlreadyRunning at once,
 // starting nothing, while source is running. No caller sees fn's result,
-// so Go logs it, the way Record's callers do (GLG-831).
+// so Go logs it, the way Record's callers do.
 func (l *RunLog) Go(ctx context.Context, source, kind string, fn func() (int, error)) error {
 	release, err := l.claim(source, kind)
 	if err != nil {
@@ -191,7 +191,7 @@ func (l *RunLog) record(ctx context.Context, source, kind string, fn func() (int
 // RanSince reports whether source has a run started at or after since that
 // finished with an error or wrote rows, i.e. one that settled the day the
 // way a scheduled attempt would. A backfill does not count: it walks only up
-// to yesterday, so it never fetched today (GLG-403). A nil l reports false.
+// to yesterday, so it never fetched today. A nil l reports false.
 func (l *RunLog) RanSince(ctx context.Context, source string, since time.Time) (bool, error) {
 	if l == nil {
 		return false, nil
@@ -216,7 +216,7 @@ const notNoOpBackfill = `NOT (kind = ? AND finished_at IS NOT NULL AND error IS 
 //
 // A backfill that finished with 0 rows and no error fetched nothing, so it
 // is skipped for both: otherwise a no-op backfill hides a failed fetch and
-// clears the stale warning (GLG-1069, like GLG-331's on-demand walks).
+// clears the stale warning (as for the on-demand walks).
 func (l *RunLog) Latest(ctx context.Context) (map[string]RunStatus, error) {
 	out := map[string]RunStatus{}
 	rows, err := l.db.QueryContext(ctx, `SELECT source, started_at, finished_at, kind, rows, error FROM source_runs

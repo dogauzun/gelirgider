@@ -1,6 +1,6 @@
 // Package us fetches the latest US session close for tracked US
 // instruments from Finnhub's quote endpoint, and their daily-close history
-// from Tiingo (GLG-236), and stores them via price.Repo. Mirrors internal/tcmb's shape (Fetcher + Sync(ctx, date)),
+// from Tiingo, and stores them via price.Repo. Mirrors internal/tcmb's shape (Fetcher + Sync(ctx, date)),
 // the shape scheduler.Source expects; source, endpoint, and quirks are
 // documented in docs/adr/0003-multi-currency-and-market-data-sources.md.
 // Provider details stay internal, the same shape ADR 0001 already chose
@@ -85,15 +85,15 @@ type Fetcher struct {
 	// FetchClose returns a clear error instead of making a request or
 	// panicking.
 	APIKey string
-	// TiingoBaseURL is Tiingo's API base, for daily-close history
-	// (GLG-236). Defaults to defaultTiingoBaseURL when empty.
+	// TiingoBaseURL is Tiingo's API base, for daily-close history.
+	// Defaults to defaultTiingoBaseURL when empty.
 	TiingoBaseURL string
 	// TiingoKey authenticates history requests. Used when Settings is nil.
 	// Empty means "not configured": SyncHistory logs once and skips.
 	TiingoKey string
 	// Settings, when set, supplies both keys on every fetch instead of
 	// APIKey and TiingoKey, so a key saved in the admin area is used by
-	// the next run without a restart (GLG-302).
+	// the next run without a restart.
 	Settings *settings.Repo
 }
 
@@ -120,7 +120,7 @@ const keyTestTimeout = 10 * time.Second
 // setting is setting and returns "" when the provider accepts the key, or a
 // short reason: "invalid key" (401, 403), "rate limited" (429) or
 // "unreachable" (anything else). The key and the provider's body are never
-// returned or logged (GLG-308).
+// returned or logged.
 //
 // Finnhub gets GET /quote?symbol=AAPL. Tiingo's documented /api/test
 // answers 200 even for a wrong token, so Tiingo gets one day of AAPL daily
@@ -164,7 +164,7 @@ func (f *Fetcher) TestKey(ctx context.Context, setting, key string) string {
 }
 
 // FetchClose fetches symbol's latest close as of now, dated by the quote's
-// own timestamp t (GLG-259), not by now: once t's session has closed (now
+// own timestamp t, not by now: once t's session has closed (now
 // is past 16:00 New York on t's date, which covers a pre-open run where t
 // is still the last session) c is that session's close; while it is still
 // open c is a live price, so pc is returned under the session before.
@@ -217,7 +217,7 @@ func (f *Fetcher) FetchClose(ctx context.Context, symbol string, now time.Time) 
 	if v == "" { // null or absent
 		return Close{}, false, nil
 	}
-	// Parsed from the JSON text as-is, never via float64 (GLG-281).
+	// Parsed from the JSON text as-is, never via float64.
 	c, err := decimal.NewFromString(v.String())
 	if err != nil {
 		return Close{}, false, fmt.Errorf("parse finnhub close %q for %s: %w", v, symbol, err)
@@ -230,7 +230,7 @@ func (f *Fetcher) FetchClose(ctx context.Context, symbol string, now time.Time) 
 
 // SyncOne fetches and stores the latest close as of now for a single
 // instrument in, under the date FetchClose gives it, source = "finnhub". Extracted from Sync's per-symbol body
-// so an on-demand fetch (GLG-182) can fetch just the one instrument a new
+// so an on-demand fetch can fetch just the one instrument a new
 // transaction references instead of every tracked symbol. wrote is false,
 // with a nil error, when Finnhub has no quote for the symbol (see
 // FetchClose).
@@ -253,7 +253,7 @@ func SyncOne(ctx context.Context, fetcher *Fetcher, priceRepo *price.Repo, in in
 // into priceRepo with source = "finnhub", each under its own quote's date
 // (see FetchClose). The loop is instrument.EachTracked: a failing symbol (a
 // 5xx, a 429) is logged and the rest continue, every symbol failing is an
-// error, and a cancelled ctx stops it quietly (GLG-1333). A symbol Finnhub
+// error, and a cancelled ctx stops it quietly. A symbol Finnhub
 // has no quote for is counted as skipped, neither written nor failed.
 // Returns the number of prices written.
 func Sync(ctx context.Context, fetcher *Fetcher, instrumentRepo *instrument.Repo, priceRepo *price.Repo, now time.Time) (int, error) {
@@ -329,11 +329,11 @@ type DailyClose struct {
 	Close decimal.Decimal
 	// SplitFactor is Tiingo's splitFactor: new shares per old share on an
 	// ex-date, 1 on other days. Zero when the row has none or a
-	// non-positive one, which FetchHistory logs and drops (GLG-269).
+	// non-positive one, which FetchHistory logs and drops.
 	SplitFactor decimal.Decimal
 	// DivCash is Tiingo's divCash: gross cash dividend per share in USD on
 	// an ex-date, 0 on other days. Zero when the row has none or a negative
-	// or malformed one, which FetchHistory logs and drops (GLG-287).
+	// or malformed one, which FetchHistory logs and drops.
 	DivCash decimal.Decimal
 }
 
@@ -444,19 +444,19 @@ type Syncer struct {
 }
 
 // SyncHistory stores in's daily closes from from (YYYY-MM-DD, padded back
-// by historyPad) to Tiingo's latest, source = "tiingo", in one request
-// (GLG-236). It does nothing when in already has a price on or before
+// by historyPad) to Tiingo's latest, source = "tiingo", in one request.
+// It does nothing when in already has a price on or before
 // from: an earlier SyncHistory already covered that range. Without a
 // Tiingo key it logs once and returns 0, nil, so US history degrades to
 // Finnhub's latest close only.
 //
 // Every row whose splitFactor is present and not 1 is also stored in splits,
-// source = "tiingo" (GLG-269, ADR 0008). A factor <= 0 is dropped by
+// source = "tiingo" (ADR 0008). A factor <= 0 is dropped by
 // FetchHistory; that row's close is still stored. A split after an already
 // covered range is not seen here (see the early return).
 //
 // Every row with divCash > 0 is also stored in dividends, currency USD,
-// source = "tiingo" (GLG-287, ADR 0009).
+// source = "tiingo" (ADR 0009).
 //
 // ponytail: a ticker Tiingo does not know (404) has no row on or before
 // from, so it is re-requested on every call. Ceiling is one wasted
@@ -507,8 +507,7 @@ func (s *Syncer) storeHistory(ctx context.Context, in instrument.Instrument, clo
 }
 
 // SyncRecent re-reads the last historyPad of Tiingo daily history for every
-// tracked US instrument and stores the closes, splits and dividends
-// (GLG-279, GLG-287).
+// tracked US instrument and stores the closes, splits and dividends.
 // SyncHistory stops once a range is covered and Finnhub carries no split
 // data, so this is the daily pass that catches a split after an
 // instrument's history was first fetched. The loop is

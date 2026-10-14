@@ -59,18 +59,17 @@ func validName(name string) bool {
 //
 // Control characters (newline, BEL, DEL...) pass through JSON untouched but
 // render as nothing, so the stored name is not the one the user typed and
-// two visibly identical names can differ (GLG-142). Format characters
+// two visibly identical names can differ. Format characters
 // (zero-width space, direction marks, RTL override) are rejected for the same
-// reason: they are invisible or reorder the text around them (GLG-334).
+// reason: they are invisible or reorder the text around them.
 // A name made only of combining marks (and spaces between them) has nothing
-// for the marks to sit on and renders blank too, so it gets the same 400
-// (GLG-429).
+// for the marks to sit on and renders blank too, so it gets the same 400.
 //
 // Every inner run of whitespace (double space, no-break space, em space...)
 // is collapsed to one ASCII space, so names that render alike are stored
-// alike and the duplicate check sees them as one (GLG-682). The length limit
-// applies to that stored name, so a long inner run does not count against it
-// (GLG-855). The control check still sees the name before collapsing, because
+// alike and the duplicate check sees them as one. The length limit
+// applies to that stored name, so a long inner run does not count against it.
+// The control check still sees the name before collapsing, because
 // newline and tab are whitespace that collapsing would hide.
 func checkName(w http.ResponseWriter, name string) (string, bool) {
 	stored := collapseSpace(name)
@@ -213,7 +212,7 @@ func (h *handler) delete(w http.ResponseWriter, r *http.Request) {
 	}
 	// Deleting a portfolio's transactions with it is destructive and cannot
 	// be undone, so it happens only when asked for by name: anything but
-	// ?force=true keeps the old refusal (GLG-123).
+	// ?force=true keeps the old refusal.
 	cascade := r.URL.Query().Get("force") == "true"
 	n, err := h.repo.Delete(r.Context(), userID, id, cascade)
 	if err != nil {

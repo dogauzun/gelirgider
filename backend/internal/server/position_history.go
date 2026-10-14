@@ -15,7 +15,7 @@ import (
 // registerPositionHistoryRoutes wires
 // GET /api/portfolios/{id}/instruments/{instrument_id}/history: one holding's
 // daily quantity, cost, value and close, in the instrument's own currency
-// (GLG-531, ADR 0016).
+// (ADR 0016).
 func registerPositionHistoryRoutes(mux *http.ServeMux, d *deps) {
 	h := &positionHistoryHandler{d}
 	mux.HandleFunc("GET /api/portfolios/{id}/instruments/{instrument_id}/history", h.get)
@@ -170,7 +170,7 @@ func (h *positionHistoryHandler) get(w http.ResponseWriter, r *http.Request) {
 
 		point := positionHistoryPoint{Date: dayStr, Quantity: "0", AvgCost: "0", CostBasis: "0.00", MarketValue: "0.00"}
 		// close stays the unadjusted price; the value uses it in the
-		// day's post-split terms (GLG-651).
+		// day's post-split terms.
 		valued := map[int64]decimal.Decimal{}
 		if close, ok := latest[instrumentID]; ok {
 			s := close.String()

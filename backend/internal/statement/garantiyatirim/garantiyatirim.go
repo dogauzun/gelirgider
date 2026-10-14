@@ -50,7 +50,7 @@ const (
 // numberFormat is how a statement prints its number cells. Most statements
 // use US format ("1,234.56", quantity "150.000"); an on-request copy uses
 // Turkish format ("1.234,56", quantity "150,000") in its cells while the
-// prices inside a ledger description stay US (GLG-725).
+// prices inside a ledger description stay US.
 type numberFormat struct {
 	// number is any cell that looks like a number in this format. Whether
 	// it is a readable one is parseNumber's job.
@@ -85,28 +85,27 @@ var (
 	openingRow = regexp.MustCompile(`^Devir .* Cari TRY Bakiye Hareketleri$`)
 	// tradeRow is a buy (HA) or a sell (HS): trade date, side, price,
 	// quantity, symbol. Statements from 2018 print a capital letter before
-	// the reference digits (GLG-763).
+	// the reference digits.
 	tradeRow = regexp.MustCompile(`^(\d{2}/\d{2}/\d{4}) Ref = [A-Z]?\d+ (HA|HS) ([\d.]+)x([\d.]+) (\S+)$`)
 	// commissionRow ends in "Komisyon" before May 2024 and in "Komisyon
 	// Tutarı ve BSMV" after; Matrah is the traded amount it is charged on.
 	commissionRow = regexp.MustCompile(`^Matrah ([\d.]+) Oran [\d.]+ Komisyon( Tutarı ve BSMV)?$`)
 	// transferRow moves cash between the bank and the brokerage account:
 	// a deposit when positive, a withdrawal when negative. 2018 statements
-	// move a dividend to the bank with "Temettü Transferi işlemi" (GLG-763).
+	// move a dividend to the bank with "Temettü Transferi işlemi".
 	transferRow = regexp.MustCompile(`^(.* Nolu Hesabın Banka (Takas|MKK Masraf Transfer) İşlemi|Diğer Bakiye Transferi-.+|Temettü Transferi işlemi - \d+-\d+ No'lu Hesap)$`)
 	// takasRow is the transferRow that settles the day's trades.
 	takasRow = regexp.MustCompile(`^.* Nolu Hesabın Banka Takas İşlemi$`)
 	// feeRow is an MKK, account-keeping or order-cancel charge: a fee when
-	// negative, a refund (deposit) when positive (GLG-729).
+	// negative, a refund (deposit) when positive.
 	// dividendRow is a cash dividend paid on a share (.E) or an ETF (.F):
 	// the payment when it carries no suffix, its transfer to the bank
-	// account when it ends in "-<digits>-<digits>" (GLG-730).
+	// account when it ends in "-<digits>-<digits>".
 	dividendRow = regexp.MustCompile(`^([A-Z0-9]+)\.[EF] Temettü [\d.]+ Adet Temettü Oranı : [\d.]+(-\d+-\d+)?$`)
 	feeRow      = regexp.MustCompile(`^(\p{Lu}+ \d{4} +MKK'ya Ödenen Ücret- .+|\d{4} +\d+\. Dönem-Hesap bakım ücreti tahsilatı|Borsa Emir İptal (Ücreti ve Vergiler|Ücreti ve Vergi-\d+|BSMV))$`)
 	// ipoRow is the money for an IPO request of a quantity coming in from
 	// the bank (positive) and blocked for the request (negative); the
-	// allotment is the Hareket Listesi's buy (GLG-740), priced from this row
-	// (GLG-768).
+	// allotment is the Hareket Listesi's buy, priced from this row.
 	ipoRow = regexp.MustCompile(`^\d+ ([\d.,]+) adet ([A-Z][A-Z0-9]*) Halka Arz Tahsil$`)
 	// refundRow is the part of an IPO request not allotted coming back
 	// (positive) and returning to the bank (negative). Its description
@@ -259,14 +258,14 @@ func (p *parser) ledgerCell(i int) int {
 
 // isWebsite is the broker's website cell every page repeats: the Garanti
 // BBVA Yatırım one, or the Garanti Yatırım one of statements before the 2019
-// rebrand (GLG-727).
+// rebrand.
 func isWebsite(c string) bool {
 	return c == "www.garantibbvayatirim.com.tr" || c == "www.garantiyatirim.com.tr"
 }
 
 // holdingLen is the cell count of the holding record at i, or 0: type,
 // symbol, name, quantity, market value, reserved quantity. Some statements
-// (April 2024) print no name cell (GLG-726). The legal-text word cells on
+// (April 2024) print no name cell. The legal-text word cells on
 // page 1 never match.
 func holdingLen(cells []string, i int, f numberFormat) int {
 	if i+2 >= len(cells) || !assetType.MatchString(cells[i]) {
@@ -289,7 +288,7 @@ func holdingLen(cells []string, i int, f numberFormat) int {
 
 func parseHolding(st *statement.Statement, rec []string, f numberFormat) {
 	if rec[0] != "HS" {
-		// A fixed reason the client maps to a translated text (GLG-1095); the
+		// A fixed reason the client maps to a translated text; the
 		// asset code stays in the raw cells.
 		st.Skipped = append(st.Skipped, statement.Skipped{Section: holdingsSection, Reason: "unsupported asset type", Row: rec})
 		return
@@ -302,7 +301,7 @@ func parseHolding(st *statement.Statement, rec []string, f numberFormat) {
 	}
 	hold := statement.Holding{Symbol: rec[1], Quantity: quantity, Currency: "TRY"}
 	// The price is market value / quantity, for an opening position the
-	// portfolio has no stored price for (GLG-737); an unreadable value
+	// portfolio has no stored price for; an unreadable value
 	// leaves it zero.
 	if value, err := parseNumber(rec[len(rec)-2], f); err == nil && quantity.IsPositive() {
 		hold.Price = value.DivRound(quantity, 6)
@@ -312,7 +311,7 @@ func parseHolding(st *statement.Statement, rec []string, f numberFormat) {
 
 // moveLen is the cell count of the Hareket Listesi record at i, or 0:
 // symbol, name, settlement date, signed quantity, type, price. Some
-// statements print no name cell, like their holdings (GLG-726). The page
+// statements print no name cell, like their holdings. The page
 // header's date is followed by customer cells, never by a number, so it
 // never matches.
 func moveLen(cells []string, i int, f numberFormat) int {
@@ -387,18 +386,18 @@ func fractionKey(symbol string, quantity decimal.Decimal) string {
 
 // parseMove books the Hareket Listesi records the cash ledger does not
 // show: a bonus issue (Bedelsiz) as a buy at price 0 and a priced transfer
-// in (HS-Virman Giriş) as a buy at its price (GLG-731). HS Alış and HS Satış
+// in (HS-Virman Giriş) as a buy at its price. HS Alış and HS Satış
 // are the ledger's trades, which carry the commission, so they are not read
 // here. A transfer in at price 0 has no known cost (unknown_cost) and any
 // other type is unknown: both are left to the user.
 //
 // A transfer out (HS-Virman Çıkış) of the symbol and quantity of a ledger
 // fractional share cash-out is that cash-out, booked by the ledger's sell, so
-// it is skipped (GLG-767); each cash-out matches one transfer out. Any other
+// it is skipped; each cash-out matches one transfer out. Any other
 // transfer out is to another institution: unknown, left to the user.
 //
 // A transfer in of a symbol with an IPO request in the ledger is the
-// allotment. Its printed price may repeat another row's (GLG-768), so the
+// allotment. Its printed price may repeat another row's, so the
 // price is the request's payment / requested quantity, and allotted quantity
 // x price must be the payment less the refund within a kuruş, else it is a
 // bad_number left to the user. The amount is that net payment, so cash
@@ -625,7 +624,7 @@ type commission struct {
 // it picks, or books it as a fee when that day has no readable trade.
 func bookCommissions(st *statement.Statement, trades []trade, commissions []commission) {
 	// The trades are grouped once, so each Komisyon costs a lookup, not a
-	// scan of every trade, and each group is split once (GLG-1271).
+	// scan of every trade, and each group is split once.
 	groups := map[string]*group{}
 	for _, t := range trades {
 		for _, key := range []string{t.valueDate + " " + st.Trades[t.index].Side, t.valueDate} {
@@ -660,7 +659,7 @@ func bookCommissions(st *statement.Statement, trades []trade, commissions []comm
 // moveTakasDeposits redates each Banka Takas deposit in st.Cash. Such a
 // deposit pays for the buys of its value date, which are dated on their
 // trade date: it moves to the earliest of them, so cash does not go
-// negative until the value date (GLG-818). Withdrawals and sells keep their
+// negative until the value date. Withdrawals and sells keep their
 // dates.
 func moveTakasDeposits(st *statement.Statement, trades []trade) {
 	firstBuy := map[string]string{}

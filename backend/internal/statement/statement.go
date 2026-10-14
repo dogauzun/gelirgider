@@ -22,7 +22,7 @@ import (
 // row that cannot be read becomes a ParseError and parsing continues, so the
 // caller gets everything that did parse plus the list of rows to fix by hand.
 // Only "this is not a statement of this broker at all", or a CSV with no row
-// under its header (GLG-624), is a returned error.
+// under its header, is a returned error.
 //
 // All dates are YYYY-MM-DD in Europe/Istanbul. All money is decimal.
 type Statement struct {
@@ -37,7 +37,7 @@ type Statement struct {
 	Market string
 	// CashBalance is the account's cash at period end as the statement
 	// prints it, in Currency; nil when it printed none or it was unreadable.
-	// Like Holdings it is for reconciliation only (GLG-419).
+	// Like Holdings it is for reconciliation only.
 	CashBalance *decimal.Decimal
 	Trades      []Trade
 	Cash        []CashMovement
@@ -92,11 +92,11 @@ type Holding struct {
 	Currency string
 	// Price is the period-end unit price the statement prints or implies,
 	// zero when it gives none. The preview prices an opening position with
-	// it when no stored price exists (GLG-737).
+	// it when no stored price exists.
 	Price decimal.Decimal
 	// Name is the fund name printed next to the code, "" when the statement
 	// prints none. A commit remembers it, so a later statement's movement
-	// named only by it resolves (GLG-766).
+	// named only by it resolves.
 	Name string
 }
 
@@ -110,8 +110,7 @@ type Skipped struct {
 // ParseError is a row or section the parser could not read. The rest of the
 // statement is still returned. Code is stable and the UI translates it, with
 // Value filling its one parameter (a cell count or an unknown type); Message
-// is the English text for logs and for a UI that does not know the code
-// (GLG-328).
+// is the English text for logs and for a UI that does not know the code.
 type ParseError struct {
 	Section string
 	Row     []string
@@ -126,8 +125,8 @@ type ParseError struct {
 var Parsers = map[string]func([][]string) (Statement, error){}
 
 // Detect runs the rows of a PDF through every parser but csv's, in key
-// order, and returns the key and statement of the first that accepts them
-// (GLG-764). A parser's only error is "not a statement of this broker", so
+// order, and returns the key and statement of the first that accepts them.
+// A parser's only error is "not a statement of this broker", so
 // the first nil error is the broker.
 func Detect(rows [][]string) (string, Statement, error) {
 	for _, key := range slices.Sorted(maps.Keys(Parsers)) {
@@ -144,9 +143,9 @@ func Detect(rows [][]string) (string, Statement, error) {
 // Grouped reports whether number cell s has valid thousands groups: the part
 // before the decimal mark is free of sep or in 3-digit groups ("1.234.567,8"),
 // and the part after it has no sep. The PDF parsers strip sep before reading
-// the digits, so without this "1.2.3,4" would read as 123.4 (GLG-908, like
-// the CSV parser's GLG-902). The first group must not start with 0, or
-// "0.234,5" would read as 234.5 (GLG-977). A leading sign is ignored.
+// the digits, so without this "1.2.3,4" would read as 123.4 (the CSV parser
+// guards the same way). The first group must not start with 0, or
+// "0.234,5" would read as 234.5. A leading sign is ignored.
 func Grouped(s, sep, mark string) bool {
 	whole, fraction, _ := strings.Cut(strings.TrimLeft(s, "+-"), mark)
 	if strings.Contains(fraction, sep) {
@@ -172,7 +171,7 @@ func Grouped(s, sep, mark string) bool {
 // "-3,382.40", "+12,615.20" or Turkish "-3.382,40", "1.250,000", the
 // thousands in 3-digit groups (see Grouped). The digits must have the
 // transaction API's shape, so an exponent or an overlong number is
-// unreadable rather than a panic later (GLG-629).
+// unreadable rather than a panic later.
 func ParseNumber(cell, sep, mark string) (decimal.Decimal, error) {
 	s := strings.TrimSpace(cell)
 	if !Grouped(s, sep, mark) {
@@ -209,7 +208,7 @@ var (
 )
 
 // MaskIdentifiers masks the IBANs and account numbers in a statement's
-// description, so the preview never shows them in full (GLG-1196): an IBAN
+// description, so the preview never shows them in full: an IBAN
 // becomes "TR** **** 1234", an account number "***6-100", both keeping their
 // last four digits. Every row of one statement names the same account, so
 // the rest of the description is enough to recognise the row.

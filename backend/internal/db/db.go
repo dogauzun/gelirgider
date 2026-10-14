@@ -28,8 +28,7 @@ func Open(path string) (*sql.DB, error) {
 	// The file holds password hashes and encrypted provider keys. SQLite
 	// creates it 0644 under the usual umask, and gives the -wal and -shm
 	// files the main file's mode, so creating the file owner-only here (and
-	// tightening one left 0644 by an older version) covers all three
-	// (GLG-1128).
+	// tightening one left 0644 by an older version) covers all three.
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o600)
 	if err != nil {
 		return nil, fmt.Errorf("create db file: %w", err)
@@ -56,7 +55,7 @@ func Open(path string) (*sql.DB, error) {
 	// mmap_size maps up to 256 MiB of the file instead of reading each page
 	// with a syscall into a 2 MB per-connection cache: the history sweep's
 	// price range is larger than that cache, and its page reads were half
-	// of the sweep's time (GLG-1363).
+	// of the sweep's time.
 	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=mmap_size(268435456)&_txlock=immediate")
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
@@ -84,8 +83,8 @@ func InList[T any](vals []T) (placeholders string, args []any) {
 // IsForeignKeyViolation reports whether err is a foreign key failure, which
 // an insert hits when its parent row (a portfolio, a user) was deleted after
 // the caller checked it: the delete commits between the check and the
-// insert (GLG-1002). Callers map it to their own not-found error. Matched on
-// the message, like the unique checks (GLG-369), so it survives a datastore
+// insert. Callers map it to their own not-found error. Matched on
+// the message, like the unique checks, so it survives a datastore
 // change: "FOREIGN KEY constraint failed" on SQLite, "violates foreign key
 // constraint" on PostgreSQL.
 func IsForeignKeyViolation(err error) bool {

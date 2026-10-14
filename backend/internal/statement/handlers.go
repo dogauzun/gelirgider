@@ -45,7 +45,7 @@ const ParsePath = "/api/imports/parse"
 
 // CommitPath is the commit route. It is exported for the same reason as
 // ParsePath: its body is every reviewed row of a statement, which a 1000-row
-// import pushes well past the global 64 KB limit (GLG-216). maxCommitBytes
+// import pushes well past the global 64 KB limit. maxCommitBytes
 // replaces that limit here.
 const CommitPath = "/api/imports"
 
@@ -61,8 +61,8 @@ const maxCommitBytes = 2 << 20
 
 // maxStatementRows caps the records under a CSV's header and the rows any
 // parser's statement holds. Every one becomes a preview row, so a 5 MB file
-// of short lines would otherwise cost gigabytes (GLG-989) and a small PDF
-// minutes of CPU (GLG-1269); 5000 reviewed rows still fit in maxCommitBytes.
+// of short lines would otherwise cost gigabytes and a small PDF
+// minutes of CPU; 5000 reviewed rows still fit in maxCommitBytes.
 const maxStatementRows = 5000
 
 // errTooManyRows is a CSV or a statement past maxStatementRows.
@@ -79,30 +79,30 @@ var utf8BOM = []byte("\xef\xbb\xbf")
 var sha256Hex = regexp.MustCompile(`^[0-9a-f]{64}$`)
 
 // fundCode is the shape of a TEFAS fund code: the only unknown symbols the
-// import asks TEFAS about (GLG-699).
+// import asks TEFAS about.
 var fundCode = regexp.MustCompile(`^[A-Z0-9]{3}$`)
 
 // maxFundLookups caps the distinct codes one request asks TEFAS about.
 const maxFundLookups = 10
 
 // fundLookupLimit is how many TEFAS fund lookups one client IP may make a
-// minute, the preview's and the fund route's together (GLG-850): it keeps a
+// minute, the preview's and the fund route's together: it keeps a
 // script from turning either route into a TEFAS crawler, which could get the
 // server's IP blocked and stop fund prices for every user.
 const fundLookupLimit = 20
 
 // FundLookup asks a public source whether code is a TEFAS fund: found with
-// its name, not found, or an error (GLG-699). It returns ErrFundLookupOff
+// its name, not found, or an error. It returns ErrFundLookupOff
 // when it asked nothing, as with the tefas source off.
 type FundLookup func(ctx context.Context, code string) (name string, found bool, err error)
 
 // ErrFundLookupOff is a FundLookup's error for a lookup that asked nothing:
 // the code is not found, and the lookup does not count against the
-// client's fundLookupLimit (GLG-897).
+// client's fundLookupLimit.
 var ErrFundLookupOff = errors.New("fund lookup off")
 
 // BulletinSync stores the BIST bulletin of date, adding each symbol it lists
-// that is no instrument yet, as the scheduled sync does (GLG-782). fetched
+// that is no instrument yet, as the scheduled sync does. fetched
 // is false when it asked the bulletin host nothing, as for a bulletin
 // already stored.
 type BulletinSync func(ctx context.Context, date time.Time) (fetched bool, err error)
@@ -110,7 +110,7 @@ type BulletinSync func(ctx context.Context, date time.Time) (fetched bool, err e
 // maxBulletinSyncs caps the distinct dates one request fetches a BIST
 // bulletin for, and bulletinSyncTimeout bounds each sync.
 // bulletinSyncLimit is how many bulletin fetches one client IP's previews
-// may make a minute (GLG-861): a bulletin that keeps failing, or does not
+// may make a minute: a bulletin that keeps failing, or does not
 // list the symbol, is fetched again by every preview, so repeated previews
 // could otherwise hammer the bulletin host.
 const (
@@ -122,7 +122,7 @@ const (
 // PreviewLookupTimeout bounds the TEFAS fund lookups and BIST bulletin
 // syncs of one preview together, not each one: a hung host would otherwise
 // hold the preview for maxFundLookups lookups and maxBulletinSyncs syncs one
-// after another, far past a proxy's timeout (GLG-896). Once it has passed,
+// after another, far past a proxy's timeout. Once it has passed,
 // the remaining lookups are skipped and their rows stay unknown_instrument.
 // It leaves room for one full bulletin sync, and for the opening fetches'
 // own transaction.OnDemandFetchTimeout after it.
@@ -146,13 +146,13 @@ var marketForCurrency = map[string]string{"USD": "US", "TRY": "BIST"}
 
 // otherMarkets are the markets a row with no market hint is tried in once its
 // currency's market (marketForCurrency) does not know the symbol. A CSV row
-// can hold a fund, a coin or gold as well as a share (GLG-598).
+// can hold a fund, a coin or gold as well as a share.
 var otherMarkets = map[string][]string{"TRY": {"TEFAS", "CRYPTO", "GOLD"}, "USD": {"CRYPTO"}}
 
 // brokerNames maps a broker key to the display name used in the note of
 // every transaction an import creates ("Midas 2025-12-01 – 2025-12-31").
 // The note is broker name plus period only, so it reads the same in every
-// locale and the "imported" pill carries the rest (GLG-226). A broker that
+// locale and the "imported" pill carries the rest. A broker that
 // is not listed is rejected, which also keeps an arbitrary client string
 // out of the note.
 var brokerNames = map[string]string{
@@ -168,13 +168,13 @@ var brokerNames = map[string]string{
 // ownership, instruments to validate the rows' instrument_id, and
 // onDemandFetch (which may be nil) to fetch prices for the imported
 // instruments right after the commit, the same hook a single transaction
-// create runs (GLG-182). lookupFund (nil turns it off) asks TEFAS about a
+// create runs. lookupFund (nil turns it off) asks TEFAS about a
 // TEFAS row's unknown fund code, so the preview can create the fund TEFAS
-// confirms (GLG-699), and serves the preview picker's fund lookup (GLG-733).
+// confirms, and serves the preview picker's fund lookup.
 // prices and manualPrices price the opening positions the preview proposes,
-// which may also run onDemandFetch (GLG-737). syncBulletin (nil turns it
+// which may also run onDemandFetch. syncBulletin (nil turns it
 // off) syncs the BIST bulletin of a BIST row's date when its symbol is no
-// instrument, so a share delisted since resolves (GLG-782).
+// instrument, so a share delisted since resolves.
 func RegisterRoutes(mux *http.ServeMux, deps Deps) {
 	h := &handler{imports: deps.Imports, transactions: deps.Transactions, splits: deps.Splits, portfolios: deps.Portfolios, instruments: deps.Instruments, prices: deps.Prices, manualPrices: deps.ManualPrices, onDemandFetch: deps.OnDemandFetch, lookupFund: deps.LookupFund, fundLookups: ratelimit.New(fundLookupLimit, time.Minute), syncBulletin: deps.SyncBulletin, bulletinSyncs: ratelimit.New(bulletinSyncLimit, time.Minute)}
 	mux.HandleFunc("POST "+ParsePath, h.parse)
@@ -215,7 +215,7 @@ type handler struct {
 }
 
 // instrumentStore is the part of instrument.Repo the import routes use, so
-// a test can count their lookups (GLG-1272).
+// a test can count their lookups.
 type instrumentStore interface {
 	Get(ctx context.Context, id int64) (instrument.Instrument, error)
 	ByIDs(ctx context.Context, ids []int64) (map[int64]instrument.Instrument, error)
@@ -227,16 +227,16 @@ type instrumentStore interface {
 // commitRequest is the reviewed statement the user chose to import: the file
 // it came from, its account currency and period, and the rows left checked in
 // the preview. Currency is the preview's own, "" when the statement printed
-// none; with the period it tells a re-downloaded month from a new one
-// (GLG-361). A CSV's is only its rows' majority, so the import records none
-// (GLG-627). The rows are plain transaction requests, which is what keeps
+// none; with the period it tells a re-downloaded month from a new one.
+// A CSV's is only its rows' majority, so the import records none.
+// The rows are plain transaction requests, which is what keeps
 // this endpoint ignorant of brokers -- it is a bulk transaction create with
 // an import record around it (ADR 0006). Aliases, optional, are the
 // instruments the user picked for symbols the preview did not know; they are
 // the only broker-aware part, stored per (user, broker, symbol) for the next
-// preview (GLG-735). Names, optional, are the preview's names, the fund names
+// preview. Names, optional, are the preview's names, the fund names
 // the statement printed next to a code, learned the same way but never
-// replacing a pick; instrument 0 forgets a learned name (GLG-766).
+// replacing a pick; instrument 0 forgets a learned name.
 type commitRequest struct {
 	Broker      string                `json:"broker"`
 	PortfolioID int64                 `json:"portfolio_id"`
@@ -265,7 +265,7 @@ const (
 
 // resolvedByAlias is a preview row's resolved_by when its instrument is the
 // user's stored pick, resolvedByName when it is a fund name learned from an
-// earlier statement's balances (GLG-766).
+// earlier statement's balances.
 const (
 	resolvedByAlias = "alias"
 	resolvedByName  = "name"
@@ -285,8 +285,7 @@ type importResponse struct {
 	PeriodStart string `json:"period_start"`
 	PeriodEnd   string `json:"period_end"`
 	// Currency is the statement's account currency, "" when unknown or a
-	// CSV. It tells the TRY and USD statements of the same month apart
-	// (GLG-375).
+	// CSV. It tells the TRY and USD statements of the same month apart.
 	Currency         string `json:"currency"`
 	TransactionCount int    `json:"transaction_count"`
 	CreatedAt        string `json:"created_at"`
@@ -319,44 +318,43 @@ type previewRow struct {
 	Message      string           `json:"message,omitempty"`
 	Raw          []string         `json:"raw,omitempty"`
 	// CurrencyFallback marks a row the file gave no currency for: Currency
-	// is the instrument's, TRY when none (GLG-622), so a pick in the page
-	// takes the picked instrument's (GLG-1320).
+	// is the instrument's, TRY when none, so a pick in the page
+	// takes the picked instrument's.
 	CurrencyFallback bool `json:"currency_fallback,omitempty"`
 	// DuplicateOf is the date of an earlier transaction, hand-entered or
 	// imported, this row likely repeats (see flagDuplicates); the client
-	// starts such a row unchecked (GLG-415, GLG-559, GLG-627).
+	// starts such a row unchecked.
 	DuplicateOf string `json:"duplicate_of,omitempty"`
 	// UnknownInstrument marks an error row whose symbol is unknown as well,
-	// so the preview still says so once checkRow made it an error (GLG-678).
+	// so the preview still says so once checkRow made it an error.
 	UnknownInstrument bool `json:"unknown_instrument,omitempty"`
 	// ResolvedBy is "alias" when the instrument is the user's own earlier
-	// pick for this symbol rather than a match of it (GLG-735), "name" when
-	// it is the fund an earlier statement's balances printed under this name
-	// (GLG-766).
+	// pick for this symbol rather than a match of it, "name" when
+	// it is the fund an earlier statement's balances printed under this name.
 	ResolvedBy string `json:"resolved_by,omitempty"`
 	// InstrumentSymbol and InstrumentName name the instrument of a row
 	// resolved by an earlier pick, whose symbol is the statement's own, so
-	// the user sees what the pick resolved it to (GLG-750).
+	// the user sees what the pick resolved it to.
 	InstrumentSymbol string `json:"instrument_symbol,omitempty"`
 	InstrumentName   string `json:"instrument_name,omitempty"`
 	// Opening marks a row the preview proposes for what the account held
 	// before period_start: a buy dated the day before it, or the deposit
-	// that pays for those buys (GLG-737).
+	// that pays for those buys.
 	Opening bool `json:"opening,omitempty"`
 	// ApproximatePrice marks an opening buy priced with the statement's own
-	// period-end price, as no stored price exists for its date (GLG-737).
+	// period-end price, as no stored price exists for its date.
 	ApproximatePrice bool `json:"approximate_price,omitempty"`
 	// CostPrice marks an opening buy priced with the average cost the
-	// statement prints for the holding (GLG-1185).
+	// statement prints for the holding.
 	CostPrice bool `json:"cost_price,omitempty"`
 	// Closing marks a sell the preview proposes, dated the day before
-	// period_start, for what the portfolio holds and the statement does not
-	// (GLG-1190). It starts unchecked: the gap may be months not imported.
+	// period_start, for what the portfolio holds and the statement does not.
+	// It starts unchecked: the gap may be months not imported.
 	Closing bool `json:"closing,omitempty"`
 }
 
 // holdingResponse is one line of the statement's period-end snapshot, passed
-// through for reconciliation (GLG-207); it is never imported.
+// through for reconciliation; it is never imported.
 type holdingResponse struct {
 	Symbol   string `json:"symbol"`
 	Quantity string `json:"quantity"`
@@ -368,11 +366,10 @@ type holdingResponse struct {
 // statement says the account holds against what the portfolio would compute
 // once this preview's ok rows are committed. StatementQuantity is null for a
 // position the statement does not mention -- most often a month that was
-// never imported (GLG-207). Average cost is not compared: Midas rounds it and
+// never imported. Average cost is not compared: Midas rounds it and
 // its cost-basis rules are not necessarily ours (ADR 0006). InstrumentID is
 // the instrument the line compares, left out for a holding that resolves to
-// none: the page moves the line with the rows the user checks and edits
-// (GLG-1191).
+// none: the page moves the line with the rows the user checks and edits.
 type reconcileEntry struct {
 	Symbol            string  `json:"symbol"`
 	InstrumentID      int64   `json:"instrument_id,omitempty"`
@@ -385,7 +382,7 @@ type reconcileEntry struct {
 // currency: the balance the statement prints against the cash the portfolio
 // would hold at period_end once this preview's ok rows are committed. Other
 // currencies are not compared: the statement says nothing about them. Match
-// allows a difference of up to 0.01 (GLG-419).
+// allows a difference of up to 0.01.
 type cashReconcileEntry struct {
 	Currency        string `json:"currency"`
 	StatementAmount string `json:"statement_amount"`
@@ -399,12 +396,12 @@ var cashTolerance = decimal.RequireFromString("0.01")
 
 // warning is a preview notice. Code is stable and the UI translates it from
 // the other fields; Message is the English text for a UI that does not know
-// the code (GLG-328). "overlap" is a period that intersects an earlier
+// the code. "overlap" is a period that intersects an earlier
 // import's and does not block the commit; "same_period" is the same statement
-// again, which the commit refuses while the earlier import exists (GLG-361).
+// again, which the commit refuses while the earlier import exists.
 // "period" is a statement period the commit refuses outright (in the future,
 // before 1990, a year or longer unless a CSV): Message is the commit's own
-// error, and ImportID is 0 since no earlier import is involved (GLG-435).
+// error, and ImportID is 0 since no earlier import is involved.
 type warning struct {
 	Code        string `json:"code"`
 	Message     string `json:"message"`
@@ -424,12 +421,12 @@ type previewResponse struct {
 	Holdings       []holdingResponse `json:"holdings"`
 	Reconciliation []reconcileEntry  `json:"reconciliation"`
 	// CashReconciliation is null when the statement printed no cash
-	// balance or no currency (GLG-419).
+	// balance or no currency.
 	CashReconciliation *cashReconcileEntry `json:"cash_reconciliation"`
 	// Names are the fund names the balances printed, each once with the
 	// instrument of its code (0: see statementNames), in the shape of
-	// commit's aliases, for the client to send back as commit's names
-	// (GLG-766). Left out for a statement that prints none.
+	// commit's aliases, for the client to send back as commit's names.
+	// Left out for a statement that prints none.
 	Names []aliasRequest `json:"names,omitempty"`
 }
 
@@ -472,7 +469,7 @@ func (h *handler) parse(w http.ResponseWriter, r *http.Request) {
 	defer r.MultipartForm.RemoveAll()
 
 	broker := r.FormValue("broker")
-	// auto: the PDF parser that accepts the file picks the broker (GLG-764).
+	// auto: the PDF parser that accepts the file picks the broker.
 	auto := broker == "auto"
 	if _, ok := Parsers[broker]; !ok && !auto {
 		auth.WriteError(w, http.StatusBadRequest, "broker: unknown broker")
@@ -488,7 +485,7 @@ func (h *handler) parse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// The instruments the user picked in this preview so far, resolved for
-	// this request only; the commit stores them (GLG-752).
+	// this request only; the commit stores them.
 	picks, ok := h.formAliases(w, r, "picks")
 	if !ok {
 		return
@@ -496,7 +493,7 @@ func (h *handler) parse(w http.ResponseWriter, r *http.Request) {
 	// The fund names the other statements of the user's batch print, used
 	// like learned names for this request only: a fund renamed on TEFAS is
 	// named in an early statement only by its old name, which a later
-	// statement prints next to its code (GLG-1181).
+	// statement prints next to its code.
 	batchIns, ok := h.formAliases(w, r, "names")
 	if !ok {
 		return
@@ -538,7 +535,7 @@ func (h *handler) parse(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	// One scan of the portfolio's transactions per preview, for the
-	// duplicate check, the openings and the reconciliation (GLG-1173).
+	// duplicate check, the openings and the reconciliation.
 	txs, err := h.transactions.List(r.Context(), userID, portfolioID)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
@@ -555,11 +552,11 @@ func (h *handler) parse(w http.ResponseWriter, r *http.Request) {
 	}
 	// A CSV of error rows alone has no period when none of them has a date
 	// the commit accepts. Its rows already say what is wrong, and the
-	// warning would only name the internal field (GLG-624).
+	// warning would only name the internal field.
 	if err := checkPeriod(broker, st.PeriodStart, st.PeriodEnd); err != nil && !onlyErrors {
 		warnings = append(warnings, warning{Code: "period", Message: err.Error(), PeriodStart: st.PeriodStart, PeriodEnd: st.PeriodEnd})
 	}
-	// After previewRows, which may add a TEFAS fund a trade names (GLG-699).
+	// After previewRows, which may add a TEFAS fund a trade names.
 	holdIns, err := h.holdingInstruments(r.Context(), userID, broker, picks, st)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
@@ -649,7 +646,7 @@ func (h *handler) readUpload(w http.ResponseWriter, r *http.Request, userID int6
 
 	// The same file in the same portfolio is already a month of transactions;
 	// the client offers the undo instead of a second copy. In another
-	// portfolio it is the same account counted twice (GLG-1182).
+	// portfolio it is the same account counted twice.
 	switch imp, err := h.imports.BySHA256(r.Context(), userID, sha); {
 	case err == nil:
 		h.writeAlreadyImported(w, r, userID, imp)
@@ -698,7 +695,7 @@ func parseUpload(w http.ResponseWriter, r *http.Request, data []byte, broker str
 		return "", Statement{}, false
 	}
 	// Each row costs the preview instrument lookups, and a PDF parser has no
-	// cap of its own (GLG-1269).
+	// cap of its own.
 	if len(st.Trades)+len(st.Dividends)+len(st.Cash)+len(st.Holdings)+len(st.Skipped)+len(st.Errors) > maxStatementRows {
 		auth.WriteError(w, http.StatusBadRequest, "file: "+errTooManyRows.Error())
 		return "", Statement{}, false
@@ -711,7 +708,7 @@ func parseUpload(w http.ResponseWriter, r *http.Request, data []byte, broker str
 var cp1254High = []rune("€\uFFFD‚ƒ„…†‡ˆ‰Š‹Œ\uFFFD\uFFFD\uFFFD\uFFFD‘’“”•–—˜™š›œ\uFFFD\uFFFDŸ")
 
 // fromWindows1254 decodes data, which Excel saves in a Turkish locale as
-// plain "CSV" (GLG-1261), from Windows-1254 to UTF-8.
+// plain "CSV", from Windows-1254 to UTF-8.
 func fromWindows1254(data []byte) []byte {
 	out := make([]byte, 0, len(data)+len(data)/4)
 	for _, b := range data {
@@ -775,10 +772,10 @@ func csvRecords(data []byte) ([][]string, error) {
 // holdingInstruments resolves each of st's holdings, in order, to an
 // instrument by the rule a trade row follows short of creating one: the
 // symbol in the holding's market, else the instrument userID picked for it
-// in an earlier commit of broker (GLG-735) or in this preview (picks,
-// GLG-752). The market is the statement's
+// in an earlier commit of broker or in this preview (picks).
+// The market is the statement's
 // when it names one, else the holding's currency's (ADR 0006). A holding
-// that resolves to none gets the zero Instrument (GLG-751).
+// that resolves to none gets the zero Instrument.
 func (h *handler) holdingInstruments(ctx context.Context, userID int64, broker string, picks map[string]instrument.Instrument, st Statement) ([]instrument.Instrument, error) {
 	out := make([]instrument.Instrument, len(st.Holdings))
 	for i, hold := range st.Holdings {
@@ -804,8 +801,8 @@ func (h *handler) holdingInstruments(ctx context.Context, userID int64, broker s
 // periodEnd folds txs dated up to period_end and the preview's ok rows that
 // are not flagged as duplicates through the holdings engine, and returns the
 // summary with the instruments it names: what the portfolio would hold at
-// period_end once a plain commit books this preview (GLG-207, GLG-737),
-// splits included (GLG-1198).
+// period_end once a plain commit books this preview,
+// splits included.
 func (h *handler) periodEnd(ctx context.Context, txs []transaction.Transaction, st Statement, preview []previewRow) (holdings.Summary, map[int64]instrument.Instrument, error) {
 	// Existing rows dated after the period are not in the broker's snapshot,
 	// and neither are proposed ones: the comparison is as of period_end.
@@ -821,8 +818,7 @@ func (h *handler) periodEnd(ctx context.Context, txs []transaction.Transaction, 
 		// An ok row either names an instrument or is a cash movement, which
 		// the cash comparison needs. A row flagged as a duplicate is
 		// left out, as the page leaves it unchecked: the comparison is of the
-		// rows a plain commit books (GLG-500). So is a closing sell
-		// (GLG-1190).
+		// rows a plain commit books. So is a closing sell.
 		if row.Status != statusOK || row.DuplicateOf != "" || row.Closing || row.Date > st.PeriodEnd {
 			continue
 		}
@@ -840,8 +836,7 @@ func (h *handler) periodEnd(ctx context.Context, txs []transaction.Transaction, 
 	// The split rows List returns once the preview is committed: each
 	// instrument's splits dated after its first row, up to period_end and
 	// today (ADR 0008). A preview's first row of an instrument can be its
-	// first row at all, such as an opening buy before an in-period split
-	// (GLG-1198).
+	// first row at all, such as an opening buy before an in-period split.
 	first := map[int64]string{}
 	for _, t := range applied {
 		if t.InstrumentID == nil {
@@ -864,7 +859,7 @@ func (h *handler) periodEnd(ctx context.Context, txs []transaction.Transaction, 
 		}
 	}
 	// A proposed bonus row (a buy at price 0) books a split, as a stored
-	// one does (GLG-741).
+	// one does.
 	applied, err = transaction.DropBookedSplits(applied)
 	if err != nil {
 		return holdings.Summary{}, nil, err
@@ -899,11 +894,11 @@ func (h *handler) periodEnd(ctx context.Context, txs []transaction.Transaction, 
 // the rows this preview starts checked are committed. Nothing is written:
 // the transactions are folded through the holdings engine in memory, the
 // same engine the summary endpoint runs, so position and cash maths live in
-// exactly one place (GLG-207, GLG-419).
+// exactly one place.
 func (h *handler) reconcile(ctx context.Context, txs []transaction.Transaction, st Statement, holdIns []instrument.Instrument, preview []previewRow) ([]reconcileEntry, *cashReconcileEntry, error) {
 	// A statement with no snapshot and no balance, such as a CSV, has
 	// nothing to compare against: listing every position it is "silent
-	// about" would flag the whole portfolio (GLG-598). A Midas statement
+	// about" would flag the whole portfolio. A Midas statement
 	// only lacks a balance when it lacks its currency too, and then lists no
 	// silent positions either, so this changes nothing for it; one that
 	// prints a balance but no positions is still compared.
@@ -973,7 +968,7 @@ func (h *handler) reconcile(ctx context.Context, txs []transaction.Transaction, 
 	return entries, cash, nil
 }
 
-// Opening positions (GLG-737): the error code of an opening buy no price
+// Opening positions: the error code of an opening buy no price
 // was found for, and how many instruments one preview may fetch prices for.
 const (
 	codeOpeningPrice  = "opening_price"
@@ -983,20 +978,20 @@ const (
 
 // proposeOpenings puts the opening rows in front of preview: what the account
 // held before period_start, which the first statement of an account lists
-// only as month-end balances (GLG-737). An instrument gets an opening buy
+// only as month-end balances. An instrument gets an opening buy
 // when the statement holds more of it at period_end (0 when it does not list
 // it) than the portfolio would with this preview's ok rows, and the
 // portfolio has no transaction of it dated before period_start; one with
 // earlier transactions is an ordinary mismatch. A split after that day
 // scales the buy once committed, so its quantity is the shortfall divided
-// by the splits' ratio and a price the statement prints is multiplied by it
-// (GLG-1198). The buy is dated the day
+// by the splits' ratio and a price the statement prints is multiplied by it.
+// The buy is dated the day
 // before period_start and priced with the average cost the statement prints
-// for the holding when the preview has no buy of it (CostPrice, GLG-1185),
+// for the holding when the preview has no buy of it (CostPrice),
 // else the stored price on or before
 // that date, for a BIST instrument after syncing the bulletin of the last
-// weekday on or before it (once per preview, as for an unknown symbol,
-// GLG-1189), else the one an on-demand fetch stores (for at most
+// weekday on or before it (once per preview, as for an unknown symbol),
+// else the one an on-demand fetch stores (for at most
 // maxOpeningFetches instruments), else the statement's own period-end price
 // (ApproximatePrice); with none it is an error row coded opening_price for
 // the user to price. One deposit per currency, on the same day, pays for the
@@ -1009,21 +1004,21 @@ const (
 // name, its holding by its code), so no shortfall is known until the user
 // resolves it. Rows of an unknown symbol whose units net to zero over the
 // preview, such as a money-market fund bought and sold within the month,
-// cannot change a period-end holding and do not block (GLG-819).
+// cannot change a period-end holding and do not block.
 // An instrument the portfolio holds more of at period_end than the statement
 // lists, and held before period_start, gets a closing sell of the
 // difference instead, divided by the splits' ratio as an opening buy's
-// shortfall is (GLG-1212), at most what it held the day before period_start,
+// shortfall is, at most what it held the day before period_start,
 // dated and priced like an opening buy but never at the average cost; with
 // no price it is an error row coded closing_price. It needs a statement that
 // lists holdings, is keyed close-<instrument>, follows the opening rows and
-// starts unchecked (Closing, GLG-1190). One withdrawal per currency, also
+// starts unchecked (Closing). One withdrawal per currency, also
 // Closing and keyed close-cash-<currency>, follows them with the priced
 // sells' proceeds rounded down to the cent; the page books it in step with
 // the sells it checks.
 // An opening row is keyed by its instrument or currency, not its place, so
 // a preview requested again with a pick that adds one keeps the keys of the
-// others, which the page keeps the user's edits by (GLG-820).
+// others, which the page keeps the user's edits by.
 func (h *handler) proposeOpenings(ctx context.Context, req requester, txs []transaction.Transaction, st Statement, holdIns []instrument.Instrument, preview []previewRow) ([]previewRow, error) {
 	if len(st.Holdings) == 0 && st.CashBalance == nil || unresolvedTrades(preview) {
 		return preview, nil
@@ -1136,7 +1131,7 @@ type candidate struct {
 // reconcile compares.
 func candidates(st Statement, holdIns []instrument.Instrument, preview []previewRow, summary holdings.Summary, instruments map[int64]instrument.Instrument) []candidate {
 	// The average cost a statement prints at period end includes its own
-	// buys of the period, so it is no price for the opening alone (GLG-1185).
+	// buys of the period, so it is no price for the opening alone.
 	bought := map[int64]bool{}
 	for _, row := range preview {
 		if row.Type == transaction.TypeBuy && row.InstrumentID != nil {
@@ -1154,7 +1149,7 @@ func candidates(st Statement, holdIns []instrument.Instrument, preview []preview
 		c := candidate{in: in, stated: hold.Quantity}
 		// A unit price in another currency, such as a Garanti
 		// foreign-currency fund's USD price of a TRY fund, is no
-		// price for the instrument (GLG-852).
+		// price for the instrument.
 		if hold.Currency == in.Currency {
 			c.price = hold.Price
 			if !bought[in.ID] {
@@ -1221,7 +1216,7 @@ type openingRun struct {
 
 // splitRatios is what one unit bought on date holds at period_end per
 // candidate: the ratio of the splits after date that the committed opening
-// is scaled by, as the statement's holding already is (GLG-1198).
+// is scaled by, as the statement's holding already is.
 func (r *openingRun) splitRatios(cands []candidate) (map[int64]decimal.Decimal, error) {
 	probes := slices.Clone(r.preview)
 	one, zero := decimal.NewFromInt(1), decimal.Zero
@@ -1245,7 +1240,7 @@ func (r *openingRun) splitRatios(cands []candidate) (map[int64]decimal.Decimal, 
 
 // startPricing sets up priceOf's fetches and bulletin sync, and returns the
 // cancel of their deadline. One deadline for all the fetches, not one each:
-// maxOpeningFetches hung fetches would outlast a proxy's timeout (GLG-854).
+// maxOpeningFetches hung fetches would outlast a proxy's timeout.
 // An instrument left unfetched is priced as if its fetch found nothing. The
 // bulletin sync shares that deadline. A weekend has no bulletin.
 func (r *openingRun) startPricing(client string, start time.Time) context.CancelFunc {
@@ -1275,7 +1270,7 @@ func (r *openingRun) priceOf(c candidate, row *previewRow) (decimal.Decimal, boo
 	}
 	// The on-demand fetch only queues a backfill for an old BIST date,
 	// so the bulletin of the last weekday on or before it is synced
-	// here, once for all the BIST openings (GLG-1189).
+	// here, once for all the BIST openings.
 	if err == nil && !found && c.in.Market == "BIST" && r.h.syncBulletinOnce(r.session, r.bulletinDate) {
 		p, found, err = r.h.storedPrice(r.ctx, r.userID, id, r.date)
 	}
@@ -1303,7 +1298,7 @@ func (r *openingRun) priceOf(c candidate, row *previewRow) (decimal.Decimal, boo
 // units of c, keyed open-<instrument> or close-<instrument>, priced by
 // priceOf; the amount of a row still ok after checkRow is added to totals.
 // The amount is quantity x price exactly, which the commit takes whatever
-// its digits (GLG-476).
+// its digits.
 func (r *openingRun) tradeRow(c candidate, kind string, qty decimal.Decimal, totals *currencyTotals) (previewRow, error) {
 	id, fee := c.in.ID, decimal.Zero
 	row := previewRow{
@@ -1329,7 +1324,7 @@ func (r *openingRun) tradeRow(c candidate, kind string, qty decimal.Decimal, tot
 
 // rows is the closing sells and the opening buys of cands, in their order.
 func (r *openingRun) rows(cands []candidate) (closings, openings []previewRow, err error) {
-	// Never nil: a preview with no rows at all is still a JSON array (GLG-1205).
+	// Never nil: a preview with no rows at all is still a JSON array.
 	closings, openings = []previewRow{}, []previewRow{}
 	for _, c := range cands {
 		row, ok, err := r.closingRow(c)
@@ -1349,9 +1344,9 @@ func (r *openingRun) rows(cands []candidate) (closings, openings []previewRow, e
 }
 
 // closingRow is c's closing sell, and true, when the portfolio holds more
-// of it than the statement, held since before the period (GLG-1190). The
+// of it than the statement, held since before the period. The
 // difference and the statement's price are post-split, the sell before the
-// splits, as for an opening (GLG-1212).
+// splits, as for an opening.
 func (r *openingRun) closingRow(c candidate) (previewRow, bool, error) {
 	id := c.in.ID
 	excess, closePrice := r.held[id].Sub(c.stated), c.price
@@ -1440,20 +1435,20 @@ func text(d *decimal.Decimal) *string {
 // makes: createFund's TEFAS lookups and bulletinInstrument's BIST bulletin
 // syncs.
 type lookupSession struct {
-	// ctx is the preview's single lookup deadline (GLG-896): the lookups
+	// ctx is the preview's single lookup deadline: the lookups
 	// and syncs run on it, and none starts once it is done.
 	ctx    context.Context
 	client string // the requester's IP, which the lookups count against
 	userID int64
 	broker string
-	picks  map[string]instrument.Instrument // the picks made in this preview (GLG-752)
+	picks  map[string]instrument.Instrument // the picks made in this preview
 	// asked holds the fund codes this request has asked TEFAS about.
 	asked map[string]bool
 	// synced holds the dates this request has synced the BIST bulletin of,
 	// true for those it fetched.
 	synced map[string]bool
 	// memo holds this request's instrument lookups by key, not-found ones
-	// too, so a symbol on thousands of rows is looked up once (GLG-1272).
+	// too, so a symbol on thousands of rows is looked up once.
 	// It is cleared whenever the request may have added instruments.
 	memo map[string]memoEntry
 	// funds is the TEFAS fund list nameInstrument matches names against,
@@ -1503,9 +1498,9 @@ type requester struct {
 // previewRows turns a parsed statement into the rows the preview shows, in a
 // stable order and with a stable key per row, so the client can address a row
 // it wants to edit or uncheck. req's user and broker key the user's stored
-// picks, and picks are the ones made in this preview (GLG-752). batch are
+// picks, and picks are the ones made in this preview. batch are
 // fund names to take as learned for this request, a stored one of the same
-// name giving way (GLG-1181).
+// name giving way.
 func (h *handler) previewRows(ctx context.Context, req requester, picks map[string]instrument.Instrument, batch map[string]int64, st Statement) ([]previewRow, error) {
 	rows := []previewRow{}
 	lookupCtx, cancel := context.WithTimeout(ctx, PreviewLookupTimeout)
@@ -1518,8 +1513,8 @@ func (h *handler) previewRows(ctx context.Context, req requester, picks map[stri
 	maps.Copy(learned, batch)
 	// This statement's own balances are newer than any learned name. The
 	// parser maps a name that matches one of their names to its code, so a
-	// name that still matches one matches two funds and resolves nothing
-	// (GLG-766). A holding's code is a code, not a cut name, so no learned
+	// name that still matches one matches two funds and resolves nothing.
+	// A holding's code is a code, not a cut name, so no learned
 	// name resolves it either. Every own name maps to 1, so learnedName
 	// reports any match of them.
 	own := map[string]int64{}
@@ -1566,7 +1561,7 @@ func (h *handler) previewRows(ctx context.Context, req requester, picks map[stri
 	// none; a fee row's own amount is the fee. A cash row has no instrument
 	// to rule out its currency, so the commit's own list does.
 	// The description is masked here, not in the parsers, which classify
-	// rows by the raw text (GLG-1196).
+	// rows by the raw text.
 	for i, c := range st.Cash {
 		row := previewRow{
 			Key: fmt.Sprintf("cash-%d", i), Status: statusOK, Type: c.Kind, Date: c.Date,
@@ -1582,7 +1577,7 @@ func (h *handler) previewRows(ctx context.Context, req requester, picks map[stri
 	// before cash), so the rows built above are grouped by section rather
 	// than dated. The user reviews a month chronologically, so sort them
 	// here; the keys are already assigned, so selection and edits in the
-	// client survive it (GLG-230).
+	// client survive it.
 	sortByDate(rows)
 
 	for i, s := range st.Skipped {
@@ -1595,7 +1590,7 @@ func (h *handler) previewRows(ctx context.Context, req requester, picks map[stri
 		})
 	}
 	for i, e := range st.Errors {
-		// An unknown row's value is its description (GLG-1196).
+		// An unknown row's value is its description.
 		rows = append(rows, previewRow{
 			Key: fmt.Sprintf("err-%d", i), Status: statusError, Date: e.Date,
 			Section: e.Section, Code: e.Code, Value: MaskIdentifiers(e.Value), Message: e.Message, Raw: maskCells(e.Row),
@@ -1606,8 +1601,7 @@ func (h *handler) previewRows(ctx context.Context, req requester, picks map[stri
 
 // maskCells returns the raw cells of a skipped or error row with their
 // IBANs and account numbers masked, as a cash row's description is: a
-// Midas deposit that did not execute still names the bank's IBAN
-// (GLG-1196).
+// Midas deposit that did not execute still names the bank's IBAN.
 func maskCells(cells []string) []string {
 	out := make([]string, len(cells))
 	for i, c := range cells {
@@ -1618,10 +1612,10 @@ func maskCells(cells []string) []string {
 
 // flagDuplicates sets DuplicateOf on each ok row that an earlier
 // transaction, hand-entered or imported, already accounts for, so the page
-// starts it unchecked and a plain commit does not book it twice (GLG-415,
-// GLG-559). Imported ones count too: a CSV may repeat rows first imported
+// starts it unchecked and a plain commit does not book it twice.
+// Imported ones count too: a CSV may repeat rows first imported
 // from a Midas statement or another CSV, which no overlap warning of the
-// same broker and account catches (GLG-627).
+// same broker and account catches.
 //
 // A dividend of an instrument pairs with a hand-entered one through the
 // window and one-to-one pairing the expected dividends panel uses to hide a
@@ -1629,7 +1623,7 @@ func maskCells(cells []string) []string {
 // dated on the ex-date, a statement row on the payment date. An imported one
 // is dated on the payment date too, so it pairs only on the same date,
 // currency and amount; the window would pair a monthly payer's dividend with
-// the previous statement's (GLG-640). A trade pairs with an
+// the previous statement's. A trade pairs with an
 // earlier one of the same instrument, side, date and quantity, and a cash row
 // (deposit, withdrawal, a dividend with no instrument) with one of the same
 // type, date, currency and amount; each earlier transaction accounts for at
@@ -1720,7 +1714,7 @@ func flagDuplicates(txs []transaction.Transaction, preview []previewRow) error {
 // relative order within a date. Dates are YYYY-MM-DD, so a string compare is
 // a date compare. Skipped and error rows are appended after this runs: they
 // have nothing to import and often no date at all, so they stay at the
-// bottom (GLG-230).
+// bottom.
 func sortByDate(rows []previewRow) {
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].Date < rows[j].Date })
 }
@@ -1731,24 +1725,23 @@ func sortByDate(rows []previewRow) {
 // looked up in the market its currency implies, then in that currency's other
 // markets, where it resolves only when exactly one of them knows the symbol.
 // A row with no currency (an empty CSV currency cell) is looked up like a TRY
-// row and takes the currency of the instrument it resolves to, TRY when none
-// (GLG-622). A currency that contradicts the instrument is left for checkRow,
+// row and takes the currency of the instrument it resolves to, TRY when none.
+// A currency that contradicts the instrument is left for checkRow,
 // which says so with the commit's own message.
 // The import creates no instrument on the statement's word, so an unknown or
 // ambiguous symbol is the user's to fix in the preview (ADR 0006). The one
 // exception is a TEFAS row's fund code that TEFAS itself confirms, which
-// createFund adds (GLG-699). A BIST symbol, which may be a share delisted
-// since, is looked up again after its date's bulletin is synced (GLG-782).
-// Both ask on s, the request's lookup state (GLG-896). A symbol none of that
+// createFund adds. A BIST symbol, which may be a share delisted
+// since, is looked up again after its date's bulletin is synced.
+// Both ask on s, the request's lookup state. A symbol none of that
 // resolves takes the instrument the user picked for it in an earlier commit
-// of the same broker, if any, and says so in ResolvedBy (GLG-735): a real
+// of the same broker, if any, and says so in ResolvedBy: a real
 // match always wins over a stored pick. A pick made in this preview resolves
-// it the same way (GLG-752). With no pick either, it takes the instrument of
+// it the same way. With no pick either, it takes the instrument of
 // the learned fund names it matches (see learnedName), else a garanti fund
 // name the one TEFAS fund it is cut or abbreviated from (see nameInstrument),
-// and says so in ResolvedBy (GLG-766, GLG-1188). It returns the instrument
-// of an ok row, else the zero Instrument. Every lookup goes through s's memo
-// (GLG-1272).
+// and says so in ResolvedBy. It returns the instrument
+// of an ok row, else the zero Instrument. Every lookup goes through s's memo.
 func (h *handler) resolveInstrument(ctx context.Context, s *lookupSession, learned map[string]int64, row *previewRow) (instrument.Instrument, error) {
 	given := row.Currency
 	if given == "" {
@@ -1826,7 +1819,7 @@ func (h *handler) aliasInstrument(ctx context.Context, userID int64, broker stri
 // symbol, start with it or that it starts with: the rule the garanti parser
 // maps a movement to a balance by inside one statement, as statement names
 // are cut to a fixed width. It returns 0 for no match, or when the matches
-// name more than one instrument (GLG-766).
+// name more than one instrument.
 func learnedName(symbol string, learned map[string]int64) int64 {
 	if symbol == "" {
 		return 0
@@ -1848,7 +1841,7 @@ func learnedName(symbol string, learned map[string]int64) int64 {
 // the instrument of its code, or 0 when they print it for two codes (a
 // holding is one per code), like the parser's code() leaves such a name
 // unresolved, or when its code resolves to no instrument. holdIns are st's
-// holdings' instruments (GLG-766).
+// holdings' instruments.
 func statementNames(st Statement, holdIns []instrument.Instrument) map[string]int64 {
 	out := map[string]int64{}
 	for i, hold := range st.Holdings {
@@ -1866,16 +1859,15 @@ func statementNames(st Statement, holdIns []instrument.Instrument) map[string]in
 
 // checkRow runs an ok row through the commit's own validation
 // (transaction.FromRequestWith), with the request the import page sends for
-// it and in, the instrument the row resolved to, in place of a lookup
-// (GLG-1272),
+// it and in, the instrument the row resolved to, in place of a lookup,
 // and turns a row the commit would refuse -- a zero quantity, a sell at
 // price 0, a fee above a dividend -- into an error row with code "invalid"
 // and the commit's "<field>: <message>" as its message. One such row would
-// otherwise fail the whole commit (GLG-617). An unknown_instrument row gets
+// otherwise fail the whole commit. An unknown_instrument row gets
 // the same rules short of the instrument lookup, so a price-0 sell is not
-// passed off as ready once the user picks its instrument (GLG-654). Such a
-// row keeps UnknownInstrument, so the user learns of both problems at once
-// (GLG-678). The row's numbers go in as the strings the page sends: that
+// passed off as ready once the user picks its instrument. Such a
+// row keeps UnknownInstrument, so the user learns of both problems at once.
+// The row's numbers go in as the strings the page sends: that
 // validation is the commit's trust boundary, which the preview runs as is
 // rather than repeating it on decimals.
 func checkRow(row *previewRow, in instrument.Instrument) {
@@ -1913,13 +1905,13 @@ func checkRow(row *previewRow, in instrument.Instrument) {
 // global, so only a fund-code-shaped symbol is asked about, never a name the
 // statement printed. Each code is asked once per request (s.asked), at most
 // maxFundLookups codes in all, and each lookup counts against s.client's
-// fundLookupLimit, shared by every route that asks (GLG-850), unless it
-// asked nothing (ErrFundLookupOff, GLG-897). A code not asked, not found
+// fundLookupLimit, shared by every route that asks, unless it
+// asked nothing (ErrFundLookupOff). A code not asked, not found
 // or whose lookup failed is instrument.ErrNotFound; a
 // failure is logged with the code only. A code not asked because the
 // client's limit is spent is a fundLimitError, which is instrument.ErrNotFound
-// as well. The lookup runs on s.ctx, and none is made once it is done
-// (GLG-896); the store runs on ctx. Insert returns the existing row when
+// as well. The lookup runs on s.ctx, and none is made once it is done;
+// the store runs on ctx. Insert returns the existing row when
 // another request added the code first.
 func (h *handler) createFund(ctx context.Context, s *lookupSession, code string) (instrument.Instrument, error) {
 	if h.lookupFund == nil || !fundCode.MatchString(code) || s.asked[code] || len(s.asked) >= maxFundLookups || s.ctx.Err() != nil {
@@ -1942,7 +1934,7 @@ func (h *handler) createFund(ctx context.Context, s *lookupSession, code string)
 		return instrument.Instrument{}, instrument.ErrNotFound
 	}
 	if name == "" {
-		// The TEFAS fetcher renames it on its next run (GLG-698).
+		// The TEFAS fetcher renames it on its next run.
 		name = code
 	}
 	id, err := h.instruments.Insert(ctx, "TEFAS", code, name, "TRY")
@@ -1966,7 +1958,7 @@ func (fundLimitError) Error() string { return "fund lookup limit reached" }
 func (fundLimitError) Unwrap() error { return instrument.ErrNotFound }
 
 // bulletinInstrument syncs the BIST bulletin of date, which adds the symbols
-// it lists as instruments, and looks symbol up again (GLG-782). A date
+// it lists as instruments, and looks symbol up again. A date
 // syncBulletinOnce does not sync is instrument.ErrNotFound.
 func (h *handler) bulletinInstrument(ctx context.Context, s *lookupSession, symbol, date string) (instrument.Instrument, error) {
 	if !h.syncBulletinOnce(s, date) {
@@ -1980,9 +1972,9 @@ func (h *handler) bulletinInstrument(ctx context.Context, s *lookupSession, symb
 // a sync that fetched counts against maxBulletinSyncs, so dates whose
 // bulletin is already stored do not use up the fetches a later date needs;
 // a pause as a backfill makes goes before each one after the first. Each
-// fetch also counts against s.client's bulletinSyncLimit (GLG-861); a sync
+// fetch also counts against s.client's bulletinSyncLimit; a sync
 // that fetched nothing is refunded. The sync runs on s.ctx, and none starts
-// once it is done (GLG-896). A failure is logged with the date only.
+// once it is done. A failure is logged with the date only.
 func (h *handler) syncBulletinOnce(s *lookupSession, date string) bool {
 	d, err := time.Parse(time.DateOnly, date)
 	if _, done := s.synced[date]; h.syncBulletin == nil || err != nil || done || s.ctx.Err() != nil {
@@ -2044,9 +2036,9 @@ func (h *handler) soleMatch(ctx context.Context, s *lookupSession, markets []str
 // overlapWarnings warns about importing the same period twice. An overlap is
 // a warning and not an error: a quarterly statement over an imported month is
 // legitimate (ADR 0006). The other currency's statement of it is the other
-// account and gets no warning at all (GLG-367). The same statement again is
+// account and gets no warning at all. The same statement again is
 // flagged as same_period, which the commit refuses until the earlier import
-// is undone (GLG-361).
+// is undone.
 func (h *handler) overlapWarnings(ctx context.Context, userID, portfolioID int64, broker string, st Statement) ([]warning, error) {
 	overlapping, err := h.imports.Overlapping(ctx, userID, portfolioID, broker, st.PeriodStart, st.PeriodEnd)
 	if err != nil {
@@ -2074,7 +2066,7 @@ func (h *handler) overlapWarnings(ctx context.Context, userID, portfolioID int64
 
 // writeAlreadyImported answers 409 already_imported for imp, the user's
 // earlier import of the same file, naming the portfolio it is in so the
-// client can point there (GLG-1182).
+// client can point there.
 func (h *handler) writeAlreadyImported(w http.ResponseWriter, r *http.Request, userID int64, imp Import) {
 	p, err := h.portfolios.Get(r.Context(), userID, imp.PortfolioID)
 	if err != nil {
@@ -2105,7 +2097,7 @@ func (req commitRequest) validate() error {
 		return fmt.Errorf("broker: unknown broker")
 	}
 	// The duplicate check (409) keys on this hash, so only the shape parse
-	// returns is accepted: a junk value would slip past it (GLG-241).
+	// returns is accepted: a junk value would slip past it.
 	if !sha256Hex.MatchString(req.SHA256) {
 		return fmt.Errorf("sha256: must be 64 lowercase hex characters")
 	}
@@ -2119,12 +2111,12 @@ func (req commitRequest) validate() error {
 		return err
 	}
 	// No rows is valid: a month with nothing in it is still recorded, so it
-	// shows in the history and a re-upload is caught (GLG-360).
+	// shows in the history and a re-upload is caught.
 	return checkPeriod(req.Broker, req.PeriodStart, req.PeriodEnd)
 }
 
-// checkAliases checks the shape of commit's aliases and parse's picks
-// (GLG-752); field names the list in the error.
+// checkAliases checks the shape of commit's aliases and parse's picks;
+// field names the list in the error.
 func checkAliases(field string, aliases []aliasRequest) error {
 	if len(aliases) > maxAliases {
 		return fmt.Errorf("%s: must have at most %d entries", field, maxAliases)
@@ -2167,12 +2159,12 @@ func (h *handler) formAliases(w http.ResponseWriter, r *http.Request, field stri
 	return out, true
 }
 
-// aliasInstruments looks up the instrument of each of aliases, in one query
-// (GLG-1330), and returns them by symbol, a later entry for the same symbol
+// aliasInstruments looks up the instrument of each of aliases, in one query,
+// and returns them by symbol, a later entry for the same symbol
 // winning. An alias of no instrument returns the 400 message naming it
 // instead.
 func (h *handler) aliasInstruments(ctx context.Context, field string, aliases []aliasRequest) (map[string]instrument.Instrument, string, error) {
-	// A commit's name of instrument 0 is one to forget (GLG-766).
+	// A commit's name of instrument 0 is one to forget.
 	forget := func(a aliasRequest) bool { return field == "names" && a.InstrumentID == 0 }
 	ids := make([]int64, 0, len(aliases))
 	for _, a := range aliases {
@@ -2203,11 +2195,10 @@ func (h *handler) aliasInstruments(ctx context.Context, field string, aliases []
 
 // checkPeriod checks a statement period the way the commit refuses it. The
 // parse step runs it too, so the preview says up front that the commit will
-// fail (GLG-435).
+// fail.
 func checkPeriod(broker, periodStart, periodEnd string) error {
 	// The period is range-checked like any user-entered date: a bogus one
-	// would overlap, and so block, every later import of this account
-	// (GLG-377).
+	// would overlap, and so block, every later import of this account.
 	if err := price.CheckDate(periodStart); err != nil {
 		return fmt.Errorf("period_start: %w", err)
 	}
@@ -2223,7 +2214,7 @@ func checkPeriod(broker, periodStart, periodEnd string) error {
 	}
 	// A broker statement covers a month, a quarter at most (ADR 0006), so a
 	// year is a generous cap. A CSV spans whatever history it holds, such as
-	// the app's own export, so it has no cap (GLG-611).
+	// the app's own export, so it has no cap.
 	if broker != "csv" && !end.Before(start.AddDate(1, 0, 0)) {
 		return fmt.Errorf("period_end: period must be shorter than a year")
 	}
@@ -2232,8 +2223,8 @@ func checkPeriod(broker, periodStart, periodEnd string) error {
 
 // csvPeriod is a CSV's period, which it does not print: the span of its
 // dates. A date the commit refuses outright is left out, in the preview and
-// the commit alike (GLG-1279): one mistyped year would otherwise push the
-// period past checkPeriod and block every other row (GLG-618). Both are ""
+// the commit alike: one mistyped year would otherwise push the
+// period past checkPeriod and block every other row. Both are ""
 // when no date is left.
 func csvPeriod(dates iter.Seq[string]) (start, end string) {
 	for d := range dates {
@@ -2250,7 +2241,7 @@ func csvPeriod(dates iter.Seq[string]) (start, end string) {
 
 // setCSVPeriod sets a CSV commit's period. A CSV prints no period, so it
 // spans the rows committed, not the preview's, which is "" for a file of
-// error rows alone and misses a row re-dated in the preview (GLG-638). A
+// error rows alone and misses a row re-dated in the preview. A
 // date the commit refuses is left out, so that row's own error is the one
 // returned.
 func (req *commitRequest) setCSVPeriod() error {
@@ -2266,8 +2257,7 @@ func (req *commitRequest) setCSVPeriod() error {
 		return nil
 	}
 	// No row gives a period, so the one sent (often "") would fail first.
-	// Every row's date is refused, so a row's own error is returned instead
-	// (GLG-655).
+	// Every row's date is refused, so a row's own error is returned instead.
 	for i, row := range req.Rows {
 		if err := transaction.Validate(row); err != nil {
 			return fmt.Errorf("rows[%d].%w", i, err)
@@ -2279,7 +2269,7 @@ func (req *commitRequest) setCSVPeriod() error {
 // fetchTarget is one on-demand price fetch to run after the commit: the
 // instrument (the zero value for a cash row) and the earliest transaction of
 // this import that references it, since the fetch backfills from that date
-// forward (GLG-189).
+// forward.
 type fetchTarget struct {
 	in instrument.Instrument
 	t  transaction.Transaction
@@ -2290,7 +2280,7 @@ type fetchTarget struct {
 // half-imported statement can never exist. Re-uploading a file already
 // imported into this portfolio is a 409 rather than a second copy of the
 // month's trades (ADR 0006), and so is another file of the same statement,
-// which names the import to undo first (GLG-361).
+// which names the import to undo first.
 //
 //	@Summary	Commit a reviewed statement
 //	@Description	Creates the import and all its transactions in one database transaction; the first invalid row rolls everything back. For broker csv the period is the committed rows' dates and the one sent is used only when it has no rows; when no row has a valid date, the first row's own error is returned. Each of the optional aliases is stored in the same database transaction as the user's pick for that symbol in this broker's statements, replacing an earlier pick; the next preview resolves an unknown symbol with it. Each of the optional names, the preview's names, is stored the same way as a learned fund name, replacing an earlier learned name but never a pick; a name sent with instrument_id 0 or with two different instruments is stored for neither and removes a learned one. A row may be dated the day before period_start, the date of the preview's opening rows, or the day after period_end, when Midas books the interest of the month it prints. The body is capped at 2 MB instead of 64 KB.
@@ -2381,10 +2371,10 @@ func (h *handler) commit(w http.ResponseWriter, r *http.Request) {
 		}
 		// The import's undo and history describe its period, so every row
 		// must fall inside it; a Midas statement only lists rows dated in its
-		// own period (GLG-241). The exceptions are the day before it, the
-		// date of the opening rows the preview proposes (GLG-737), and the
+		// own period. The exceptions are the day before it, the
+		// date of the opening rows the preview proposes, and the
 		// day after it, when Midas books the month's interest it prints in
-		// this statement (GLG-1180).
+		// this statement.
 		if (t.Date < req.PeriodStart && t.Date != openingDate) || (t.Date > req.PeriodEnd && t.Date != interestDate) {
 			auth.WriteError(w, http.StatusBadRequest, fmt.Sprintf("rows[%d].date: must be within %s – %s", i, req.PeriodStart, req.PeriodEnd))
 			return
@@ -2406,7 +2396,7 @@ func (h *handler) commit(w http.ResponseWriter, r *http.Request) {
 
 	// A CSV is one file, not an account: its currency is only the rows'
 	// majority, so it is recorded as unknown and matches an earlier CSV of
-	// any currency (GLG-627).
+	// any currency.
 	account := req.Currency
 	if req.Broker == "csv" {
 		account = ""
@@ -2474,7 +2464,7 @@ func commitAliases(req commitRequest) (aliases, learn map[string]int64) {
 // one after another, each within its own OnDemandFetchTimeout, but it
 // waits for them only that long in all: the rows are committed, so a hung
 // price host must not hold the response past a proxy's timeout, one target
-// at a time (GLG-854). The rest run on after it returns; a client
+// at a time. The rest run on after it returns; a client
 // disconnect does not cancel them.
 func (h *handler) ensurePrices(ctx context.Context, targets map[string]fetchTarget) {
 	done := make(chan struct{})
@@ -2492,7 +2482,7 @@ func (h *handler) ensurePrices(ctx context.Context, targets map[string]fetchTarg
 }
 
 // rowInstruments loads the instruments rows name in one query rather than
-// one per row (GLG-1272) and returns the lookup the commit validates them
+// one per row and returns the lookup the commit validates them
 // with.
 func (h *handler) rowInstruments(ctx context.Context, rows []transaction.Request) (func(int64) (instrument.Instrument, error), error) {
 	var ids []int64
@@ -2592,12 +2582,11 @@ type fundResponse struct {
 
 // lookupFundRoute resolves a fund code the user typed into the preview's
 // instrument picker: an import row that names its fund by name has no code
-// for the preview to ask TEFAS about (GLG-733). A TEFAS fund already known is
+// for the preview to ask TEFAS about. A TEFAS fund already known is
 // returned as is; otherwise createFund asks TEFAS and adds the fund it
-// confirms, under the GLG-699 rules. Not found covers a code TEFAS does not
-// know, a failed lookup and the tefas source being off. Only a code that
-// is asked about counts against the client IP's limit of 20 TEFAS lookups
-// a minute, which the preview's lookups share (GLG-850).
+// confirms. Not found covers a code TEFAS does not know, a failed lookup and the
+// tefas source being off. Only a code that is asked about counts against the
+// client IP's limit of 20 TEFAS lookups a minute, which the preview's lookups share.
 //
 //	@Summary	Look up a TEFAS fund by code
 //	@Tags		imports
