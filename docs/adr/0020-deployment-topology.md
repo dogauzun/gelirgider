@@ -4,7 +4,7 @@ Status: accepted (GLG-713, 2026-10-01); amended 2026-10-13
 (pre-publication review, the private-repository rationale under "No
 container registry" is dated); amended 2026-10-14 (GLG-1382, both images are
 published to GHCR); amended 2026-10-14 (GLG-1383, compose pulls the
-published images)
+published images); amended 2026-10-14 (GLG-1395, release flow)
 
 This ADR records decisions taken in Phase 4 (GLG-41..46,
 `docs/HISTORY.md`, Phase 4) that were written down only in the roadmap and in
@@ -119,6 +119,16 @@ published image, `caddy:2` (`deploy/compose.yml:46`).
 > stays for a host running a modified checkout (`up --build`), and
 > `IMAGE_TAG` pins a `sha-<7>` or `vX.Y.Z` tag for a rollback
 > (`deploy/RUNBOOK.md`, Rollback).
+
+> Amended 2026-10-14 (GLG-1395): `main` is the release candidate and there
+> are no RC branches. A manual run of the `release` workflow in Actions tags
+> it. The version comes from the squash titles since the last `v*` tag: any
+> `feat` bumps the minor version, anything else the patch version, the major
+> version only by the workflow's `bump: major` override, and the first
+> release is `v1.0.0`. A release also moves the floating major tag `vX`, so
+> `IMAGE_TAG=v1` follows minor and patch releases. The notes are GitHub's
+> generated notes; there is no `CHANGELOG.md`. Design:
+> `docs/superpowers/specs/2026-10-14-release-flow-design.md`.
 
 ### No external error reporting, logs to stdout
 

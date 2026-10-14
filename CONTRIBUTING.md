@@ -53,6 +53,9 @@ Ticket: <link to the GitHub issue>
 Very short explanation of how testing is conducted to verify the PR. Include what commands are run and what is observed
 ```
 
+Releases: run the `release` workflow in Actions; the version comes from the squash
+titles since the last tag, the notes are GitHub's generated notes.
+
 ## Rules the review checks
 
 - Bug fix: write the test first. Turn the bug report into a test that fails for
