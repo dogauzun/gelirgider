@@ -419,7 +419,9 @@ copy of the current state, and step 2 picks the older file instead.
    drops the older one, so that commit's images were never built. Pick the
    latest `sha-` tag that exists on the package page
    (<https://github.com/dogauzun/gelirgider/pkgs/container/gelirgider-backend>),
-   or `latest`.
+   or `latest`. A weekly prune keeps only the newest 30 versions of each
+   image, so a commit older than that has no image: roll back by rebuilding
+   from the checkout, as in the last paragraph below.
 2. Pull and restart:
    ```
    docker compose -f deploy/compose.yml pull

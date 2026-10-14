@@ -1,0 +1,40 @@
+# Weekly retention for the images publish.yml pushes to ghcr.io (GLG-1384).
+# GHCR has no retention setting, so the version list would grow forever.
+#
+# Keeps the 30 newest versions of each package. Every push to main makes one
+# version tagged `sha-<7>`, and `latest` always sits on the newest one, so
+# that is the 30 newest `sha-` tags plus `latest`. The rollback step pins
+# `IMAGE_TAG=sha-<7>` (deploy/RUNBOOK.md section 8), which is why recent
+# `sha-` versions stay.
+#
+# Known gap: actions/delete-package-versions matches `ignore-versions`
+# against the version name, which for a container is the sha256 digest and
+# not a tag, so no regex can protect `v*` release tags. A `v*` version older
+# than the 30 newest is pruned. Replace this job with a `gh api` script
+# before the first release tag is cut.
+name: prune-images
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  prune:
+    name: ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [gelirgider-backend, gelirgider-frontend]
+    steps:
+      - uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ matrix.package }}
+          package-type: container
+          min-versions-to-keep: 30
+          token: ${{ secrets.GITHUB_TOKEN }}
