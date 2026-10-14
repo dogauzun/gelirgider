@@ -66,9 +66,8 @@ every layout change into "import is broken".
 An unknown row type is an error row, never a guess. In a CSV, a number with
 one kind of separator in thousands shape (`1.000`, `1,000`) is an
 `ambiguous_number` error row, the same rule as the transaction form; the PDF
-parsers read their broker's fixed number format. A CSV that is not valid
-UTF-8 is read as Windows-1254, which Excel in a Turkish locale writes, with a
-small built-in table instead of a dependency.
+parsers read their broker's fixed number format. A CSV that is not valid UTF-8
+is read as Windows-1254, which Excel in a Turkish locale writes.
 
 ### Two steps: parse, review, commit
 
@@ -125,7 +124,7 @@ that matches two funds stays unknown.
 Each commit records a `statement_imports` row (user, portfolio, broker,
 currency, period, file sha256) and stamps its transactions with `import_id`,
 so `DELETE /api/imports/{id}` undoes the whole import. An empty statement is
-recorded too. Imported transactions stay ordinary, editable ones.
+recorded too. Imported transactions stay ordinary and editable.
 
 - The same file is refused (409 `already_imported`) in every portfolio of the
   user, since one statement file is one broker account and a second portfolio
