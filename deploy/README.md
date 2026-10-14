@@ -32,10 +32,11 @@ the GitHub Container Registry:
 - `ghcr.io/dogauzun/gelirgider-backend`
 - `ghcr.io/dogauzun/gelirgider-frontend`
 
-A push to `main` publishes `latest` and `sha-<first 7 of the commit sha>`; a
-`v*` tag publishes the tag name, for example `v1.2.0`. Compose pulls `latest`
-unless `IMAGE_TAG` in `deploy/.env` pins another tag (`deploy/RUNBOOK.md`,
-Rollback). `.github/workflows/prune-images.yml` prunes all but the newest 30
+A push to `main` publishes `latest` and `sha-<first 7 of the commit sha>`,
+the edge builds. A release (the `release` workflow in Actions) publishes the
+version tag `vX.Y.Z`, for example `v1.2.0`, and moves the floating major tag
+`vX` (`v1`) to it. Compose pulls `latest` unless `IMAGE_TAG` in `deploy/.env`
+pins another tag (`deploy/RUNBOOK.md`, Rollback). `.github/workflows/prune-images.yml` prunes all but the newest 30
 versions of each image weekly, so a `sha-` pin older than that must be rebuilt
 from the checkout. An arm64 host without amd64 emulation cannot run them (the
 backend exits with `exec format error`) and builds from the checkout with

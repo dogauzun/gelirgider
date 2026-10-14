@@ -35,6 +35,7 @@ Makefile    single entrypoint: make dev / test / lint / build / swagger
 8. Ensure `caveman` and `ponytail` plugins are active before starting development.
 9. No AI attribution anywhere: no `Co-Authored-By` trailers, no "Generated with Claude Code" lines in commits, PRs, or files.
 10. One ticket, one agent session. Never work two tickets in one session. Transition to `In Progress` when work starts, `In Review` when the PR opens. Stay on the ticket until the PR merges, then transition to `Done`. See `docs/EFFORT.md`. The ticket is implemented by the `ticket-implementer` agent on Sonnet 5.5 at high effort (`.claude/agents/ticket-implementer.md`); a harness that cannot load that agent type spawns a general subagent with that model and effort and tells it to read the file.
+11. Releases: run the `release` workflow in Actions; the version comes from the squash titles since the last tag, the notes are GitHub's generated notes.
 
 ## PR format
 

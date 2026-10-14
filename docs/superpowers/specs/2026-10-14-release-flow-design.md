@@ -69,8 +69,8 @@ on:
         options: [auto, patch, minor, major]
         default: auto
 permissions:
-  contents: write   # tag + release
-  packages: write   # for the publish call
+  contents: write # tag + release
+  packages: write # for the publish call
 ```
 
 Job `release`: `actions/checkout@v7` with `fetch-depth: 0` (tags and
@@ -182,13 +182,13 @@ grouped or Jira-linked notes, `vX.Y` tags, arm64 images, signing.
 
 Epic "Release flow", five children, each a day or less:
 
-| Ticket | Scope | Depends on |
-|---|---|---|
-| a | `publish.yml`: `workflow_call` input, floating `vX`, `--build-arg VERSION` | – |
-| b | `release.yml`: version computation, `gh release create --generate-notes`, publish call | a |
-| c | backend version: ldflags, Dockerfile `ARG`, `/api/health` field, swag, `make build` arg | – |
-| d | frontend version: Dockerfile `ARG`, Vite define, sidebar label, i18n keys | – |
-| e | docs: README, RUNBOOK, ADR 0020 note, CLAUDE.md and CONTRIBUTING.md line | – |
+| Ticket | Scope                                                                                   | Depends on |
+| ------ | --------------------------------------------------------------------------------------- | ---------- |
+| a      | `publish.yml`: `workflow_call` input, floating `vX`, `--build-arg VERSION`              | –          |
+| b      | `release.yml`: version computation, `gh release create --generate-notes`, publish call  | a          |
+| c      | backend version: ldflags, Dockerfile `ARG`, `/api/health` field, swag, `make build` arg | –          |
+| d      | frontend version: Dockerfile `ARG`, Vite define, sidebar label, i18n keys               | –          |
+| e      | docs: README, RUNBOOK, ADR 0020 note, CLAUDE.md and CONTRIBUTING.md line                | –          |
 
 a, c, d and e are independent; b follows a. The first release is cut by
 hand after b, c and d merge.
