@@ -120,6 +120,13 @@ export function currencyMismatch(message: string | undefined): string | undefine
   return /^currency: must match instrument currency \((\w+)\)$/.exec(message ?? '')?.[1]
 }
 
+// A commit error about one row (POST /api/imports): `rows[i].<field>: <message>`,
+// where i counts the rows sent. Null for any other message.
+export function rowError(message: string): { index: number; rest: string } | null {
+  const match = /^rows\[(\d+)\]\.(.*)$/.exec(message)
+  return match ? { index: Number(match[1]), rest: match[2] } : null
+}
+
 // Maps a server `error` string to its Turkish UI message. Unknown messages
 // get a generic fallback so raw English never reaches the screen. `feeLabel`
 // names the fee field: a dividend's fee is the withholding tax.
@@ -128,13 +135,10 @@ export function translateError(
   feeLabel: StringKey = 'transactions.fee',
 ): string {
   if (!message) return t('error.unknown')
-  // A commit row error (POST /api/imports) names the row by its index among
-  // the rows sent; the rest is an ordinary field message.
-  const row = /^rows\[(\d+)\]\.(.*)$/.exec(message)
-  if (row) {
-    const n = Number(row[1]) + 1
-    return t('error.row', { n, message: translateError(row[2], feeLabel) })
-  }
+  // The row error names the row by its index; the rest is an ordinary field
+  // message.
+  const row = rowError(message)
+  if (row) return t('error.row', { n: row.index + 1, message: translateError(row.rest, feeLabel) })
   const period = /^date: must be within (.*)$/.exec(message)
   if (period) return t('error.dateOutsidePeriod', { period: period[1] })
   const currency = currencyMismatch(message)

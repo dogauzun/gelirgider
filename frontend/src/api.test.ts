@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { apiFetch, apiUpload, shouldRetryQuery, translateError } from './api'
+import { apiFetch, apiUpload, rowError, shouldRetryQuery, translateError } from './api'
 
 describe('unreachable server', () => {
   afterEach(() => vi.unstubAllGlobals())
@@ -28,6 +28,16 @@ describe('unreachable server', () => {
       status: 502,
       message: expect.stringMatching(/^Sunucuya ulaşılamadı/),
     })
+  })
+})
+
+describe('rowError', () => {
+  it('splits a commit row error into the row index and the field message', () => {
+    expect(rowError('rows[3].date: must be within 2025-01')).toEqual({
+      index: 3,
+      rest: 'date: must be within 2025-01',
+    })
+    expect(rowError('date: must be within 2025-01')).toBeNull()
   })
 })
 
