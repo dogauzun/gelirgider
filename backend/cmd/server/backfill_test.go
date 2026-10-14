@@ -209,7 +209,7 @@ func TestBackfillHistorySkipsUS(t *testing.T) {
 		`INSERT INTO transactions
 			(id, user_id, portfolio_id, instrument_id, type, date, quantity, price, amount, fee, currency, created_at)
 			VALUES (1, 1, 1, 2, 'buy', '2024-01-02', '10', '200.00', '2000.00', '0', 'USD', '2024-01-02T00:00:00Z')`,
-		// A BIST buy too, so the BIST walk has a start date (GLG-242).
+		// A BIST buy too, so the BIST walk has a start date.
 		`INSERT INTO transactions
 			(id, user_id, portfolio_id, instrument_id, type, date, quantity, price, amount, fee, currency, created_at)
 			VALUES (2, 1, 1, 1, 'buy', '2024-01-02', '10', '10.25', '102.50', '0', 'TRY', '2024-01-02T00:00:00Z')`,
@@ -250,8 +250,8 @@ func TestBackfillHistorySkipsUS(t *testing.T) {
 	}
 }
 
-// TestRunBackfillWithoutUSFetcher covers GLG-448: -backfill-prices without
-// SECRET_KEY has no US fetcher. It must still backfill BIST and skip US
+// TestRunBackfillWithoutUSFetcher checks that -backfill-prices without
+// SECRET_KEY, which leaves no US fetcher, still backfills BIST and skips US
 // (a US transaction is seeded, so the US walk would otherwise run).
 func TestRunBackfillWithoutUSFetcher(t *testing.T) {
 	day1 := "2024-01-02" // Tuesday
@@ -300,7 +300,7 @@ func TestRunBackfillWithoutUSFetcher(t *testing.T) {
 	assertPriceRow(t, conn, day1, "10.25")
 }
 
-// TestBackfillHistoryStartsBISTAtFirstBISTTransaction covers GLG-242: TCMB
+// TestBackfillHistoryStartsBISTAtFirstBISTTransaction checks that TCMB
 // starts at the earliest transaction of any type, BIST at the earliest
 // transaction on a BIST instrument, and a cash-only database fetches no
 // bulletin at all.
@@ -440,7 +440,7 @@ func TestBackfillUSWritesLatestCloseOnce(t *testing.T) {
 	}
 }
 
-// TestBackfillHistoryFetchesCryptoInOneRequest covers GLG-252: a tracked
+// TestBackfillHistoryFetchesCryptoInOneRequest checks that a tracked
 // CRYPTO pair gets its whole range from one klines request, weekends
 // included, stored under source "btcturk".
 func TestBackfillHistoryFetchesCryptoInOneRequest(t *testing.T) {
@@ -502,8 +502,7 @@ func TestBackfillHistoryFetchesCryptoInOneRequest(t *testing.T) {
 		}
 	}
 
-	// Every day up to yesterday is stored now: a restart requests nothing
-	// (GLG-277).
+	// Every day up to yesterday is stored now: a restart requests nothing.
 	if _, err := backfillHistory(ctx, testLogger(), conn, sourceFetchers{bist: &bist.Fetcher{BaseURL: srv.URL + "/"}, tcmb: &tcmb.Fetcher{BaseURL: srv.URL + "/"}, us: &us.Fetcher{}, crypto: &btcturk.Fetcher{BaseURL: srv.URL}, tefas: &tefas.Fetcher{BaseURL: srv.URL}, xu100: &evds.Fetcher{}, now: fixedNow(now)}, "", noGold); err != nil {
 		t.Fatalf("second backfillHistory: %v", err)
 	}
@@ -512,7 +511,7 @@ func TestBackfillHistoryFetchesCryptoInOneRequest(t *testing.T) {
 	}
 }
 
-// TestBackfillHistoryFetchesGoldFromHistoryStart covers GLG-555: a
+// TestBackfillHistoryFetchesGoldFromHistoryStart checks that a
 // transaction before PAXG-TRY's first candle starts the gold backfill at
 // btcturk.GoldHistoryStart, with one klines request, and the gram price lands in
 // prices and benchmark_values though nobody holds gold.
@@ -572,7 +571,7 @@ func TestBackfillHistoryFetchesGoldFromHistoryStart(t *testing.T) {
 	}
 }
 
-// TestBackfillGoldSkipsCompleteRange covers GLG-645: with a GOLD/GRAM price
+// TestBackfillGoldSkipsCompleteRange checks that with a GOLD/GRAM price
 // on every day from the start to yesterday (UTC), a restart makes no
 // BtcTurk request.
 func TestBackfillGoldSkipsCompleteRange(t *testing.T) {
@@ -609,7 +608,7 @@ func TestBackfillGoldSkipsCompleteRange(t *testing.T) {
 	}
 }
 
-// TestBackfillHistoryFetchesXU100 covers GLG-644: without an EVDS key the
+// TestBackfillHistoryFetchesXU100 checks that without an EVDS key the
 // xu100 backfill is skipped, with no request and no run in the run log;
 // with one it stores the BIST 100 closes from the earliest transaction,
 // not only SyncXU100's 14-day window.
@@ -668,7 +667,7 @@ func TestBackfillHistoryFetchesXU100(t *testing.T) {
 	}
 
 	backfill(&evds.Fetcher{BaseURL: srv.URL, APIKey: "test-key"})
-	// From 14 days before the transaction, so a close precedes it (GLG-648).
+	// From 14 days before the transaction, so a close precedes it.
 	if len(paths) != 1 || !strings.Contains(paths[0], "startDate=19-05-2023&endDate=02-01-2024") {
 		t.Fatalf("requests = %v, want one for 19-05-2023..02-01-2024", paths)
 	}
@@ -684,7 +683,7 @@ func TestBackfillHistoryFetchesXU100(t *testing.T) {
 	}
 }
 
-// TestBackfillHistorySkipsStoredXU100 covers GLG-648: with a BIST 100
+// TestBackfillHistorySkipsStoredXU100 checks that with a BIST 100
 // close on every weekday up to yesterday, bar a holiday week and the
 // transaction's own date, and one before it, a restart makes no EVDS
 // request. A missing last month is fetched alone; after an earlier
@@ -767,8 +766,8 @@ func TestBackfillHistorySkipsStoredXU100(t *testing.T) {
 	}
 }
 
-// TestBackfillHistoryContinuesAfterFailingSource covers GLG-414: a BIST
-// bulletin server answering 500 must not stop the TCMB and gold walks
+// TestBackfillHistoryContinuesAfterFailingSource checks that a BIST
+// bulletin server answering 500 does not stop the TCMB and gold walks
 // behind it. The FX rates are written, every run is in the run log, and
 // the error still reports the BIST failure.
 func TestBackfillHistoryContinuesAfterFailingSource(t *testing.T) {
@@ -855,7 +854,7 @@ func TestBackfillHistoryContinuesAfterFailingSource(t *testing.T) {
 	}
 }
 
-// TestBackfillHistoryWalksSchedulerSources covers GLG-1152: the startup
+// TestBackfillHistoryWalksSchedulerSources checks that the startup
 // backfill walks exactly the scheduler sources that have a Backfill, bar
 // tufe, in their order, so a new source is added in schedulerSources
 // alone. Every walk gets a run in the run log, failed or not.
@@ -925,7 +924,7 @@ func TestBackfillHistoryWalksSchedulerSources(t *testing.T) {
 	}
 }
 
-// TestBackfillHistoryStopsAfterCancel covers GLG-458: a shutdown that
+// TestBackfillHistoryStopsAfterCancel checks that a shutdown that
 // cancels ctx during the crypto walk stops it there. No WARN is logged for
 // the cancelled pair or the one after it, and the TEFAS walk behind it
 // never starts.
@@ -982,7 +981,7 @@ func TestBackfillHistoryStopsAfterCancel(t *testing.T) {
 	}
 }
 
-// TestBackfillTEFASAllFundsFailed covers GLG-471: a TEFAS backfill in
+// TestBackfillTEFASAllFundsFailed checks that a TEFAS backfill in
 // which every tracked fund fails returns an error, so its run is stored as
 // failed rather than as a success with 0 rows.
 func TestBackfillTEFASAllFundsFailed(t *testing.T) {
@@ -1023,9 +1022,10 @@ func TestBackfillTEFASAllFundsFailed(t *testing.T) {
 	}
 }
 
-// TestBackfillCryptoSkippedPairDoesNotHideFailure covers GLG-471 with a
-// skipped pair: one pair already priced for every day, the other failing,
-// is still an "all failed" run, since the only pair fetched failed.
+// TestBackfillCryptoSkippedPairDoesNotHideFailure checks that a
+// skipped pair does not hide a failure: one pair already priced for every
+// day, the other failing, is still an "all failed" run, since the only pair
+// fetched failed.
 func TestBackfillCryptoSkippedPairDoesNotHideFailure(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "down", http.StatusInternalServerError)
@@ -1069,7 +1069,7 @@ func TestBackfillCryptoSkippedPairDoesNotHideFailure(t *testing.T) {
 	}
 }
 
-// TestBackfillRangeSkipsHolidayOnRerun covers GLG-277: a weekday whose
+// TestBackfillRangeSkipsHolidayOnRerun checks that a weekday whose
 // bulletin 404s between two days that have one is a holiday. The first
 // walk requests it once and remembers it; the next walk must not request
 // it again.

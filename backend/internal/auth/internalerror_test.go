@@ -13,8 +13,8 @@ import (
 )
 
 // TestWriteInternalErrorClientCancel: a request whose client went away
-// (its context is cancelled) logs nothing at ERROR and answers 499, not 500
-// (GLG-1021). The same error on a live request is still an internal error.
+// (its context is cancelled) logs nothing at ERROR and answers 499, not 500.
+// The same error on a live request is still an internal error.
 func TestWriteInternalErrorClientCancel(t *testing.T) {
 	var logs bytes.Buffer
 	previous := slog.Default()

@@ -212,7 +212,7 @@ func TestParseNotACSVStatement(t *testing.T) {
 	}
 }
 
-// TestParseNoRows covers GLG-624: a header with no data row under it has no
+// TestParseNoRows checks that a header with no data row under it has no
 // period, so it is refused instead of previewing as an empty statement.
 func TestParseNoRows(t *testing.T) {
 	for _, rows := range [][][]string{

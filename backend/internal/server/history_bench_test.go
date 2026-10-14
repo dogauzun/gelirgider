@@ -21,7 +21,7 @@ import (
 )
 
 // BenchmarkHistorySweep times the history sweep over 7 years and 25
-// instruments in five markets, with 2,000 transactions (GLG-1363): a
+// instruments in five markets, with 2,000 transactions: a
 // close every weekday (every day for crypto and gold), USD and EUR rates
 // every weekday.
 func BenchmarkHistorySweep(b *testing.B) {

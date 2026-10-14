@@ -15,7 +15,7 @@ func TestGrouped(t *testing.T) {
 		{"10.000", ".", ",", true},
 		{"1.2.3,4", ".", ",", false},
 		// A first group starting with 0 is not grouping, or "0.234,5"
-		// reads as 234.5 (GLG-977).
+		// reads as 234.5.
 		{"0.234,5", ".", ",", false},
 		{"012.345,6", ".", ",", false},
 		{"0,234.5", ",", ".", false},
@@ -46,11 +46,11 @@ func TestParseNumber(t *testing.T) {
 		// Whitespace around the cell.
 		{"  1.234,5 ", ".", ",", "1234.5"},
 		{"\t-7.5\n", ",", ".", "-7.5"},
-		// Bad thousands groups (GLG-908, GLG-977).
+		// Bad thousands groups.
 		{"1.2.3,4", ".", ",", ""},
 		{"0.234,5", ".", ",", ""},
 		{"1,234.5,6", ",", ".", ""},
-		// Not the transaction API's shape: exponent, overlong, junk (GLG-629).
+		// Not the transaction API's shape: exponent, overlong, junk.
 		{"1e2000000000", ",", ".", ""},
 		{"12345678901234567890123", ",", ".", ""},
 		{"1.2345678901234", ",", ".", ""},
@@ -86,7 +86,7 @@ func TestMaskIdentifiers(t *testing.T) {
 		{"41,18 USD/TRY kurundan 8.237,46 dolar satış", "41,18 USD/TRY kurundan 8.237,46 dolar satış"},
 		{"Borsa Emir İptal Ücreti ve Vergi-7", "Borsa Emir İptal Ücreti ve Vergi-7"},
 		{"123456 100 adet RGYAS Halka Arz Tahsil", "123456 100 adet RGYAS Halka Arz Tahsil"},
-		// A date is no account number: a CSV row's raw date cell (GLG-1196).
+		// A date is no account number: a CSV row's raw date cell.
 		{"2025-09-29", "2025-09-29"},
 		{"2025-09", "2025-09"},
 		{"29.09.2025", "29.09.2025"},

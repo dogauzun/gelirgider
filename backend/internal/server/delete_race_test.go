@@ -20,7 +20,7 @@ import (
 // raceBody calls before once, at the first Read, then reads body. Every
 // handler under test reads its body after its ownership check and before its
 // insert, so before lands exactly where a concurrent delete commits in the
-// race GLG-1002 reports, without a thread.
+// reported race, without a thread.
 type raceBody struct {
 	before func()
 	body   io.Reader
@@ -108,7 +108,7 @@ func wantError(t *testing.T, rec *httptest.ResponseRecorder, status int, msg str
 	}
 }
 
-// TestTransactionCreateRacingPortfolioDelete covers GLG-1002: the portfolio
+// TestTransactionCreateRacingPortfolioDelete covers the case where the portfolio
 // is deleted after the create's ownership check and before its insert. The
 // insert's foreign key fails, and the answer is the 404 the same request
 // gets a moment later, not a logged 500.
@@ -221,7 +221,7 @@ func TestImportCommitRacingPortfolioDelete(t *testing.T) {
 	}
 }
 
-// TestManualPriceSaveRacingUserDelete covers GLG-1012: an admin deletes the
+// TestManualPriceSaveRacingUserDelete covers the case where an admin deletes the
 // user after the session check and before the manual price insert. The
 // answer is the 401 the next request gets, not a logged 500.
 func TestManualPriceSaveRacingUserDelete(t *testing.T) {
@@ -309,7 +309,7 @@ func TestTransactionCreateRacingForcedPortfolioDelete(t *testing.T) {
 	}
 }
 
-// TestTransactionUpdateRacingForcedPortfolioDelete covers GLG-1014: a forced
+// TestTransactionUpdateRacingForcedPortfolioDelete covers the case where a forced
 // delete of the portfolio, or of its user, commits between the transaction's
 // update and its re-read, so the re-read finds nothing. A trigger on the
 // update does that delete. The answer is the 404 a missing transaction gets,
@@ -383,7 +383,7 @@ func (e *transactionTestEnv) deleteUserRow(userID int64) {
 	}
 }
 
-// TestSignedInUserLookupRacingUserDelete covers GLG-1015: a request that
+// TestSignedInUserLookupRacingUserDelete checks that a request that
 // looks the signed-in user up by id after the session check, when an admin
 // deleted the user in between, answers the 401 the user's next request
 // gets, not a logged 500.
@@ -439,12 +439,12 @@ func TestReturnsPeriodsSweepRacingUserDelete(t *testing.T) {
 	wantError(t, rec, http.StatusUnauthorized, "unauthorized")
 }
 
-// TestDividendDismissRacingPortfolioDeleteAfterUniqueFailure covers the
-// second case of GLG-1015: the dismissal is already there, so the insert
-// fails on the primary key, and a forced portfolio delete commits before
-// Dismiss counts the rows. A trigger on the insert does that delete and then
-// fails the insert with the duplicate's message; RAISE(FAIL) keeps the
-// delete. The answer is the 404 of TestDividendDismissRacingPortfolioDelete.
+// TestDividendDismissRacingPortfolioDeleteAfterUniqueFailure covers the case
+// where the dismissal is already there, so the insert fails on the primary key,
+// and a forced portfolio delete commits before Dismiss counts the rows. A
+// trigger on the insert does that delete and then fails the insert with the
+// duplicate's message; RAISE(FAIL) keeps the delete. The answer is the 404 of
+// TestDividendDismissRacingPortfolioDelete.
 func TestDividendDismissRacingPortfolioDeleteAfterUniqueFailure(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	session := e.login("race@example.com")
@@ -486,7 +486,7 @@ func (e *transactionTestEnv) loginAdmin(email string) string {
 // TestAdminSetPasswordRacingUserDelete: a second admin deletes the target
 // user after the first admin's request loaded it and before the password
 // reset looks it up again. That is another user, so the answer is the
-// route's 404, not the 401 GLG-1015 gives for the signed-in user.
+// route's 404, not the 401 given for the signed-in user.
 func TestAdminSetPasswordRacingUserDelete(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	session := e.loginAdmin("admin@example.com")
@@ -530,7 +530,7 @@ func TestAdminCreateUserRacingUserDelete(t *testing.T) {
 
 // An admin deletes a user who just signed up, before its default portfolio
 // is seeded: the public sign-up answers 404 like the admin's create-user
-// route above, not 500 (GLG-1016).
+// route above, not 500.
 func TestRegisterRacingUserDelete(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	e.loginAdmin("admin@example.com") // setup done

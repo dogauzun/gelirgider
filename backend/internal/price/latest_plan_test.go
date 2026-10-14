@@ -9,10 +9,10 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/db"
 )
 
-// TestLatestQueriesSeekPerKey guards GLG-503: each Latest lookup must be
+// TestLatestQueriesSeekPerKey checks that each Latest lookup is
 // primary-key seeks per requested id, not a correlated subquery run once per
 // stored row, so its cost does not grow with the length of price history.
-// One statement serves every id (GLG-1234): the plan walks the ids, seeks
+// One statement serves every id: the plan walks the ids, seeks
 // each one's newest date in the subquery, then seeks the row at that date.
 // The old per-row shape searched the price table by instrument_id alone, so
 // the outer price row's search must carry date=?.

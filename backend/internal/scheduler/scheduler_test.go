@@ -100,9 +100,9 @@ func TestTickFollowsLiveSettings(t *testing.T) {
 	}
 }
 
-// TestRunAfterShutdownLogsNoSettingsErrors covers GLG-434: startup hands
-// Run an already cancelled context when a shutdown cut the catch-up short,
-// and Run must return without logging every settings read as failed.
+// TestRunAfterShutdownLogsNoSettingsErrors checks that Run, handed an already
+// cancelled context because a shutdown cut the startup catch-up short, returns
+// without logging every settings read as failed.
 func TestRunAfterShutdownLogsNoSettingsErrors(t *testing.T) {
 	r, repo := newTestRunner(t, []Source{{Name: "a"}, {Name: "b"}})
 	var buf bytes.Buffer
@@ -148,7 +148,7 @@ func TestTickRetriesHourlyAndHardFailureDoesNotBlockNext(t *testing.T) {
 
 // TestTickSkipsSourceCaughtUpToday covers a source with no Have (like
 // bist-splits): a catch-up that wrote rows after today's fetch time keeps
-// the first tick from syncing it again (GLG-319).
+// the first tick from syncing it again.
 func TestTickSkipsSourceCaughtUpToday(t *testing.T) {
 	ctx := context.Background()
 	calls := 0
@@ -176,9 +176,9 @@ func TestTickSkipsSourceCaughtUpToday(t *testing.T) {
 	}
 }
 
-// TestTickSkipsSourceWhoseCatchUpFailedToday covers the failure sibling of
-// GLG-319: a catch-up that ended in an error after today's fetch time is
-// done for the day, so the first tick does not fetch again (GLG-371).
+// TestTickSkipsSourceWhoseCatchUpFailedToday checks that a
+// catch-up that ended in an error after today's fetch time is
+// done for the day, so the first tick does not fetch again.
 func TestTickSkipsSourceWhoseCatchUpFailedToday(t *testing.T) {
 	ctx := context.Background()
 	calls := 0
@@ -206,9 +206,9 @@ func TestTickSkipsSourceWhoseCatchUpFailedToday(t *testing.T) {
 	}
 }
 
-// TestTickRunsSourceAfterBackfillToday covers GLG-403: a backfill that wrote
-// rows after today's fetch time walked only past dates, so it does not
-// settle the day and the tick still fetches.
+// TestTickRunsSourceAfterBackfillToday checks that a backfill that wrote
+// rows after today's fetch time, having walked only past dates, does not
+// settle the day, so the tick still fetches.
 func TestTickRunsSourceAfterBackfillToday(t *testing.T) {
 	ctx := context.Background()
 	calls := 0
@@ -235,7 +235,7 @@ func TestTickRunsSourceAfterBackfillToday(t *testing.T) {
 	}
 }
 
-// TestTickRunsSourceWhoseRunWasStoppedByShutdown covers GLG-398: a run cut
+// TestTickRunsSourceWhoseRunWasStoppedByShutdown checks that a run cut
 // short by shutdown (context.Canceled) is not a failure and does not settle
 // the day, so the first tick after a restart still fetches.
 func TestTickRunsSourceWhoseRunWasStoppedByShutdown(t *testing.T) {
@@ -267,9 +267,9 @@ func TestTickRunsSourceWhoseRunWasStoppedByShutdown(t *testing.T) {
 	}
 }
 
-// TestRecordDeletesRunStoppedByShutdownWithCause covers GLG-412: since Go
-// 1.26 signal.NotifyContext cancels with a cause, and net/http returns that
-// cause, which does not wrap context.Canceled. The run is still dropped.
+// TestRecordDeletesRunStoppedByShutdownWithCause checks that a run stopped by
+// shutdown is still dropped: since Go 1.26 signal.NotifyContext cancels with a
+// cause, and net/http returns that cause, which does not wrap context.Canceled.
 func TestRecordDeletesRunStoppedByShutdownWithCause(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "runs.db"))
 	if err != nil {
@@ -288,9 +288,9 @@ func TestRecordDeletesRunStoppedByShutdownWithCause(t *testing.T) {
 	}
 }
 
-// TestClearUnfinishedDropsRunCutOffByHardKill covers GLG-402: a run whose
-// process was killed never reaches Finish. After a restart, ClearUnfinished
-// drops it, so Latest reports the last finished run instead of a running one.
+// TestClearUnfinishedDropsRunCutOffByHardKill checks that ClearUnfinished drops
+// a run whose process was killed and never reached Finish, so after a restart
+// Latest reports the last finished run instead of a running one.
 func TestClearUnfinishedDropsRunCutOffByHardKill(t *testing.T) {
 	ctx := context.Background()
 	conn, err := db.Open(filepath.Join(t.TempDir(), "runs.db"))
@@ -317,8 +317,8 @@ func TestClearUnfinishedDropsRunCutOffByHardKill(t *testing.T) {
 	}
 }
 
-// TestLatestIgnoresNoOpBackfill covers GLG-1069: a backfill that finished
-// with 0 rows and no error fetched nothing, so it is neither the source's
+// TestLatestIgnoresNoOpBackfill checks that a backfill that finished
+// with 0 rows and no error, having fetched nothing, is neither the source's
 // last run nor its last success. A failed manual run before it stays the
 // last run. A backfill that wrote rows still counts.
 func TestLatestIgnoresNoOpBackfill(t *testing.T) {
@@ -432,8 +432,8 @@ func TestCatchUpOneFailureDoesNotBlockNextSource(t *testing.T) {
 	}
 }
 
-// TestCatchUpLogsUnderCallerPrefix covers GLG-832: the on-demand BIST fetch
-// reuses CatchUp, and its failure must be logged under its own prefix, not
+// TestCatchUpLogsUnderCallerPrefix checks that the on-demand BIST fetch
+// reuses CatchUp, and its failure is logged under its own prefix, not
 // as a startup catch-up that never ran.
 func TestCatchUpLogsUnderCallerPrefix(t *testing.T) {
 	var buf bytes.Buffer
@@ -453,7 +453,7 @@ func TestCatchUpLogsUnderCallerPrefix(t *testing.T) {
 }
 
 // TestCatchUpStopsQuietlyOnNothingToFetch covers a source with nothing
-// tracked (GLG-244): one Sync call, no walk back, no WARN.
+// tracked: one Sync call, no walk back, no WARN.
 func TestCatchUpStopsQuietlyOnNothingToFetch(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&buf, nil))
@@ -477,10 +477,10 @@ func TestCatchUpStopsQuietlyOnNothingToFetch(t *testing.T) {
 	}
 }
 
-// TestCatchUpCancelledMidFetchLogsNoError covers GLG-447: a shutdown during
-// a catch-up fetch makes Sync fail with signal.NotifyContext's cause, which
-// does not wrap context.Canceled. Nothing failed, so nothing is logged at
-// ERROR.
+// TestCatchUpCancelledMidFetchLogsNoError checks that a shutdown during
+// a catch-up fetch logs nothing at ERROR. It makes Sync fail with
+// signal.NotifyContext's cause, which does not wrap context.Canceled, but
+// nothing failed.
 func TestCatchUpCancelledMidFetchLogsNoError(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&buf, nil))
@@ -500,10 +500,10 @@ func TestCatchUpCancelledMidFetchLogsNoError(t *testing.T) {
 	}
 }
 
-// TestAttemptCancelledMidFetchLogsNoError covers GLG-457: a shutdown during
-// a scheduled fetch makes Sync fail with signal.NotifyContext's cause, which
-// does not wrap context.Canceled. Nothing failed, so nothing is logged at
-// ERROR.
+// TestAttemptCancelledMidFetchLogsNoError checks that a shutdown during
+// a scheduled fetch logs nothing at ERROR. It makes Sync fail with
+// signal.NotifyContext's cause, which does not wrap context.Canceled, but
+// nothing failed.
 func TestAttemptCancelledMidFetchLogsNoError(t *testing.T) {
 	var buf bytes.Buffer
 	ctx, cancel := context.WithCancelCause(context.Background())
@@ -525,7 +525,7 @@ func TestAttemptCancelledMidFetchLogsNoError(t *testing.T) {
 	}
 }
 
-// TestCatchUpTimedOutMidFetchLogsOneError covers GLG-1097: the on-demand
+// TestCatchUpTimedOutMidFetchLogsOneError checks that the on-demand
 // BIST fetch runs CatchUp under the save's timeout, and a deadline that
 // passes during Sync is a failure, not a shutdown, so it is logged once.
 func TestCatchUpTimedOutMidFetchLogsOneError(t *testing.T) {

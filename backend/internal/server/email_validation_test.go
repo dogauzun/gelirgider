@@ -21,8 +21,8 @@ import (
 // TestRegisterRejectsMalformedEmail checks that the API, not just the
 // browser's <input type="email">, rejects addresses that cannot work as a
 // login identifier (including one with an invisible zero-width space, which
-// would pass for another address, GLG-900), and that an address already in the database still logs
-// in even when it would fail that check.
+// would pass for another address), and that an address already in the database
+// still logs in even when it would fail that check.
 func TestRegisterRejectsMalformedEmail(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))

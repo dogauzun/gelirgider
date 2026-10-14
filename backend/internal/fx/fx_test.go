@@ -14,7 +14,7 @@ import (
 // TestUpsertAndLatest covers that Upsert overwrites an existing row for the
 // same (currency, date) instead of duplicating it, and that Latest picks
 // the newest date per currency while ignoring rows dated after asOf and
-// omitting a currency with no row, all in one query (GLG-1256).
+// omitting a currency with no row, all in one query.
 func TestUpsertAndLatest(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {

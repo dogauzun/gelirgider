@@ -10,7 +10,7 @@ import (
 
 // TestPasswordWhitespaceOnly checks that a password made of nothing but
 // whitespace or invisible format characters is rejected with 400, even when
-// it is long enough to pass the character minimum (GLG-900).
+// it is long enough to pass the character minimum.
 func TestPasswordWhitespaceOnly(t *testing.T) {
 	srv := newTestServer(t)
 

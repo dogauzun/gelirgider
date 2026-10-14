@@ -15,8 +15,8 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/db"
 )
 
-// TestTestKey covers GLG-517: the key goes in the "key" header, and EVDS's
-// status maps to the same reasons as us.Fetcher.TestKey. GLG-643: it sends
+// TestTestKey checks that the key goes in the "key" header, and EVDS's
+// status maps to the same reasons as us.Fetcher.TestKey. It sends
 // the project User-Agent, like FetchXU100.
 func TestTestKey(t *testing.T) {
 	for _, tc := range []struct {
@@ -61,7 +61,7 @@ func testRepo(t *testing.T) *benchmark.Repo {
 	return benchmark.NewRepo(conn)
 }
 
-// TestSyncXU100 covers GLG-518 against the real EVDS payloads of
+// TestSyncXU100 checks Sync against the real EVDS payloads of
 // 2026-09-28: closes land as exact text without trailing zeros, a null
 // holiday is skipped, the request carries the key header, the project
 // User-Agent and DD-MM-YYYY dates of the 14-day window, an empty key makes
@@ -149,7 +149,7 @@ func TestSyncXU100(t *testing.T) {
 }
 
 // TestBackfillXU100 checks the backfill asks for one year per request, from
-// syncWindowDays before from (GLG-648), the last one ending at to, so no
+// syncWindowDays before from, the last one ending at to, so no
 // request can reach the 1000-item cap.
 func TestBackfillXU100(t *testing.T) {
 	var paths []string

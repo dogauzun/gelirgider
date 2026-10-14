@@ -24,7 +24,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// TestExpectedDividends covers GLG-289:
+// TestExpectedDividends covers the expected dividends of a portfolio:
 //
 //	THYAO (BIST): buy 10 on 2024-03-01, buy 5 on the ex-date 2024-05-10
 //	  => quantity 10 (the ex-date buy does not count), 10 x 1.2345 = 12.345
@@ -33,11 +33,10 @@ import (
 //	  recorded as a transaction on 2024-03-01 (within +45 days) => hidden;
 //	  dividend 0.5 on 2024-06-01 => gross 2.00, stopaj 20% 0.40, net 1.60
 //	a dividend dated after today is not expected yet;
-//	VOO (US): 0.001528463 x 1.8724 = 0.0029 rounds to 0.00 => dropped
-//	  (GLG-345);
+//	VOO (US): 0.001528463 x 1.8724 = 0.0029 rounds to 0.00 => dropped;
 //	another user's portfolio is 404.
 //
-// GLG-374, in a second portfolio: one recorded dividend hides one ex-date.
+// In a second portfolio, one recorded dividend hides one ex-date.
 //
 //	O: ex-dates 01-30, 02-28, 03-28, only 02-28 recorded => 01-30 and
 //	  03-28 are still expected;
@@ -170,7 +169,7 @@ func TestExpectedDividends(t *testing.T) {
 		t.Errorf("got  %+v\nwant %+v", got, want)
 	}
 
-	// GLG-290: dismissing THYAO 2024-05-10 drops it from the GET; the
+	// Dismissing THYAO 2024-05-10 drops it from the GET; the
 	// intruder gets 404 and dismisses nothing; a repeat dismiss is a no-op.
 	dismiss := func(sessionID string) *httptest.ResponseRecorder {
 		body := fmt.Sprintf(`{"instrument_id":%d,"date":"2024-05-10"}`, thyao)
@@ -232,8 +231,9 @@ func TestExpectedDividends(t *testing.T) {
 	}
 }
 
-// TestDividendTimeline covers GLG-603. Reporting currency TRY; USD rates 30
-// on 2025-03-01, 36 on 2025-03-20, 40 on 2025-04-01.
+// TestDividendTimeline covers the dividend timeline.
+// Reporting currency TRY; USD rates 30 on 2025-03-01, 36 on 2025-03-20, 40 on
+// 2025-04-01.
 //
 //	THYAO 2025-03-05 100 TRY, fee 15   => net 85
 //	ASELS 2025-03-10 50 TRY, fee 7.5   => net 42.50

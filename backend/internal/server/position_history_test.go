@@ -22,7 +22,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// TestPositionHistory sweeps one holding (GLG-531):
+// TestPositionHistory sweeps one holding:
 //
 //	day 1: buy 10 @ 100, no price yet -> close null, 10, cost 1000, valued at cost 1000
 //	day 2: price 110                  -> 10 * 110 = 1100

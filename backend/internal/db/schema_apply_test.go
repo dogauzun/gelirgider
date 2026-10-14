@@ -140,7 +140,7 @@ func dumpRows(t *testing.T, conn *sql.DB, query string) []string {
 	return out
 }
 
-// TestSchema027KeepsPortfolioRows covers GLG-888: 027 rebuilds portfolios
+// TestSchema027KeepsPortfolioRows checks the 027 rebuild of portfolios
 // with AUTOINCREMENT on a database that already has portfolios with a gap,
 // and rows in every table that references a portfolio. Nothing may change
 // but the next id, which must land above the highest one present.
@@ -242,7 +242,7 @@ func TestSchema027KeepsPortfolioRows(t *testing.T) {
 	}
 }
 
-// TestSchema028KeepsImportAndTransactionRows covers GLG-1009: 028 rebuilds
+// TestSchema028KeepsImportAndTransactionRows checks the 028 rebuild of
 // statement_imports and transactions with AUTOINCREMENT. Every row and id,
 // every import_id reference, every column, index and foreign key must come
 // through unchanged; only the next ids change, landing above the highest.
@@ -341,7 +341,7 @@ func TestSchema028KeepsImportAndTransactionRows(t *testing.T) {
 	}
 }
 
-// TestSchema029KeepsUserRows covers GLG-1013: 029 rebuilds users, the parent
+// TestSchema029KeepsUserRows checks the 029 rebuild of users, the parent
 // of every table that holds user data, with AUTOINCREMENT. Every row of every
 // table (ids included), and users' columns, foreign keys and indexes must
 // come through unchanged; only the next user id changes, landing above the
@@ -488,7 +488,7 @@ func TestSchema029KeepsUserRows(t *testing.T) {
 }
 
 // TestSchema024ConvertsBulletinDates seeds the day.month.year price dates
-// the 2020 BIST bulletins left behind (GLG-783), then applies 024: a row
+// the 2020 BIST bulletins left behind, then applies 024: a row
 // with no ISO twin is converted, a row with one is dropped.
 func TestSchema024ConvertsBulletinDates(t *testing.T) {
 	conn, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "test.db"))

@@ -21,9 +21,9 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/user"
 )
 
-// TestAdminScheduleSettings covers GLG-307: GET lists the scheduler's
+// TestAdminScheduleSettings checks that GET lists the scheduler's
 // sources in order with defaults applied and can_backfill set only for a
-// source with a Backfill (GLG-315); PUT then GET round-trips a source
+// source with a Backfill; PUT then GET round-trips a source
 // and the global schedule; a bad at or backfill_from is 400, an unknown
 // source 404 and a non-admin 403.
 func TestAdminScheduleSettings(t *testing.T) {
@@ -89,7 +89,7 @@ func TestAdminScheduleSettings(t *testing.T) {
 	expect(bob, "PUT", "/api/admin/schedule", put, 403, `{"error":"admin only"}`)
 }
 
-// TestAdminSourcesRunStatus covers GLG-309: a run that errors, then one that
+// TestAdminSourcesRunStatus checks that a run that errors, then one that
 // succeeds, leaves last_run without an error and last_success_at set; a
 // source that never ran has both null. ErrNothingToFetch is a success.
 func TestAdminSourcesRunStatus(t *testing.T) {
@@ -161,7 +161,7 @@ func TestAdminSourcesRunStatus(t *testing.T) {
 	}
 }
 
-// TestAdminRunNowAndBackfill covers GLG-314: run answers 202 and runs the
+// TestAdminRunNowAndBackfill checks that run answers 202 and runs the
 // source once for today in Europe/Istanbul, logged as manual; a second run
 // while the first is going is 409. Backfill queues every enabled source
 // with a history, or the one named even if disabled.
@@ -273,8 +273,9 @@ func (w lineWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// TestAdminRunNowLogsFailure covers GLG-831: a failed run now wrote no log
-// line, so the operator saw the error only in the admin page's last run.
+// TestAdminRunNowLogsFailure checks that a failed run now writes a log
+// line. It once wrote none, so the operator saw the error only in the admin
+// page's last run.
 func TestAdminRunNowLogsFailure(t *testing.T) {
 	lines := make(lineWriter, 100)
 	previous := slog.Default()

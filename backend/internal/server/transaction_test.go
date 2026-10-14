@@ -63,7 +63,7 @@ func newTransactionTestEnv(t *testing.T) *transactionTestEnv {
 // backfills. Its cleanup closes the DB, then waits for every backfill
 // worker to exit, then removes the temp dir: a walk still going fails fast
 // on the closed DB instead of walking on, and none outlives the test to
-// write into the next one or into the removed dir (GLG-387).
+// write into the next one or into the removed dir.
 func openBackfillTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 	dir := t.TempDir()
@@ -140,10 +140,10 @@ func (e *transactionTestEnv) createTransaction(sessionID string, portfolioID int
 	return tx.ID
 }
 
-// TestTransactionsListAndValidation covers the two behaviors required of
-// GLG-25: creating one transaction of each of the 6 types and listing them
-// back in date order -- newest first, the paging order since GLG-141 -- and
-// that a buy without instrument_id is rejected.
+// TestTransactionsListAndValidation covers two behaviors: creating one
+// transaction of each of the 6 types and listing them back in date order --
+// newest first, the paging order -- and that a buy without instrument_id is
+// rejected.
 func TestTransactionsListAndValidation(t *testing.T) {
 	env := newTransactionTestEnv(t)
 	instrumentID := env.instrumentID
@@ -193,7 +193,7 @@ func TestTransactionsListAndValidation(t *testing.T) {
 		if tx.Date != wantDates[i] {
 			t.Fatalf("row %d date = %s, want %s (not in date order): %+v", i, tx.Date, wantDates[i], list)
 		}
-		// GLG-40: buy/sell/dividend rows carry an instrument, so the list
+		// Buy/sell/dividend rows carry an instrument, so the list
 		// response must join in its symbol/name; deposit/withdrawal/fee
 		// rows have no instrument and must not.
 		hasInstrument := tx.Type == "buy" || tx.Type == "sell" || tx.Type == "dividend"
@@ -214,7 +214,7 @@ func TestTransactionsListAndValidation(t *testing.T) {
 		t.Fatalf("buy without instrument_id status = %d, want %d; body: %s", badBuyRec.Code, http.StatusBadRequest, badBuyRec.Body.String())
 	}
 
-	// GLG-54: an instrument_id that does not exist is a client error, not a
+	// An instrument_id that does not exist is a client error, not a
 	// foreign key failure surfacing as 500. Same on update.
 	unknownBuy := map[string]any{"type": "buy", "date": "2024-01-01", "instrument_id": 99999, "quantity": "1", "price": "1"}
 	unknownRec := do(http.MethodPost, txPath, unknownBuy)
@@ -233,7 +233,7 @@ func TestTransactionsListAndValidation(t *testing.T) {
 	}
 }
 
-// TestTransactionsUpdateAndDelete covers GLG-47: PUT and DELETE on
+// TestTransactionsUpdateAndDelete checks that PUT and DELETE on
 // /api/transactions/{id} are scoped by user_id only, so a transaction owned
 // by another user must look like it does not exist (404), and update must
 // re-run the per-type validation of fromRequest.
@@ -318,7 +318,7 @@ func TestTransactionsUpdateAndDelete(t *testing.T) {
 	}
 }
 
-// TestTransactionsCurrency covers GLG-73 and GLG-136: a trade's currency is
+// TestTransactionsCurrency checks that a trade's currency is
 // always the instrument's own currency, and a request body currency that
 // contradicts it is rejected instead of silently overwritten, while a cash
 // row (no instrument) takes its currency from the request, validated against
@@ -382,7 +382,7 @@ func TestTransactionsCurrency(t *testing.T) {
 	}
 
 	// dividend in another currency is rejected, not stored as the
-	// instrument's currency (GLG-136).
+	// instrument's currency.
 	dividendTRYRec := env.do(session, http.MethodPost, txPath, map[string]any{
 		"type": "dividend", "date": "2024-01-01", "instrument_id": usdInstrumentID,
 		"amount": "5", "currency": "TRY",
@@ -394,7 +394,7 @@ func TestTransactionsCurrency(t *testing.T) {
 		t.Fatalf("dividend TRY body = %s, want the instrument currency in the error", body)
 	}
 
-	// dividend with no instrument is interest income (GLG-533): it takes the
+	// dividend with no instrument is interest income: it takes the
 	// currency it names, like a deposit.
 	interestRec := env.do(session, http.MethodPost, txPath, map[string]any{
 		"type": "dividend", "date": "2024-01-01", "amount": "5", "currency": "USD",
@@ -445,7 +445,7 @@ func TestTransactionsCurrency(t *testing.T) {
 	}
 }
 
-// TestTransactionsListPaging guards GLG-141: the list endpoint hands out one
+// TestTransactionsListPaging checks that the list endpoint hands out one
 // page at a time, sized by ?limit= and continued with the ?before= cursor
 // from the previous page's X-Next-Cursor header. Several transactions share a
 // date on purpose -- both the order and the cursor are (date, id), so paging
@@ -538,10 +538,10 @@ func TestTransactionsListPaging(t *testing.T) {
 	}
 }
 
-// TestTransactionsExportCSV covers the CSV export (GLG-563): the frozen
-// header with market appended last (GLG-600), a note that needs both CSV quoting and the formula-injection
-// prefix, quantity and price left empty outside buy and sell, split rows
-// left out, the list's type and instrument filters (GLG-613), and 404
+// TestTransactionsExportCSV covers the CSV export: the frozen
+// header with market appended last, a note that needs both CSV quoting and the
+// formula-injection prefix, quantity and price left empty outside buy and
+// sell, split rows left out, the list's type and instrument filters, and 404
 // for another user's portfolio.
 func TestTransactionsExportCSV(t *testing.T) {
 	env := newTransactionTestEnv(t)
@@ -573,8 +573,8 @@ func TestTransactionsExportCSV(t *testing.T) {
 		t.Errorf("body =\n%s\nwant\n%s", got, want)
 	}
 
-	// The list's ?type= and ?instrument_id= filters narrow the export too
-	// (GLG-613), and a bad value is the same 400 as on the list.
+	// The list's ?type= and ?instrument_id= filters narrow the export too,
+	// and a bad value is the same 400 as on the list.
 	for query, wantBody := range map[string]string{
 		"?type=deposit": "date,type,symbol,quantity,price,amount,fee,currency,note,market\n" +
 			"2024-01-01,deposit,,,,1000,0,TRY,\"'=SUM(A1), \"\"x\"\"\",\n",
@@ -593,7 +593,7 @@ func TestTransactionsExportCSV(t *testing.T) {
 		}
 	}
 
-	// A symbol gets the same formula guard as the note (GLG-623).
+	// A symbol gets the same formula guard as the note.
 	if _, err := env.db.Exec(`UPDATE instruments SET symbol = '=X' WHERE id = ?`, env.instrumentID); err != nil {
 		t.Fatalf("rename instrument: %v", err)
 	}
@@ -608,7 +608,7 @@ func TestTransactionsExportCSV(t *testing.T) {
 	}
 }
 
-// TestTransactionsExportCSVBonusStoredDate covers GLG-894: a zero-price
+// TestTransactionsExportCSVBonusStoredDate checks that a zero-price
 // buy that books a split's bonus shares is exported on its stored date, not
 // on the ex-date List moves it to, and ?from= keeps it as the list does.
 func TestTransactionsExportCSVBonusStoredDate(t *testing.T) {
@@ -634,7 +634,7 @@ func TestTransactionsExportCSVBonusStoredDate(t *testing.T) {
 	}
 }
 
-// TestTransactionsExportCSVReimports covers GLG-653: a value in thousands
+// TestTransactionsExportCSVReimports checks that a value in thousands
 // shape (amount 7.407, price 150.125, fee 1.125) is the CSV import's
 // ambiguous_number, so the export writes it with a trailing zero and the
 // file parses back without error rows and to the same values.
@@ -650,8 +650,7 @@ func TestTransactionsExportCSVReimports(t *testing.T) {
 		"type": "buy", "date": "2024-01-03", "instrument_id": env.instrumentID,
 		"quantity": "2", "price": "150.125", "fee": "1.125",
 	})
-	// quantity × price has 10 fraction digits, past the import's digit cap
-	// (GLG-853).
+	// quantity × price has 10 fraction digits, past the import's digit cap.
 	env.createTransaction(alice, portfolioID, map[string]any{
 		"type": "buy", "date": "2024-01-04", "instrument_id": env.instrumentID,
 		"quantity": "0.00123456", "price": "2345678.12",
@@ -683,7 +682,7 @@ func TestTransactionsExportCSVReimports(t *testing.T) {
 	}
 }
 
-// TestTransactionsDateRange covers GLG-601: ?from= and ?to= are an inclusive
+// TestTransactionsDateRange checks that ?from= and ?to= are an inclusive
 // date range on both the paged list and the CSV export, a range bound that
 // is not YYYY-MM-DD or from after to is a 400, and paging walks inside the
 // range.
@@ -757,7 +756,7 @@ func TestTransactionsDateRange(t *testing.T) {
 	}
 }
 
-// TestTransactionsFilterByImport covers GLG-931: ?import_id=<n> keeps one
+// TestTransactionsFilterByImport checks that ?import_id=<n> keeps one
 // import's rows and ?import_id=none the hand-entered ones, on the paged list
 // (paging over the filtered rows only) and the CSV export alike. Another
 // user's import id is an empty list, not an error that says it exists, and

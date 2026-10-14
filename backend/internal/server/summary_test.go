@@ -23,7 +23,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// TestPortfolioSummaryCostAndPositionsValue covers GLG-976: the positions'
+// TestPortfolioSummaryCostAndPositionsValue checks that the positions'
 // value and cost are summed unrounded and rounded once, not left for the
 // page to derive from totals already rounded on their own:
 //
@@ -102,7 +102,7 @@ func TestPortfolioSummaryCostAndPositionsValue(t *testing.T) {
 	}
 }
 
-// TestPortfolioSummaryDerivedTotals covers GLG-1354: a position's total
+// TestPortfolioSummaryDerivedTotals checks that a position's total
 // P/L and the stats' net contribution and net dividends are worked out
 // unrounded and rounded once, not left for the page to add or subtract from
 // parts the API already rounded on their own:
@@ -215,7 +215,7 @@ func TestPortfolioSummaryDerivedTotals(t *testing.T) {
 	}
 }
 
-// TestPortfolioSummaryDayChangeTotal covers GLG-1204: the summary's
+// TestPortfolioSummaryDayChangeTotal checks that the summary's
 // day_change is summed unrounded and rounded once, not totalled from the rows
 // already rounded on their own:
 //
@@ -419,8 +419,8 @@ func TestPortfolioSummary(t *testing.T) {
 	}
 }
 
-// TestPortfolioSummaryQuantityKeepsScale covers GLG-222: a fractional-share
-// quantity must come back with its exact scale, not rounded to 6 fraction
+// TestPortfolioSummaryQuantityKeepsScale checks that a fractional-share
+// quantity comes back with its exact scale, not rounded to 6 fraction
 // digits the way the money fields are.
 func TestPortfolioSummaryQuantityKeepsScale(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
@@ -485,7 +485,7 @@ func TestPortfolioSummaryQuantityKeepsScale(t *testing.T) {
 	}
 }
 
-// TestPortfolioSummaryUnitPricesKeepScale covers GLG-237: a TEFAS NAV with 6
+// TestPortfolioSummaryUnitPricesKeepScale checks that a TEFAS NAV with 6
 // decimals comes back exact instead of rounded to 2, and an avg cost that
 // divides into a repeating decimal (10 / 3) is capped at 9 fraction digits.
 func TestPortfolioSummaryUnitPricesKeepScale(t *testing.T) {
@@ -555,8 +555,8 @@ func TestPortfolioSummaryUnitPricesKeepScale(t *testing.T) {
 	}
 }
 
-// TestPortfolioSummaryManualPriceIsPerUser covers the GLG-103 fix at the
-// summary endpoint: a manual price overrides the fetched price for the
+// TestPortfolioSummaryManualPriceIsPerUser checks that, at the
+// summary endpoint, a manual price overrides the fetched price for the
 // same date, but only for the user who entered it -- a second user with an
 // identical portfolio still sees the fetched price.
 func TestPortfolioSummaryManualPriceIsPerUser(t *testing.T) {
@@ -607,7 +607,7 @@ func TestPortfolioSummaryManualPriceIsPerUser(t *testing.T) {
 	bobCookie, bobPfID := newUserWithBuy("bob2@example.com")
 
 	prices := price.NewRepo(conn)
-	// "bist", not "manual": since GLG-103 the shared prices table only ever
+	// "bist", not "manual": the shared prices table only ever
 	// holds fetched rows, and price_source below must tell the two apart.
 	if err := prices.Upsert(context.Background(), instrumentID, "2024-01-03", "8", "bist"); err != nil {
 		t.Fatalf("prices.Upsert: %v", err)
@@ -643,7 +643,7 @@ func TestPortfolioSummaryManualPriceIsPerUser(t *testing.T) {
 	if alice.LastPrice == nil || *alice.LastPrice != "50" {
 		t.Errorf("alice last_price = %v, want 50 (her manual entry overrides the fetched price)", alice.LastPrice)
 	}
-	// GLG-134: the page tags a manual price and deletes it by this date.
+	// The page tags a manual price and deletes it by this date.
 	if alice.PriceSource == nil || *alice.PriceSource != "manual" {
 		t.Errorf("alice price_source = %v, want manual", alice.PriceSource)
 	}
@@ -802,8 +802,8 @@ func TestPortfolioSummaryMultiCurrency(t *testing.T) {
 		t.Errorf("USDX market_value_reporting = %v, want 1200.00", usdPos.MarketValueReporting)
 	}
 
-	// GLG-273: splits per position. Seeded last so the value assertions
-	// above stay valid once splits change quantities (GLG-268). Only the
+	// Splits per position. Seeded last so the value assertions
+	// above stay valid once splits change quantities. Only the
 	// split after the first buy (2024-01-01) and not after today counts;
 	// one on the buy's own date is already priced in.
 	splits := split.NewRepo(conn)
@@ -875,7 +875,7 @@ func TestPortfolioSummaryNotOwned(t *testing.T) {
 	}
 }
 
-// TestPortfolioSummaryClosedPositionRealizedPL covers GLG-111 and GLG-218: a
+// TestPortfolioSummaryClosedPositionRealizedPL checks that a
 // position sold down to zero keeps its realized P/L, and a dividend on the
 // instrument afterwards, in the portfolio's realized_pl -- and is listed in
 // positions with zero quantity and value so the table adds up to that same
@@ -933,7 +933,7 @@ func TestPortfolioSummaryClosedPositionRealizedPL(t *testing.T) {
 		}
 	}
 	// A split after the full sell changes no quantity, so it is not listed
-	// on the closed position (GLG-406).
+	// on the closed position.
 	if err := split.NewRepo(conn).Upsert(context.Background(), instrumentID, "2024-01-05", decimal.RequireFromString("2"), "manual"); err != nil {
 		t.Fatalf("splits.Upsert: %v", err)
 	}
@@ -954,7 +954,7 @@ func TestPortfolioSummaryClosedPositionRealizedPL(t *testing.T) {
 
 	// The closed position is listed with zero quantity and value but its
 	// realized P/L set, so the positions table can total the same figure as
-	// the realized_pl card (GLG-218).
+	// the realized_pl card.
 	if len(got.Positions) != 1 {
 		t.Fatalf("len(positions) = %d, want 1 (the closed position)", len(got.Positions))
 	}
@@ -979,7 +979,7 @@ func TestPortfolioSummaryClosedPositionRealizedPL(t *testing.T) {
 	}
 }
 
-// TestPortfolioSummaryPLAllCurrenciesExcluded covers GLG-129: with a USD
+// TestPortfolioSummaryPLAllCurrenciesExcluded checks that with a USD
 // position and no USD rate, every amount contributing to unrealized and
 // realized P/L is excluded from the reporting-currency totals, so both are
 // null rather than a 0.00 that reads as "no profit". Once the rate exists
@@ -1077,7 +1077,7 @@ func TestPortfolioSummaryPLAllCurrenciesExcluded(t *testing.T) {
 	}
 }
 
-// TestPortfolioSummaryFXPL covers GLG-267: a $1,000 deposit made at 40 and
+// TestPortfolioSummaryFXPL checks that a $1,000 deposit made at 40 and
 // valued at 48 today has no unrealized or realized P/L, and its ₺8,000 gain
 // comes back as fx_pl. A $10 fee paid at 44 is a cost, not a currency move:
 // it leaves only its own ₺40 currency loss behind (10 x (48 - 44)).
@@ -1153,8 +1153,8 @@ func TestPortfolioSummaryFXPL(t *testing.T) {
 	}
 }
 
-// TestPortfolioSummaryPositionFXPL covers GLG-532. Reporting TRY, USD 40
-// on day 1 and 48 today:
+// TestPortfolioSummaryPositionFXPL covers the FX P/L of a position.
+// Reporting TRY, USD 40 on day 1 and 48 today:
 //
 //	deposit $1,000, buy 10 AAPL @ $50 on day 1, AAPL $60 today
 //	=> unrealized_pl_reporting 100 x 48 = 4800
@@ -1262,9 +1262,9 @@ func TestPortfolioSummaryPositionFXPL(t *testing.T) {
 	}
 }
 
-// TestPortfolioSummaryDayChange covers GLG-542. 2024-01-05 is a Friday and
-// 2024-01-08 the Monday after it; each position but NEW holds 10 bought
-// earlier.
+// TestPortfolioSummaryDayChange covers the day change.
+// 2024-01-05 is a Friday and 2024-01-08 the Monday after it; each position but
+// NEW holds 10 bought earlier.
 //
 //	DAY:  fetched 100 Fri, fetched 103 + manual 105 Mon
 //	      => prev_close 100 (Fri), day_change 10 x (105 - 100) = 50
@@ -1275,7 +1275,7 @@ func TestPortfolioSummaryPositionFXPL(t *testing.T) {
 //	      never touches the position => still prev_close 50, day_change 40
 //	GAP:  fetched 98 Thu, 100 Fri, 2-for-1 split Mon with no close on or
 //	      after it => quantity 20 valued at 100 / 2 = 50, market_value 1000,
-//	      prev_close 98 / 2 = 49, day_change 20 x (50 - 49) = 20 (GLG-651)
+//	      prev_close 98 / 2 = 49, day_change 20 x (50 - 49) = 20
 //	LATE: as GAP, but 20 first bought on the Mon ex-date, so the split never
 //	      touches the position => the same five values
 func TestPortfolioSummaryDayChange(t *testing.T) {
@@ -1383,7 +1383,7 @@ func TestPortfolioSummaryDayChange(t *testing.T) {
 	}
 }
 
-// TestPortfolioSummaryAll covers GLG-530: /api/portfolios/all/summary sums
+// TestPortfolioSummaryAll checks that /api/portfolios/all/summary sums
 // the per-portfolio summaries. Reporting TRY, USD 40 / 44 / 48 on Jan 1 /
 // Feb 1 / Jun 1; SPL splits 2-for-1 on Mar 1.
 //
@@ -1393,7 +1393,7 @@ func TestPortfolioSummaryDayChange(t *testing.T) {
 //	A: sell 3 CXL @ 20 (oversold), B: buy 3 CXL @ 20 (Feb 1), no price
 //	all => SPL 28 (a split applied once per portfolio, not twice to each),
 //	       AAPL fx_pl_reporting 250 x (48 - 40) + 250 x (48 - 44) = 3000,
-//	       CXL quantity 0 but open, its cost 60 in total_value (GLG-827)
+//	       CXL quantity 0 but open, its cost 60 in total_value
 func TestPortfolioSummaryAll(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
@@ -1552,7 +1552,7 @@ func TestPortfolioSummaryAll(t *testing.T) {
 	}
 }
 
-// TestPortfolioSummaryStats covers GLG-595: stats per currency, null in the
+// TestPortfolioSummaryStats covers stats per currency, null in the
 // reporting currency while a nonzero currency has no rate, summed over
 // portfolios for "all", and the earliest transaction date across them.
 func TestPortfolioSummaryStats(t *testing.T) {
@@ -1654,7 +1654,7 @@ func TestPortfolioSummaryStats(t *testing.T) {
 	}
 }
 
-// TestPortfolioSummaryBookedBonusKeepsPriceScaling covers GLG-741: a
+// TestPortfolioSummaryBookedBonusKeepsPriceScaling checks that a
 // zero-price buy within 10 days of a split's ex-date books that split's
 // bonus shares, so the holdings engine skips the split, but the instrument's
 // price is still scaled by it: prices are market data.

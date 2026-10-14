@@ -26,8 +26,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// pointReturns is each point's twr or benchmark_twr, "null" for a nil one
-// (GLG-952).
+// pointReturns is each point's twr or benchmark_twr, "null" for a nil one.
 func pointReturns(points []historyEntry, field func(historyEntry) *string) []string {
 	out := make([]string, len(points))
 	for i, p := range points {
@@ -146,7 +145,7 @@ func TestPortfolioHistory(t *testing.T) {
 	}
 }
 
-// TestPortfolioHistoryFXConversion covers the point of GLG-80: a non-TRY
+// TestPortfolioHistoryFXConversion checks that a non-TRY
 // position converts at that day's fx rate, carried forward across days with
 // no row, per ADR 0003's "missing day carries the last known rate forward"
 // rule (same as prices).
@@ -346,7 +345,7 @@ func TestPortfolioHistoryInvalidRange(t *testing.T) {
 	for _, q := range []string{
 		"from=2024-01-05&to=2024-01-01",
 		"from=2010-01-01&to=2024-01-01",
-		// to is clamped to today (GLG-502), which leaves from after it.
+		// to is clamped to today, which leaves from after it.
 		"from=2099-01-01&to=2099-01-05",
 	} {
 		url := fmt.Sprintf("/api/portfolios/%d/history?%s", pf.ID, q)
@@ -361,8 +360,8 @@ func TestPortfolioHistoryInvalidRange(t *testing.T) {
 	}
 }
 
-// TestPortfolioHistoryDefaultFromClamped covers GLG-93: a transaction far
-// older than maxHistoryDays used to make the auto-defaulted `from` (the
+// TestPortfolioHistoryDefaultFromClamped covers a transaction far
+// older than maxHistoryDays, which used to make the auto-defaulted `from` (the
 // earliest transaction date) trip the same "range exceeds 3660 days" check
 // that guards an explicit `from`, so "Tümü" ("all") failed silently for any
 // portfolio with a transaction more than ~10 years old. With no `from` param
@@ -438,9 +437,9 @@ func TestPortfolioHistoryDefaultFromClamped(t *testing.T) {
 	}
 }
 
-// TestPortfolioHistoryMissingRates covers GLG-135: the day loop drops
-// holdings it cannot convert, which draws a flat-then-cliff chart, so the
-// response has to name what was left out. One USD buy on day 1 and the
+// TestPortfolioHistoryMissingRates checks that the response names what the
+// day loop left out when it drops holdings it cannot convert, which draws a
+// flat-then-cliff chart. One USD buy on day 1 and the
 // first USD fx row on day 3: days 1-2 have no rate, so the range reports
 // USD once, and a range starting on day 3 reports nothing. The stock's
 // first price lands on day 2, still without a rate, so its first-price jump
@@ -543,7 +542,7 @@ func TestPortfolioHistoryMissingRates(t *testing.T) {
 	}
 }
 
-// TestPortfolioHistoryNetFlow covers the point of GLG-219: net_flow is the
+// TestPortfolioHistoryNetFlow checks that net_flow is the
 // external cash that arrived after the first point, so the chart header can
 // take it out of last - first. A deposit dated on `from` is already inside
 // the first point's total and must not be counted again.
@@ -618,7 +617,7 @@ func TestPortfolioHistoryNetFlow(t *testing.T) {
 	}
 }
 
-// TestPortfolioHistoryNetFlowCarriesUnratedCurrency covers GLG-233: a USD
+// TestPortfolioHistoryNetFlowCarriesUnratedCurrency checks that a USD
 // deposit on a day with no USD fx row converts to nothing, but its cash is
 // not lost -- it enters total_value on the first day that has a rate. The
 // flow has to land on that same day, or the header's last - first -
@@ -702,7 +701,7 @@ func TestPortfolioHistoryNetFlowCarriesUnratedCurrency(t *testing.T) {
 	}
 }
 
-// TestPortfolioHistoryMissingPrice covers GLG-254: a holding whose first
+// TestPortfolioHistoryMissingPrice checks that a holding whose first
 // price row comes after its buy date counts at cost until then, and those
 // points carry price_unknown. The jump to market on the first price day is
 // not the range's gain, so it lands in net_flow.
@@ -799,8 +798,8 @@ func TestPortfolioHistoryMissingPrice(t *testing.T) {
 	}
 }
 
-// TestPortfolioHistoryNetFlowReconcilesRoundedPoints covers GLG-665: when
-// only a first-price jump moves the total, net_flow must equal the change in
+// TestPortfolioHistoryNetFlowReconcilesRoundedPoints checks that when
+// only a first-price jump moves the total, net_flow equals the change in
 // the rounded total_value, even when the jump alone rounds another way.
 //
 //	day 1: deposit 100, buy A 1 @ 10 (price 10.004), buy B 1 @ 10 (no price)
@@ -888,7 +887,7 @@ func TestPortfolioHistoryNetFlowReconcilesRoundedPoints(t *testing.T) {
 	}
 }
 
-// TestPortfolioHistoryReturns covers GLG-391: the sweep feeds each point's
+// TestPortfolioHistoryReturns checks that the sweep feeds each point's
 // total and the day's external flow into periodReturns (ADR 0011, row 2).
 //
 //	day 1: deposit 1000, buy 10 @ 100, price 100 -> total 1000
@@ -963,7 +962,7 @@ func TestPortfolioHistoryReturns(t *testing.T) {
 	if returns, _ := json.Marshal(got.Returns); string(returns) != `{"simple":"-0.145000","twr":"-0.240000","mwr":"-0.190000"}` {
 		t.Errorf("returns = %s, want simple -0.145000, twr -0.240000, mwr -0.190000; points %+v", returns, got.Points)
 	}
-	// GLG-952: the day-2 deposit moves the value from 1000 to 1800, but the
+	// The day-2 deposit moves the value from 1000 to 1800, but the
 	// day's twr is (1800 - 1000) / 1000 - 1, not +80%. The last point ends
 	// on the range's twr.
 	twr := pointReturns(got.Points, pointTWR)
@@ -978,7 +977,7 @@ func TestPortfolioHistoryReturns(t *testing.T) {
 	}
 }
 
-// TestPortfolioHistoryReturnsNegativeCash buys with no deposit (GLG-641):
+// TestPortfolioHistoryReturnsNegativeCash buys with no deposit:
 // cash is -1000 every day and values are only the P/L, [10, 100, 200], so
 // every method would read V_last / V_0 - 1 = 1900%. All three returns are
 // null, and so are the USD benchmark's, whose shadow starts at the same 10.
@@ -1048,7 +1047,7 @@ func TestPortfolioHistoryReturnsNegativeCash(t *testing.T) {
 	if b, _ := json.Marshal(got.Benchmark); string(b) != `{"code":"USD","returns":`+null+`,"estimated_from":null}` {
 		t.Errorf("benchmark = %s, want all returns null", b)
 	}
-	// GLG-952: null on every point, never on some.
+	// Null on every point, never on some.
 	allNull := []string{"null", "null", "null"}
 	if twr := pointReturns(got.Points, pointTWR); !slices.Equal(twr, allNull) {
 		t.Errorf("twr = %v, want null on every point", twr)
@@ -1059,7 +1058,7 @@ func TestPortfolioHistoryReturnsNegativeCash(t *testing.T) {
 }
 
 // TestPortfolioHistoryReturnsSubCentCash deposits the 1235.18 shown and buys
-// all-in at a 6-decimal price costing 1235.1842835 (GLG-652): cash is
+// all-in at a 6-decimal price costing 1235.1842835: cash is
 // -0.0042835, which every point reports as 0.00, so it is not a negative
 // cash base and the returns are the +5.4% of 1235.18 -> 1301.88.
 func TestPortfolioHistoryReturnsSubCentCash(t *testing.T) {
@@ -1133,7 +1132,7 @@ func TestPortfolioHistoryReturnsSubCentCash(t *testing.T) {
 // are years before the range and has none inside it (a delisted symbol).
 // The fetched 8 is older than the user's manual 9, so the manual one is
 // the last price and every point values the 10 shares at 90, not at cost
-// and not as price_unknown (GLG-260).
+// and not as price_unknown.
 func TestPortfolioHistorySeedsOldPrice(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
@@ -1218,8 +1217,8 @@ func TestPortfolioHistorySeedsOldPrice(t *testing.T) {
 	}
 }
 
-// TestPortfolioHistoryExplicitFromClamped covers GLG-266: an explicit
-// `from` a year before the only deposit used to draw zeros up to it and
+// TestPortfolioHistoryExplicitFromClamped covers an explicit
+// `from` a year before the only deposit, which used to draw zeros up to it and
 // count the deposit as a mid-range flow, inflating the range return. The
 // series must start on the deposit day, with the deposit inside the first
 // point instead of in net_flow.
@@ -1272,7 +1271,7 @@ func TestPortfolioHistoryExplicitFromClamped(t *testing.T) {
 	}
 }
 
-// TestPortfolioHistoryFutureToClamped covers GLG-502: a `to` after today
+// TestPortfolioHistoryFutureToClamped covers a `to` after today, which
 // used to be taken as is, so with no `from` the series ran up to 2099 and
 // the default window (`to` - maxHistoryDays) dropped the real history.
 // `to` is clamped to today in Europe/Istanbul instead.
@@ -1334,7 +1333,7 @@ func TestPortfolioHistoryFutureToClamped(t *testing.T) {
 	}
 }
 
-// TestSplitRowsKeepValueFlat covers GLG-268: transaction.Repo.List hands the
+// TestSplitRowsKeepValueFlat checks that transaction.Repo.List hands the
 // summary and the value history one split row per split of an instrument the
 // portfolio holds. Alice buys 10 @ 100 on day 1; the unadjusted close drops
 // from 100 to 50 on day 3, the ex-date of a 2-for-1 split. Her position must
@@ -1475,9 +1474,9 @@ func TestSplitRowsKeepValueFlat(t *testing.T) {
 	}
 
 	// A bonus buy at price 0 two days after the ex-date books the split for
-	// its portfolio (GLG-741) and is held from the ex-date, when the price is
+	// its portfolio and is held from the ex-date, when the price is
 	// scaled: 20*50 - 1000 = 0 every day. Held only from its own date, days 3
-	// and 4 would read 10*50 - 1000 = -500 (GLG-828).
+	// and 4 would read 10*50 - 1000 = -500.
 	pf3, err := portfolios.Create(ctx, alice.user, "Bonus")
 	if err != nil {
 		t.Fatalf("portfolios.Create: %v", err)
@@ -1563,7 +1562,7 @@ func benchmarkValues(t *testing.T, got map[string]json.RawMessage) []string {
 	return out
 }
 
-// benchmarkTWR is each point's benchmark_twr (GLG-952).
+// benchmarkTWR is each point's benchmark_twr.
 func benchmarkTWR(t *testing.T, got map[string]json.RawMessage) []string {
 	t.Helper()
 	var points []historyEntry
@@ -1762,7 +1761,7 @@ func (f *historyBenchmarkFixture) testGOLD(t *testing.T) {
 
 func (f *historyBenchmarkFixture) testNoLevelOnFirstDay(t *testing.T) {
 	// Moving the range start before the first USD rate needs the first
-	// deposit on that day too, else from clamps to it (GLG-266).
+	// deposit on that day too, else from clamps to it.
 	early := transaction.Transaction{PortfolioID: f.pf.ID, Type: transaction.TypeDeposit, Date: "2023-12-31", Amount: decimal.RequireFromString("1"), Fee: decimal.Zero, Currency: "TRY"}
 	if _, err := f.transactions.Create(context.Background(), f.usr.ID, early); err != nil {
 		t.Fatalf("transactions.Create: %v", err)
@@ -1781,8 +1780,8 @@ func (f *historyBenchmarkFixture) testNoLevelOnFirstDay(t *testing.T) {
 	}
 }
 
-// TestPortfolioHistoryInstrumentBenchmark checks ?benchmark=instrument:<id>
-// (GLG-701). Fund B closes 10, 8 and 7.6, the USD example's prices, and
+// TestPortfolioHistoryInstrumentBenchmark checks ?benchmark=instrument:<id>.
+// Fund B closes 10, 8 and 7.6, the USD example's prices, and
 // the portfolio is worth 1000 on day one and gets 1000 more on day 2, so
 // the shadow is the USD example's [1000, 1800, 1710] and its twr is B's own
 // 7.6/10 - 1.
@@ -1955,10 +1954,10 @@ func TestPortfolioHistoryInstrumentBenchmark(t *testing.T) {
 }
 
 // TestPortfolioHistoryAllScope checks the `all` scope against the
-// per-portfolio series (GLG-535). A buys X on day 1 and sells it all on day
+// per-portfolio series. A buys X on day 1 and sells it all on day
 // 2; B's day-2 buy of X is saved first, so a lower id: one shared State in
 // id order would buy B's shares into A's lot and sell A's at the mixed
-// average cost (GLG-411), leaving day 2's cost basis at 250 instead of 300.
+// average cost, leaving day 2's cost basis at 250 instead of 300.
 // Both hold Y, split 2:1 on day 3: each portfolio's List carries its own
 // synthetic split row, which one shared State would apply twice.
 func TestPortfolioHistoryAllScope(t *testing.T) {

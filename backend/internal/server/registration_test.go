@@ -75,7 +75,7 @@ func TestRegistrationToggle(t *testing.T) {
 		}
 	}
 
-	// Unset means closed (GLG-1117).
+	// Unset means closed.
 	if configOpen() {
 		t.Fatal("registration open by default, want closed")
 	}

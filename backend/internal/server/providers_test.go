@@ -28,11 +28,11 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/user"
 )
 
-// TestProviderKeys covers GLG-302: with no key the US sync reports "not
+// TestProviderKeys checks that with no key the US sync reports "not
 // configured"; after PUT /api/admin/providers/finnhub the next sync sends
 // the new key, read live from settings; GET never returns the key, only
 // configured and its last 4 characters; an unknown provider is 404.
-// POST .../test (GLG-308) tests the body's key or the stored one: a key the
+// POST .../test tests the body's key or the stored one: a key the
 // provider accepts gives ok true, a 401 gives "invalid key", no key at all
 // gives 400, and the key is never echoed.
 func TestProviderKeys(t *testing.T) {
@@ -140,7 +140,7 @@ func TestProviderKeys(t *testing.T) {
 		t.Errorf("POST tiingo test without key = %d %s, want 400 not configured", rec.Code, rec.Body)
 	}
 
-	// GLG-320: after a SECRET_KEY change the stored finnhub key does not
+	// After a SECRET_KEY change the stored finnhub key does not
 	// decrypt. GET still lists every provider and flags that one; testing
 	// the stored key is a 400, not a 500.
 	otherSecrets := settings.NewRepo(conn, bytes.Repeat([]byte{2}, 32))
@@ -162,7 +162,7 @@ func TestProviderKeys(t *testing.T) {
 		t.Errorf("POST finnhub test with unreadable key = %d %s, want 400 stored key unreadable", rec.Code, rec.Body)
 	}
 
-	// GLG-517: the evds key test goes to the EVDS fetcher, which sends the
+	// The evds key test goes to the EVDS fetcher, which sends the
 	// key in the "key" header. Never the real EVDS host in tests.
 	evdsSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("key") != "test-key" {

@@ -62,7 +62,7 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 
-// TestSetConcurrentNewKey covers GLG-1019: concurrent Sets of a key that does
+// TestSetConcurrentNewKey checks that concurrent Sets of a key that does
 // not exist yet all succeed. Before the fix two Sets could both miss on
 // UPDATE and both INSERT, and the second failed on the primary key.
 func TestSetConcurrentNewKey(t *testing.T) {

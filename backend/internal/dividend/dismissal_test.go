@@ -11,7 +11,7 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/dividend"
 )
 
-// TestDismissConcurrent covers GLG-376: simultaneous dismisses of the same
+// TestDismissConcurrent checks that simultaneous dismisses of the same
 // dividend (a double click) all succeed and store one row.
 func TestDismissConcurrent(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))

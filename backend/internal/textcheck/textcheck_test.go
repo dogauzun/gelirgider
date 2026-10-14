@@ -2,7 +2,7 @@ package textcheck
 
 import "testing"
 
-// TestHasInvisibleAllowsEmojiJoiner guards GLG-901: a zero-width joiner
+// TestHasInvisibleAllowsEmojiJoiner checks that a zero-width joiner
 // between emoji (family, rainbow flag, health worker with a skin tone, black
 // cat) is one visible emoji, while a joiner anywhere else, including between
 // two non-emoji symbols such as stars or enclosed letters, stays invisible.
@@ -27,7 +27,7 @@ func TestHasInvisibleAllowsEmojiJoiner(t *testing.T) {
 	}
 }
 
-// TestHasInvisibleAllowsSubdivisionFlag guards GLG-907: the England,
+// TestHasInvisibleAllowsSubdivisionFlag checks that the England,
 // Scotland and Wales flags (black flag, tag letters, cancel tag) are visible
 // emoji, while any other tag run or a stray tag character stays invisible.
 func TestHasInvisibleAllowsSubdivisionFlag(t *testing.T) {

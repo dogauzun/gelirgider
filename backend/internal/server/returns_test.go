@@ -49,7 +49,7 @@ func TestPeriodReturns(t *testing.T) {
 }
 
 // TestTimeWeightedSeries checks the running product behind the daily twr on
-// history points (GLG-952): it starts at 0 and ends where timeWeightedReturn
+// history points: it starts at 0 and ends where timeWeightedReturn
 // ends, for every worked example of ADR 0011, and is undefined exactly when
 // that return is.
 func TestTimeWeightedSeries(t *testing.T) {

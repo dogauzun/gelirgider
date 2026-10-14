@@ -25,8 +25,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// periodsEnv is one database with the server on it, for the periods tests
-// (GLG-953).
+// periodsEnv is one database with the server on it, for the periods tests.
 type periodsEnv struct {
 	conn       *sql.DB
 	handler    http.Handler
@@ -214,7 +213,7 @@ func todayIstanbul(t *testing.T) string {
 // only in a range that opens while it is unpriced (April). Every month's
 // and year's bucket must equal the history endpoint for that period's
 // preset range, with no benchmark, with USD and with XU100, whose levels
-// start on 10 March 2025 (GLG-953).
+// start on 10 March 2025.
 func TestPeriodReturnsMatchHistory(t *testing.T) {
 	e := newPeriodsEnv(t)
 	ctx := context.Background()
@@ -310,7 +309,7 @@ func TestPeriodReturnsMatchHistory(t *testing.T) {
 
 // TestPeriodReturnsDepositsOnly: a year whose only activity is deposits
 // earns zero by ADR 0011's rules, and a year that opens at a value of zero
-// has no return, never a division by zero (GLG-953).
+// has no return, never a division by zero.
 func TestPeriodReturnsDepositsOnly(t *testing.T) {
 	e := newPeriodsEnv(t)
 	userID, session := e.user(t, "deposits@example.com")
@@ -342,8 +341,7 @@ func TestPeriodReturnsDepositsOnly(t *testing.T) {
 	}
 }
 
-// TestPeriodReturnsStartedThisMonth: one month and one year, both partial
-// (GLG-953).
+// TestPeriodReturnsStartedThisMonth: one month and one year, both partial.
 func TestPeriodReturnsStartedThisMonth(t *testing.T) {
 	e := newPeriodsEnv(t)
 	userID, session := e.user(t, "new@example.com")
@@ -376,7 +374,7 @@ func TestPeriodReturnsStartedThisMonth(t *testing.T) {
 
 // TestPeriodReturnsScope: `all` sums the caller's portfolios and only
 // theirs; another user's portfolio is not found; an unknown benchmark is a
-// 400 (GLG-953).
+// 400.
 func TestPeriodReturnsScope(t *testing.T) {
 	e := newPeriodsEnv(t)
 	ctx := context.Background()

@@ -133,7 +133,7 @@ func TestParse(t *testing.T) {
 	withRefund.Cash = append(withRefund.Cash, cash("2025-09-04", "withdrawal", "6003.00"))
 
 	// Adet, Fiyat and Tutar carry no sign (ADR 0018): a signed SATIŞ is
-	// unreadable, never a buy (GLG-1304).
+	// unreadable, never a buy.
 	signed := []string{"04.09.2025", "15:00:00", "AZİMUT PORTFÖY İSTATİSTİKSEL", "ARBİTR", "SATIŞ", "-200", "7,600000", "3,00", "-1.520,00"}
 	withSigned := sample()
 	withSigned.Errors = []statement.ParseError{{Section: "movements", Row: signed, Code: "bad_number", Value: "quantity", Message: "unreadable quantity", Date: "2025-09-04"}}
@@ -167,7 +167,7 @@ func TestParse(t *testing.T) {
 	}
 }
 
-// TestDetect covers GLG-764: with every PDF parser registered, a Garanti
+// TestDetect checks that with every PDF parser registered, a Garanti
 // fund statement is detected as garanti and parses as an explicit pick does.
 func TestDetect(t *testing.T) {
 	rows := [][]string{page1(moves1...), page2(moves2...)}
@@ -187,7 +187,7 @@ func TestParseNotGaranti(t *testing.T) {
 }
 
 // A fund held in two accounts is listed once per account: its movements
-// resolve to its code and the snapshot holds it once, units summed (GLG-724).
+// resolve to its code and the snapshot holds it once, units summed.
 func TestParseFundInTwoAccounts(t *testing.T) {
 	cells := append(append([]string{}, customer...),
 		"YATIRIM FONU BAKİYELERİ", "Hesap", "Fon Adı", "Fon", "Kodu", "Para", "Birimi", "Adet", "Fiyat", "Tutar(YP)", "Tutar(TL)",
@@ -211,7 +211,7 @@ func TestParseFundInTwoAccounts(t *testing.T) {
 
 // A crafted statement with many funds and movements must parse in time
 // linear in its size: matching every movement against every fund balance
-// record took seconds of CPU per upload (GLG-1270).
+// record took seconds of CPU per upload.
 func TestParseManyFunds(t *testing.T) {
 	const n = 30000
 	const digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"

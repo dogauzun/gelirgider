@@ -32,7 +32,7 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/user"
 )
 
-// GLG-182: buying an instrument with no price row must fetch one
+// Buying an instrument with no price row must fetch one
 // synchronously, inside the transaction request, instead of waiting for the
 // next scheduler run. These tests exercise that at the HTTP layer with
 // httptest.Server stubs standing in for the bulletin/Finnhub/TCMB
@@ -125,7 +125,7 @@ func TestOnDemandFetchBIST(t *testing.T) {
 	session := env.login("alice@example.com")
 	portfolioID := env.createPortfolio(session, "Test")
 
-	// Dated today so no background backfill (GLG-189) starts: yesterday is
+	// Dated today so no background backfill starts: yesterday is
 	// before the start date, and this test covers only the synchronous part.
 	env.createTransaction(session, portfolioID, map[string]any{
 		"type": "buy", "date": price.Today(), "instrument_id": instrumentID, "quantity": "10", "price": "5",
@@ -136,7 +136,7 @@ func TestOnDemandFetchBIST(t *testing.T) {
 	}
 }
 
-// TestOnDemandFetchSkipsDisabledSource covers GLG-303: with bist and tcmb
+// TestOnDemandFetchSkipsDisabledSource checks that with bist and tcmb
 // disabled in settings, a backdated BIST buy fetches nothing, synchronously
 // or in the background.
 func TestOnDemandFetchSkipsDisabledSource(t *testing.T) {
@@ -166,8 +166,8 @@ func TestOnDemandFetchSkipsDisabledSource(t *testing.T) {
 	}
 }
 
-// TestOnDemandFetchCancelledKeepsSettings covers GLG-466: a client that
-// disconnects mid-save cancels the on-demand fetch's ctx. The settings
+// TestOnDemandFetchCancelledKeepsSettings covers a client that
+// disconnects mid-save, which cancels the on-demand fetch's ctx. The settings
 // reads must still see the real values: no ERROR logged, a disabled TCMB
 // queues no backfill, an enabled one still does.
 func TestOnDemandFetchCancelledKeepsSettings(t *testing.T) {
@@ -183,7 +183,7 @@ func TestOnDemandFetchCancelledKeepsSettings(t *testing.T) {
 		if err := repo.Set(context.Background(), scheduler.EnabledKey("tcmb"), strconv.FormatBool(enabled)); err != nil {
 			t.Fatalf("set tcmb enabled: %v", err)
 		}
-		// Gold runs on every save (GLG-749) and needs repos this test does
+		// Gold runs on every save and needs repos this test does
 		// not wire; it covers only the tcmb setting.
 		if err := repo.Set(context.Background(), scheduler.EnabledKey("gold"), "false"); err != nil {
 			t.Fatalf("disable gold: %v", err)
@@ -204,7 +204,7 @@ func TestOnDemandFetchCancelledKeepsSettings(t *testing.T) {
 	}
 }
 
-// TestOnDemandFetchExpiredSkipsGold covers GLG-898: once an import's
+// TestOnDemandFetchExpiredSkipsGold checks that once an import's
 // shared deadline has run out, the gold step of every later target is
 // skipped instead of logging an ERROR about a cut-off DB query.
 func TestOnDemandFetchExpiredSkipsGold(t *testing.T) {
@@ -237,8 +237,8 @@ func TestOnDemandFetchExpiredSkipsGold(t *testing.T) {
 	}
 }
 
-// TestOnDemandFetchTefasOptIn covers GLG-1114: TEFAS's endpoint is
-// disallowed by its robots.txt, so the tefas source is off until an admin
+// TestOnDemandFetchTefasOptIn covers the tefas source: TEFAS's endpoint is
+// disallowed by its robots.txt, so it is off until an admin
 // turns it on. With its setting unset, a TEFAS buy asks TEFAS nothing; with
 // it on, it does.
 func TestOnDemandFetchTefasOptIn(t *testing.T) {
@@ -310,7 +310,7 @@ func TestOnDemandFetchUS(t *testing.T) {
 	}
 }
 
-// TestOnDemandFetchUSHistory covers GLG-236: a US buy dated 30 days ago
+// TestOnDemandFetchUSHistory checks that a US buy dated 30 days ago
 // asks Tiingo for daily closes from that date (padded back a week) in one
 // request and stores them with source "tiingo".
 func TestOnDemandFetchUSHistory(t *testing.T) {
@@ -363,7 +363,7 @@ func TestOnDemandFetchUSHistory(t *testing.T) {
 	}
 }
 
-// TestOnDemandFetchCrypto covers GLG-253: a buy dated today against a
+// TestOnDemandFetchCrypto checks that a buy dated today against a
 // fresh CRYPTO pair fetches BtcTurk closes in one request, with from
 // clamped back to six days before yesterday so the pair has a last price.
 func TestOnDemandFetchCrypto(t *testing.T) {
@@ -410,7 +410,7 @@ func TestOnDemandFetchCrypto(t *testing.T) {
 	}
 }
 
-// TestOnDemandFetchGold covers GLG-743: a GOLD/GRAM buy dated 30 days ago,
+// TestOnDemandFetchGold checks that a GOLD/GRAM buy dated 30 days ago,
 // with no gold price stored, fetches the PAXGTRY candles from that date in
 // one request. A second save finds the range stored and fetches nothing,
 // and with the gold source disabled a save fetches nothing either.
@@ -472,7 +472,7 @@ func TestOnDemandFetchGold(t *testing.T) {
 	}
 }
 
-// TestOnDemandFetchGoldBenchmark covers GLG-749: on an empty database a
+// TestOnDemandFetchGoldBenchmark checks that on an empty database a
 // backdated BIST buy fills the GOLD benchmark from the transaction date in
 // one BtcTurk request, a second save makes none, and with the gold source
 // disabled a save makes none either.
@@ -578,7 +578,7 @@ func bulletinZipDated(date string) []byte {
 	return buf.Bytes()
 }
 
-// TestOnDemandBackfillBIST covers GLG-189: a buy dated three weekdays ago
+// TestOnDemandBackfillBIST checks that a buy dated three weekdays ago
 // backfills one bist_bulletin row per weekday from that date through
 // yesterday in the background, on top of today's from the synchronous
 // fetch. A second buy posted while that backfill runs must not start a
@@ -686,7 +686,7 @@ func weekdaysBack(n int) []string {
 	return dates
 }
 
-// TestOnDemandBackfillFX covers GLG-192: a buy dated three weekdays ago
+// TestOnDemandBackfillFX checks that a buy dated three weekdays ago
 // backfills one TCMB rate set per weekday from that date through
 // yesterday, for a market with no price source of its own (TEFAS), and
 // downloads no BIST bulletin doing it.
@@ -725,8 +725,8 @@ func TestOnDemandBackfillFX(t *testing.T) {
 	}
 }
 
-// TestOnDemandBackfillFXCashOnly covers GLG-195: a USD deposit carries no
-// instrument, so it used to skip the on-demand callback entirely. It must
+// TestOnDemandBackfillFXCashOnly covers a USD deposit, which carries no
+// instrument and so used to skip the on-demand callback entirely. It must
 // still backfill one TCMB rate set per weekday from its date through
 // yesterday, and download no BIST bulletin doing it.
 func TestOnDemandBackfillFXCashOnly(t *testing.T) {
@@ -775,8 +775,8 @@ func fxDates(t *testing.T, env *transactionTestEnv) []string {
 	return dates
 }
 
-// TestBackfillQueueRunsSkippedRequest covers GLG-217: a second backfill
-// requested while one is running used to be dropped. Both ranges must end
+// TestBackfillQueueRunsSkippedRequest covers a second backfill
+// requested while one is running, which used to be dropped. Both ranges must end
 // up filled, including the earlier start of the second request.
 func TestBackfillQueueRunsSkippedRequest(t *testing.T) {
 	var q backfillQueue
@@ -819,7 +819,7 @@ func TestBackfillQueueRunsSkippedRequest(t *testing.T) {
 	}
 }
 
-// TestBackfillQueueSkipsNoopOnDemandRun covers GLG-331: an on-demand walk
+// TestBackfillQueueSkipsNoopOnDemandRun checks that an on-demand walk
 // whose source already has every date adds no source_runs row, so it can't
 // hide the daily fetch as the last run. An admin walk is still logged.
 func TestBackfillQueueSkipsNoopOnDemandRun(t *testing.T) {
@@ -855,7 +855,7 @@ func TestBackfillQueueSkipsNoopOnDemandRun(t *testing.T) {
 	}
 }
 
-// GLG-1210: every market an instrument can have maps to a scheduler
+// Every market an instrument can have maps to a scheduler
 // source, so the on-demand fetch never reads an unknown enabled key.
 // Markets are read from the seed, so a new seeded market fails here
 // until marketSource lists it.

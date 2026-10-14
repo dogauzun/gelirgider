@@ -8,10 +8,10 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/db"
 )
 
-// TestHasSourceQuerySeeks guards GLG-692: the TCMB backfill walk runs HasSource
-// once per weekday, so neither EXISTS arm may scan its table. The plan is
-// asserted rather than a timing budget because it is stable across
-// machines and needs no seeded rows.
+// TestHasSourceQuerySeeks checks that neither EXISTS arm of HasSource, which
+// the TCMB backfill walk runs once per weekday, scans its table. The plan is
+// asserted rather than a timing budget because it is stable across machines and
+// needs no seeded rows.
 func TestHasSourceQuerySeeks(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {

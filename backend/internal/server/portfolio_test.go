@@ -179,7 +179,7 @@ func TestPortfolioDeleteWithTransactions(t *testing.T) {
 	if body.Error != "portfolio has transactions" {
 		t.Fatalf("error = %q, want %q", body.Error, "portfolio has transactions")
 	}
-	// GLG-123: the refusal names how many transactions stand in the way, so
+	// The refusal names how many transactions stand in the way, so
 	// the UI can say it in the cascade confirmation.
 	if body.TransactionCount != 1 {
 		t.Fatalf("transaction_count = %d, want 1", body.TransactionCount)
@@ -331,7 +331,7 @@ func TestPortfolioNameTrimmed(t *testing.T) {
 	}
 }
 
-// TestPortfolioDeleteCascade covers GLG-123: DELETE with ?force=true removes
+// TestPortfolioDeleteCascade checks that DELETE with ?force=true removes
 // the portfolio together with its transactions, and only ever its owner's --
 // another user's id is a 404 that leaves every row in place.
 func TestPortfolioDeleteCascade(t *testing.T) {
@@ -457,7 +457,7 @@ func TestPortfolioDeleteCascade(t *testing.T) {
 	}
 }
 
-// TestPortfolioNameDuplicateAndControlChars covers GLG-142: a name another
+// TestPortfolioNameDuplicateAndControlChars checks that a name another
 // portfolio of the same user already has is refused with 409 on create and
 // on rename, a name holding a control character is refused with 400, and
 // renaming a portfolio to the name it already has still succeeds.

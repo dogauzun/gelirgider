@@ -122,7 +122,7 @@ func TestSetupFlow(t *testing.T) {
 	if resp := postJSON(t, http.DefaultClient, srv.URL+"/api/auth/login", bob); resp.StatusCode != http.StatusOK {
 		t.Fatalf("login after setup status = %d, want 200", resp.StatusCode)
 	}
-	// Registration stays closed after setup until the admin opens it (GLG-1117).
+	// Registration stays closed after setup until the admin opens it.
 	carol := map[string]string{"email": "carol@example.com", "password": "password123"}
 	regResp := postJSON(t, http.DefaultClient, srv.URL+"/api/auth/register", carol)
 	var regBody map[string]string

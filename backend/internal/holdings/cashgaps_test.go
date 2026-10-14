@@ -9,7 +9,7 @@ import (
 )
 
 // TestCashGaps walks the cash per currency and emits, on each day it
-// reaches a new low below zero, the extra shortfall (GLG-1109).
+// reaches a new low below zero, the extra shortfall.
 func TestCashGaps(t *testing.T) {
 	var a int64 = 1
 	tx := func(id int64, typ, date, amount, fee, currency string) transaction.Transaction {
@@ -61,8 +61,8 @@ func TestCashGaps(t *testing.T) {
 			tx(3, fee, "2024-01-02", "3", "0", "TRY"),
 			tx(4, sell, "2024-01-02", "50", "1", "TRY"),
 		}, "[2024-01-01 TRY 100 2024-01-02 TRY 156]"},
-		// A deposit takes at most 9 fraction digits, a trade amount more
-		// (GLG-476): the gap rounds up so the deposit still covers it, and
+		// A deposit takes at most 9 fraction digits, a trade amount more:
+		// the gap rounds up so the deposit still covers it, and
 		// the next gap counts only what that deposit left uncovered.
 		{"more than 9 fraction digits round up", []transaction.Transaction{
 			tx(1, buy, "2024-01-01", "16.6666666665", "0", "TRY"),

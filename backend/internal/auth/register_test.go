@@ -19,7 +19,7 @@ import (
 
 // TestRegisterSameEmailRace: concurrent sign-ups with one email all try the
 // insert; the email unique constraint lets one win, and the others answer
-// 409 like a known duplicate, not 500 (GLG-369).
+// 409 like a known duplicate, not 500.
 func TestRegisterSameEmailRace(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -63,11 +63,11 @@ func TestRegisterSameEmailRace(t *testing.T) {
 	}
 }
 
-// TestValidateEmailRejectsBlankLookingCharacters guards GLG-978: a Hangul or
-// Braille blank filler or a line or paragraph separator renders as a gap or a
-// line break, so the address would pass for another one in the admin user
-// list, like the zero-width characters of GLG-900. Ordinary and IDN
-// addresses still pass.
+// TestValidateEmailRejectsBlankLookingCharacters checks that an address with a
+// Hangul or Braille blank filler or a line or paragraph separator is rejected:
+// the character renders as a gap or a line break, so the address would pass
+// for another one in the admin user list, like the zero-width characters.
+// Ordinary and IDN addresses still pass.
 func TestValidateEmailRejectsBlankLookingCharacters(t *testing.T) {
 	for _, email := range []string{
 		"eㅤ@example.com",
@@ -78,7 +78,7 @@ func TestValidateEmailRejectsBlankLookingCharacters(t *testing.T) {
 		"hᅠ@example.com",
 		"hﾠ@example.com",
 		"c​d@example.com",
-		// Names let these through as one visible emoji (GLG-901, GLG-907);
+		// Names let these through as one visible emoji;
 		// in an address the joiner and the tags are still hidden characters.
 		"a\U0001F355‍\U0001F355@example.com",
 		"a\U0001F3F4\U000E0067\U000E0062\U000E0065\U000E006E\U000E0067\U000E007F@example.com",
@@ -94,11 +94,11 @@ func TestValidateEmailRejectsBlankLookingCharacters(t *testing.T) {
 	}
 }
 
-// TestRegisterRejectsInvisibleEmailCharacters guards GLG-1010: a space
-// separator (U+00A0, U+2003, U+3000) or a default-ignorable mark (U+034F,
-// U+17B4, U+17B5, variation selectors) makes the address render like
-// another one, so registration answers 400 and creates no user. Accented
-// and IDN addresses, and a visible combining accent, still register.
+// TestRegisterRejectsInvisibleEmailCharacters checks that registration answers
+// 400 and creates no user for an address with a space separator (U+00A0,
+// U+2003, U+3000) or a default-ignorable mark (U+034F, U+17B4, U+17B5,
+// variation selectors), which makes it render like another one. Accented and
+// IDN addresses, and a visible combining accent, still register.
 func TestRegisterRejectsInvisibleEmailCharacters(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {

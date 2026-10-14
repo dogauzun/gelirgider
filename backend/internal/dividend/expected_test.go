@@ -11,7 +11,7 @@ import (
 )
 
 // TestExpected covers the expected-dividends walk of one instrument
-// (ADR 0009, GLG-345, GLG-374). Each want row is "date quantity per-share
+// (ADR 0009). Each want row is "date quantity per-share
 // gross".
 func TestExpected(t *testing.T) {
 	d := decimal.RequireFromString

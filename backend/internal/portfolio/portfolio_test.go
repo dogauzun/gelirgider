@@ -12,7 +12,7 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/db"
 )
 
-// TestNameTakenIgnoresCase covers GLG-353: the duplicate check folds case,
+// TestNameTakenIgnoresCase checks that the duplicate check folds case,
 // Turkish i letters included, on create and rename. Renaming a portfolio to
 // another case of its own name, a name differing only by a diacritic, and
 // another user's same name stay allowed.
@@ -60,7 +60,7 @@ func TestNameTakenIgnoresCase(t *testing.T) {
 	}
 }
 
-// TestNameTakenUnderConcurrency covers GLG-1020: the duplicate check ran
+// TestNameTakenUnderConcurrency covers the duplicate check, which ran
 // apart from the insert or update, so simultaneous creates, or renames, to
 // one name all passed it and left several portfolios with that name.
 func TestNameTakenUnderConcurrency(t *testing.T) {
@@ -129,9 +129,10 @@ func TestNameTakenUnderConcurrency(t *testing.T) {
 	}
 }
 
-// TestDeletedIDNotReused covers GLG-888: SQLite handed the highest deleted
-// rowid to the next insert, so a bookmark of a deleted portfolio could open
-// a newer one. The id after a delete must be above the deleted one.
+// TestDeletedIDNotReused checks that a deleted portfolio's id is not reused.
+// SQLite handed the highest deleted rowid to the next insert, so a bookmark of
+// a deleted portfolio could open a newer one. The id after a delete must be
+// above the deleted one.
 func TestDeletedIDNotReused(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -161,7 +162,7 @@ func TestDeletedIDNotReused(t *testing.T) {
 	}
 }
 
-// TestNameTakenCollapsesSpace covers GLG-682: names differing only in inner
+// TestNameTakenCollapsesSpace checks that names differing only in inner
 // whitespace render alike, so checkName stores them collapsed and the
 // duplicate check folds whitespace runs, also for a name stored uncollapsed
 // before the fix.
@@ -200,8 +201,8 @@ func TestNameTakenCollapsesSpace(t *testing.T) {
 	}
 }
 
-// TestDeleteRemovesStatementImports covers GLG-295: a portfolio with a
-// statement import used to fail to delete with a FOREIGN KEY error. Both
+// TestDeleteRemovesStatementImports covers a portfolio with a
+// statement import, which used to fail to delete with a FOREIGN KEY error. Both
 // paths are checked: cascade with an imported transaction, and a plain delete
 // of a portfolio whose import has no transactions left. Another user's import
 // must survive.

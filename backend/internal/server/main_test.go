@@ -25,7 +25,7 @@ func (t loopbackOnly) RoundTrip(req *http.Request) (*http.Response, error) {
 	return t.next.RoundTrip(req)
 }
 
-// TestMain blocks external hosts for every test in the package (GLG-395).
+// TestMain blocks external hosts for every test in the package.
 // New wires the real fetchers, which default to http.DefaultTransport, so
 // every transaction save or import commit in a test built on New queues an
 // on-demand backfill that would otherwise fetch from borsaistanbul.com and

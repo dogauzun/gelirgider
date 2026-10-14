@@ -105,7 +105,7 @@ func TestSyncStoresNAVsExactly(t *testing.T) {
 	}
 }
 
-// TestSyncStopsQuietlyAfterCancel covers GLG-463: a shutdown that cancels
+// TestSyncStopsQuietlyAfterCancel checks that a shutdown that cancels
 // ctx during the first fund's fetch stops Sync there. The second fund is
 // not fetched and no WARN is logged, since nothing failed. The cancel
 // carries a cause, like signal.NotifyContext's, so the fetch error does
@@ -160,7 +160,7 @@ func TestSyncStopsQuietlyAfterCancel(t *testing.T) {
 	}
 }
 
-// TestSyncRenamesFund covers GLG-698: the newest row's fonUnvan renames a
+// TestSyncRenamesFund checks that the newest row's fonUnvan renames a
 // fund whose stored name differs; the same name or an empty fonUnvan writes
 // nothing and keeps the stored name.
 func TestSyncRenamesFund(t *testing.T) {
@@ -221,7 +221,7 @@ func TestSyncRenamesFund(t *testing.T) {
 	}
 }
 
-// TestLookup covers GLG-699: a code with NAVs is found under the newest
+// TestLookup checks that a code with NAVs is found under the newest
 // row's fonUnvan, TEFAS's null resultList is not found without an error,
 // and an HTTP failure is an error.
 func TestLookup(t *testing.T) {

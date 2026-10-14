@@ -12,7 +12,7 @@ import (
 
 // API_DOCS_DIR with COOKIE_SECURE=true is a production-like setup: the docs
 // page loads a third-party script on the app's origin, so it stays unmounted
-// and the request falls through to the app's handler (GLG-1123).
+// and the request falls through to the app's handler.
 func TestMountDocsOffWhenCookieSecure(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "swagger.json"), []byte("{}"), 0o600); err != nil {

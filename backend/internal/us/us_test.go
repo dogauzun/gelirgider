@@ -19,9 +19,9 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/us"
 )
 
-// TestSyncHistoryStoresSplitFactor covers GLG-269: Tiingo's splitFactor on
+// TestSyncHistoryStoresSplitFactor checks that Tiingo's splitFactor on
 // the middle of three rows becomes exactly one split row, exact decimal,
-// source tiingo, while every close is still stored. GLG-287: the one
+// source tiingo, while every close is still stored. The one
 // positive divCash becomes exactly one dividend row, exact decimal, USD,
 // source tiingo; a 0 and a negative divCash produce none.
 func TestSyncHistoryStoresSplitFactor(t *testing.T) {
@@ -82,7 +82,7 @@ func TestSyncHistoryStoresSplitFactor(t *testing.T) {
 	}
 }
 
-// TestFetchCloseKeepsExactDecimal covers GLG-281: the close is parsed from
+// TestFetchCloseKeepsExactDecimal checks that the close is parsed from
 // the JSON text, so there is no float64 noise and no rounding of sub-cent
 // prices.
 func TestFetchCloseKeepsExactDecimal(t *testing.T) {
@@ -135,7 +135,7 @@ func TestFetchCloseUnknownSymbolIsSkippedNotError(t *testing.T) {
 
 // TestFetchCloseNon200IsError covers a rate-limit/auth failure: unlike an
 // unknown symbol, it is an error, so Sync counts the symbol as failed and
-// moves on to the next one (GLG-1333); it does not stop the run.
+// moves on to the next one; it does not stop the run.
 func TestFetchCloseNon200IsError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusTooManyRequests)
@@ -238,7 +238,7 @@ func TestSyncWritesTrackedInstrumentOnly(t *testing.T) {
 	}
 }
 
-// TestSyncContinuesPastFailingSymbol covers GLG-1333: a Finnhub 500 on
+// TestSyncContinuesPastFailingSymbol checks that a Finnhub 500 on
 // the first tracked symbol fails that symbol only; Sync still fetches and
 // stores the second one and returns nil, since not every symbol failed.
 func TestSyncContinuesPastFailingSymbol(t *testing.T) {
@@ -289,7 +289,7 @@ func TestSyncContinuesPastFailingSymbol(t *testing.T) {
 	}
 }
 
-// TestFetchCloseDatesByQuoteTime covers GLG-259: the close is dated by the
+// TestFetchCloseDatesByQuoteTime checks that the close is dated by the
 // quote's own t, not by the run time. Before the open c is still the last
 // session's close; during the session c is live, so pc is stored under the
 // session before (Friday, on a Monday).
@@ -347,7 +347,7 @@ func TestFetchCloseDatesByQuoteTime(t *testing.T) {
 	}
 }
 
-// TestSyncRecentStoresClosesAndSplits covers GLG-279: every tracked US
+// TestSyncRecentStoresClosesAndSplits checks that every tracked US
 // instrument gets its recent Tiingo window re-read. A 500 on one symbol
 // (AAA, first by symbol order) does not stop the rest; both others' closes
 // are stored and AAPL's splitFactor 2 becomes one split row.

@@ -188,7 +188,7 @@ func getHistoryBody(tb testing.TB, handler http.Handler, session, query string) 
 	return rec.Body.Bytes()
 }
 
-// BenchmarkHistoryAll is the guard of GLG-685: the max-range `all` history
+// BenchmarkHistoryAll times the max-range `all` history
 // over ten portfolios and ten years of daily closes.
 func BenchmarkHistoryAll(b *testing.B) {
 	handler, session := seedHistoryAll(b)
