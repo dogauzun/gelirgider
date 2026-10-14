@@ -14,11 +14,11 @@ i18n approach, which had no record at all.
 
 ## Context
 
-Phases 15 and 20 were planned with no new ADR (`docs/HISTORY.md`, Phases 15
+Phases 15 and 20 were planned with no new ADR (Phases 15
 and 20), and Phase 21 recorded its decisions as
-amendments to ADR 0006, 0009 and 0011 only (`docs/HISTORY.md`, Phase 21). The
+amendments to ADR 0006, 0009 and 0011 only (Phase 21). The
 rest lives only in the roadmap, which is about to be split. The English UI
-shipped as a Phase 6 bullet with no decision record (`docs/HISTORY.md`, Phase 6).
+shipped as a Phase 6 bullet with no decision record (Phase 6).
 
 This ADR describes the code as it is on 2026-10-01 and cites the roadmap as
 it is today. A reason is given where the roadmap, a commit or a code comment
@@ -41,11 +41,11 @@ lets transactions leave the app (commit 192b7ca, GLG-563).
   `date,type,symbol,quantity,price,amount,fee,currency,note,market`, so a
   spreadsheet or script built on them keeps working; a new column goes at
   the end (`backend/internal/transaction/handlers.go:604-607`). Phase 21
-  appended `market` after `note` (GLG-600, `docs/HISTORY.md`, Phase 15).
+  appended `market` after `note` (GLG-600, Phase 15).
 - A symbol, note or market cell starting with `=`, `+`, `-` or `@` gets a
   leading `'`, so a spreadsheet does not run it as a formula
   (`backend/internal/transaction/handlers.go:710-717`). The roadmap names
-  the note only (`docs/HISTORY.md`, Phase 15); GLG-623 extended the guard to
+  the note only (Phase 15); GLG-623 extended the guard to
   the symbol and the market (commit 7890425).
 - The export takes the list's `type`, `instrument_id`, `from` and `to`
   filters (GLG-601, GLG-613), `from` and `to` being an inclusive
@@ -113,7 +113,7 @@ calendar, so a long bayram can flag BIST briefly
 (`frontend/public/manifest.webmanifest:1-11`), plus an Apple touch icon and
 one `theme-color` meta per OS color scheme (`frontend/index.html:6-11`).
 There is no service worker; an offline service worker is listed as not in
-the epic (`docs/HISTORY.md`, Phase 15). Reason not
+the epic (Phase 15). Reason not
 recorded.
 
 **Allocation views.** The allocation card toggles between one row per
@@ -122,7 +122,7 @@ symbol, per market and per currency, and starts on symbol
 `frontend/src/components/Allocation.tsx:58`). In the currency view each
 currency's cash joins that currency's positions, so USD cash counts as USD
 exposure (`frontend/src/components/Allocation.tsx:60-82`,
-`docs/HISTORY.md`, Phase 15).
+Phase 15).
 
 > Amended 2026-10-06 (GLG-947): the views and their rules moved unchanged
 > into `allocationRows` in `frontend/src/lib/allocation.ts`, and the card
@@ -142,7 +142,7 @@ idempotency not recorded. The allowed market and currency pairs come from
 ### Phase 20: UI/UX round 2
 
 Each fix was one small frontend ticket with no API change, inside the
-Defter system of ADR 0005 (`docs/HISTORY.md`, Phase 20).
+Defter system of ADR 0005 (Phase 20).
 
 > Superseded 2026-10-04 by [ADR 0023](0023-ui-design-system-v2.md) (GLG-868): the Defter system is
 > replaced by UI v2. The fixes below keep their behavior; their look follows
@@ -151,7 +151,7 @@ Defter system of ADR 0005 (`docs/HISTORY.md`, Phase 20).
 - **Expected dividends panel.** It became a native `<details>` element,
   collapsed by default, with the count and net total in its summary line,
   and the count badge left the İşlemler tab, because it counted pending
-  dividends and read as a transaction count (`docs/HISTORY.md`, Phase 20,
+  dividends and read as a transaction count (Phase 20,
   `frontend/src/components/ExpectedDividends.tsx:66-69`). Phase 21 changed
   this: the panel moved to the Temettü tab and renders open by default
   (`docs/adr/0009-dividends.md:111-113`,
@@ -162,7 +162,7 @@ Defter system of ADR 0005 (`docs/HISTORY.md`, Phase 20).
   > tab, always open, and no longer a `<details>` element.
 
 - **KPI block on phone.** It is a 2-column grid; desktop breakpoints are
-  unchanged (`docs/HISTORY.md`, Phase 20). The total-value card and the last
+  unchanged (Phase 20). The total-value card and the last
   card, realized P/L, span both columns, and the half cells use a 16 px
   figure so a signed seven-digit amount is not clipped
   (`frontend/src/pages/SummaryPage.tsx:122-133`,
@@ -177,7 +177,7 @@ Defter system of ADR 0005 (`docs/HISTORY.md`, Phase 20).
 
 - **Position row on phone.** The last price sits in the right column under
   the P/L, and the price editor takes the full row width only while
-  editing (`docs/HISTORY.md`, Phase 20,
+  editing (Phase 20,
   `frontend/src/pages/SummaryPage.tsx:199-203`).
 
   > Superseded 2026-10-05 (GLG-933, UI v2 core pages): the phone row has no
@@ -205,7 +205,7 @@ Defter system of ADR 0005 (`docs/HISTORY.md`, Phase 20).
 
 - **Language switch.** It left the signed-in app header; the auth pages
   keep theirs, and Hesap → Dil is the place to change it once signed in
-  (`docs/HISTORY.md`, Phase 20, `frontend/src/components/AuthForm.tsx:125`,
+  (Phase 20, `frontend/src/components/AuthForm.tsx:125`,
   `frontend/src/pages/SetupPage.tsx:208`,
   `frontend/src/pages/AccountPage.tsx:164`). Reason not recorded.
 
@@ -217,7 +217,7 @@ Defter system of ADR 0005 (`docs/HISTORY.md`, Phase 20).
 
 - **Empty portfolio card.** A card with no value, cash or P/L says "Henüz
   işlem yok" with an İşlem ekle link instead of three zeros
-  (`docs/HISTORY.md`, Phase 20, `frontend/src/pages/HomePage.tsx:211-221`).
+  (Phase 20, `frontend/src/pages/HomePage.tsx:211-221`).
   The list API has no transaction count, so all-zero figures with no
   missing rate stand in for "nothing recorded yet"
   (`frontend/src/pages/HomePage.tsx:120-127`).
@@ -229,7 +229,7 @@ Defter system of ADR 0005 (`docs/HISTORY.md`, Phase 20).
 
 - **Transaction row click.** On desktop a click on a row opens its edit
   dialog, as a tap does on phone; the hover icons stay for keyboard users
-  (`docs/HISTORY.md`, Phase 20,
+  (Phase 20,
   `frontend/src/pages/TransactionsPage.tsx:197-206`,
   `frontend/src/pages/TransactionsPage.tsx:236`).
 
@@ -237,7 +237,7 @@ Defter system of ADR 0005 (`docs/HISTORY.md`, Phase 20).
   > always visible; they no longer wait for a hover. The row click stays.
 
 - **Shortcut hint.** The keyboard shortcut hint in the transaction dialog is
-  hidden on devices with no hover (`docs/HISTORY.md`, Phase 20,
+  hidden on devices with no hover (Phase 20,
   `frontend/src/components/TransactionDialog.tsx:716-719`); reason not
   recorded.
 
@@ -249,7 +249,7 @@ Defter system of ADR 0005 (`docs/HISTORY.md`, Phase 20).
   > (`frontend/src/components/TransactionDialog.tsx`).
 
 - **Admin page.** It has in-page section links under its heading; reason
-  not recorded (`docs/HISTORY.md`, Phase 20, `frontend/src/pages/AdminPage.tsx:29-39`).
+  not recorded (Phase 20, `frontend/src/pages/AdminPage.tsx:29-39`).
 
   > Amended 2026-10-06 (GLG-969): the links are one row that scrolls
   > sideways, under `PageHeader`, in the portfolio pages' wrapper (see
@@ -266,7 +266,7 @@ today's rate (`backend/internal/server/summary.go:136-159`). `reporting` is
 null when a currency with a nonzero figure has no rate, rather than a
 partial sum (`backend/internal/server/summary.go:175-206`). Today's rate is
 the Phase 5 simplification, as for `realized_pl`
-(`backend/internal/server/summary.go:172-174`, `docs/HISTORY.md`, Phase 21).
+(`backend/internal/server/summary.go:172-174`, Phase 21).
 The `all` scope sums the stats per currency
 (`backend/internal/holdings/holdings.go:350-371`). The reason was that Özet
 had no totals for what the user put in, earned and paid (commit d796906).
@@ -319,20 +319,20 @@ clipboard, in the UI language (`frontend/src/pages/SummaryPage.tsx:739-748`,
 
 - The amounts are full, unmasked numbers even in privacy mode, since the
   clipboard is not the screen (`frontend/src/lib/aiPrompt.ts:10-11`,
-  `docs/HISTORY.md`, Phase 21).
+  Phase 21).
 - The weights use the allocation card's base, positive position values plus
   positive cash (`frontend/src/lib/aiPrompt.ts:15-22`, GLG-662).
 - The prompt asks for a neutral review and no buy or sell recommendations
-  (`frontend/src/i18n/strings.ts:513-514`, `docs/HISTORY.md`, Phase 21). Reason
+  (`frontend/src/i18n/strings.ts:513-514`, Phase 21). Reason
   not recorded.
 
 **Transaction clone.** A clone button opens the add dialog prefilled from
 the row and dated today, so a recurring buy is not retyped; saving POSTs a
 new row (`frontend/src/pages/TransactionsPage.tsx:465-472`,
-`docs/HISTORY.md`, Phase 21).
+Phase 21).
 
 **SVG bar chart.** The dividend bars are `BarChart`, an inline SVG with theme
-colors and no chart library (`docs/HISTORY.md`, Phase 21), because ADR 0005
+colors and no chart library (Phase 21), because ADR 0005
 rejects a charting library (`docs/adr/0005-ui-design-system.md:169`). It
 takes decimal strings, shows two y ticks and a tooltip per bar on hover or
 keyboard focus, and draws a zero bar as a 1 px hairline

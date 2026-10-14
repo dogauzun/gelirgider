@@ -11,7 +11,7 @@ Development is done mostly by AI agents. Read this file fully before any work.
 backend/    Go module (JSON API server); cmd/symbols refreshes internal/instrument/*_symbols.csv, cmd/statement_dump dumps broker PDFs
 frontend/   React + TypeScript + Vite
 deploy/     Dockerfiles, compose, Caddyfile, nginx.conf, backup.sh, README, RUNBOOK
-docs/       ROADMAP.md, HISTORY.md, PRINCIPLES.md, EFFORT.md, ADRs (adr/), phase specs and plans (superpowers/)
+docs/       ROADMAP.md, PRINCIPLES.md, EFFORT.md, ADRs (adr/)
 Makefile    single entrypoint: make dev / test / lint / build / swagger
 ```
 
