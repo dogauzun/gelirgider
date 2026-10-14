@@ -1,5 +1,6 @@
 import type { Position } from '../api/summary'
 import { unrealized } from './positions'
+import { sortRows } from './sortRows'
 
 // The Katkı card's two figures: the open P/L, or today's move.
 export const CONTRIBUTION_MODES = ['total', 'day'] as const
@@ -27,7 +28,7 @@ export function contributionRows(
   mode: ContributionMode,
   limit: number | null,
 ): { rows: ContributionRow[]; hidden: number } {
-  const sorted = positions
+  const rows = positions
     .map((p) => ({
       instrumentId: p.instrument_id,
       symbol: p.symbol,
@@ -35,7 +36,9 @@ export function contributionRows(
     }))
     .filter((row): row is typeof row & { amount: string } => row.amount !== null)
     .map((row) => ({ ...row, value: Number(row.amount) }))
-    .sort((a, b) => b.value - a.value || a.symbol.localeCompare(b.symbol))
+  // By symbol first, then best first: the sort is stable, so ties keep symbol order.
+  const bySymbol = sortRows(rows, (row) => row.symbol, { key: 'symbol', dir: 'asc' })
+  const sorted = sortRows(bySymbol, (row) => row.value, { key: 'value', dir: 'desc' })
 
   const kept =
     limit !== null && sorted.length > 2 * limit

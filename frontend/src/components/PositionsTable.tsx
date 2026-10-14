@@ -2,10 +2,11 @@ import { useRef, useState, type HTMLAttributes } from 'react'
 import { Link, useLocation } from 'react-router'
 import { usePortfolios } from '../api/portfolios'
 import type { PortfolioScope, Position, Summary } from '../api/summary'
-import { getLocale, t, type StringKey } from '../i18n/strings'
+import { t, type StringKey } from '../i18n/strings'
 import { buildAiPrompt } from '../lib/aiPrompt'
 import { formatMarketDate, formatShortMarketDate, isStale, todayIstanbul } from '../lib/date'
 import { formatQuantity } from '../lib/decimal'
+import { sortRows } from '../lib/sortRows'
 import {
   formatMoney,
   formatNumber,
@@ -67,8 +68,7 @@ function plText(amount: string | null, percent: string | null, currency: string)
   return amount !== null && percent ? `${money} · ${percent}` : money
 }
 
-// The sortable columns, in order, with what each sorts by; numbers go in as
-// Number(), which is only for ordering. A missing value sorts last either way.
+// The sortable columns, in order, with what each sorts by (see sortRows).
 type SortKey =
   | 'symbol'
   | 'weight'
@@ -80,7 +80,11 @@ type SortKey =
   | 'pl'
   | 'realized'
   | 'realizedPercent'
-type Column = { key: SortKey; label: StringKey; value: (p: Position) => string | null }
+type Column = {
+  key: SortKey
+  label: StringKey
+  value: (p: Position) => string | number | null
+}
 const COLUMNS: Column[] = [
   { key: 'symbol', label: 'summary.symbol', value: (p) => p.symbol },
   { key: 'weight', label: 'summary.weight', value: (p) => p.market_value_reporting },
@@ -92,10 +96,7 @@ const COLUMNS: Column[] = [
   {
     key: 'day',
     label: 'summary.dayChange',
-    value: (p) => {
-      const ratio = dayRatio(p)
-      return ratio === null ? null : String(ratio)
-    },
+    value: dayRatio,
   },
   { key: 'value', label: 'summary.value', value: (p) => p.market_value_reporting },
   { key: 'pl', label: 'summary.pl', value: (p) => unrealized(p).amount },
@@ -109,25 +110,9 @@ const CLOSED_COLUMNS: Column[] = [
   {
     key: 'realizedPercent',
     label: 'summary.realizedPlPercent',
-    value: (p) => {
-      const ratio = realizedRatio(p)
-      return ratio === null ? null : String(ratio)
-    },
+    value: realizedRatio,
   },
 ]
-
-function sortPositions(positions: Position[], columns: Column[], sort: Sort<SortKey>): Position[] {
-  const pick = columns.find((c) => c.key === sort.key)!.value
-  const sign = sort.dir === 'asc' ? 1 : -1
-  return [...positions].sort((a, b) => {
-    const x = pick(a)
-    const y = pick(b)
-    if (x === null || y === null) return x === y ? 0 : x === null ? 1 : -1
-    return sort.key === 'symbol'
-      ? sign * x.localeCompare(y, getLocale())
-      : sign * (Number(x) - Number(y))
-  })
-}
 
 // A manual price or a fetched one too old for its market,
 // as a small pill after the price with the explanation in its toggletip.
@@ -520,14 +505,14 @@ export function PositionsTable({
   const desktop = useIsDesktop()
   const reporting = summary.currency
   // A quantity of 0 alone is not closed.
-  const open = sortPositions(
+  const open = sortRows(
     summary.positions.filter((p) => !p.closed),
-    COLUMNS,
+    COLUMNS.find((c) => c.key === sorts.open.key)!.value,
     sorts.open,
   )
-  const closed = sortPositions(
+  const closed = sortRows(
     summary.positions.filter((p) => p.closed),
-    CLOSED_COLUMNS,
+    CLOSED_COLUMNS.find((c) => c.key === sorts.closed.key)!.value,
     sorts.closed,
   )
   // Both sides folded to ASCII, so "bimas" finds BIMAS and "hisse" finds
