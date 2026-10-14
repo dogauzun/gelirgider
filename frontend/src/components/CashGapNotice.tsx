@@ -108,7 +108,7 @@ function CashGapDialog({
           {t('performance.cashGaps.add')}
         </h2>
         <p className="mt-2 text-[13px] text-ink-2">{t('performance.cashGaps.body')}</p>
-        <div className="mt-3 max-h-[50vh] overflow-y-auto">
+        <div className="relative mt-3 max-h-[50vh] overflow-x-auto overflow-y-auto">
           <table className={TABLE}>
             <thead>
               <tr>

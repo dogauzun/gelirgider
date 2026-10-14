@@ -40,26 +40,28 @@ export function PositionTransactions({
         </p>
       )}
       {rows.length > 0 && (
-        <table className={TABLE}>
-          <thead>
-            <tr>
-              <th className={TH}>{t('transactions.date')}</th>
-              <th className={TH}>{t('transactions.type')}</th>
-              {/* Below sm the date, type and amount fill the card at 375px;
+        <div className="relative overflow-x-auto">
+          <table className={TABLE}>
+            <thead>
+              <tr>
+                <th className={TH}>{t('transactions.date')}</th>
+                <th className={TH}>{t('transactions.type')}</th>
+                {/* Below sm the date, type and amount fill the card at 375px;
                   İşlemler has the rest. */}
-              <th className={`${TH} text-right max-sm:hidden`}>
-                {t('transactions.quantityPrice')}
-              </th>
-              <th className={`${TH} text-right max-sm:hidden`}>{t('transactions.deduction')}</th>
-              <th className={`${TH} text-right`}>{t('transactions.amount')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.slice(0, limit).map((tx) => (
-              <TransactionRow key={tx.id} tx={tx} />
-            ))}
-          </tbody>
-        </table>
+                <th className={`${TH} text-right max-sm:hidden`}>
+                  {t('transactions.quantityPrice')}
+                </th>
+                <th className={`${TH} text-right max-sm:hidden`}>{t('transactions.deduction')}</th>
+                <th className={`${TH} text-right`}>{t('transactions.amount')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.slice(0, limit).map((tx) => (
+                <TransactionRow key={tx.id} tx={tx} />
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       {loadMore && transactions.hasNextPage && (
         <div className="flex justify-center border-t border-line p-3">

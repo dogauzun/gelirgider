@@ -111,6 +111,13 @@ describe('PortfoliosTable', () => {
     setPrivacy(false)
   })
 
+  // GLG-1386: the table scrolls sideways inside the card, never the page.
+  it('scrolls the table sideways inside the card', () => {
+    mockApi()
+    renderTable()
+    expect(screen.getByRole('table').parentElement).toHaveClass('relative', 'overflow-x-auto')
+  })
+
   it('shows each portfolio with value, share, return, sparkline and day change', async () => {
     const urls = mockApi()
     renderTable()

@@ -197,31 +197,33 @@ export function UsersSection() {
       {users && (
         <div className="border-line border-t">
           {desktop ? (
-            <table className={TABLE}>
-              <thead>
-                <tr>
-                  <th className={TH}>{t('auth.email')}</th>
-                  <th className={TH}>{t('admin.users.created')}</th>
-                  <ActionsTh />
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className={ROW_44}>
-                    <td className={TD}>
-                      {/* The cell does not wrap; a long email does, so it
-                        cannot widen the table. */}
-                      <span className="flex items-center gap-1.5">
-                        <span className="text-ink break-all whitespace-normal">{user.email}</span>
-                        {user.is_admin && adminPill}
-                      </span>
-                    </td>
-                    <td className={`${TD} text-ink-2`}>{createdDay(user)}</td>
-                    <td className={TD}>{actions(user, true)}</td>
+            <div className="relative overflow-x-auto">
+              <table className={TABLE}>
+                <thead>
+                  <tr>
+                    <th className={TH}>{t('auth.email')}</th>
+                    <th className={TH}>{t('admin.users.created')}</th>
+                    <ActionsTh />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {users.map((user) => (
+                    <tr key={user.id} className={ROW_44}>
+                      <td className={TD}>
+                        {/* The cell does not wrap; a long email does, so it
+                        cannot widen the table. */}
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-ink break-all whitespace-normal">{user.email}</span>
+                          {user.is_admin && adminPill}
+                        </span>
+                      </td>
+                      <td className={`${TD} text-ink-2`}>{createdDay(user)}</td>
+                      <td className={TD}>{actions(user, true)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <ul>
               {users.map((user) => (
