@@ -185,7 +185,8 @@ on every heat step.
 - The cash-flow sign on transaction amounts.
 - Native `<dialog>` with `showModal()` for dialogs and for the drawer. A
   dialog that centres from `md` is a bottom sheet below it, takes its panel
-  from `ui/sheetPanel`, and ESLint rejects a hand-built one.
+  from `ui/sheetPanel`, and ESLint rejects a hand-built one; the position
+  dialog is full screen on a phone instead.
 - The page never scrolls sideways; a table wider than its card scrolls inside
   the card, and a table that cannot is replaced by a list on a phone.
 - The theme choice lives in `localStorage` and is applied by
