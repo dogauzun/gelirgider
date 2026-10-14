@@ -17,6 +17,8 @@ const proxy = {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // The release version, set by the image build (GLG-1394); vitest uses it too.
+  define: { __APP_VERSION__: JSON.stringify(process.env.VITE_APP_VERSION ?? 'dev') },
   server: { proxy },
   // The same proxy for `vite preview`, which serves the built frontend in
   // `make screenshots` (GLG-1381).

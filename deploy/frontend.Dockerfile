@@ -4,6 +4,9 @@ WORKDIR /src
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
+# The release version, shown in the sidebar (GLG-1394); dev when not given.
+ARG VERSION=dev
+ENV VITE_APP_VERSION=$VERSION
 RUN npm run build
 
 # Final stage: serve the static build with nginx, proxying /api to the backend.
