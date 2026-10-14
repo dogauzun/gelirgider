@@ -1,10 +1,11 @@
 # Build stage: compile a static Go binary (CGO disabled, matches modernc.org/sqlite's no-cgo driver).
 FROM golang:1.26 AS build
+ARG VERSION=dev
 WORKDIR /src
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 COPY backend/ ./
-RUN CGO_ENABLED=0 go build -o /out/server ./cmd/server
+RUN CGO_ENABLED=0 go build -ldflags "-X main.version=$VERSION" -o /out/server ./cmd/server
 
 # Final stage: distroless static image, just the binary, run as the image's
 # nonroot user (uid/gid 65532). The /data mount must be owned by that uid,

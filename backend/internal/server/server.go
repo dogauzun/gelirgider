@@ -56,6 +56,11 @@ const (
 // payload in this API.
 const maxBodyBytes = 64 << 10
 
+// Version is the build version /api/health reports. main sets it from the
+// -X main.version ldflag; a package var, not a New argument, so the 60-odd
+// test callers of New stay untouched.
+var Version = "dev"
+
 // New returns the root HTTP handler, with request logging applied.
 // conn is used to build the repositories the handlers need; cookieSecure
 // controls the Secure flag on the session cookie; cfg is the one install-wide
@@ -593,10 +598,10 @@ func (w jsonMissWriter) Write(b []byte) (int, error) { return len(b), nil }
 // so a missing or corrupted database file doesn't report ok.
 //
 //	@Summary	Health check
-//	@Description	Reports ok when the database answers. Needs no session.
+//	@Description	Reports ok and the build version when the database answers. Needs no session.
 //	@Tags		health
 //	@Produce	json
-//	@Success	200	{object}	map[string]string	"status is ok"
+//	@Success	200	{object}	map[string]string	"status is ok, version is the build version (dev for an unstamped build)"
 //	@Failure	503	{object}	map[string]string	"status is degraded, error is database unavailable"
 //	@Router		/health [get]
 func handleHealth(logger *slog.Logger, conn *sql.DB) http.HandlerFunc {
@@ -612,9 +617,7 @@ func handleHealth(logger *slog.Logger, conn *sql.DB) http.HandlerFunc {
 			})
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		auth.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok", "version": Version})
 	}
 }
 

@@ -59,7 +59,7 @@ function mockApi({
 }
 
 function renderSidebar(path = '/') {
-  render(
+  return render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
@@ -76,6 +76,7 @@ const text = (element: HTMLElement) => element.textContent?.replace(/\s/g, ' ')
 describe('Sidebar', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
     setPrivacy(false)
   })
 
@@ -238,6 +239,19 @@ describe('Sidebar', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: t('portfolios.create') }))
     await waitFor(() => expect(location?.pathname).toBe('/portfolios/7'))
     expect(location?.state).toEqual({ focusAfterCreate: true })
+  })
+
+  it('shows the release version under the account row, nothing for dev', async () => {
+    mockApi()
+    vi.stubGlobal('__APP_VERSION__', 'v1.2.3')
+    const { unmount } = renderSidebar()
+    expect(await screen.findByText(t('nav.version', { version: 'v1.2.3' }))).toBeInTheDocument()
+    unmount()
+
+    vi.stubGlobal('__APP_VERSION__', 'dev')
+    renderSidebar()
+    await screen.findByRole('link', { name: /Ana portföy/ })
+    expect(screen.queryByText(/Sürüm/)).not.toBeInTheDocument()
   })
 
   it('is a named navigation landmark', async () => {
