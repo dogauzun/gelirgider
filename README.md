@@ -83,6 +83,12 @@ set `PORT` for both: `PORT=8081 make dev`. The frontend dev server proxies
 On a fresh database every page redirects to `/setup`: enter the
 `setup_token` printed in the backend output to create the admin.
 
+For a populated database without network or API keys, run
+`(cd backend && go run ./cmd/server -demo)` before `make dev`: it creates the
+admin `demo@example.com` with a Demo portfolio of synthetic trades, dividends,
+prices and FX rates over the last two years, and prints the password. It
+refuses a database that already has a user.
+
 `make test` runs `go vet` and the backend tests, then the frontend lint and
 tests. `make lint` runs the swag spec check, `gofmt`, `go vet`, `golangci-lint`
 (`dupl`, `forbidigo`, `funlen` with `lines` 150 (comments ignored, tests
