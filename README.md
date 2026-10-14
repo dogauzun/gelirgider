@@ -116,19 +116,8 @@ from the same demo seed, in a throwaway database with the price fetches
 switched off. It needs Google Chrome (set `CHROME` to its binary when it is
 not in the default place) and the `sqlite3` command.
 
-`make test` runs `go vet` and the backend tests, then the frontend lint and
-tests. `make lint` runs the swag spec check, `gofmt`, `go vet`, `golangci-lint`
-(`dupl`, `forbidigo`, `funlen` with `lines` 150 (comments ignored, tests
-exempt), `gocognit` with `min-complexity` 45, `nestif` with `min-complexity` 10,
-`noctx`, `revive` with `argument-limit` 6 and `usestdlibvars` with
-`time-layout`, configured in `backend/.golangci.yml`), `deadcode`, the frontend lint, `jscpd`
-(copied blocks of 6 lines or more, configured in `frontend/.jscpd.json`), `knip`
-(unused exports and types, configured in `frontend/knip.json`) and the
-prettier checks on `frontend/`, `docs/`, `deploy/`, `.claude/`, `.github/` and the root
-Markdown files.
-`make build-frontend` type-checks and builds the frontend for production into
-`frontend/dist/`; neither of the other two runs it. Run `make help` for all
-available targets.
+Before you push, run `make test`, `make lint` and `make build-frontend`; [docs/PRINCIPLES.md](docs/PRINCIPLES.md)
+#6 lists exactly what each one runs. Run `make help` for all available targets.
 
 ## Data sources
 

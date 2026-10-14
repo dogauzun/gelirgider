@@ -117,19 +117,9 @@ aynı demo örnek verisinden, fiyat çekmeleri kapalı, geçici bir veritabanın
 üretir. Google Chrome (varsayılan yerde değilse `CHROME` değişkenini onun
 çalıştırılabilir dosyasına ayarla) ve `sqlite3` komutu gerekir.
 
-`make test` önce `go vet` ve backend testlerini, sonra frontend lint ve testlerini
-çalıştırır. `make lint` şunları çalıştırır: swag tanım denetimi, `gofmt`, `go vet`,
-`golangci-lint` (`dupl`, `forbidigo`, `lines` 150 ile `funlen` (yorumlar sayılmaz,
-testler muaf), `min-complexity` 45 ile `gocognit`, `min-complexity` 10 ile `nestif`,
-`noctx`, `argument-limit` 6 ile `revive` ve `time-layout` ile `usestdlibvars`;
-ayarları `backend/.golangci.yml` içinde), `deadcode`, frontend lint, `jscpd`
-(6 satır ya da daha uzun kopya bloklar, ayarları `frontend/.jscpd.json` içinde),
-`knip` (kullanılmayan dışa aktarımlar ve tipler, ayarları `frontend/knip.json`
-içinde) ve `frontend/`, `docs/`, `deploy/`, `.claude/` ile kök dizindeki Markdown
-dosyaları üzerinde prettier denetimleri.
-`make build-frontend` frontend'in tiplerini denetler ve onu canlı ortam için
-`frontend/dist/` altına derler; diğer ikisi bunu çalıştırmaz. Tüm hedefler için
-`make help` çalıştır.
+Göndermeden önce `make test`, `make lint` ve `make build-frontend` çalıştır; her birinin tam olarak ne çalıştırdığı
+[docs/PRINCIPLES.md](docs/PRINCIPLES.md) #6'da yazar. Tüm hedefler için `make help`
+çalıştır.
 
 ## Veri kaynakları
 

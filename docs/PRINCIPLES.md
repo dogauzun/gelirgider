@@ -57,6 +57,7 @@
 - Timestamps in UTC. Market calendar in `Europe/Istanbul`.
 - JSON API with stable, documented shapes.
 - Errors are returned, logged once at the boundary, never swallowed.
+- No ticket ids in code comments; git blame and the squash-merge subject carry them. `ADR NNNN` pointers are fine.
 
 ## 9. Data sources are replaceable
 
@@ -66,4 +67,4 @@
 
 ## 10. Roadmap is a guide, not a contract
 
-- Phases in `ROADMAP.md` are ordered by value and dependency. Reorder when learning says so, but update the doc and the Jira epics together. A shipped phase leaves this file; its Jira epic is the record.
+- Phases in `ROADMAP.md` are ordered by value and dependency. Reorder when learning says so, but update the doc and the Jira epics together. A shipped phase leaves this file; its Jira epic is the record. An ADR states what holds now; the convention is in `docs/adr/README.md`.
