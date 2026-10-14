@@ -60,8 +60,8 @@ A backfill walks weekdays from the start date forward, one request per day with
 a short pause, skips dates already stored, and stops on the first failure so a
 rerun resumes. A date with no bulletin is remembered as a holiday only once a
 later date in the same walk returned data; empty dates at the end of the range
-may just be unpublished and stay unmarked. A BIST transaction saved on
-the day triggers the same backfill for its instrument in the background (see
+may just be unpublished and stay unmarked. Every BIST transaction save, backdated
+ones included, queues the same backfill from its date in the background (see
 ADR 0003).
 
 ### Why not the others

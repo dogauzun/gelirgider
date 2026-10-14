@@ -64,10 +64,10 @@ older transaction costs one extra request. This replaced the earlier
 ### robots.txt
 
 TEFAS's robots.txt disallows `/api/`, and both endpoints live there. The
-maintainer accepted that for the shipped source, with these limits. The `tefas`
-source is **off by default**: the server fetches nothing from TEFAS until an
-admin turns it on, where the admin area says the endpoint is disallowed, so
-the operator who enables it makes the call. While it is off, fund prices are
+project ships the source off, and fetching from TEFAS is the decision of the
+operator who enables it. The `tefas` source is **off by default**: the server
+fetches nothing from TEFAS until an admin turns it on, where the admin area says
+the endpoint is disallowed, so the operator makes the robots.txt call. While it is off, fund prices are
 entered by hand, and a user's manual price wins over a fetched NAV for the
 same fund and date. While it is on, the fetcher identifies itself honestly as
 `gelirgider/1.0 (+https://github.com/dogauzun/gelirgider)`, fetches tracked

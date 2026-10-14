@@ -90,10 +90,10 @@ the scheduler's retry.
 Manual prices are per user. On the same instrument and date a manual price wins
 over a fetched one, as a correction. Otherwise the newer date wins.
 
-Saving a transaction fetches what it needs when its market's source is enabled
-in settings: a crypto, TEFAS or US instrument fetches its prices from the
-transaction date in one request, and a BIST instrument syncs the latest
+Saving a transaction fetches what it needs when its market's source is enabled.
+A crypto or TEFAS instrument fetches its prices from the transaction date in one
+request. A US instrument fetches one Finnhub quote only when it has no price
+yet, plus one Tiingo history request. A BIST instrument syncs the latest
 bulletin and queues a background bulletin backfill. A background walk also
 backfills TCMB rates over the same range for every market. A fetch is skipped
-when stored data already covers the range, so it is cheap on every save and
-startup, and a failure is retried by the next one.
+when stored data already covers the range, and a failure is retried next time.
