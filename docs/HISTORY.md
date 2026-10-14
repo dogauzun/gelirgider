@@ -1465,8 +1465,9 @@ Other work merged in the public repository on 2026-10-14:
   import's fund lookup) and which by-name runs still fetch (the tefas row's
   "Run now" and "Backfill", `server -fetch tefas`, and `cmd/symbols` with
   `-market tefas`) (GLG-1368, #12).
-- `README.tr.md` is a Turkish translation of the README, linked from the README
-  and CONTRIBUTING (GLG-1375, #15).
+- `README.tr.md` is a Turkish translation of the README, linked from the
+  README, and CONTRIBUTING requires a change to `README.md` to be mirrored in
+  `README.tr.md` in the same pull request (GLG-1375, #15).
 - The expected dividends table on the Temettü tab scrolls inside its card at
   768 and 1024 px, so its Dismiss buttons no longer sit past the card's
   border (GLG-1369, #16).
@@ -1475,6 +1476,8 @@ Other work merged in the public repository on 2026-10-14:
 - The ticket implementer is pinned to Sonnet 5.5 and the reviewer to Opus 5.5,
   both at high effort, in `.claude/agents/`, CLAUDE.md and ADR 0022
   (GLG-1388, #20).
+- The prettier step of `make lint` also checks `.github/`; README and
+  PRINCIPLES list it (GLG-1378, #21).
 
 ## Published images
 
