@@ -152,38 +152,40 @@ export function PortfoliosTable({
           <span className="font-normal text-muted"> · {portfolios.length}</span>
         </h2>
       </div>
-      <table className={TABLE}>
-        <thead>
-          <tr>
-            <th className={TH}>{t('portfolio.label')}</th>
-            <th className={`${TH} text-right`}>{t('summary.value')}</th>
-            <th className={`${TH} text-right max-sm:hidden`}>{t('portfolios.share')}</th>
-            <th className={`${TH} text-right`}>
-              {t('chart.return.title')}
-              {preset && ` · ${t(preset.labelKey)}`}
-            </th>
-            <th className={`${TH} max-md:hidden`}>
-              <span className="sr-only">{t('portfolios.trend')}</span>
-            </th>
-            <th className={`${TH} text-right max-sm:hidden`}>{t('summary.dayChange')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {portfolios.map((portfolio, index) => (
-            <PortfolioRow
-              key={portfolio.id}
-              portfolio={portfolio}
-              index={index}
-              share={shares[index]}
-              largest={largest}
-              from={from}
-              to={to}
-              method={method}
-              search={rangeSearch(search)}
-            />
-          ))}
-        </tbody>
-      </table>
+      <div className="relative overflow-x-auto">
+        <table className={TABLE}>
+          <thead>
+            <tr>
+              <th className={TH}>{t('portfolio.label')}</th>
+              <th className={`${TH} text-right`}>{t('summary.value')}</th>
+              <th className={`${TH} text-right max-sm:hidden`}>{t('portfolios.share')}</th>
+              <th className={`${TH} text-right`}>
+                {t('chart.return.title')}
+                {preset && ` · ${t(preset.labelKey)}`}
+              </th>
+              <th className={`${TH} max-md:hidden`}>
+                <span className="sr-only">{t('portfolios.trend')}</span>
+              </th>
+              <th className={`${TH} text-right max-sm:hidden`}>{t('summary.dayChange')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {portfolios.map((portfolio, index) => (
+              <PortfolioRow
+                key={portfolio.id}
+                portfolio={portfolio}
+                index={index}
+                share={shares[index]}
+                largest={largest}
+                from={from}
+                to={to}
+                method={method}
+                search={rangeSearch(search)}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   )
 }

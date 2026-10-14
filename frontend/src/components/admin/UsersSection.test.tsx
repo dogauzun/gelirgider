@@ -106,6 +106,16 @@ describe('UsersSection', () => {
     ).toBeInTheDocument()
   })
 
+  // GLG-1386: the table scrolls sideways inside its box, never the page.
+  it('scrolls the table sideways inside its box', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) =>
+      String(input) === '/api/admin/users' ? json([ada, bob]) : json({}),
+    )
+    renderAtAdmin()
+    const table = await screen.findByRole('table')
+    expect(table.parentElement).toHaveClass('relative', 'overflow-x-auto')
+  })
+
   // GLG-917: Chromium blurs a focused control the moment it is disabled, so a
   // keyboard user lost focus to <body> while the toggle or the admin button
   // saved. jsdom does not blur on disable, so the test checks both stay
