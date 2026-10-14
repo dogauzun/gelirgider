@@ -1425,3 +1425,16 @@ three alerts it raised were cleared by GLG-1377 (#6); Dependabot alerts and
 security updates, secret scanning with push protection and private
 vulnerability reporting are on; `main` requires `lint`, `test-backend`,
 `test-frontend`, `build-frontend` and `pr-title` with branches up to date.
+
+## Published images
+
+Status: 2026-10-14
+
+`.github/workflows/publish.yml` builds the backend and frontend images on
+every push to `main` and every `v*` tag and publishes them, `linux/amd64`
+only, as `ghcr.io/dogauzun/gelirgider-backend` and
+`ghcr.io/dogauzun/gelirgider-frontend`: `latest` and `sha-<7>` from `main`,
+the tag name from a tag (GLG-1382, #11). `deploy/compose.yml` pulls those
+images instead of building them on the Docker host, at the tag `IMAGE_TAG`
+names in `deploy/.env` (`latest` by default, `sha-<7>` or `vX.Y.Z` to pin a
+version or roll back), and keeps `build:` for a modified checkout (GLG-1383).

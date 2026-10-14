@@ -3,7 +3,8 @@
 Status: accepted (GLG-713, 2026-10-01); amended 2026-10-13
 (pre-publication review, the private-repository rationale under "No
 container registry" is dated); amended 2026-10-14 (GLG-1382, both images are
-published to GHCR)
+published to GHCR); amended 2026-10-14 (GLG-1383, compose pulls the
+published images)
 
 This ADR records decisions taken in Phase 4 (GLG-41..46,
 `docs/HISTORY.md`, Phase 4) that were written down only in the roadmap and in
@@ -111,6 +112,13 @@ published image, `caddy:2` (`deploy/compose.yml:46`).
 > (`GITHUB_TOKEN`) and has no anonymous pull rate limit on public images.
 > Compose still builds both images on the host until GLG-1383 points it at
 > the published ones.
+
+> Superseded 2026-10-14 (GLG-1383): the `backend` and `frontend` services
+> name the published images, `image:` with the tag `${IMAGE_TAG:-latest}`,
+> so compose pulls them instead of building on the Docker host. `build:`
+> stays for a host running a modified checkout (`up --build`), and
+> `IMAGE_TAG` pins a `sha-<7>` or `vX.Y.Z` tag for a rollback
+> (`deploy/RUNBOOK.md`, Rollback).
 
 ### No external error reporting, logs to stdout
 

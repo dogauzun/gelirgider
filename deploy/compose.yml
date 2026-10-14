@@ -6,6 +6,7 @@ x-logging: &default-logging
 
 services:
   backend:
+    image: ghcr.io/dogauzun/gelirgider-backend:${IMAGE_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/backend.Dockerfile
@@ -39,6 +40,7 @@ services:
       - gelirgider
 
   frontend:
+    image: ghcr.io/dogauzun/gelirgider-frontend:${IMAGE_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/frontend.Dockerfile

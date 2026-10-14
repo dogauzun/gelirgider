@@ -59,7 +59,17 @@ provider keys again.
 
 ## 2. First deploy
 
-1. Build and start everything, detached:
+1. Pull the published backend and frontend images
+   (`ghcr.io/dogauzun/gelirgider-backend` and `-frontend`, at the tag
+   `IMAGE_TAG` in `deploy/.env` names, `latest` by default) and start
+   everything, detached:
+   ```
+   docker compose -f deploy/compose.yml pull
+   docker compose -f deploy/compose.yml up -d
+   ```
+   The published images are `linux/amd64` only: an arm64 host, or a
+   checkout with local code changes, builds both images from the checkout
+   instead:
    ```
    docker compose -f deploy/compose.yml up -d --build
    ```
@@ -103,18 +113,26 @@ not in env vars or cron:
 
 ## 3. Update
 
-1. Pull the new code:
+1. Pull the new code, for changes to `compose.yml`, the Caddyfile and these
+   docs:
    ```
    git pull
    ```
-2. Rebuild and restart:
+2. Pull the new images and restart:
    ```
-   docker compose -f deploy/compose.yml up -d --build
+   docker compose -f deploy/compose.yml pull
+   docker compose -f deploy/compose.yml up -d
    ```
+   The images for a commit on `main` are published a few minutes after it
+   merges (`.github/workflows/publish.yml`); a `pull` before that run
+   finishes gets the previous `latest`. The published images are
+   `linux/amd64` only, so an arm64 host, like a checkout with local code
+   changes, rebuilds instead, with
+   `docker compose -f deploy/compose.yml up -d --build`.
 
 Since GLG-1118 the backend runs as uid 65532 instead of root. On a host
 set up before it, hand the existing database files to that uid once, before
-the rebuild in step 2, and make the env file and the directory private:
+step 2, and make the env file and the directory private:
 
 ```
 sudo chown -R 65532:65532 deploy/data
@@ -390,22 +408,37 @@ copy of the current state, and step 2 picks the older file instead.
 
 ## 8. Rollback
 
-1. Check out the previous known-good commit by its SHA (the repo has no
-   release tags; `git log --oneline` lists the commits):
+1. Pin the images of the previous known-good commit in `deploy/.env`, by
+   the first 7 characters of its SHA (`git log --oneline` lists the
+   commits), or a release tag `vX.Y.Z` once there is one:
    ```
-   git checkout <previous-sha>
+   IMAGE_TAG=sha-<7>
    ```
-2. Rebuild and restart:
+   A merge that landed while another publish run was queued may have no
+   `sha-<7>` tag: GitHub keeps one pending run per concurrency group and
+   drops the older one, so that commit's images were never built. Pick the
+   latest `sha-` tag that exists on the package page
+   (<https://github.com/dogauzun/gelirgider/pkgs/container/gelirgider-backend>),
+   or `latest`.
+2. Pull and restart:
    ```
-   docker compose -f deploy/compose.yml up -d --build
+   docker compose -f deploy/compose.yml pull
+   docker compose -f deploy/compose.yml up -d
    ```
+3. Once a fixed version is published, empty the `IMAGE_TAG=` line to follow
+   `latest` again, and pull and restart as in step 2.
+
+An arm64 host (the published images are `linux/amd64` only) and a checkout
+with local code changes skip the steps above and roll back by checking out
+the previous commit (`git checkout <previous-sha>`) and rebuilding with
+`docker compose -f deploy/compose.yml up -d --build`.
 
 Schema files are forward-only and are never edited or removed once merged
 (see Update, above). Rolling back the code does not undo a schema file that
 already ran against the live database — an older backend binary querying a
 newer schema may fail or behave unexpectedly. If the rollback needs to
 cross a schema file, restore the backup taken before that schema file was
-applied instead (Restore drill, above), then check out the matching code.
+applied instead (Restore drill, above), then pin the matching images.
 
 ## 9. Reset a forgotten password
 
