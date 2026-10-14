@@ -23,7 +23,8 @@ import { t, type StringKey } from '../i18n/strings'
 import { SHARE_FORMAT } from '../lib/allocation'
 import type { Bar } from '../lib/chart'
 import { formatMarketDate, todayIstanbul } from '../lib/date'
-import { compareDecimal, decimalUnits, unitsToDecimal } from '../lib/decimal'
+import { decimalUnits, unitsToDecimal } from '../lib/decimal'
+import { sortRows } from '../lib/sortRows'
 import { formatMoney, formatNumber, MISSING } from '../lib/format'
 import { usePortfolioTitle } from '../lib/useTitle'
 import { useStoredChoice } from '../lib/useStoredChoice'
@@ -54,18 +55,13 @@ const COLUMNS: { key: SortKey | 'share'; labelKey: StringKey; className: string 
 // A ratio as a percent with one decimal: 0.14 -> "%14,0".
 const percent = (ratio: number) => formatNumber(ratio, SHARE_FORMAT)
 
-function compareRows(key: SortKey, a: DividendInstrumentTotal, b: DividendInstrumentTotal) {
-  if (key === 'symbol') return a.symbol.localeCompare(b.symbol)
-  if (key === 'count') return a.count - b.count
-  if (key === 'net') return compareDecimal(a.net, b.net)
-  return a.last_date.localeCompare(b.last_date)
-}
-
-// The rows in `sort` order. The sort is stable, so equal values keep the
-// API's order (net largest first, then symbol).
-function sortRows(rows: DividendInstrumentTotal[], sort: Sort<SortKey>): DividendInstrumentTotal[] {
-  const sign = sort.dir === 'desc' ? -1 : 1
-  return [...rows].sort((a, b) => sign * compareRows(sort.key, a, b))
+// The sort value of a row's column. The API's order (net largest first, then
+// symbol) is kept for equal values.
+function pickValue(key: SortKey, row: DividendInstrumentTotal): string | number {
+  if (key === 'symbol') return row.symbol
+  if (key === 'count') return row.count
+  if (key === 'net') return row.net
+  return Date.parse(row.last_date)
 }
 
 // The exact sum of one field over the buckets, as a decimal string.
@@ -235,7 +231,7 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
               </tr>
             </thead>
             <tbody>
-              {sortRows(data.by_instrument, sort).map((row) => (
+              {sortRows(data.by_instrument, (row) => pickValue(sort.key, row), sort).map((row) => (
                 <tr key={row.instrument_id} className={ROW_44}>
                   <td className={TD}>
                     <Link

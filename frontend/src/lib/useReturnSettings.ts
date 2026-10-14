@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { RETURN_METHODS, type Benchmark, type ReturnMethod } from '../api/history'
 import type { Summary } from '../api/summary'
 import { t } from '../i18n/strings'
+import { sortRows } from './sortRows'
 import { useStoredChoice } from './useStoredChoice'
 
 // The return method and the benchmark that Özet's return card and the
@@ -46,10 +47,11 @@ export function useBenchmark(summary: Summary | undefined) {
   }
   const fixed = BENCHMARKS.filter((b) => b !== summary?.currency)
   // The scope's open positions by symbol, from the summary already loaded.
-  const positions = (summary?.positions ?? [])
-    .filter((p) => !p.closed)
-    .sort((a, b) => a.symbol.localeCompare(b.symbol))
-    .map((p) => ({ code: `instrument:${p.instrument_id}` as Benchmark, symbol: p.symbol }))
+  const positions = sortRows(
+    (summary?.positions ?? []).filter((p) => !p.closed),
+    (p) => p.symbol,
+    { key: 'symbol', dir: 'asc' },
+  ).map((p) => ({ code: `instrument:${p.instrument_id}` as Benchmark, symbol: p.symbol }))
   // A stored choice hidden for this portfolio's currency, or a position this
   // scope does not hold, counts as none. Until the summary loads no position
   // is known, so a stored position is not requested from the wrong scope.
