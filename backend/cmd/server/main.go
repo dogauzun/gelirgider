@@ -45,6 +45,9 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/user"
 )
 
+// version is stamped at build time: go build -ldflags "-X main.version=...".
+var version = "dev"
+
 // General API info for the generated spec (make swagger, ADR 0013).
 //
 //	@title			gelirgider API
@@ -95,6 +98,7 @@ func main() {
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	server.Version = version
 	// auth.WriteInternalError logs the error behind every 500 through the
 	// default logger, so it lands in the same JSON stream as the request
 	// lines without threading this logger through six packages of handlers.
@@ -318,7 +322,7 @@ func serve(conn *sql.DB, cfg config.Config, logger *slog.Logger, settingsRepo *s
 	}()
 
 	go func() {
-		logger.Info("listening", "addr", srv.Addr, "db_path", cfg.DBPath)
+		logger.Info("listening", "version", version, "addr", srv.Addr, "db_path", cfg.DBPath)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("server failed", "error", err)
 			os.Exit(1)

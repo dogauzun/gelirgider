@@ -31,13 +31,16 @@ func TestHealthHandler(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
 	rec := httptest.NewRecorder()
 
+	defer func(v string) { Version = v }(Version)
+	Version = "v1.2.3"
 	New(logger, conn, false, settings.NewRepo(conn, nil), nil).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
-	if got := rec.Body.String(); got != `{"status":"ok"}` {
-		t.Fatalf("body = %q, want %q", got, `{"status":"ok"}`)
+	want := `{"status":"ok","version":"v1.2.3"}`
+	if got := strings.TrimSpace(rec.Body.String()); got != want {
+		t.Fatalf("body = %q, want %q", got, want)
 	}
 }
 
