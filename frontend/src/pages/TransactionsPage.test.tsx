@@ -10,7 +10,7 @@ import { clearToasts, flushToasts, toast } from '../lib/toast'
 import { TransactionsPage } from './TransactionsPage'
 
 // Passed through unchanged; every row formats its date with it, so its call
-// count tells whether the rows were rendered again (GLG-1168).
+// count tells whether the rows were rendered again.
 vi.mock('../lib/date', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/date')>()
   return { ...actual, formatMarketDate: vi.fn(actual.formatMarketDate) }
@@ -30,7 +30,7 @@ beforeAll(() => {
     if (focusBeforeDialog instanceof HTMLElement) focusBeforeDialog.focus()
   }
   // jsdom has no matchMedia. The page renders the table or the phone list by
-  // viewport (GLG-451), so tests get the table unless they set `desktop`.
+  // viewport, so tests get the table unless they set `desktop`.
   window.matchMedia = (query) =>
     ({
       matches: desktop,
@@ -40,7 +40,7 @@ beforeAll(() => {
     }) as unknown as MediaQueryList
 })
 
-// The sub-header (GLG-172) lists the user's portfolios, so every mock below
+// The sub-header lists the user's portfolios, so every mock below
 // answers this too.
 function portfoliosResponse() {
   return new Response(
@@ -64,7 +64,7 @@ function openAddDialog() {
 
 describe('TransactionsPage', () => {
   afterEach(() => {
-    // A delete waits behind its undo toast (GLG-795); send it while this
+    // A delete waits behind its undo toast; send it while this
     // test's fetch mock still answers.
     flushToasts()
     cleanup()
@@ -175,7 +175,7 @@ describe('TransactionsPage', () => {
     // A plain submit closes the dialog; Cmd/Ctrl+Enter is what keeps it open.
     await vi.waitFor(() => expect(screen.queryByRole('heading', { name: 'İşlem ekle' })).toBeNull())
 
-    // GLG-184: creating a transaction must also invalidate the summary query,
+    // Creating a transaction must also invalidate the summary query,
     // so switching to the summary tab doesn't paint stale totals from cache.
     expect(queryClient.getQueryState(summaryQueryKey(1))?.isInvalidated).toBe(true)
   })
@@ -252,7 +252,7 @@ describe('TransactionsPage', () => {
     expect(screen.getByRole('radio', { name: 'Yatırma' })).toHaveAttribute('aria-checked', 'true')
   })
 
-  // GLG-136: a dividend takes its currency from the instrument, so the form
+  // A dividend takes its currency from the instrument, so the form
   // must not offer a choice the server would reject.
   it('offers no currency select for a dividend and sends no currency', async () => {
     let createdBody: Record<string, unknown> | null = null
@@ -397,7 +397,7 @@ describe('TransactionsPage', () => {
 
     const editButtons = await screen.findAllByRole('button', { name: /işlemini düzenle$/ })
 
-    // GLG-341: each row's icon buttons name the row they act on.
+    // Each row's icon buttons name the row they act on.
     expect(editButtons[0]).toHaveAccessibleName(
       'THYAO 02.01.2026 Alış 10 × ₺100,00 −₺1.000,00 işlemini düzenle',
     )
@@ -407,15 +407,15 @@ describe('TransactionsPage', () => {
       }),
     ).toHaveLength(1)
 
-    // GLG-322: wider than the card at tablet widths, so it must scroll sideways,
+    // Wider than the card at tablet widths, so it must scroll sideways,
     // and its row actions stay visible on devices without hover.
     const card = screen.getByRole('table').parentElement!
     expect(card).toHaveClass('overflow-x-auto')
-    // GLG-679: positioned, so the absolute sr-only header label is clipped by
+    // Positioned, so the absolute sr-only header label is clipped by
     // the card instead of widening the page at 768 px.
     expect(card).toHaveClass('relative')
     expect(editButtons[0].parentElement).not.toHaveClass('opacity-0')
-    // GLG-346: focusing a row's button scrolls the card to the right; closing
+    // Focusing a row's button scrolls the card to the right; closing
     // the dialog brings the date column back. jsdom has no layout, so the
     // scroll position is a plain property here.
     Object.defineProperty(card, 'scrollLeft', { value: 127, writable: true })
@@ -434,7 +434,7 @@ describe('TransactionsPage', () => {
     expect(editButtons[0].closest('tr')).not.toHaveClass('bg-paper')
     expect(card.scrollLeft).toBe(0)
 
-    // GLG-574: a click on any cell of a desktop row edits that row, as a tap
+    // A click on any cell of a desktop row edits that row, as a tap
     // does on the phone list.
     fireEvent.click(screen.getByText('01 Oca'))
 
@@ -443,7 +443,7 @@ describe('TransactionsPage', () => {
     expect(editButtons[1].closest('tr')).toHaveClass('bg-paper')
   })
 
-  // GLG-609: a recurring buy is re-entered by cloning the row, dated today.
+  // A recurring buy is re-entered by cloning the row, dated today.
   it('clones a row into the add dialog dated today and saves it as a new row', async () => {
     let createdBody: Record<string, unknown> | null = null
     let updated = false
@@ -527,7 +527,7 @@ describe('TransactionsPage', () => {
     })
   })
 
-  // GLG-451: CSS used to hide one of the two layouts, but both were built,
+  // CSS used to hide one of the two layouts, but both were built,
   // doubling the DOM on a long list.
   it('renders only the layout that matches the viewport', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
@@ -595,20 +595,20 @@ describe('TransactionsPage', () => {
     cleanup()
     desktop = false
     renderPage()
-    // GLG-227: the phone list's row button is named by a hidden prefix, which
+    // The phone list's row button is named by a hidden prefix, which
     // leaves the row's own content in the accessible name. jsdom applies no
     // CSS, so the spans concatenate with no space between them here.
     expect(
       await screen.findByRole('button', { name: /^İşlemi düzenle:.*THYAO/ }),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^İşlemi düzenle:Para yatırma/ })).toBeInTheDocument()
-    // GLG-462: the row date names its month ("02 Oca"), not tr's numeric 02/01.
+    // The row date names its month ("02 Oca"), not tr's numeric 02/01.
     expect(screen.getByText(/^02 Oca · /)).toBeInTheDocument()
     expect(screen.queryByRole('table')).toBeNull()
     expect(screen.getAllByRole('button', { name: /işlemini sil$/ })).toHaveLength(2)
   })
 
-  // GLG-426: the dialog is unmounted, not close()d, so without a restore
+  // The dialog is unmounted, not close()d, so without a restore
   // focus fell to <body> instead of the button that opened it.
   it('returns focus to the add button when the dialog is dismissed with Escape', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
@@ -642,7 +642,7 @@ describe('TransactionsPage', () => {
     expect(document.activeElement).toBe(add)
   })
 
-  // GLG-664: opened by another page's "İşlem ekle" through navigation state,
+  // Opened by another page's "İşlem ekle" through navigation state,
   // the button that had focus is gone by the time the dialog closes.
   it('focuses the add button when a dialog opened by navigation is dismissed', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
@@ -674,7 +674,7 @@ describe('TransactionsPage', () => {
     expect(document.activeElement).toBe(add)
   })
 
-  // GLG-141: the list is paged, so the page asks for one page at a time and
+  // The list is paged, so the page asks for one page at a time and
   // follows the X-Next-Cursor header when the user clicks "Daha fazla yükle".
   it('loads the next page from the cursor when asked for more', async () => {
     const requested: string[] = []
@@ -773,10 +773,10 @@ describe('TransactionsPage', () => {
 
     expect(await screen.findAllByRole('button', { name: /işlemini düzenle$/ })).toHaveLength(2)
     expect(requested[0]).toContain('limit=')
-    // GLG-332: more pages exist, so the count says it is partial.
+    // More pages exist, so the count says it is partial.
     expect(screen.getByText('2+ işlem')).toBeInTheDocument()
 
-    // GLG-994: Chromium blurs a focused button the moment it is disabled, so
+    // Chromium blurs a focused button the moment it is disabled, so
     // the button is pending while the page loads; a second click asks for
     // nothing.
     const more = screen.getByRole('button', { name: 'Daha fazla yükle' })
@@ -798,7 +798,7 @@ describe('TransactionsPage', () => {
     expect(screen.getByText('3 işlem')).toBeInTheDocument()
   })
 
-  // GLG-170: the amount carries the cash-flow sign (ADR 0005) and the rows are
+  // The amount carries the cash-flow sign (ADR 0005) and the rows are
   // broken by month, both presentation only -- the API amount stays unsigned.
   it('signs amounts by cash flow and starts a group row at each new month', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -871,14 +871,14 @@ describe('TransactionsPage', () => {
     expect(rows[4]).toHaveTextContent('+₺250.000,00')
 
     expect(screen.getByText('2 işlem')).toBeInTheDocument()
-    // The expected dividends panel moved to the Temettü tab (GLG-605).
+    // The expected dividends panel moved to the Temettü tab.
     expect(screen.queryByText('Onay bekleyen temettüler')).not.toBeInTheDocument()
     expect(fetchMock.mock.calls.map(([input]) => String(input))).not.toContain(
       '/api/portfolios/1/dividends/expected',
     )
   })
 
-  // GLG-170: window.confirm is gone; the delete goes through the shared
+  // Window.confirm is gone; the delete goes through the shared
   // ConfirmDialog, which names what it deletes on the button.
   it('deletes a row only after the confirm dialog is accepted', async () => {
     let deleted = false
@@ -937,7 +937,7 @@ describe('TransactionsPage', () => {
 
     fireEvent.click((await screen.findAllByRole('button', { name: /işlemini sil$/ }))[0])
 
-    // GLG-574: the delete button sits inside a clickable row, but asks only
+    // The delete button sits inside a clickable row, but asks only
     // for the confirm, never opens the edit dialog.
     expect(screen.queryByRole('heading', { name: 'İşlemi düzenle' })).toBeNull()
 
@@ -949,16 +949,16 @@ describe('TransactionsPage', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /işlemini sil$/ })[0])
     fireEvent.click(screen.getByRole('button', { name: 'İşlemi sil' }))
 
-    // The row goes at once; the request waits for the undo toast (GLG-795).
+    // The row goes at once; the request waits for the undo toast.
     await screen.findByText('Henüz işlem yok.')
     expect(deleted).toBe(false)
     flushToasts()
     await vi.waitFor(() => expect(deleted).toBe(true))
   })
 
-  // GLG-842: the delete is sent when its toast goes, which may be after the
-  // page was left, so the failure is a toast (in the Toaster's live region,
-  // GLG-436) rather than a notice on the page.
+  // The delete is sent when its toast goes, which may be after the
+  // page was left, so the failure is a toast (in the Toaster's live region)
+  // rather than a notice on the page.
   it('reports a delete that fails after the page was left', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const url = String(input)
@@ -1017,7 +1017,7 @@ describe('TransactionsPage', () => {
 
     unmount()
     // Newer toasts push the undo toast out, which sends the delete. Not
-    // flushToasts: it also clears the error toast, as logout must (GLG-848).
+    // flushToasts: it also clears the error toast, as logout must.
     act(() => ['a', 'b', 'c'].forEach((message) => toast(message)))
 
     expect(
@@ -1028,7 +1028,7 @@ describe('TransactionsPage', () => {
     expect((await screen.findAllByRole('button', { name: /işlemini sil$/ })).length).toBe(1)
   })
 
-  // GLG-386: the deleted row takes its focused delete button with it, so
+  // The deleted row takes its focused delete button with it, so
   // focus moves to the next row, and with no row left to the add button.
   it('moves focus to the next row, then to the add button, after a delete', async () => {
     const deposit = (id: number, date: string) => ({
@@ -1100,8 +1100,8 @@ describe('TransactionsPage', () => {
     )
   })
 
-  // GLG-795: the delete waits behind the toast, so undo brings the row back
-  // and no request is sent. GLG-838: focus moves to undo, then to the row.
+  // The delete waits behind the toast, so undo brings the row back
+  // and no request is sent. Focus moves to undo, then to the row.
   it('restores a deleted row on undo without deleting it', async () => {
     let deleted = false
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -1159,7 +1159,7 @@ describe('TransactionsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'İşlemi sil' }))
     await screen.findByText('Henüz işlem yok.')
 
-    // GLG-838: the undo is one key away, and after it focus is back on the
+    // The undo is one key away, and after it focus is back on the
     // restored row's delete button, not on <body>.
     const undo = screen.getByRole('button', { name: 'Geri al' })
     await vi.waitFor(() => expect(document.activeElement).toBe(undo))
@@ -1170,7 +1170,7 @@ describe('TransactionsPage', () => {
     expect(deleted).toBe(false)
   })
 
-  // GLG-834: the pending delete outlives the page, so a row deleted before
+  // The pending delete outlives the page, so a row deleted before
   // leaving stays hidden when the page is opened again under its toast.
   it('keeps a pending delete hidden when the page is opened again', async () => {
     let deleted = false
@@ -1246,7 +1246,7 @@ describe('TransactionsPage', () => {
     await screen.findByText('Henüz işlem yok.')
   })
 
-  // GLG-856: a session that ends under the undo toast drops the delete
+  // A session that ends under the undo toast drops the delete
   // unsent, so the row comes back rather than staying hidden.
   it('shows a pending delete again when its toast is dropped unsent', async () => {
     let deleted = false
@@ -1310,7 +1310,7 @@ describe('TransactionsPage', () => {
     expect(deleted).toBe(false)
   })
 
-  // GLG-231: the dialog hides the list, so it has to say which row goes.
+  // The dialog hides the list, so it has to say which row goes.
   it('names the row in the delete confirm dialog', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const url = String(input)
@@ -1363,8 +1363,8 @@ describe('TransactionsPage', () => {
     ).toBeInTheDocument()
   })
 
-  // GLG-173: paging is server-side, so the filter has to reach the server.
-  // GLG-206: a transaction that came from a statement import says so, and
+  // Paging is server-side, so the filter has to reach the server.
+  // A transaction that came from a statement import says so, and
   // one entered by hand does not.
   it('marks only the imported rows with the imported pill', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -1517,7 +1517,7 @@ describe('TransactionsPage', () => {
       expect(requested.at(-1)).toContain(`type=${encodeURIComponent('deposit,withdrawal,fee')}`),
     )
 
-    // GLG-453: the arrow keys move and select, wrapping from the last option
+    // The arrow keys move and select, wrapping from the last option
     // to the first.
     const cash = screen.getByRole('radio', { name: 'Nakit' })
     expect(cash).toHaveAttribute('tabindex', '0')
@@ -1606,12 +1606,12 @@ describe('TransactionsPage', () => {
     expect(screen.getByTestId('search').textContent).toBe('?instrument=7&symbol=THYAO')
 
     const chip = await screen.findByRole('button', { name: 'Enstrüman filtresini kaldır: THYAO' })
-    // GLG-642: the search unmounts; focus lands on the chip that replaces it.
+    // The search unmounts; focus lands on the chip that replaces it.
     expect(document.activeElement).toBe(chip)
     fireEvent.click(chip)
     await vi.waitFor(() => expect(requested.at(-1)).not.toContain('instrument_id='))
     expect(screen.getByTestId('search').textContent).toBe('')
-    // GLG-633: the chip unmounts; focus lands on the search that replaces it.
+    // The chip unmounts; focus lands on the search that replaces it.
     expect(document.activeElement).toBe(
       screen.getByRole('combobox', { name: 'Enstrümana göre filtrele' }),
     )
@@ -1749,14 +1749,14 @@ describe('TransactionsPage', () => {
     clear.focus()
     fireEvent.click(clear)
     await vi.waitFor(() => expect(requested.at(-1)).not.toContain('from='))
-    // GLG-620: the clear button unmounts; focus lands on the start date.
+    // The clear button unmounts; focus lands on the start date.
     expect(screen.queryByRole('button', { name: 'Tarih filtresini kaldır' })).toBeNull()
     expect(document.activeElement).toBe(from)
     expect(requested.at(-1)).not.toContain('to=')
     expect(screen.getByTestId('search').textContent).toBe('')
     expect(exportLink()).toBe('/api/portfolios/1/transactions.csv')
 
-    // The type filter goes along too (GLG-613).
+    // The type filter goes along too.
     const filters = screen.getByRole('radiogroup', { name: 'Türe göre filtrele' })
     fireEvent.click(within(filters).getByRole('radio', { name: 'Alış' }))
     expect(exportLink()).toBe('/api/portfolios/1/transactions.csv?type=buy')
@@ -1793,7 +1793,7 @@ describe('TransactionsPage', () => {
     expect(screen.getByRole('button', { name: 'Enstrüman filtresini kaldır: GARAN' })).toBeTruthy()
   })
 
-  // Core pages spec, İşlemler (GLG-936): the rows, the imports and the mock
+  // Core pages spec, İşlemler: the rows, the imports and the mock
   // the tests below share.
   const buyRow = {
     id: 1,
@@ -2014,7 +2014,7 @@ describe('TransactionsPage', () => {
       '[role="status"]',
     ) as HTMLElement
     expect(banner.textContent).toContain('Midas · Haz 2026 içe aktarıldı · 3 işlem')
-    // The banner names the import as Kaynak does, short month (GLG-1059).
+    // The banner names the import as Kaynak does, short month.
     expect(screen.getByRole('combobox', { name: 'Kaynak' }).textContent).toContain(
       'Midas · Haz 2026',
     )
@@ -2035,7 +2035,7 @@ describe('TransactionsPage', () => {
 
   // The banner's ✕ clears the filter to Tümü; once the user has picked
   // another source the banner no longer names the filter, so it goes and
-  // cannot undo that choice (GLG-992).
+  // cannot undo that choice.
   it('drops the import banner once Kaynak names another source', async () => {
     mockList()
     renderAt({
@@ -2052,8 +2052,7 @@ describe('TransactionsPage', () => {
   })
 
   // jsdom has no layout: `desktop = false` makes the page render what it
-  // renders below md, the Filtrele button with Kaynak inside the closed sheet
-  // (GLG-992).
+  // renders below md, the Filtrele button with Kaynak inside the closed sheet.
   it('moves focus to the Filtrele button when the banner closes on a phone', async () => {
     desktop = false
     mockList()
@@ -2072,7 +2071,7 @@ describe('TransactionsPage', () => {
   })
 
   // The İçe aktar button that committed the import leaves with ImportPage,
-  // which dropped focus to <body> (GLG-1208): the banner takes it once the
+  // which dropped focus to <body>: the banner takes it once the
   // imports load. A plain visit or a reloaded ?import= URL leaves focus alone.
   it('moves focus into the banner on arrival from an import commit', async () => {
     mockList()
@@ -2104,7 +2103,7 @@ describe('TransactionsPage', () => {
     expect(document.activeElement).toBe(document.body)
   })
 
-  // GLG-858, regressed by GLG-936 (GLG-1017): a nowrap pill wider than its
+  // A nowrap pill wider than its
   // column spilled over the shrink-0 amount on a phone. jsdom has no layout,
   // so this pins the classes that keep them apart: the pill column has no
   // min-w-0, so one pill is its floor, and the row wraps the amount, pushed
@@ -2125,7 +2124,7 @@ describe('TransactionsPage', () => {
     expect(amountColumn).toHaveClass('ml-auto', 'shrink-0')
   })
 
-  // GLG-1307, GLG-1321: the details line got only the row button's width,
+  // The details line got only the row button's width,
   // the li minus the two 44px icon buttons, so "0,004 × ₺2.100.000,00" was
   // cut at 360px. jsdom has no layout, so this pins the line as a line of
   // the row button, which spans the whole li, with the icon buttons laid

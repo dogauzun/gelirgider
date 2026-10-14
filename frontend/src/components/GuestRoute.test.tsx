@@ -51,7 +51,7 @@ describe('GuestRoute', () => {
     expect(screen.queryByLabelText(/e-posta/i)).not.toBeInTheDocument()
   })
 
-  // GLG-154: the query keeps `isLoading` true for the whole retry window, so
+  // The query keeps `isLoading` true for the whole retry window, so
   // without this the page is blank for about seven seconds.
   it('says the server is unreachable while a failed /api/me retries', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'))

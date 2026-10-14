@@ -42,7 +42,7 @@ function renderPast(imports: Import[] = [imported]) {
 }
 
 // "İşlemlerde gör" looked different here and on the Bitti list, and sat
-// ~4 px from "Geri al" (GLG-1056).
+// ~4 px from "Geri al".
 it('styles the view link as on the Bitti list and keeps the usual gap to undo', () => {
   renderPast()
 
@@ -54,7 +54,7 @@ it('styles the view link as on the Bitti list and keeps the usual gap to undo', 
 })
 
 // Undoing one import put every row's "Geri al" into the pending state, so
-// nothing showed which import was going (GLG-1074).
+// nothing showed which import was going.
 it('shows only the undone row as pending', async () => {
   vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => {}))
   renderPast([
@@ -72,7 +72,7 @@ it('shows only the undone row as pending', async () => {
 
 // With pending only on the undone row, the other rows' "Geri al" stayed
 // clickable, and a second undo took the mutation from the first one, whose
-// toast, focus move and error were then lost (GLG-1074).
+// toast, focus move and error were then lost.
 it('starts no second undo while one is running', async () => {
   const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => {}))
   renderPast([

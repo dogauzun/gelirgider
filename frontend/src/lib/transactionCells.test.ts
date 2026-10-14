@@ -29,7 +29,7 @@ describe('transactionCells', () => {
     expect(signedAmount(tx({ type: 'buy', quantity: '1', price: '100' }))).toMatch(/^−/)
   })
 
-  // The transactions list and the import preview share these (GLG-1167): a
+  // The transactions list and the import preview share these: a
   // quantity without a price, a preview's unpriced opening position, shows
   // alone, and a zero or missing fee is an empty cell.
   it('shows a price-less quantity alone and leaves a zero fee empty', () => {

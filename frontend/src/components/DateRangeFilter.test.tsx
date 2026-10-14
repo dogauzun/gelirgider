@@ -11,7 +11,7 @@ describe('DateRangeFilter', () => {
     // Closed, the inputs are not on the page; no range, nothing to clear.
     expect(screen.queryByLabelText('Başlangıç')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Tarih: Tümü' }))
-    // GLG-1091: the popup is a dialog with a name.
+    // The popup is a dialog with a name.
     expect(await screen.findByRole('dialog', { name: 'Tarih' })).toBeTruthy()
     fireEvent.change(await screen.findByLabelText('Başlangıç'), {
       target: { value: '2025-01-01' },
@@ -29,7 +29,7 @@ describe('DateRangeFilter', () => {
     expect(screen.getByRole('button', { name: 'Tarih: 01 Oca 2025 – 31 Mar 2025' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Tarih filtresini kaldır' }))
     expect(onClear).toHaveBeenCalledOnce()
-    // GLG-620: a new range starts at the start date.
+    // A new range starts at the start date.
     expect(document.activeElement).toBe(screen.getByLabelText('Başlangıç'))
 
     // An open end reads as one date and a dash.

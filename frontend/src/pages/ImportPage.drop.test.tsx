@@ -36,7 +36,7 @@ const preview = {
   reconciliation: [],
 }
 
-// GLG-1052: the drop zone is gone while a preview is under review, and a
+// The drop zone is gone while a preview is under review, and a
 // file dropped anywhere on the page would open in the tab and lose it.
 it('keeps a file dropped during the review from opening in the tab', async () => {
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -104,7 +104,7 @@ function dropFiles(files: File[]) {
 const pdf = (name: string) => new File(['%PDF-1.4'], name, { type: 'application/pdf' })
 const note = () => new File(['hello'], 'note.txt', { type: 'text/plain' })
 
-// GLG-1064: the good file opens the preview at once and unmounts the drop
+// The good file opens the preview at once and unmounts the drop
 // zone, so the refused file is named where the review is.
 it('names a refused file in the review of the one good file dropped with it', async () => {
   renderPage()

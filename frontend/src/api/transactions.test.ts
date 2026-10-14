@@ -13,7 +13,7 @@ import {
 
 describe('invalidatePortfolio', () => {
   // The sidebar never remounts, so its portfolio values only move when
-  // something invalidates the list (GLG-875).
+  // something invalidates the list.
   it('a transaction change refreshes the portfolio list', async () => {
     const queryClient = new QueryClient()
     const spy = vi.spyOn(queryClient, 'invalidateQueries')
@@ -30,7 +30,7 @@ describe('invalidatePortfolio', () => {
 })
 
 describe('useDeleteTransaction', () => {
-  // The delete can land after its page is gone (GLG-795): a cached list
+  // The delete can land after its page is gone: a cached list
   // nothing shows is dropped, so coming back does not paint the row again.
   it('drops the inactive transaction lists of the portfolio', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }))
@@ -48,7 +48,7 @@ describe('useDeleteTransaction', () => {
 })
 
 describe('useTransactions', () => {
-  // The hook hands back the loaded rows, not the pages (GLG-1347), while
+  // The hook hands back the loaded rows, not the pages, while
   // paging still follows the X-Next-Cursor of the last page.
   it('returns the loaded pages as one list of rows', async () => {
     const tx = (id: number) => ({ id }) as Transaction
@@ -71,7 +71,7 @@ describe('useTransactions', () => {
 })
 
 describe('transactionsCsvUrl', () => {
-  // The export carries the list's filters, the import one included (GLG-931).
+  // The export carries the list's filters, the import one included.
   it('carries the import filter', () => {
     expect(transactionsCsvUrl(1)).toBe('/api/portfolios/1/transactions.csv')
     expect(transactionsCsvUrl(1, { importId: 7 })).toBe(

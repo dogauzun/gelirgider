@@ -45,7 +45,7 @@ describe('translateError', () => {
       'Stopaj tutardan büyük olamaz.',
     )
     expect(translateError('instrument_id: required for buy')).toMatch(/enstrüman/)
-    // GLG-1361: a currency that contradicts the instrument names its currency,
+    // A currency that contradicts the instrument names its currency,
     // in a preview row and in a commit error.
     expect(translateError('currency: must match instrument currency (USD)')).toBe(
       'Para birimi enstrümanın para birimiyle (USD) aynı olmalı.',
@@ -72,12 +72,12 @@ describe('translateError', () => {
       'Bu dosya bir Midas hesap ekstresi değil. Aracı kurum seçimini kontrol et.',
     )
     // Automatic mode names the statements it reads, not a broker the user
-    // never chose (GLG-788).
+    // never chose.
     expect(translateError('file: not a supported statement')).toBe(
       "Bu dosyayı tanıyamadık. Midas, Garanti BBVA veya Garanti BBVA Yatırım hesap ekstresinin PDF'ini yükle.",
     )
     // Upload errors that are not about the file's format name no format or
-    // broker: the CSV import sends them too (GLG-614).
+    // broker: the CSV import sends them too.
     expect(translateError('file: required')).toBe('Bir dosya seç.')
     expect(translateError('file: invalid upload')).toBe('Dosya okunamadı.')
     expect(translateError('file: not a statement of some other broker')).toBe(

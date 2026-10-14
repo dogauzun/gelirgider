@@ -141,7 +141,7 @@ describe('ReturnCard', () => {
     expect(onRange).toHaveBeenCalledWith(expect.objectContaining({ key: '1y' }))
   })
 
-  // In percent mode, the card's default (GLG-954).
+  // In percent mode, the card's default.
   it('sets the range from a drag on the chart, and the clear button returns to the range before it', async () => {
     const restoreSize = mockChartSize()
     try {

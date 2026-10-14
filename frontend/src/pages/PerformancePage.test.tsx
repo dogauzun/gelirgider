@@ -150,7 +150,7 @@ it('offers the excess view only with a benchmark', async () => {
   expect(await janCell()).toHaveTextContent(pct(1.1 / 1.05 - 1))
 })
 
-// GLG-956: the bars are component state, so the card opens on the heatmap.
+// The bars are component state, so the card opens on the heatmap.
 it('switches the card between the heatmap and the bars, opening on the heatmap', async () => {
   const restoreSize = mockChartSize()
   try {
@@ -188,7 +188,7 @@ it('explains a return that cannot be computed', async () => {
   expect(screen.queryByRole('table')).toBeNull()
 })
 
-// GLG-1110: the cash gaps show in both cards, and the dialog opens from either.
+// The cash gaps show in both cards, and the dialog opens from either.
 it('shows the cash gaps in both cards', async () => {
   mockApi(
     same(null),
@@ -204,7 +204,7 @@ it('shows the cash gaps in both cards', async () => {
 })
 
 // On the day of the first transaction every bucket is that one day and its
-// returns are null: too little data, as the drawdown card says (GLG-1051),
+// returns are null: too little data, as the drawdown card says,
 // not a missing deposit.
 it('says there is too little data on the first day', async () => {
   mockApi(same(null), ['2026-01-05', '2026-01-05'])
@@ -231,7 +231,7 @@ it('shows the drawdown of the all-time history below the periodic returns', asyn
 
 // A scope with no transactions has no buckets at all: nothing to compute,
 // rather than a return that cannot be computed, and nothing to switch
-// between, even with a benchmark (GLG-1049).
+// between, even with a benchmark.
 it('says there are no transactions yet for an empty scope', async () => {
   localStorage.setItem('benchmark', 'USD')
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {

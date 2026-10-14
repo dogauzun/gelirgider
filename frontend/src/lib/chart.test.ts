@@ -110,7 +110,7 @@ describe('rangeDelta', () => {
     ).toBe('250.00')
 
     // A 200 deposit inside the range is money put in, not a gain: the value
-    // rose by 250, only 50 of it earned (GLG-219).
+    // rose by 250, only 50 of it earned.
     expect(
       rangeDelta(
         [

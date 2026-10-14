@@ -42,8 +42,8 @@ test('useConfirm resolves true on confirm and false on cancel', async () => {
   await waitFor(() => expect(results).toEqual([true, false]))
 })
 
-// A second confirm while one is open (the leave guard on Back, GLG-1073) must
-// end the first one as cancelled, not leave its await hanging (GLG-1081).
+// A second confirm while one is open (the leave guard on Back) must
+// end the first one as cancelled, not leave its await hanging.
 test('useConfirm resolves an open confirm to false when a second one opens', async () => {
   const results: string[] = []
   function Twice() {
@@ -71,7 +71,7 @@ test('useConfirm resolves an open confirm to false when a second one opens', asy
 
 // The confirm closes on a double click's first click, so its second click
 // (detail 2) lands on whatever sat under the button: on İşlemler that is a
-// row that opens its edit dialog (GLG-1360). That click must do nothing; a
+// row that opens its edit dialog. That click must do nothing; a
 // fresh single click on the row still does.
 test.each(['Delete', t('confirm.cancel')])(
   'the second click of a double click on %s does not reach the page under it',

@@ -26,7 +26,7 @@ it('names the statement under review in a batch', () => {
   expect(items()[1]).toHaveTextContent('İncele · Ekstre 2 / 3')
 })
 
-// GLG-1054: at 375 px the steps wrapped; short connectors and only the counter
+// At 375 px the steps wrapped; short connectors and only the counter
 // in a batch keep them on one line below `sm`, unchanged from `sm` up.
 it('keeps the steps on one line below sm', () => {
   const { container } = render(<ImportSteps step={2} batch={{ index: 0, total: 3 }} />)

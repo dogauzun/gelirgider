@@ -8,7 +8,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-// GLG-795: an undo toast stays about 8 s, holds while hovered, and runs its
+// An undo toast stays about 8 s, holds while hovered, and runs its
 // commit only when it goes without the undo being pressed.
 test('keeps an undo toast while hovered and commits it on timeout', () => {
   vi.useFakeTimers()
@@ -32,7 +32,7 @@ test('keeps an undo toast while hovered and commits it on timeout', () => {
   expect(commit).toHaveBeenCalledOnce()
 })
 
-// GLG-940: from lg the toasts centre on the content column, right of the
+// From lg the toasts centre on the content column, right of the
 // 232 px sidebar; below md they sit above the floating add button.
 test('places the toasts in the content column, above the floating button', () => {
   render(<Toaster />)
@@ -55,7 +55,7 @@ test('drops the commit when undo is pressed', () => {
   expect(commit).not.toHaveBeenCalled()
 })
 
-// GLG-848: an error toast stays until closed, is announced assertively, and
+// An error toast stays until closed, is announced assertively, and
 // arriving does not push an undo toast out and commit it early.
 test('keeps an error toast in the alert region until closed', () => {
   vi.useFakeTimers()
@@ -75,7 +75,7 @@ test('keeps an error toast in the alert region until closed', () => {
   expect(screen.getByRole('alert')).toBeEmptyDOMElement()
 })
 
-// GLG-848: a commit that fails during logout's flush adds an error toast,
+// A commit that fails during logout's flush adds an error toast,
 // which must not survive into the next session.
 test('flushes an error toast added by a failing commit', async () => {
   render(<Toaster />)

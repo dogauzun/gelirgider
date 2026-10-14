@@ -31,7 +31,7 @@ describe('App', () => {
     setPrivacy(false)
   })
 
-  // GLG-379. Runs first: App's QueryClient is shared by every test here, and
+  // Runs first: App's QueryClient is shared by every test here, and
   // the next one leaves a logged-out me in it.
   it('sends the user to the login page when a data query finds the session gone', async () => {
     let signedIn = true
@@ -72,7 +72,7 @@ describe('App', () => {
     )
     // The sidebar's row, named with its value.
     const link = await screen.findByRole('link', { name: /^Ana/ })
-    // GLG-849: neither outlives the session, and the held-back delete is
+    // Neither outlives the session, and the held-back delete is
     // dropped, not sent without it.
     const commit = vi.fn()
     act(() => toast('İşlem silinemedi', { error: true }))
@@ -84,7 +84,7 @@ describe('App', () => {
 
     expect(await screen.findByRole('button', { name: 'Giriş yap' })).toBeInTheDocument()
     expect(window.location.pathname).toBe('/login')
-    // GLG-801: the login page says why the user is there.
+    // The login page says why the user is there.
     const notice = screen.getByText('Oturumunun süresi doldu, tekrar giriş yap')
     expect(notice).toHaveAttribute('role', 'status')
     // The toast regions are empty.
@@ -109,13 +109,13 @@ describe('App', () => {
 
     expect(await screen.findByRole('button', { name: 'Log in' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'English' })).toHaveAttribute('aria-pressed', 'true')
-    // The remount replaced the pressed button; focus follows it (GLG-681).
+    // The remount replaced the pressed button; focus follows it.
     expect(screen.getByRole('button', { name: 'English' })).not.toBe(english)
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'English' }))
     expect(screen.getByRole('button', { name: 'Türkçe' })).toHaveAttribute('aria-pressed', 'false')
   })
 
-  // GLG-389. Last: it leaves user B logged in on the shared QueryClient.
+  // Last: it leaves user B logged in on the shared QueryClient.
   it('never shows the previous user its cached data after logout and login', async () => {
     const portfolio = (name: string) => ({
       id: 1,
@@ -133,7 +133,7 @@ describe('App', () => {
     // B's list stays in flight until the assertion below has run.
     let releaseB = () => {}
     const bList = new Promise<void>((resolve) => (releaseB = resolve))
-    // What is sent from the logout on (GLG-999).
+    // What is sent from the logout on.
     let sent: string[] | null = null
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
@@ -176,10 +176,10 @@ describe('App', () => {
     sent = []
     fireEvent.click(logout)
     const submit = await screen.findByRole('button', { name: 'Giriş yap' })
-    // A deliberate logout is not an expired session (GLG-801).
+    // A deliberate logout is not an expired session.
     expect(screen.queryByText('Oturumunun süresi doldu, tekrar giriş yap')).not.toBeInTheDocument()
     // The page left behind sends nothing more; the login page asks only for
-    // the session and the public config (GLG-999).
+    // the session and the public config.
     const expected = ['/api/auth/logout', '/api/me', '/api/auth/config', '/api/setup/status']
     expect(sent.filter((url) => !expected.includes(url))).toEqual([])
     fireEvent.change(screen.getByLabelText('E-posta'), { target: { value: 'b@b.co' } })
@@ -205,7 +205,7 @@ describe('App', () => {
     expect(screen.queryByText('Ana')).not.toBeInTheDocument()
   })
 
-  // GLG-681. No remount since GLG-1031: the pressed button stays, focused.
+  // No remount: the pressed button stays, focused.
   // Runs after the test above, which leaves user B signed in.
   it('keeps focus on the privacy button when it is pressed', async () => {
     const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
@@ -228,7 +228,7 @@ describe('App', () => {
     expect(document.activeElement).toBe(show)
   })
 
-  // Moved from the deleted Header tests (GLG-875). Runs after the test above,
+  // Moved from the deleted Header tests. Runs after the test above,
   // which leaves user B signed in.
   it('offers a skip link to main first and names the logo links', async () => {
     const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
@@ -250,13 +250,13 @@ describe('App', () => {
     expect(document.querySelectorAll('main')).toHaveLength(1)
     expect(screen.getByRole('main')).toHaveAttribute('id', 'main')
     // Named by an attribute, so the name holds even where the text is hidden.
-    // They open Tüm portföyler, the home page since GLG-935.
+    // They open Tüm portföyler, the home page.
     const logos = document.querySelectorAll('a[aria-label="gelirgider"]')
     expect(logos.length).toBeGreaterThan(0)
     logos.forEach((logo) => expect(logo).toHaveAttribute('href', '/portfolios/all'))
   })
 
-  // GLG-935: the home page is gone; / lands on Tüm portföyler, which offers
+  // The home page is gone; / lands on Tüm portföyler, which offers
   // the first portfolio when there is none. Runs after the tests above,
   // which leave user B signed in.
   it('redirects / to Tüm portföyler', async () => {
@@ -277,7 +277,7 @@ describe('App', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Tüm portföyler' })).toBeInTheDocument()
   })
 
-  // GLG-955: the Performans tab is a route of its own. Runs after the tests
+  // The Performans tab is a route of its own. Runs after the tests
   // above, which leave user B signed in.
   it('routes the Performans tab', async () => {
     const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
@@ -302,7 +302,7 @@ describe('App', () => {
     window.history.replaceState(null, '', '/')
   })
 
-  // GLG-1262: each page renders its own tab row, so a tab change unmounts
+  // Each page renders its own tab row, so a tab change unmounts
   // the focused tab with the page and dropped focus to <body>.
   it('keeps focus on the tab row when a tab is activated from the keyboard', async () => {
     const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
@@ -341,7 +341,7 @@ describe('App', () => {
     window.history.replaceState(null, '', '/')
   })
 
-  // GLG-882: a signed-in user's unknown URL is a page like any other, inside
+  // A signed-in user's unknown URL is a page like any other, inside
   // the shell. Runs after the tests above, which leave user B signed in.
   it('shows the not-found page inside the shell when signed in', async () => {
     const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
@@ -364,7 +364,7 @@ describe('App', () => {
     window.history.replaceState(null, '', '/')
   })
 
-  // GLG-1339: the portfolio pages share one /portfolios/:id layout route; a
+  // The portfolio pages share one /portfolios/:id layout route; a
   // sub-path none of its children names is still unknown, not a portfolio
   // page. Runs after the tests above, which leave user B signed in.
   it('shows the not-found page for an unknown portfolio sub-path', async () => {
@@ -405,7 +405,7 @@ describe('App', () => {
     window.history.replaceState(null, '', '/')
   })
 
-  // GLG-1077: setup step 2 is for the admin; a signed-in non-admin gets the
+  // Setup step 2 is for the admin; a signed-in non-admin gets the
   // same not-found page as any unknown URL, inside the shell with its link
   // home, not a bare page.
   it('shows a non-admin the not-found page inside the shell at /setup/configure', async () => {
@@ -432,7 +432,7 @@ describe('App', () => {
     window.history.replaceState(null, '', '/')
   })
 
-  // GLG-1062: the sidebar keeps the İçe aktar tab on a portfolio switch, and
+  // The sidebar keeps the İçe aktar tab on a portfolio switch, and
   // a preview opened for A must not stay on screen to be committed into B.
   // Runs after the tests above, which leave user B signed in.
   it('starts the import page over when the portfolio changes', async () => {
@@ -502,7 +502,7 @@ describe('App', () => {
     window.history.replaceState(null, '', '/')
   })
 
-  // GLG-1062 review: a modal blocks the sidebar but not Back. A dialog
+  // A modal blocks the sidebar but not Back. A dialog
   // opened for A must not stay open on B's page to book into B.
   it('closes a portfolio page dialog when Back leads to another portfolio', async () => {
     // jsdom has no showModal.
@@ -553,13 +553,13 @@ describe('App', () => {
 
     await waitFor(() => expect(window.location.pathname).toBe('/portfolios/2/dividends'))
     // The router renders Back in a transition, after the URL has changed, so
-    // wait for that render to remount the page (GLG-1098).
+    // wait for that render to remount the page.
     await waitFor(() => expect(document.querySelector('dialog[open]')).toBeNull())
     window.history.replaceState(null, '', '/')
   })
 
-  // GLG-876. The privacy toggle in the drawer leaves the drawer open with
-  // focus on the toggle; it no longer remounts the app (GLG-1031). Runs after
+  // The privacy toggle in the drawer leaves the drawer open with
+  // focus on the toggle; it no longer remounts the app. Runs after
   // the tests above, which leave user B signed in.
   it('keeps the drawer open and the toggle focused when privacy is toggled from it', async () => {
     // jsdom has no showModal.
@@ -590,7 +590,7 @@ describe('App', () => {
     expect(document.activeElement).toBe(show)
   })
 
-  // GLG-1031. Privacy re-renders the amounts in place: the range before a
+  // Privacy re-renders the amounts in place: the range before a
   // zoom and the Katkı card's choice survive it. Runs after the tests above,
   // which leave user B signed in.
   it('keeps the range before a zoom and the Katkı choice across a privacy toggle', async () => {
@@ -720,7 +720,7 @@ describe('App', () => {
     }
   })
 
-  // GLG-1023. Another admin removed this user's admin role while Yönetim was
+  // Another admin removed this user's admin role while Yönetim was
   // open. Runs after the tests above, which leave user B signed in.
   it('says the user is no longer an admin and drops the admin page on a 403', async () => {
     const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: true }

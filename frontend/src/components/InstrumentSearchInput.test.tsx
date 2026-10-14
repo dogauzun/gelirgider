@@ -17,7 +17,7 @@ describe('InstrumentSearchInput', () => {
     setLocale('tr')
   })
 
-  // GLG-225: an empty result set used to render nothing at all, so the user
+  // An empty result set used to render nothing at all, so the user
   // could not tell "no match" from "still loading".
   it('shows the empty state once a query with no matches settles', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('[]'))
@@ -39,7 +39,7 @@ describe('InstrumentSearchInput', () => {
     )
   })
 
-  // GLG-1305: the edit dialog holds a picked instrument's label, which the
+  // The edit dialog holds a picked instrument's label, which the
   // search cannot match, so focusing the field said "Sonuç yok" under it.
   it('does not search for the label of a picked instrument', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('[]'))
@@ -65,7 +65,7 @@ describe('InstrumentSearchInput', () => {
     expect(globalThis.fetch).not.toHaveBeenCalled()
   })
 
-  // GLG-812: nothing showed while the query was in flight, and the outcome
+  // Nothing showed while the query was in flight, and the outcome
   // was not announced to screen readers.
   it('shows a loading row in flight, then announces the result count', async () => {
     let respond: (response: Response) => void = () => {}
@@ -98,7 +98,7 @@ describe('InstrumentSearchInput', () => {
     expect(screen.getByRole('status')).toHaveTextContent('2 sonuç')
   })
 
-  // GLG-1192: a search cut at the API's 20 rows said "20 sonuç", as if that
+  // A search cut at the API's 20 rows said "20 sonuç", as if that
   // were every match, so a fund past the cap looked missing.
   it('says the results are cut at the cap and to keep typing', async () => {
     const funds = Array.from({ length: 20 }, (_, i) => ({
@@ -123,7 +123,7 @@ describe('InstrumentSearchInput', () => {
     expect(screen.getAllByRole('option')).toHaveLength(20)
   })
 
-  // GLG-323: the result list was mouse-only; Tab dropped focus to <body>.
+  // The result list was mouse-only; Tab dropped focus to <body>.
   it('selects the first result with ArrowDown then Enter', async () => {
     const thyao = {
       id: 7,
@@ -150,7 +150,7 @@ describe('InstrumentSearchInput', () => {
     expect(onSelect).toHaveBeenCalledWith(thyao)
   })
 
-  // GLG-991: for 300 ms after the text changed, the list still held the
+  // For 300 ms after the text changed, the list still held the
   // previous query's results, and ArrowDown then Enter picked one of them.
   it('lists and selects nothing while the text differs from the searched query', async () => {
     const thyao = { id: 7, symbol: 'THYAO', market: 'BIST', name: 'THY', currency: 'TRY' }
@@ -196,7 +196,7 @@ describe('InstrumentSearchInput', () => {
     expect(onSelect).toHaveBeenCalledWith(asels)
   })
 
-  // GLG-425: Chromium makes a scrolling listbox a Tab stop, so Tab from a long
+  // Chromium makes a scrolling listbox a Tab stop, so Tab from a long
   // result list landed on it and focus fell to <body>. jsdom does not model
   // scroller focusability, so assert the listbox opts out of the Tab order.
   it('keeps the result list out of the Tab order', async () => {
@@ -218,7 +218,7 @@ describe('InstrumentSearchInput', () => {
     expect(await screen.findByRole('listbox')).toHaveAttribute('tabindex', '-1')
   })
 
-  // GLG-433: ArrowDown past the visible area left the highlighted option
+  // ArrowDown past the visible area left the highlighted option
   // scrolled out of view. jsdom has no layout, so assert the highlighted
   // option asks to be scrolled into view.
   it('scrolls the highlighted option into view', async () => {
@@ -248,7 +248,7 @@ describe('InstrumentSearchInput', () => {
     expect(scrollIntoView).toHaveBeenLastCalledWith(expect.objectContaining({ block: 'nearest' }))
   })
 
-  // GLG-445: ArrowUp with nothing highlighted landed on the second-to-last
+  // ArrowUp with nothing highlighted landed on the second-to-last
   // option instead of the last.
   it('highlights the last result with ArrowUp from no highlight', async () => {
     const results = Array.from({ length: 3 }, (_, i) => ({
@@ -274,7 +274,7 @@ describe('InstrumentSearchInput', () => {
     expect(input).toHaveAttribute('aria-activedescendant', last.id)
   })
 
-  // GLG-440: the list was absolute, so the import preview's scrolling table
+  // The list was absolute, so the import preview's scrolling table
   // card cut it off under its last rows. It is portaled out of the input's
   // ancestors; Base UI places it, above the input when there is no room below.
   it('renders the list outside the input’s overflow ancestors', async () => {
@@ -298,7 +298,7 @@ describe('InstrumentSearchInput', () => {
     expect(container).not.toContainElement(await screen.findByRole('listbox'))
   })
 
-  // GLG-1285: Base UI writes a picked item into the input and clears it on
+  // Base UI writes a picked item into the input and clears it on
   // Escape with the list closed. The caller sets its own label on select (the
   // dialog's "SYMBOL - Name"), so only typing may reach onChange.
   it('passes only typed text to onChange, not a pick or an Escape', async () => {
@@ -325,7 +325,7 @@ describe('InstrumentSearchInput', () => {
     expect(onChange).toHaveBeenCalledWith('THYA')
   })
 
-  // GLG-1322: Base UI's two hidden dismiss buttons, there for screen readers
+  // Base UI's two hidden dismiss buttons, there for screen readers
   // while the list is open, were named "Dismiss" in English in the tr UI.
   it('names the list’s dismiss buttons in the UI language', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
@@ -350,7 +350,7 @@ describe('InstrumentSearchInput', () => {
     for (const button of buttons) expect(button).toHaveAccessibleName('Önerileri kapat')
   })
 
-  // GLG-1285: Escape and a click outside close the open list.
+  // Escape and a click outside close the open list.
   it('closes the list on Escape and on a click outside', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
@@ -380,7 +380,7 @@ describe('InstrumentSearchInput', () => {
     await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument())
   })
 
-  // GLG-544: GOLD reads as a word per locale, BIST stays a code.
+  // GOLD reads as a word per locale, BIST stays a code.
   it('labels the market per locale in the result badge', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () =>

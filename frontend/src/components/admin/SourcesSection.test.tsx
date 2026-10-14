@@ -44,7 +44,7 @@ describe('SourcesSection', () => {
     const section = document.getElementById('admin-sources')!
     expect(within(section).getByRole('heading', { name: 'Kaynaklar' })).toHaveClass('text-[14px]')
 
-    // GLG-351: the schedule checkboxes are named by their label, not "on".
+    // The schedule checkboxes are named by their label, not "on".
     const catchup = await screen.findByRole('checkbox', { name: 'Açılışta eksikleri tamamla' })
     await vi.waitFor(() => expect(catchup).toBeChecked())
     expect(
@@ -70,7 +70,7 @@ describe('SourcesSection', () => {
     )
   })
 
-  // GLG-917: Chromium blurs a focused control the moment it is disabled, so a
+  // Chromium blurs a focused control the moment it is disabled, so a
   // keyboard user who toggled a checkbox lost focus to <body> while it saved.
   it('keeps a schedule checkbox enabled and focused while it saves', async () => {
     let release!: () => void
@@ -108,7 +108,7 @@ describe('SourcesSection', () => {
     expect(catchup).toHaveFocus()
   })
 
-  // GLG-1292: isPending reaches the controls a tick after the click, so a
+  // isPending reaches the controls a tick after the click, so a
   // double click's second click came before pending and sent the request twice.
   it('sends one request per double click on backfill all and a schedule checkbox', async () => {
     const sent: string[] = []

@@ -9,18 +9,18 @@ import { Toaster } from '../components/ui/Toast'
 import { chooseOption } from '../test/select'
 import { ImportPage } from './ImportPage'
 
-// PastImports reads the browser's zone once, when it loads (GLG-1175), so the
+// PastImports reads the browser's zone once, when it loads, so the
 // past-imports test's Istanbul has to be in place before the imports above
 // run. The other tests keep the default zone.
 vi.hoisted(() => vi.stubEnv('TZ', 'Europe/Istanbul'))
 beforeAll(() => vi.unstubAllEnvs())
 
 // jsdom has no matchMedia. The preview renders the table or the phone list by
-// viewport (GLG-461), so tests get the table unless they set `desktop`.
+// viewport, so tests get the table unless they set `desktop`.
 let desktop = true
 
 // jsdom implements neither method on <dialog>; both only flip the open state.
-// Nor scrollIntoView, which a row the commit refuses calls (GLG-1065).
+// Nor scrollIntoView, which a row the commit refuses calls.
 beforeAll(() => {
   Element.prototype.scrollIntoView = () => {}
   HTMLDialogElement.prototype.showModal = function () {
@@ -110,7 +110,7 @@ const preview = {
     { symbol: 'VTI', quantity: '2', avg_cost: '331.82', currency: 'USD' },
     { symbol: 'QQQ', quantity: '1', avg_cost: '587.42', currency: 'USD' },
   ],
-  // GLG-207: the statement's snapshot against the computed position -- one
+  // The statement's snapshot against the computed position -- one
   // match, one symbol the portfolio is short of, and one position the
   // statement never mentions.
   reconciliation: [
@@ -126,7 +126,7 @@ function portfoliosResponse() {
 
 // The instrument the user picks for the statement's unknown symbol.
 const xyz = { id: 777, symbol: 'XYZ', market: 'US', name: 'XYZ Holding', currency: 'USD' }
-// The fund the TEFAS lookup creates (GLG-733).
+// The fund the TEFAS lookup creates.
 const gtl = {
   id: 888,
   symbol: 'GTL',
@@ -142,7 +142,7 @@ function mockApi(
   parse: (file: File, form: FormData) => Response,
   onCommit?: (body: Record<string, unknown>) => Response,
   // The past-imports section at the bottom of the page lists these, and
-  // records the id of an undo it is asked for (GLG-206).
+  // records the id of an undo it is asked for.
   pastImports: Record<string, unknown>[] = [],
   onDelete?: (id: string) => void,
 ) {
@@ -177,7 +177,7 @@ function mockApi(
 }
 
 // Holds every request `when` matches until the returned release is called,
-// which opens the gap a race needs (GLG-1063).
+// which opens the gap a race needs.
 function hold(when: (url: string, method: string) => boolean) {
   const inner = vi.mocked(fetch).getMockImplementation()!
   let release!: () => void
@@ -201,7 +201,7 @@ function TransactionsProbe() {
   )
 }
 
-// The page keeps Bitti per history entry (GLG-1072), and every MemoryRouter's
+// The page keeps Bitti per history entry, and every MemoryRouter's
 // first entry has the key "default": each test gets an entry of its own.
 const importEntry = () => ({ pathname: '/portfolios/1/import', key: crypto.randomUUID() })
 
@@ -219,12 +219,12 @@ function renderPage() {
   )
 }
 
-// The drop zone's file input; the zone itself opens it (GLG-965).
+// The drop zone's file input; the zone itself opens it.
 function fileInput() {
   return document.querySelector<HTMLInputElement>('input[type="file"]')!
 }
 
-// Step 1: pick the files, which starts the preview (GLG-965). The bytes never
+// Step 1: pick the files, which starts the preview. The bytes never
 // leave jsdom -- fetch is mocked -- so any content will do.
 function upload(names = ['ekstre.pdf']) {
   const files = names.map((name) => new File(['%PDF-1.4'], name, { type: 'application/pdf' }))
@@ -232,21 +232,21 @@ function upload(names = ['ekstre.pdf']) {
 }
 
 // One click of a run of clicks, as the browser counts them: the mousedown
-// and the click carry the click's number in the run (GLG-1297).
+// and the click carry the click's number in the run.
 function press(button: HTMLElement, detail: number) {
   fireEvent.mouseDown(button, { detail })
   fireEvent.click(button, { detail })
 }
 
 // İçe aktar, and "Yine de içe aktar" when rows that still need fixing would
-// be left out (GLG-784).
+// be left out.
 function clickImport() {
   fireEvent.click(screen.getByRole('button', { name: 'İçe aktar' }))
   const anyway = screen.queryByRole('button', { name: 'Yine de içe aktar' })
   if (anyway) fireEvent.click(anyway)
 }
 
-// A pick requests the preview again, and İçe aktar waits for it (GLG-752).
+// A pick requests the preview again, and İçe aktar waits for it.
 async function importWhenReady() {
   const button = screen.getByRole('button', { name: 'İçe aktar' })
   await waitFor(() => expect(button).toBeEnabled())
@@ -254,26 +254,26 @@ async function importWhenReady() {
 }
 
 // The past imports and holdings panels share the page, so row queries are
-// scoped to the preview table, the first of the two tables (GLG-793).
+// scoped to the preview table, the first of the two tables.
 function table() {
   return within(screen.getAllByRole('table')[0])
 }
 
-// The row checkboxes, without the header's select-all (GLG-798).
+// The row checkboxes, without the header's select-all.
 function body() {
   return within(screen.getAllByRole('table')[0].querySelector('tbody')!)
 }
 
-// The boxes are ui/Checkbox, a span with role="checkbox" (GLG-963).
+// The boxes are ui/Checkbox, a span with role="checkbox".
 const isChecked = (box: HTMLElement) => box.getAttribute('aria-checked') === 'true'
 
-// A preview with rows to fix opens on "Sorunlu" (GLG-966); a test about the
+// A preview with rows to fix opens on "Sorunlu"; a test about the
 // other rows switches to "Tümü" first.
 async function showAll() {
   fireEvent.click(await screen.findByRole('radio', { name: /^Tümü/ }))
 }
 
-// The raw line of a row opens on demand (GLG-966).
+// The raw line of a row opens on demand.
 function openRawLines() {
   for (const button of screen.queryAllByRole('button', { name: 'Satırı göster' })) {
     fireEvent.click(button)
@@ -286,7 +286,7 @@ describe('ImportPage', () => {
     desktop = true
   })
 
-  // GLG-965: the steps above, the upload and the history side by side from
+  // The steps above, the upload and the history side by side from
   // lg with the upload first, and a chosen file goes straight to the preview.
   it('lays out step 1 and starts the preview as soon as a file is chosen', async () => {
     const parsed: string[] = []
@@ -362,7 +362,7 @@ describe('ImportPage', () => {
 
   it('previews the statement with a checkbox state per row status', async () => {
     // The import the overlap warning names; a warning for an import no
-    // longer listed is dropped (GLG-361).
+    // longer listed is dropped.
     const overlapped = {
       id: 3,
       broker: 'midas',
@@ -378,7 +378,7 @@ describe('ImportPage', () => {
     upload()
     await screen.findAllByRole('table')
 
-    // GLG-966: one filter in place of the two notices, on Sorunlu on entry:
+    // One filter in place of the two notices, on Sorunlu on entry:
     // the unknown instrument and the unreadable row, each once.
     expect(screen.getByRole('radio', { name: 'Sorunlu 2' })).toHaveAttribute('aria-checked', 'true')
     expect(body().getAllByRole('row')).toHaveLength(2)
@@ -388,8 +388,8 @@ describe('ImportPage', () => {
     expect(screen.getByRole('radio', { name: 'Tümü 5' })).toHaveAttribute('aria-checked', 'true')
 
     // ok rows are checked, the unknown instrument is present but blocked, and
-    // the skipped and error rows have no checkbox at all. In date order
-    // (GLG-966): 12.12, 20.12, 24.12, the error row's 30.12, the undated
+    // the skipped and error rows have no checkbox at all. In date order:
+    // 12.12, 20.12, 24.12, the error row's 30.12, the undated
     // skipped row last.
     const boxes = body().getAllByRole('checkbox')
     expect(boxes).toHaveLength(3)
@@ -401,7 +401,7 @@ describe('ImportPage', () => {
     expect(rows[3]).toHaveTextContent('30.12.2025')
     expect(rows[4]).toHaveTextContent('Döviz işlemi, atlandı')
 
-    // GLG-351: each box names its row -- date, symbol if any, and type.
+    // Each box names its row -- date, symbol if any, and type.
     expect(
       table().getByRole('checkbox', {
         name: '26.12.2025 VTI Alış 2 × $331,82 $663,64 satırını seç',
@@ -410,7 +410,7 @@ describe('ImportPage', () => {
     expect(
       table().getByRole('checkbox', { name: '09.12.2025 Para yatırma $8.237,46 satırını seç' }),
     ).toBe(boxes[0])
-    // GLG-365: the edit buttons name their row the same way; the skipped row
+    // The edit buttons name their row the same way; the skipped row
     // has no date, symbol or type and keeps the plain name.
     expect(
       table().getByRole('button', {
@@ -425,8 +425,8 @@ describe('ImportPage', () => {
     openRawLines()
     expect(table().getByText('30/12/25 | Alış | VTI | ?')).toBeInTheDocument()
 
-    // The overlap warning in Turkish with tr dates (GLG-328) and the period
-    // rather than the import's id (GLG-361), the holdings panel and the two
+    // The overlap warning in Turkish with tr dates and the period
+    // rather than the import's id, the holdings panel and the two
     // counters. An overlap does not block the commit.
     expect(
       screen.getByText(
@@ -439,7 +439,7 @@ describe('ImportPage', () => {
     expect(screen.getByText('2 satır aktarılmayacak')).toBeInTheDocument()
   })
 
-  // GLG-966: nothing to fix opens on Tümü; the compact table's nine columns,
+  // Nothing to fix opens on Tümü; the compact table's nine columns,
   // quantity and price in one cell and the fee under Kesinti.
   it('opens on Tümü without rows to fix and lays the table out in nine columns', async () => {
     const rows = [{ ...preview.rows[0], fee: '1.5' }, preview.rows[1]]
@@ -474,7 +474,7 @@ describe('ImportPage', () => {
     expect(vti.getByText('$1,50')).toBeInTheDocument()
   })
 
-  // GLG-966: once the last row to fix is fixed, Sorunlu would be empty, so
+  // Once the last row to fix is fixed, Sorunlu would be empty, so
   // every row shows; the phone list takes the same filter.
   it('shows every row once the last row to fix is fixed', async () => {
     const rows = [preview.rows[0], preview.rows[2]]
@@ -495,7 +495,7 @@ describe('ImportPage', () => {
     expect(screen.getAllByRole('checkbox', { name: /satırını seç$/ })).toHaveLength(2)
   })
 
-  // GLG-415: a dividend row the server matched to a hand-entered dividend
+  // A dividend row the server matched to a hand-entered dividend
   // warns with that dividend's date and starts unchecked; the user can still
   // check it.
   it('starts a likely duplicate dividend unchecked with a warning', async () => {
@@ -532,9 +532,9 @@ describe('ImportPage', () => {
     expect(box).toBeChecked()
   })
 
-  // GLG-738: the opening rows the preview proposes (GLG-737) carry a pill and
+  // The opening rows the preview proposes carry a pill and
   // sit under one line saying what they are; they start checked like any row.
-  // Priced from two sources, the line names neither (GLG-1185).
+  // Priced from two sources, the line names neither.
   it('groups the proposed opening rows under one explanation', async () => {
     const opening = { status: 'ok', date: '2025-11-30', fee: '0', currency: 'TRY', opening: true }
     const rows = [
@@ -580,7 +580,7 @@ describe('ImportPage', () => {
     for (const box of body().getAllByRole('checkbox')) expect(box).toBeChecked()
   })
 
-  // GLG-1185: opening buys priced with the statement's average cost (Midas)
+  // Opening buys priced with the statement's average cost (Midas)
   // say so, above the group and on each row, not the day-before price.
   it('names the average cost as the price of opening rows that use it', async () => {
     const opening = { status: 'ok', date: '2025-08-31', fee: '0', currency: 'USD', opening: true }
@@ -614,7 +614,7 @@ describe('ImportPage', () => {
     expect(table().getByText('Fiyat ekstredeki ortalama maliyettir.')).toBeInTheDocument()
   })
 
-  // GLG-1190: a closing sell for a position the statement omits carries its
+  // A closing sell for a position the statement omits carries its
   // pill and line and starts unchecked; checked, it closes that position's
   // reconciliation line, and its withdrawal follows it so the cash line
   // still matches.
@@ -714,9 +714,9 @@ describe('ImportPage', () => {
     expect(table().getByText('Açılış')).toBeInTheDocument()
   })
 
-  // GLG-215: the Durum column is ~60px wide, so a statement line pushed into
+  // The Durum column is ~60px wide, so a statement line pushed into
   // it wrapped to a 40-line strip. It gets the table's full width instead,
-  // under its row and on demand (GLG-966).
+  // under its row and on demand.
   it('puts the raw line of a skipped row on a row that spans the table', async () => {
     mockApi(() => new Response(JSON.stringify(preview), { status: 200 }))
     renderPage()
@@ -737,7 +737,7 @@ describe('ImportPage', () => {
     const raw = table().getByText(text)
     expect(raw.closest('tr')).toBe(skipped.nextElementSibling)
     expect(raw.closest('td')).toHaveAttribute('colspan', '9')
-    // GLG-761: `faint` fails WCAG AA contrast; the raw line and the skipped
+    // `faint` fails WCAG AA contrast; the raw line and the skipped
     // row are readable text, so neither carries it.
     expect(raw).not.toHaveClass('text-faint')
     expect(raw.closest('tr')).not.toHaveClass('text-faint')
@@ -745,7 +745,7 @@ describe('ImportPage', () => {
     expect(table().getByText('Döviz işlemi, atlandı').closest('td')).not.toHaveAttribute('colspan')
   })
 
-  // GLG-798: one box over the committable rows checks or clears them all,
+  // One box over the committable rows checks or clears them all,
   // and shows a mix as indeterminate.
   it('selects all or none of the rows that can be imported', async () => {
     mockApi(() => new Response(JSON.stringify(preview), { status: 200 }))
@@ -772,8 +772,8 @@ describe('ImportPage', () => {
     expect(all).not.toBePartiallyChecked()
   })
 
-  // GLG-787: the rows to fix come first, now through the Sorunlu filter the
-  // review opens on (GLG-966); the edit dialog repeats the statement line it
+  // The rows to fix come first, now through the Sorunlu filter the
+  // review opens on; the edit dialog repeats the statement line it
   // covers.
   it('points to the rows to fix and shows the statement line in the dialog', async () => {
     mockApi(() => new Response(JSON.stringify(preview), { status: 200 }))
@@ -783,7 +783,7 @@ describe('ImportPage', () => {
     await screen.findAllByRole('table')
 
     // Only the rows to fix, the unknown XYZ first; its instrument search is
-    // above the table (GLG-1193).
+    // above the table.
     const rows = body().getAllByRole('row')
     expect(rows).toHaveLength(2)
     expect(rows[0]).toHaveTextContent('Enstrüman bulunamadı: XYZ')
@@ -795,7 +795,7 @@ describe('ImportPage', () => {
     expect(dialog.getByText('30/12/25 | Alış | VTI | ?')).toBeInTheDocument()
   })
 
-  // GLG-454: the phone row showed a bare dd/MM, so a row from an old
+  // The phone row showed a bare dd/MM, so a row from an old
   // statement read as this year's. It names the month and keeps the year.
   it('shows the year of an old row in the phone list', async () => {
     const old = {
@@ -811,19 +811,19 @@ describe('ImportPage', () => {
 
     upload()
     expect(await screen.findByText(/^02 Oca 1990 · /)).toBeInTheDocument()
-    // GLG-791: the detail line wraps instead of cutting into the price, and
-    // the action row sticks to the bottom of the screen, a phone's too
-    // (GLG-966). jsdom has no layout, so the classes stand in.
+    // The detail line wraps instead of cutting into the price, and
+    // the action row sticks to the bottom of the screen, a phone's too.
+    // jsdom has no layout, so the classes stand in.
     expect(screen.getByText(/^02 Oca 1990 · /)).not.toHaveClass('truncate')
     expect(screen.getByTestId('preview-actions')).toHaveClass('sticky', 'bottom-0')
-    // GLG-837: the bar's add button keeps its label on one line, so it does
+    // The bar's add button keeps its label on one line, so it does
     // not spill out of the fixed-height box.
     expect(
       within(screen.getByTestId('preview-actions')).getByRole('button', { name: 'Satır ekle' }),
     ).toHaveClass('whitespace-nowrap')
   })
 
-  // GLG-461: a multi-year statement has hundreds of rows, and building the
+  // A multi-year statement has hundreds of rows, and building the
   // hidden layout too doubled the DOM.
   it('builds only the preview layout that matches the viewport', async () => {
     mockApi(() => new Response(JSON.stringify(preview), { status: 200 }))
@@ -839,7 +839,7 @@ describe('ImportPage', () => {
     renderPage()
     upload()
     await showAll()
-    // The holdings check is the only table left (GLG-793).
+    // The holdings check is the only table left.
     expect(screen.getAllByRole('table')).toHaveLength(1)
     expect(screen.getByRole('table').closest('section')).toHaveTextContent(
       'Ekstreye göre pozisyonlar',
@@ -854,13 +854,13 @@ describe('ImportPage', () => {
     upload()
     await showAll()
 
-    // GLG-417: a wider table scrolls inside its card rather than clipping the
+    // A wider table scrolls inside its card rather than clipping the
     // edit buttons. The description is cut in the instrument column, the
     // one that takes the room the others leave (w-full max-w-0), so it never
-    // widens the table (GLG-966). jsdom has no layout, so the classes stand
+    // widens the table. jsdom has no layout, so the classes stand
     // in for the measured widths.
     expect(screen.getAllByRole('table')[0].parentElement).toHaveClass('overflow-x-auto')
-    // GLG-689: positioned, so the absolute sr-only header labels are clipped by
+    // Positioned, so the absolute sr-only header labels are clipped by
     // the card instead of widening the page at 768 px.
     expect(screen.getAllByRole('table')[0].parentElement).toHaveClass('relative')
     const description = table().getByText('Garanti BBVA')
@@ -889,7 +889,7 @@ describe('ImportPage', () => {
     expect(cells(lines[0]).slice(1)).toEqual(['2', '2', '0'])
     expect(lines[0]).toHaveTextContent('ort. maliyet')
 
-    // GLG-793: the difference is statement minus portfolio, signed, and
+    // The difference is statement minus portfolio, signed, and
     // stands out only when it is not zero.
     expect(within(lines[1]).getByRole('img', { name: 'Uyuşmuyor' })).toBeInTheDocument()
     expect(cells(lines[1]).slice(1)).toEqual(['1', '0', '+1'])
@@ -907,7 +907,7 @@ describe('ImportPage', () => {
     expect(screen.getByRole('button', { name: 'İçe aktar' })).toBeEnabled()
   })
 
-  // GLG-755: Garanti statements print no average cost, so their holdings
+  // Garanti statements print no average cost, so their holdings
   // carry "0" and the line is left out rather than showing a zero cost.
   it('leaves out the avg cost of a holding the statement printed none for', async () => {
     const noCost = {
@@ -930,7 +930,7 @@ describe('ImportPage', () => {
     expect(lines[0]).not.toHaveTextContent('ort. maliyet')
   })
 
-  // GLG-419: the statement's cash balance is the panel's last line, in its
+  // The statement's cash balance is the panel's last line, in its
   // currency, and a mismatch there warns like a position does.
   it('shows the cash line and warns when the cash balance does not reconcile', async () => {
     const cashOff = {
@@ -971,7 +971,7 @@ describe('ImportPage', () => {
     ).toBeInTheDocument()
   })
 
-  // GLG-793: the cash line matches within a cent (GLG-419), so a rounding
+  // The cash line matches within a cent, so a rounding
   // difference is shown but not highlighted next to the check.
   it('highlights a difference only on a line that does not match', async () => {
     const rounding = {
@@ -1014,7 +1014,7 @@ describe('ImportPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  // GLG-418: on a same_period statement the portfolio side already counts
+  // On a same_period statement the portfolio side already counts
   // the earlier import, so the mismatch does not point at missing months.
   it('drops the previous-months hint on a same_period statement', async () => {
     const again = {
@@ -1053,7 +1053,7 @@ describe('ImportPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  // GLG-1191: the panel follows the rows as İçe aktar would send them, not
+  // The panel follows the rows as İçe aktar would send them, not
   // the rows the preview started checked. Unchecking the VTI buy leaves VTI
   // and the cash short; pricing the QQQ opening buy, an error row until
   // then, makes QQQ match.
@@ -1174,7 +1174,7 @@ describe('ImportPage', () => {
     // Drop the deposit; the buy is the only row left checked.
     fireEvent.click(body().getAllByRole('checkbox')[0])
     expect(screen.getByText('1 satır seçildi')).toBeInTheDocument()
-    // The unknown symbol and the error row are not checked (GLG-784).
+    // The unknown symbol and the error row are not checked.
     expect(screen.getByText('2 satır aktarılmayacak')).toBeInTheDocument()
 
     // They are asked about before anything is sent.
@@ -1183,7 +1183,7 @@ describe('ImportPage', () => {
     expect(committed).toBeNull()
     fireEvent.click(within(ask).getByRole('button', { name: 'Yine de içe aktar' }))
     await screen.findByText('işlemler sayfası')
-    // İşlemler opens on the new import's rows, with its banner (GLG-936).
+    // İşlemler opens on the new import's rows, with its banner.
     expect(screen.getByTestId('arrival').textContent).toBe('?import=7 {"imported":7}')
     expect(
       await screen.findByText('1 işlem içe aktarıldı, 2 satır dışarıda kaldı'),
@@ -1211,7 +1211,7 @@ describe('ImportPage', () => {
     })
   })
 
-  // GLG-772: Vazgeç on an untouched preview just closes it; once a row was
+  // Vazgeç on an untouched preview just closes it; once a row was
   // changed it asks first, and keeping the preview keeps the change.
   it('asks before Vazgeç drops changes made to the preview', async () => {
     mockApi(() => new Response(JSON.stringify(preview), { status: 200 }))
@@ -1242,7 +1242,7 @@ describe('ImportPage', () => {
     await waitFor(() => expect(screen.queryByRole('table')).not.toBeInTheDocument())
   })
 
-  // GLG-360: a month with nothing in it is still recorded, so it shows under
+  // A month with nothing in it is still recorded, so it shows under
   // past imports and a re-upload of the period is caught.
   it('commits an empty statement with no rows', async () => {
     const empty = { ...preview, warnings: [], rows: [], holdings: [], reconciliation: [] }
@@ -1289,7 +1289,7 @@ describe('ImportPage', () => {
     upload()
     await screen.findAllByRole('table')
 
-    // rows[1] is the deposit, the first row in date order (GLG-966).
+    // rows[1] is the deposit, the first row in date order.
     clickImport()
     expect(
       await screen.findByText(
@@ -1300,7 +1300,7 @@ describe('ImportPage', () => {
     expect(screen.getAllByRole('table')[0]).toBeInTheDocument()
   })
 
-  // GLG-966: the review opened on Sorunlu, which never shows the checked ok
+  // The review opened on Sorunlu, which never shows the checked ok
   // row the server refused, so the error switches to Tümü where the named
   // row sits at its number.
   it('shows every row when the commit rejects a row on Sorunlu', async () => {
@@ -1327,7 +1327,7 @@ describe('ImportPage', () => {
     expect(body().getAllByRole('row')[0]).toHaveTextContent('Para yatırma')
   })
 
-  // GLG-1018: rows[i] counts the rows sent, not the rows shown. With the
+  // Rows[i] counts the rows sent, not the rows shown. With the
   // first row unchecked, the server's rows[1] is the third row on screen.
   it('names the row on screen when an earlier row is left out of the commit', async () => {
     const third = { ...preview.rows[1], key: 'cash-1', date: '2026-01-15', amount: '300' }
@@ -1360,7 +1360,7 @@ describe('ImportPage', () => {
     ).toBeInTheDocument()
   })
 
-  // GLG-1065: the commit error rendered below the table, out of view from a
+  // The commit error rendered below the table, out of view from a
   // long review. It is shown in the sticky bar, beside İçe aktar.
   it('shows a failed commit in the sticky bar', async () => {
     mockApi(
@@ -1377,7 +1377,7 @@ describe('ImportPage', () => {
     expect(await bar.findByRole('alert')).toBeInTheDocument()
   })
 
-  // GLG-1065: a refused row is marked by the error and scrolled into view,
+  // A refused row is marked by the error and scrolled into view,
   // in the table and in the phone list.
   it.each([true, false])(
     'marks and scrolls to the row a commit refuses (desktop %s)',
@@ -1401,7 +1401,7 @@ describe('ImportPage', () => {
       const message = '1. satır: Tarih ekstre dönemi içinde olmalı (2025-12-01 – 2025-12-31).'
       const alert = await within(screen.getByTestId('preview-actions')).findByRole('alert')
       expect(alert).toHaveTextContent(message)
-      // rows[1] is the deposit, the first row in date order (GLG-966).
+      // rows[1] is the deposit, the first row in date order.
       const marked = document.querySelector<HTMLElement>(
         '[aria-describedby="import-commit-error"]',
       )!
@@ -1417,7 +1417,7 @@ describe('ImportPage', () => {
     },
   )
 
-  // GLG-1065: only a failed commit is reset by a row action; resetting one in
+  // Only a failed commit is reset by a row action; resetting one in
   // flight dropped its onSuccess, so the import landed with no way on.
   it('still goes to the transactions page when a row is toggled during the commit', async () => {
     let release: (response: Response) => void = () => {}
@@ -1448,7 +1448,7 @@ describe('ImportPage', () => {
     expect(await screen.findByText('işlemler sayfası')).toBeInTheDocument()
   })
 
-  // GLG-1299: outside a batch, Vazgeç right after İçe aktar reset the commit
+  // Outside a batch, Vazgeç right after İçe aktar reset the commit
   // in flight, so its import landed with no toast and no navigation.
   it('ignores Vazgeç while a single commit runs', async () => {
     mockApi(
@@ -1477,7 +1477,7 @@ describe('ImportPage', () => {
     expect(await screen.findByText('işlemler sayfası')).toBeInTheDocument()
   })
 
-  // GLG-1065: a row action may fix the refused row, so the error and the
+  // A row action may fix the refused row, so the error and the
   // row's mark go with it rather than stay until the next İçe aktar.
   it('clears the commit error when the refused row is edited', async () => {
     mockApi(
@@ -1549,7 +1549,7 @@ describe('ImportPage', () => {
     )
   })
 
-  // GLG-1182: a statement is one account, so the file of another portfolio
+  // A statement is one account, so the file of another portfolio
   // names that portfolio and links to its transactions.
   it('names the other portfolio a parsed file is already imported into', async () => {
     mockApi(
@@ -1574,7 +1574,7 @@ describe('ImportPage', () => {
     )
   })
 
-  // GLG-599: CSV is picked like a broker and the field names what it reads.
+  // CSV is picked like a broker and the field names what it reads.
   it('takes a CSV file and names its columns once CSV is picked', async () => {
     mockApi(() => new Response(JSON.stringify(preview), { status: 200 }))
     renderPage()
@@ -1586,13 +1586,13 @@ describe('ImportPage', () => {
     expect(screen.getByRole('button', { name: /Dosyaları buraya bırak/ })).toHaveTextContent(
       'CSV, birden fazla olabilir',
     )
-    // The column list sits behind the "CSV biçimi" disclosure (GLG-965).
+    // The column list sits behind the "CSV biçimi" disclosure.
     const format = screen.getByText('CSV biçimi').closest('details')!
     expect(format).not.toHaveAttribute('open')
     expect(format).toHaveTextContent('date, type, symbol, quantity, price, amount, fee, currency')
   })
 
-  // GLG-700: both Garanti PDFs are titled the same, so each option says which one it takes.
+  // Both Garanti PDFs are titled the same, so each option says which one it takes.
   it('names which Garanti statement each Garanti option takes', async () => {
     mockApi(() => new Response(JSON.stringify(preview), { status: 200 }))
     renderPage()
@@ -1605,7 +1605,7 @@ describe('ImportPage', () => {
     expect(broker).toHaveAccessibleDescription(expect.stringContaining('hisse senedi alımları'))
   })
 
-  // GLG-468: an action error is announced to screen readers.
+  // An action error is announced to screen readers.
   it('announces a failed parse', async () => {
     mockApi(() => new Response(JSON.stringify({ error: 'internal error' }), { status: 500 }))
     renderPage()
@@ -1614,7 +1614,7 @@ describe('ImportPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Sunucu hatası.')
   })
 
-  // GLG-361: a re-downloaded month has a new file hash, so it parses; the
+  // A re-downloaded month has a new file hash, so it parses; the
   // preview names the period, points at the undo, and keeps İçe aktar
   // disabled until the earlier import is gone.
   it('blocks the commit of a statement already imported until it is undone', async () => {
@@ -1657,7 +1657,7 @@ describe('ImportPage', () => {
       '01.12.2025 – 31.12.2025 dönemi bu portföye zaten içe aktarılmış. Yeniden aktarmak için önce aşağıdan eskisini geri al.'
     expect(screen.getByText(notice)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'İçe aktar' })).toBeDisabled()
-    // A block is an error, not the advisory yellow (GLG-794).
+    // A block is an error, not the advisory yellow.
     expect(screen.getByText(notice).closest('.border')).toHaveClass('bg-loss-soft')
 
     // Undone below, the block lifts without a new upload.
@@ -1669,7 +1669,7 @@ describe('ImportPage', () => {
     expect(screen.queryByText(notice)).not.toBeInTheDocument()
   })
 
-  // GLG-1063: the rows of a statement imported before are flagged as likely
+  // The rows of a statement imported before are flagged as likely
   // duplicates of that import's transactions. Undone below, they are not: the
   // preview is read again, so the rows come back checked and all of them are
   // committed. It is read again as soon as the import is deleted, not once
@@ -1748,7 +1748,7 @@ describe('ImportPage', () => {
     expect(committed?.rows).toHaveLength(2)
   })
 
-  // GLG-435: a period the commit refuses is named in the preview, and İçe
+  // A period the commit refuses is named in the preview, and İçe
   // aktar stays disabled instead of failing only after the click.
   it('blocks the commit of a period the server refuses', async () => {
     const future = {
@@ -1775,7 +1775,7 @@ describe('ImportPage', () => {
     expect(screen.getByRole('button', { name: 'İçe aktar' })).toBeDisabled()
   })
 
-  // GLG-577: several statements picked at once, reviewed one by one.
+  // Several statements picked at once, reviewed one by one.
 
   const ocak = { period_start: '2025-01-01', period_end: '2025-01-31' }
   const subat = { period_start: '2025-02-01', period_end: '2025-02-28' }
@@ -1839,7 +1839,7 @@ describe('ImportPage', () => {
         return new Response(JSON.stringify(created), { status: 201 })
       },
       past,
-      // An undo takes the import off the list (GLG-1072).
+      // An undo takes the import off the list.
       (id) =>
         past.splice(
           past.findIndex((item) => String(item.id) === id),
@@ -1850,14 +1850,14 @@ describe('ImportPage', () => {
   }
 
   // The past imports are a list too, so rows are read from the queue's.
-  // The list folds while a statement is in review (GLG-790); unfold it first.
+  // The list folds while a statement is in review; unfold it first.
   function queue() {
     const show = screen.queryByRole('button', { name: 'Tüm dosyaları göster' })
     if (show) fireEvent.click(show)
     return within(screen.getByRole('list', { name: 'Seçilen ekstreler' }))
   }
 
-  // Step 3, "Bitti" (GLG-967): the batch's end replaces the queue.
+  // Step 3, "Bitti": the batch's end replaces the queue.
   function done() {
     return within(screen.getByRole('region', { name: /^(Bitti:|Hiçbir ekstre)/ }))
   }
@@ -1885,7 +1885,7 @@ describe('ImportPage', () => {
 
     upload(['subat-usd.pdf', 'bozuk.pdf', 'ocak-usd.pdf', 'eski.pdf', 'ocak-try.pdf'])
     expect(await screen.findByText(/ · 01\.01\.2025 – 31\.01\.2025 · TRY$/)).toBeInTheDocument()
-    // GLG-790: the preview is headed by its file and broker, and the batch
+    // The preview is headed by its file and broker, and the batch
     // list folds to its progress line while a statement is in review.
     expect(screen.getByRole('heading', { name: 'ocak-try.pdf' })).toBeInTheDocument()
     expect(screen.getByText('Midas · 01.01.2025 – 31.01.2025 · TRY')).toBeInTheDocument()
@@ -1894,9 +1894,8 @@ describe('ImportPage', () => {
       'aria-expanded',
       'false',
     )
-    // GLG-967: the steps count the batch, the folded queue names the file
-    // and, as Midas names its TRY and USD statements alike, its currency
-    // (GLG-1194).
+    // The steps count the batch, the folded queue names the file
+    // and, as Midas names its TRY and USD statements alike, its currency.
     expect(step()).toHaveTextContent('İncele · Ekstre 1 / 3')
     expect(screen.getByText('Ekstre 1 / 3').parentElement).toHaveTextContent(
       /^Ekstre 1 \/ 3 · ocak-try\.pdf · TRY · Tüm dosyaları göster$/,
@@ -1919,10 +1918,10 @@ describe('ImportPage', () => {
     expect(rows[3]).toHaveTextContent('Bu dosya bir Midas hesap ekstresi değil.')
     expect(rows[3]).toHaveTextContent('Aktarılmadı')
     expect(within(rows[3]).getByText('Aktarılmadı')).toHaveClass('text-loss')
-    // GLG-765: a file imported earlier is skipped, not failed.
+    // A file imported earlier is skipped, not failed.
     expect(rows[4]).toHaveTextContent('Zaten içe aktarılmış')
     expect(rows[4]).toHaveTextContent('Atlandı')
-    // Only the three statements that get a review are counted (GLG-786).
+    // Only the three statements that get a review are counted.
     expect(screen.getByText('Ekstre 1 / 3')).toHaveAttribute('role', 'status')
   })
 
@@ -1943,7 +1942,7 @@ describe('ImportPage', () => {
     expect(screen.getByText('Ekstre 2 / 2')).toHaveAttribute('role', 'status')
 
     clickImport()
-    // GLG-967: the batch ends at "Bitti" on the import page, one line per
+    // The batch ends at "Bitti" on the import page, one line per
     // statement with its rows and a link to İşlemler filtered to it.
     expect(await screen.findByText('Bitti: 2 ekstre içe aktarıldı.')).toBeInTheDocument()
     expect(step()).toHaveTextContent('Bitti')
@@ -1970,9 +1969,9 @@ describe('ImportPage', () => {
     expect(screen.queryByText(/^Bitti:/)).not.toBeInTheDocument()
   })
 
-  // GLG-1072: an import undone below reads as undone on Bitti, without the
+  // An import undone below reads as undone on Bitti, without the
   // link to İşlemler, which would open on no rows.
-  // GLG-1181: a fund renamed on TEFAS is named in an early statement only by
+  // A fund renamed on TEFAS is named in an early statement only by
   // its old name, and a later statement of the batch prints that name next
   // to the code. The early one is parsed with the batch's names, so its row
   // shows the fund instead of an empty picker.
@@ -2051,7 +2050,7 @@ describe('ImportPage', () => {
     expect(within(second).getByRole('link', { name: 'İşlemlerde gör' })).toBeInTheDocument()
   })
 
-  // GLG-1072: a commit whose imports refetch fails is marked imported against
+  // A commit whose imports refetch fails is marked imported against
   // the list from before it; an import never listed is not an undone one.
   it('keeps a new import imported when the imports refetch fails', async () => {
     mockBatch((name) => (name === 'ocak.pdf' ? statement(ocak, 'TRY') : statement(subat, 'TRY')))
@@ -2076,7 +2075,7 @@ describe('ImportPage', () => {
     expect(done().getAllByRole('link', { name: 'İşlemlerde gör' })).toHaveLength(2)
   })
 
-  // GLG-1072: Back from a statement's "İşlemlerde gör" returns to Bitti with
+  // Back from a statement's "İşlemlerde gör" returns to Bitti with
   // every file's line, the failed one's reason included.
   it('returns to Bitti on Back from İşlemler', async () => {
     mockBatch((name) =>
@@ -2120,7 +2119,7 @@ describe('ImportPage', () => {
     expect(rows[1]).toHaveTextContent('Aktarılmadı')
   })
 
-  // GLG-1072: an import undone on another visit to the page reads undone on
+  // An import undone on another visit to the page reads undone on
   // the Bitti that Back brings back.
   it('shows an import undone while away as undone on the Bitti Back restores', async () => {
     mockBatch((name) => (name === 'ocak.pdf' ? statement(ocak, 'TRY') : statement(subat, 'TRY')))
@@ -2177,7 +2176,7 @@ describe('ImportPage', () => {
     expect(within(first).queryByRole('link')).not.toBeInTheDocument()
   })
 
-  // GLG-764: one folder of Garanti fund and Garanti BBVA Yatırım statements.
+  // One folder of Garanti fund and Garanti BBVA Yatırım statements.
   it('detects the broker of each statement under the automatic option and commits with it', async () => {
     const sent: string[] = []
     const { commits } = mockBatch((name, _past, form) => {
@@ -2207,7 +2206,7 @@ describe('ImportPage', () => {
 
   it('blocks a second statement of a month imported earlier in the batch', async () => {
     // The server names the earlier import once it is committed. The two
-    // copies read differently, so the user decides on the second (GLG-765).
+    // copies read differently, so the user decides on the second.
     mockBatch((name, past) =>
       statement(ocak, 'TRY', {
         sha256: name,
@@ -2233,7 +2232,7 @@ describe('ImportPage', () => {
       ),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'İçe aktar' })).toBeDisabled()
-    // The mockup's order: Vazgeç, Bu ekstreyi atla, İçe aktar (GLG-1055).
+    // The mockup's order: Vazgeç, Bu ekstreyi atla, İçe aktar.
     expect(
       within(screen.getByTestId('preview-actions'))
         .getAllByRole('button')
@@ -2246,11 +2245,11 @@ describe('ImportPage', () => {
     expect(within(rows[0]).getByRole('link', { name: 'İşlemlerde gör' })).toBeInTheDocument()
     expect(rows[1]).toHaveTextContent('Atlandı')
     // A file the user skipped says so, unlike a copy the batch skipped
-    // itself (GLG-786).
+    // itself.
     expect(rows[1]).toHaveTextContent('Sen atladın')
   })
 
-  // GLG-1063: an undo started under one statement's preview and done once
+  // An undo started under one statement's preview and done once
   // the batch is on the next one does not read the first statement again in
   // place of the next.
   it('leaves the next statement alone when an undo lands after a commit', async () => {
@@ -2290,7 +2289,7 @@ describe('ImportPage', () => {
     expect(screen.getByText(/ · 01\.03\.2025 – 31\.03\.2025 · TRY$/)).toBeInTheDocument()
   })
 
-  // GLG-765: harmless repeats in a batch are skipped by themselves, each
+  // Harmless repeats in a batch are skipped by themselves, each
   // with its reason.
   it('imports a file picked twice once and skips the copy', async () => {
     const { calls, commits } = mockBatch(() => statement(ocak, 'TRY'))
@@ -2337,7 +2336,7 @@ describe('ImportPage', () => {
     expect(await screen.findByText('Bitti: 2 ekstre içe aktarıldı.')).toBeInTheDocument()
   })
 
-  // GLG-1183: two different files of one statement are both kept, each
+  // Two different files of one statement are both kept, each
   // naming the other, for the user to pick one at its turn, even when their
   // rows read the same: a corrected re-issue may differ only in what the
   // preview does not show.
@@ -2366,7 +2365,7 @@ describe('ImportPage', () => {
     expect(commits[0].sha256).toBe('ocak-duzeltme.pdf')
   })
 
-  // GLG-772: skipping a statement drops the changes made to its preview, so
+  // Skipping a statement drops the changes made to its preview, so
   // it asks first; an untouched one is skipped at once.
   it('asks before skipping a statement whose preview was changed', async () => {
     mockBatch((name) =>
@@ -2398,7 +2397,7 @@ describe('ImportPage', () => {
     upload(['ocak.pdf', 'subat.pdf', 'ocak-usd.pdf'])
     await screen.findByText(/ · 01\.01\.2025 – 31\.01\.2025 · TRY$/)
     fireEvent.click(screen.getByRole('button', { name: 'Vazgeç' }))
-    // The two files not reviewed yet would be skipped, so it asks (GLG-772).
+    // The two files not reviewed yet would be skipped, so it asks.
     expect(await screen.findByText('Henüz incelenmemiş 2 ekstre atlanacak.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'İçe aktarmayı bırak' }))
 
@@ -2408,7 +2407,7 @@ describe('ImportPage', () => {
     const rows = done().getAllByRole('listitem')
     expect(rows).toHaveLength(3)
     for (const row of rows) expect(row).toHaveTextContent('Atlandı')
-    // The one in review was skipped by the user, the rest unseen (GLG-786).
+    // The one in review was skipped by the user, the rest unseen.
     expect(rows[0]).toHaveTextContent('Sen atladın')
     expect(rows[1]).toHaveTextContent('İncelenmeden atlandı')
     expect(rows[2]).toHaveTextContent('İncelenmeden atlandı')
@@ -2420,7 +2419,7 @@ describe('ImportPage', () => {
     expect(fileInput().value).toBe('')
   })
 
-  // GLG-1292: isPending reaches the buttons a tick after the click, so a
+  // isPending reaches the buttons a tick after the click, so a
   // double click on İçe aktar committed twice, and Atla right after it moved
   // on while the commit was still running.
   it('commits once on a double click and ignores Atla while the commit runs', async () => {
@@ -2444,7 +2443,7 @@ describe('ImportPage', () => {
     expect(queue().getAllByRole('listitem')[0]).not.toHaveTextContent('Atlandı')
   })
 
-  // GLG-1296: Vazgeç right after İçe aktar asked to end the batch while the
+  // Vazgeç right after İçe aktar asked to end the batch while the
   // commit was still running.
   it('ignores Vazgeç while a batch commit runs', async () => {
     const { commits } = mockBatch((name) =>
@@ -2466,7 +2465,7 @@ describe('ImportPage', () => {
     expect(screen.queryByText('Henüz incelenmemiş 1 ekstre atlanacak.')).not.toBeInTheDocument()
   })
 
-  // GLG-1297: the next statement's Atla opens where the last one was, so
+  // The next statement's Atla opens where the last one was, so
   // the second click of a double click, once its parse was back, skipped it
   // too. The browser counts that click as the second (detail 2).
   it('skips one statement on a double click on Atla', async () => {
@@ -2490,7 +2489,7 @@ describe('ImportPage', () => {
     expect(queue().getAllByRole('listitem')[1]).toHaveAttribute('aria-current')
   })
 
-  // GLG-210: the preview is where a statement gets finished by hand, so the
+  // The preview is where a statement gets finished by hand, so the
   // three repair routes each have to end up in the commit body.
 
   // Parse and commit in one go, keeping whatever the page sent.
@@ -2522,8 +2521,8 @@ describe('ImportPage', () => {
     await showAll()
 
     // Empty, so typing starts a fresh query instead of appending to the one
-    // that found nothing (GLG-349), with the search's own hint rather than
-    // the symbol, which read like a typed value (GLG-789).
+    // that found nothing, with the search's own hint rather than
+    // the symbol, which read like a typed value.
     const picker = screen.getByLabelText('XYZ için enstrüman seç')
     expect(picker).toHaveValue('')
     expect(picker).toHaveAttribute('placeholder', 'Sembol veya isim ara')
@@ -2549,11 +2548,11 @@ describe('ImportPage', () => {
       fee: '0',
       currency: 'USD',
     })
-    // GLG-736: the pick is sent under the preview's symbol, to be remembered.
+    // The pick is sent under the preview's symbol, to be remembered.
     expect(captured.body?.aliases).toEqual([{ symbol: 'XYZ', instrument_id: 777 }])
   })
 
-  // GLG-1297: a double click's first click on İçe aktar, pending while a
+  // A double click's first click on İçe aktar, pending while a
   // pick's parse runs, did nothing, so its second click commits.
   it('commits on the second click of a double click whose first hit a pending İçe aktar', async () => {
     const captured = mockPreviewAndCommit()
@@ -2570,14 +2569,14 @@ describe('ImportPage', () => {
     release()
     await waitFor(() => expect(commit).not.toHaveAttribute('aria-disabled'))
     press(commit, 2)
-    // Another row still needs fixing, so it asks first (GLG-784).
+    // Another row still needs fixing, so it asks first.
     fireEvent.click(await screen.findByRole('button', { name: 'Yine de içe aktar' }))
 
     await screen.findByText('işlemler sayfası')
     expect(captured.body?.aliases).toEqual([{ symbol: 'XYZ', instrument_id: 777 }])
   })
 
-  // GLG-752: a pick requests the preview again with every pick so far, and
+  // A pick requests the preview again with every pick so far, and
   // its opening rows and reconciliation replace the old ones; a row the user
   // unchecked stays unchecked.
   it('requests the preview again with the pick and keeps the check marks', async () => {
@@ -2627,8 +2626,7 @@ describe('ImportPage', () => {
     const deposit = body().getAllByRole('checkbox')[0]
     fireEvent.click(deposit)
     expect(deposit).not.toBeChecked()
-    // The unknown buy holds back the opening rows, and the page says so
-    // (GLG-785).
+    // The unknown buy holds back the opening rows, and the page says so.
     const pending = /Bilinmeyen sembollerin hepsini eşleştirdiğinde/
     expect(screen.getByText(pending)).toBeInTheDocument()
 
@@ -2648,7 +2646,7 @@ describe('ImportPage', () => {
     expect(panel.queryByRole('img', { name: 'Uyuşmuyor' })).not.toBeInTheDocument()
   })
 
-  // GLG-1231: a pick aborts the parse an earlier pick still waits on, so
+  // A pick aborts the parse an earlier pick still waits on, so
   // quick picks never hold the browser's few connections to the host, and
   // the aborted parse shows no error.
   it('aborts the parse of an earlier pick when a later pick starts one', async () => {
@@ -2692,7 +2690,7 @@ describe('ImportPage', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  // GLG-820: an opening buy priced in the dialog keeps its price when a pick
+  // An opening buy priced in the dialog keeps its price when a pick
   // requests the preview again, here one that adds an opening buy in front,
   // and the opening deposit pays for both.
   it('keeps an opening buy priced in the dialog across a pick', async () => {
@@ -2780,7 +2778,7 @@ describe('ImportPage', () => {
     ])
   })
 
-  // GLG-820: the deposit the page added for an opening buy priced in the
+  // The deposit the page added for an opening buy priced in the
   // dialog is in no preview; unchecked, it stays unchecked across a pick.
   it('keeps an unchecked opening deposit the page added across a pick', async () => {
     const vti = {
@@ -2852,8 +2850,8 @@ describe('ImportPage', () => {
     ])
   })
 
-  // GLG-736: a row resolved by the user's earlier pick says so, names the
-  // instrument it resolved to (GLG-750) and keeps the picker; a new pick
+  // A row resolved by the user's earlier pick says so, names the
+  // instrument it resolved to and keeps the picker; a new pick
   // replaces it on every row of that symbol and is sent.
   it('marks a row resolved by an earlier pick and lets it be picked again', async () => {
     const name = 'GARANTI PORTFOY PARA PIYASASI'
@@ -2890,7 +2888,7 @@ describe('ImportPage', () => {
       expect(line.getByText('ABC Fund')).toBeInTheDocument()
     }
     expect(body().getAllByRole('checkbox').every(isChecked)).toBe(true)
-    // A matched row shows no empty search box until Değiştir (GLG-789).
+    // A matched row shows no empty search box until Değiştir.
     expect(table().queryByLabelText(`${name} için enstrüman seç`)).not.toBeInTheDocument()
     fireEvent.click(table().getAllByRole('button', { name: `${name} eşleşmesini değiştir` })[0])
     fireEvent.change(table().getByLabelText(`${name} için enstrüman seç`), {
@@ -2964,7 +2962,7 @@ describe('ImportPage', () => {
     expect(screen.getByLabelText('ABC için enstrüman seç')).toBeInTheDocument()
   })
 
-  // GLG-1193: a statement with many rows of a few unknown names showed one
+  // A statement with many rows of a few unknown names showed one
   // picker per row. The names go once into a block above the table, each
   // with one picker and the number of rows it covers; a pick there resolves
   // every row of its name.
@@ -3017,7 +3015,7 @@ describe('ImportPage', () => {
     expect(screen.getByRole('radio', { name: 'Sorunlu 2', checked: true })).toBeInTheDocument()
   })
 
-  // GLG-678: a row the commit would refuse and of an unknown symbol says both,
+  // A row the commit would refuse and of an unknown symbol says both,
   // and offers the picker like a plain unknown row. A pick gives it the
   // instrument but leaves it an error for the edit dialog.
   it('shows an unknown symbol on a row the commit would refuse', async () => {
@@ -3058,7 +3056,7 @@ describe('ImportPage', () => {
     await showAll()
 
     expect(table().getByText(/^Enstrüman bulunamadı: XYZ\. Fiyat 0'dan/)).toBeInTheDocument()
-    // One name, one picker above the table for both rows (GLG-1193).
+    // One name, one picker above the table for both rows.
     expect(screen.getAllByLabelText('XYZ için enstrüman seç')).toHaveLength(1)
     expect(screen.getByText('2 satır')).toBeInTheDocument()
 
@@ -3073,8 +3071,8 @@ describe('ImportPage', () => {
     expect(body().getAllByRole('checkbox')).toHaveLength(1)
   })
 
-  // GLG-637: a CSV row with no currency cell and an unknown symbol previews as
-  // TRY (GLG-622). The USD instrument picked for it books it in USD; a TRY
+  // A CSV row with no currency cell and an unknown symbol previews as
+  // TRY. The USD instrument picked for it books it in USD; a TRY
   // row would be refused by the commit, and with it the whole import.
   it('sends a picked instrument in its own currency', async () => {
     const captured = mockPreviewAndCommit({
@@ -3125,7 +3123,7 @@ describe('ImportPage', () => {
     ])
   })
 
-  // GLG-733: a fund row named by its name has no code the preview could ask
+  // A fund row named by its name has no code the preview could ask
   // TEFAS about. Typing the fund's code offers a TEFAS lookup when the search
   // has no TEFAS match; the fund it returns is picked. An unknown code says so.
   it('looks a typed fund code up on TEFAS and picks the fund', async () => {
@@ -3160,7 +3158,7 @@ describe('ImportPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: "NOP fonunu TEFAS'ta ara" }))
     expect(await screen.findByRole('alert')).toHaveTextContent("TEFAS'ta NOP kodlu fon bulunamadı")
 
-    // GLG-1292: a double click looks the fund up once, so NOP and GTL once each.
+    // A double click looks the fund up once, so NOP and GTL once each.
     fireEvent.change(picker, { target: { value: 'gtl' } })
     const lookup = await screen.findByRole('button', { name: "GTL fonunu TEFAS'ta ara" })
     fireEvent.click(lookup)
@@ -3176,7 +3174,7 @@ describe('ImportPage', () => {
     ])
   })
 
-  // GLG-646: the same TRY row fixed from the edit dialog instead of the inline
+  // The same TRY row fixed from the edit dialog instead of the inline
   // picker takes the picked instrument's currency too.
   it('sends an instrument picked in the dialog in its own currency', async () => {
     const captured = mockPreviewAndCommit({
@@ -3215,7 +3213,7 @@ describe('ImportPage', () => {
 
     clickImport()
     await screen.findByText('işlemler sayfası')
-    // Nothing was picked inline, so nothing is remembered (GLG-736).
+    // Nothing was picked inline, so nothing is remembered.
     expect(captured.body).not.toHaveProperty('aliases')
 
     expect(captured.body?.rows).toEqual([
@@ -3232,7 +3230,7 @@ describe('ImportPage', () => {
     ])
   })
 
-  // GLG-656: a row switched to another instrument in the dialog names it.
+  // A row switched to another instrument in the dialog names it.
   it('shows the instrument picked in the dialog on the row', async () => {
     mockPreviewAndCommit()
     renderPage()
@@ -3284,7 +3282,7 @@ describe('ImportPage', () => {
     })
   })
 
-  // GLG-817: an opening buy priced in the dialog is paid for by an opening
+  // An opening buy priced in the dialog is paid for by an opening
   // deposit of quantity × price, which the preview could not propose without
   // a price; without it the opening cost leaves cash negative.
   it('adds an opening deposit for an opening buy priced in the dialog', async () => {
@@ -3328,7 +3326,7 @@ describe('ImportPage', () => {
     ])
   })
 
-  // GLG-817: the deposit follows a re-priced opening buy, and an unchecked one
+  // The deposit follows a re-priced opening buy, and an unchecked one
   // leaves the sum.
   it('resizes the opening deposit to the opening buys priced and checked', async () => {
     const opening = { status: 'ok', date: '2025-11-30', fee: '0', currency: 'USD', opening: true }
@@ -3384,7 +3382,7 @@ describe('ImportPage', () => {
     ])
   })
 
-  // GLG-817: a deposit the user unchecked stays unchecked while its buys are
+  // A deposit the user unchecked stays unchecked while its buys are
   // unchecked and checked again.
   it('keeps an unchecked opening deposit unchecked', async () => {
     const opening = { status: 'ok', date: '2025-11-30', fee: '0', currency: 'USD', opening: true }
@@ -3423,9 +3421,9 @@ describe('ImportPage', () => {
     ])
   })
 
-  // GLG-366: the statement's amount no longer matches a trade whose quantity
+  // The statement's amount no longer matches a trade whose quantity
   // was changed by hand, so the server derives it instead.
-  // GLG-981: the commit sets an imported row's note to the broker and the
+  // The commit sets an imported row's note to the broker and the
   // period (ADR 0006), so a note typed in the preview would be thrown away.
   it('offers no note field in the preview edit and add dialogs', async () => {
     mockPreviewAndCommit()
@@ -3443,7 +3441,7 @@ describe('ImportPage', () => {
     expect(screen.queryByLabelText('Not · isteğe bağlı')).not.toBeInTheDocument()
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Vazgeç' }))
 
-    // "Satır ekle", apart from the page header's "İşlem ekle" (GLG-966).
+    // "Satır ekle", apart from the page header's "İşlem ekle".
     const addRow = screen.getByRole('button', { name: 'Satır ekle' })
     fireEvent.click(addRow)
     expect(screen.getByLabelText('Tarih')).toBeInTheDocument()
@@ -3465,7 +3463,7 @@ describe('ImportPage', () => {
     fireEvent.change(screen.getByLabelText('Adet'), { target: { value: '3' } })
     fireEvent.click(screen.getByRole('button', { name: 'Kaydet' }))
     // Saved again unchanged, the dialog hands back the table's estimate as the
-    // amount (GLG-368); it still must not be sent.
+    // amount; it still must not be sent.
     fireEvent.click(
       table().getByRole('button', {
         name: '26.12.2025 VTI Alış 3 × $331,82 $995,46 satırını düzenle',
@@ -3487,7 +3485,7 @@ describe('ImportPage', () => {
     })
   })
 
-  // GLG-538: a Midas nema imports as a dividend with no instrument. It reads
+  // A Midas nema imports as a dividend with no instrument. It reads
   // and reopens as Faiz/Nema, with the currency select an instrument would
   // otherwise replace, and is sent back without an instrument. An
   // unknown-instrument dividend is still a Temettü.
@@ -3556,7 +3554,7 @@ describe('ImportPage', () => {
     ])
   })
 
-  // GLG-359: a cash row of a type the parser does not know still carries its
+  // A cash row of a type the parser does not know still carries its
   // amount and currency in the last raw cell.
   it('opens an unknown cash type row as a deposit of its amount', async () => {
     const cashError = {
@@ -3582,8 +3580,8 @@ describe('ImportPage', () => {
     expect(screen.getByLabelText('Tarih')).toHaveValue('2025-12-20')
   })
 
-  // GLG-993: a first thousands group starting with 0 is no number, as in
-  // parseDecimalInput (GLG-977), so it prefills nothing rather than 234.56.
+  // A first thousands group starting with 0 is no number, as in
+  // parseDecimalInput, so it prefills nothing rather than 234.56.
   it('prefills nothing for an unknown cash amount whose first group starts with 0', async () => {
     const cashError = {
       key: 'err-1',
@@ -3606,7 +3604,7 @@ describe('ImportPage', () => {
     expect(screen.queryByDisplayValue('234,56')).not.toBeInTheDocument()
   })
 
-  // GLG-497: the statement is Turkish format in every UI locale, so in the en
+  // The statement is Turkish format in every UI locale, so in the en
   // UI "1.000 TRY" is still a thousand, not 1.
   it('reads the unknown cash amount as Turkish format in the en UI', async () => {
     const cashError = {
@@ -3637,7 +3635,7 @@ describe('ImportPage', () => {
     }
   })
 
-  // GLG-621: a CSV row error names the column by its field key, which the
+  // A CSV row error names the column by its field key, which the
   // page shows as the column's name in the UI locale.
   it('names the CSV column of a row error in Turkish', async () => {
     const numberError = {
@@ -3650,7 +3648,7 @@ describe('ImportPage', () => {
       date: '2025-05-02',
       raw: ['2025-05-02', 'buy', 'SISE', 'abc'],
     }
-    // GLG-639: an ambiguous thousands separator names its column too.
+    // An ambiguous thousands separator names its column too.
     const ambiguousError = {
       ...numberError,
       key: 'err-2',
@@ -3672,14 +3670,14 @@ describe('ImportPage', () => {
 
     expect(table().getByText('Sayı okunamadı: Adet')).toBeInTheDocument()
     expect(table().getByText('Adet: Binlik ayırıcı mı? 1000 veya 1.000,00 yaz')).toBeInTheDocument()
-    // GLG-796: its raw line breaks between cells rather than inside a
+    // Its raw line breaks between cells rather than inside a
     // number.
     openRawLines()
     expect(table().getByText('2025-05-02 | buy | SISE | abc')).not.toHaveClass('break-all')
   })
 
-  // GLG-829: a CSV row the commit would refuse was read; it is still a row
-  // to fix, so Sorunlu counts it once with the unreadable one (GLG-966).
+  // A CSV row the commit would refuse was read; it is still a row
+  // to fix, so Sorunlu counts it once with the unreadable one.
   it('counts a refused CSV row once among the rows to fix', async () => {
     const numberError = {
       key: 'err-1',
@@ -3720,7 +3718,7 @@ describe('ImportPage', () => {
     expect(screen.queryByText(/okunamadı, elle kontrol et/)).not.toBeInTheDocument()
   })
 
-  // GLG-660: an unknown CSV type cell is shown as written, even when it
+  // An unknown CSV type cell is shown as written, even when it
   // reads like a column name.
   it('shows an unknown CSV type cell as written', async () => {
     const typeError = {
@@ -3742,7 +3740,7 @@ describe('ImportPage', () => {
     expect(table().getByText('Bilinmeyen işlem türü: price')).toBeInTheDocument()
   })
 
-  // GLG-704: a Garanti ledger row the parser does not know is translated,
+  // A Garanti ledger row the parser does not know is translated,
   // not shown as the server's English message.
   it('translates an unknown ledger row code', async () => {
     const rowError = {
@@ -3764,7 +3762,7 @@ describe('ImportPage', () => {
     expect(table().getByText('Tanınmayan ekstre satırı: VİRMAN')).toBeInTheDocument()
   })
 
-  // GLG-754: Garanti Yatırım share statements emit bad_row too, so it is not
+  // Garanti Yatırım share statements emit bad_row too, so it is not
   // called a fund statement row, and a transfer in without a cost says so.
   it('words a bad row neutrally and a transfer in without cost as such', async () => {
     const badRow = {
@@ -3800,7 +3798,7 @@ describe('ImportPage', () => {
     expect(table().getByText('HS-Virman Giriş: maliyet bilinmiyor, fiyatı gir')).toBeInTheDocument()
   })
 
-  // GLG-647: a CSV has no period of its own, so with nothing checked there
+  // A CSV has no period of its own, so with nothing checked there
   // is nothing to import, and an error-only one has no period to send.
   it('disables Import for a CSV preview with nothing checked', async () => {
     const errorRow = {
@@ -3833,7 +3831,7 @@ describe('ImportPage', () => {
     expect(screen.getByRole('button', { name: 'İçe aktar' })).toBeDisabled()
   })
 
-  // GLG-649: with no period, a new row starts on today, not an empty date.
+  // With no period, a new row starts on today, not an empty date.
   it('starts an added row on today for a CSV preview without a period', async () => {
     const errorRow = {
       key: 'err-1',
@@ -3862,13 +3860,13 @@ describe('ImportPage', () => {
     upload()
     await screen.findAllByRole('table')
 
-    // "Satır ekle", apart from the page header's "İşlem ekle" (GLG-966).
+    // "Satır ekle", apart from the page header's "İşlem ekle".
     const addRow = screen.getByRole('button', { name: 'Satır ekle' })
     fireEvent.click(addRow)
     expect(screen.getByLabelText('Tarih')).toHaveValue(todayIstanbul())
   })
 
-  // GLG-966: a row added on Sorunlu is an ok row, which Sorunlu never shows;
+  // A row added on Sorunlu is an ok row, which Sorunlu never shows;
   // the page switches to Tümü so it is seen, and not added twice.
   it('shows the added row when it is added on Sorunlu', async () => {
     mockPreviewAndCommit()
@@ -3896,10 +3894,10 @@ describe('ImportPage', () => {
     upload()
     await showAll()
 
-    // "Satır ekle", apart from the page header's "İşlem ekle" (GLG-966).
+    // "Satır ekle", apart from the page header's "İşlem ekle".
     const addRow = screen.getByRole('button', { name: 'Satır ekle' })
     fireEvent.click(addRow)
-    // An add dialog, not an edit one (GLG-1055).
+    // An add dialog, not an edit one.
     expect(
       within(screen.getByRole('dialog')).getByRole('heading', { name: 'İşlem ekle' }),
     ).toBeInTheDocument()
@@ -3910,7 +3908,7 @@ describe('ImportPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ekle' }))
 
     // Header row, the five parsed rows and the new one at its date, after
-    // the error row's 30.12 and before the undated skipped row (GLG-966).
+    // the error row's 30.12 and before the undated skipped row.
     const rows = table().getAllByRole('row')
     expect(rows).toHaveLength(7)
     expect(rows[5]).toHaveTextContent('31.12.2025')
@@ -3927,7 +3925,7 @@ describe('ImportPage', () => {
     })
   })
 
-  // GLG-1055: the add dialog's "Ekle ve yeni" adds the row and stays open
+  // The add dialog's "Ekle ve yeni" adds the row and stays open
   // for the next one, still in the statement's currency.
   it('keeps the add dialog open after Ekle ve yeni', async () => {
     const captured = mockPreviewAndCommit()
@@ -3962,7 +3960,7 @@ describe('ImportPage', () => {
     })
   })
 
-  // GLG-206: the past imports section and its undo.
+  // The past imports section and its undo.
 
   const pastImports = [
     {
@@ -4000,14 +3998,14 @@ describe('ImportPage', () => {
     renderPage()
 
     const row = (await screen.findByText('Midas · Ara 2025')).closest('li')!
-    // The day it was imported where the user is, not the UTC one (GLG-965).
+    // The day it was imported where the user is, not the UTC one.
     expect(row).toHaveTextContent('12 işlem · USD · 02 Oca')
     expect(within(row).getByRole('link', { name: 'İşlemlerde gör' })).toHaveAttribute(
       'href',
       '/portfolios/1/transactions?import=7',
     )
     expect(screen.getAllByRole('button', { name: 'Geri al' })).toHaveLength(1)
-    // GLG-800: quiet on the list, red only in the confirm.
+    // Quiet on the list, red only in the confirm.
     expect(screen.getByRole('button', { name: 'Geri al' })).toHaveClass('text-loss')
     expect(screen.getByRole('button', { name: 'Geri al' })).not.toHaveClass('bg-loss')
     expect(screen.queryByText(/Kas 2025/)).not.toBeInTheDocument()
@@ -4036,7 +4034,7 @@ describe('ImportPage', () => {
     await waitFor(() => expect(deleted).toBe('7'))
   })
 
-  // GLG-985: the undone row, and the button the dialog hands focus back to,
+  // The undone row, and the button the dialog hands focus back to,
   // leave the list, which dropped focus to <body>.
   it('moves focus to the next undo button, then to the heading, after an undo', async () => {
     let remaining = [
@@ -4100,7 +4098,7 @@ describe('ImportPage', () => {
     expect(await screen.findByText('Bu portföyde henüz içe aktarma yok.')).toBeInTheDocument()
   })
 
-  // GLG-876: below md the preview's action row is pinned to the bottom of the
+  // Below md the preview's action row is pinned to the bottom of the
   // screen, where a floating add button would sit over İçe aktar.
   it('keeps the add button in the header instead of floating', async () => {
     mockApi(() => new Response(JSON.stringify(preview), { status: 200 }))

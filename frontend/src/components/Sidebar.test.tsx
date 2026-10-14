@@ -93,7 +93,7 @@ describe('Sidebar', () => {
     expect(text(all)).toContain('₺2,13 Mn')
   })
 
-  // GLG-895: a value that left out holdings it could not convert says so.
+  // A value that left out holdings it could not convert says so.
   it('marks a value that left out currencies without a rate', async () => {
     mockApi({
       portfolios: [
@@ -127,7 +127,7 @@ describe('Sidebar', () => {
     )
   })
 
-  // GLG-955: Tüm portföyler has a Performans tab, and no other but Özet.
+  // Tüm portföyler has a Performans tab, and no other but Özet.
   it.each([
     ['/portfolios/1/performance', '/portfolios/2/performance', '/portfolios/all/performance'],
     ['/portfolios/all/performance', '/portfolios/2/performance', '/portfolios/all/performance'],
@@ -143,7 +143,7 @@ describe('Sidebar', () => {
     )
   })
 
-  // GLG-587: the instrument may not be held in the other portfolio.
+  // The instrument may not be held in the other portfolio.
   it('goes to the other portfolio summary from a position page', async () => {
     mockApi()
     renderSidebar('/portfolios/1/positions/5')
@@ -207,7 +207,7 @@ describe('Sidebar', () => {
     expect(screen.getByRole('dialog', { name: t('portfolios.new') })).toBeInTheDocument()
   })
 
-  // GLG-1355: the opener leaves with the empty list, so the new portfolio's
+  // The opener leaves with the empty list, so the new portfolio's
   // page has to be told to take focus, as from the header button.
   it('opens the first portfolio asking its page to take focus', async () => {
     const portfolios: unknown[] = []

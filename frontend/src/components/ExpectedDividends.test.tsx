@@ -4,8 +4,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { ExpectedDividends } from './ExpectedDividends'
 
 // jsdom has no showModal() on <dialog>; this only flips the open state. Nor
-// matchMedia: the panel renders the table from md up and the phone list below
-// (GLG-1166), so tests get the table unless they clear `desktop`.
+// matchMedia: the panel renders the table from md up and the phone list below,
+// so tests get the table unless they clear `desktop`.
 let desktop = true
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -67,8 +67,8 @@ describe('ExpectedDividends', () => {
     expect(screen.queryByText('Onay bekleyen temettüler')).toBeNull()
   })
 
-  // GLG-939: the one thing on Temettü that asks for an action is open, not a
-  // collapsed panel; the header says how many and how much (GLG-568).
+  // The one thing on Temettü that asks for an action is open, not a
+  // collapsed panel; the header says how many and how much.
   it('is open with the count and net total in its header', async () => {
     const expected = [
       row(7, 'THYAO', '150.00', '22.50'),
@@ -89,7 +89,7 @@ describe('ExpectedDividends', () => {
     expect(screen.getByRole('button', { name: 'Tümünü ekle' })).toBeVisible()
   })
 
-  // GLG-1369: eight columns and two buttons per row are wider than the card at
+  // Eight columns and two buttons per row are wider than the card at
   // 768 and 1024px in English; the table scrolls inside its own box instead of
   // pushing the page sideways, as on Pozisyonlar.
   it('scrolls the table sideways inside the card', async () => {
@@ -102,7 +102,7 @@ describe('ExpectedDividends', () => {
     expect(table.parentElement).toHaveClass('relative', 'overflow-x-auto')
   })
 
-  // GLG-1166: one layout per viewport, not both with one hidden by CSS.
+  // One layout per viewport, not both with one hidden by CSS.
   it('renders the phone list instead of the table below md', async () => {
     desktop = false
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
@@ -119,7 +119,7 @@ describe('ExpectedDividends', () => {
     ).toBeVisible()
   })
 
-  // GLG-631: the sum runs past 2^53 units, where a float loses the cent.
+  // The sum runs past 2^53 units, where a float loses the cent.
   it('shows an exact net total for large amounts', async () => {
     const expected = [
       { ...row(7, 'THYAO', '0', '0'), net: '100000000000000.00' },
@@ -152,7 +152,7 @@ describe('ExpectedDividends', () => {
     renderPanel()
     await screen.findByText('Onay bekleyen temettüler')
 
-    // GLG-351: each row's buttons name the dividend they act on.
+    // Each row's buttons name the dividend they act on.
     expect(
       screen.getByRole('button', { name: 'THYAO 04.05.2026 temettüsünü ekle' }),
     ).toBeInTheDocument()
@@ -166,7 +166,7 @@ describe('ExpectedDividends', () => {
     fireEvent.click(addAll)
 
     await waitFor(() => expect(screen.queryByText('Onay bekleyen temettüler')).toBeNull())
-    // GLG-459: the emptied panel takes the focused button with it.
+    // The emptied panel takes the focused button with it.
     await waitFor(() =>
       expect(document.activeElement).toBe(screen.getByRole('button', { name: 'İşlem ekle' })),
     )
@@ -190,7 +190,7 @@ describe('ExpectedDividends', () => {
     ])
   })
 
-  // GLG-1260: isPending reaches the button a tick after the click, so a double
+  // isPending reaches the button a tick after the click, so a double
   // click's second click came before pending and booked every row twice. One
   // act holds back the render between the clicks, as that tick does.
   it('posts one request per double click of Tümünü ekle', async () => {
@@ -249,7 +249,7 @@ describe('ExpectedDividends', () => {
     ).toBeTruthy()
   })
 
-  // GLG-442: the booked suggestion takes its row and its focused add button
+  // The booked suggestion takes its row and its focused add button
   // with it, so focus moves to the next suggestion's add button.
   it('moves focus to the next suggestion after one is added', async () => {
     let expected = [row(7, 'THYAO', '150.00', '22.50'), row(9, 'TUPRS', '80.00', '12.00')]
@@ -282,7 +282,7 @@ describe('ExpectedDividends', () => {
     )
   })
 
-  // GLG-994: Chromium blurs a focused button the moment it is disabled, so a
+  // Chromium blurs a focused button the moment it is disabled, so a
   // running dismiss marks the buttons pending instead; a second click sends
   // nothing.
   it('keeps Yoksay focused and pending while the dismiss runs', async () => {
@@ -313,7 +313,7 @@ describe('ExpectedDividends', () => {
     expect(posts).toHaveLength(1)
   })
 
-  // GLG-459: "Yoksay" takes its row and its focused button with it too.
+  // "Yoksay" takes its row and its focused button with it too.
   it('moves focus to the next suggestion after one is dismissed', async () => {
     let expected = [row(7, 'THYAO', '150.00', '22.50'), row(9, 'TUPRS', '80.00', '12.00')]
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {

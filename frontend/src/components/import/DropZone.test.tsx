@@ -66,7 +66,7 @@ it('reports a file of a type the broker refuses and passes the rest on', () => {
   const good = csv('a.csv')
   const refused = pdf('ekstre.pdf')
   drop(zone, [good, refused])
-  // The page names it once this step is gone (GLG-1064).
+  // The page names it once this step is gone.
   expect(onFiles).toHaveBeenCalledWith(
     [good],
     [{ file: refused, reason: 'Seçilen aracı kurum bu dosya türünü almıyor: ekstre.pdf' }],
@@ -77,7 +77,7 @@ it('reports a file of a type the broker refuses and passes the rest on', () => {
 })
 
 // A CSV under "Otomatik (PDF)" names the CSV choice, not a broker the user
-// never chose (GLG-1064).
+// never chose.
 it('takes a PDF by its type for a PDF broker and points a CSV to the CSV choice', () => {
   const { onFiles, zone } = setup({ accept: 'application/pdf' })
   const file = pdf('ekstre.pdf')

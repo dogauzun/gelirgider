@@ -94,7 +94,7 @@ describe('SourcesTable', () => {
     const pill = (name: string) =>
       rowOf(name).getByTestId('last-success').querySelector('.bg-warn-soft')
     await screen.findByLabelText('bist açık')
-    // The time is checked with a fixed clock below (GLG-1057).
+    // The time is checked with a fixed clock below.
     expect(pill('bist')).toHaveTextContent(/\d{2}:\d{2}$/)
     expect(pill('tcmb')).toHaveTextContent('hiç')
     expect(pill('tefas')).toBeNull()
@@ -102,7 +102,7 @@ describe('SourcesTable', () => {
     expect(rowOf('us').getByText('1 saat önce')).toBeInTheDocument()
   })
 
-  // GLG-1057: 49 h and 47 h back both read "evvelsi gün", so the stale pill
+  // 49 h and 47 h back both read "evvelsi gün", so the stale pill
   // shows the Istanbul date and time instead; a fresh source keeps the
   // relative text.
   it("shows a stale source's last success as its Istanbul date and time", async () => {
@@ -189,14 +189,14 @@ describe('SourcesTable', () => {
 
     expect(rowOf('bist').getByText('Çalışıyor')).toBeInTheDocument()
 
-    // GLG-385: a failed run shows a translated line; the raw error sits behind it.
+    // A failed run shows a translated line; the raw error sits behind it.
     const failed = screen.getByText('Son çalışma başarısız')
     expect(failed.tagName).toBe('SUMMARY')
     expect(failed.closest('details')).not.toHaveAttribute('open')
     expect(screen.getByText(failure).closest('details')).toBe(failed.closest('details'))
   })
 
-  // GLG-1071: "Son çalışma: 0 satır" read like a clean empty run.
+  // "Son çalışma: 0 satır" read like a clean empty run.
   it('shows no row count for a failed run', async () => {
     mockFetch([source('tcmb', { last_run: { ...done, rows: 0, error: failure } })])
     renderTable()
@@ -206,7 +206,7 @@ describe('SourcesTable', () => {
     expect(screen.queryByText(/Son çalışma: .* satır/)).not.toBeInTheDocument()
   })
 
-  // GLG-1311: every failed source's disclosure was named only "Son çalışma
+  // Every failed source's disclosure was named only "Son çalışma
   // başarısız", so a screen reader could not tell them apart.
   it("names each failed run's disclosure after its source", async () => {
     mockFetch([
@@ -221,7 +221,7 @@ describe('SourcesTable', () => {
     expect(tcmb).toHaveAccessibleName('tcmb: son çalışma başarısız')
   })
 
-  // GLG-1071: the enable box sits in a 44 px label, so a tap beside it counts.
+  // The enable box sits in a 44 px label, so a tap beside it counts.
   it('toggles a source from a click on the box’s cell label', async () => {
     const puts: string[] = []
     mockFetch([source('tcmb')], (url, init) => {
@@ -238,7 +238,7 @@ describe('SourcesTable', () => {
     await vi.waitFor(() => expect(puts).toEqual(['/api/admin/sources/tcmb']))
   })
 
-  // GLG-917: the toggle stays enabled and focused while it saves, and a
+  // The toggle stays enabled and focused while it saves, and a
   // second click meanwhile sends nothing.
   it('keeps the toggle enabled and focused while it saves', async () => {
     let release!: () => void
@@ -265,7 +265,7 @@ describe('SourcesTable', () => {
     await vi.waitFor(() => expect(toggle).toHaveAttribute('aria-disabled', 'false'))
   })
 
-  // GLG-1292: isPending reaches the controls a tick after the click, so a
+  // isPending reaches the controls a tick after the click, so a
   // double click's second click came before pending and sent the request twice.
   it('sends one request per double click on the toggle, run and backfill', async () => {
     const sent: string[] = []
@@ -301,7 +301,7 @@ describe('SourcesTable', () => {
     ])
     renderTable()
 
-    // GLG-517: an unconfigured EVDS key is not a missing US key.
+    // An unconfigured EVDS key is not a missing US key.
     expect(
       await screen.findByText(/^ABD fiyatları için eksik API anahtarı: Finnhub\.$/),
     ).toBeInTheDocument()

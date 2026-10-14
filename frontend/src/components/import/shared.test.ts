@@ -4,8 +4,8 @@ import { noReview, reviewReducer } from './review'
 import { asTransaction, toImportRow } from './rows'
 import { resolveRows, type Row } from './shared'
 
-// GLG-1320: a pick takes the instrument's currency only for a row whose
-// currency is the TRY fallback (GLG-637). A row whose file said TRY stays an
+// A pick takes the instrument's currency only for a row whose
+// currency is the TRY fallback. A row whose file said TRY stays an
 // error with the commit's message, as the server's parse with the pick does.
 it('switches only a fallback currency to the picked instrument', () => {
   const row = {
@@ -39,7 +39,7 @@ it('switches only a fallback currency to the picked instrument', () => {
   expect(fallback).toMatchObject({ status: 'ok', currency: 'USD', checked: true, manual: true })
 })
 
-// GLG-1361: the edit dialog of such a row shows and books the instrument's
+// The edit dialog of such a row shows and books the instrument's
 // currency, so Kaydet cannot turn it into an ok row the commit refuses.
 it('edits a contradicting row in the instrument currency', () => {
   const row: Row = {
@@ -76,7 +76,7 @@ it('edits a contradicting row in the instrument currency', () => {
 
 // A server row resolved by an earlier pick to a USD instrument, its TRY cell
 // a mismatch, re-picked to a TRY instrument through Değiştir: the old
-// "(USD)" message goes, the row is ok, and its dialog opens in TRY (GLG-1361).
+// "(USD)" message goes, the row is ok, and its dialog opens in TRY.
 it('re-picks a contradicting row against the new instrument', () => {
   const row: Row = {
     key: 'trade-0',

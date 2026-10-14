@@ -34,7 +34,7 @@ docker compose -f compose.yml exec -T backend /server -backup "$container_file"
 
 mv "$host_file" "$backup_dir/gelirgider-${ts}.db"
 # The backend creates the snapshot 0600; this keeps it so for an image built
-# before GLG-1128, which wrote it under its umask. gzip copies the mode.
+# before that, which wrote it under its umask. gzip copies the mode.
 chmod 600 "$backup_dir/gelirgider-${ts}.db"
 gzip "$backup_dir/gelirgider-${ts}.db"
 

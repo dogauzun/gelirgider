@@ -96,7 +96,7 @@ describe('formatQuantity', () => {
   it('keeps fund-unit precision instead of rounding to 3 decimals', () => {
     expect(formatQuantity('1000.123456')).toBe('1.000,123456')
     expect(formatQuantity('0.12345678')).toBe('0,12345678')
-    // A Midas fractional share keeps all 9 decimals (GLG-214).
+    // A Midas fractional share keeps all 9 decimals.
     expect(formatQuantity('0.006218342')).toBe('0,006218342')
     expect(formatQuantity('10')).toBe('10')
   })

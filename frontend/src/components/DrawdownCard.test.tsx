@@ -85,7 +85,7 @@ describe('DrawdownCard', () => {
   })
 
   // A scope with no transactions answers one point, today, all zero and
-  // with twr null (GLG-1049): the empty state of the card above, not a
+  // with twr null: the empty state of the card above, not a
   // return that cannot be computed.
   it('says there are no transactions yet for an empty scope', async () => {
     renderCard(async () => Response.json(history([null], '0.00')))

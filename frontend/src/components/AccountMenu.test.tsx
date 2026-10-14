@@ -77,7 +77,7 @@ describe('AccountMenu', () => {
     )
   })
 
-  // GLG-795: a delete waiting behind its undo toast goes before the session
+  // A delete waiting behind its undo toast goes before the session
   // ends, or it would be refused after logout.
   it('runs pending toast commits before the logout request', async () => {
     const fetchMock = mockMe()

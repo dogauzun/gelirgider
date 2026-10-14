@@ -26,7 +26,7 @@ describe('formatMarketDate', () => {
   })
 
   // Building a DateTimeFormat per call made the transactions page take
-  // seconds to render a thousand rows (GLG-431).
+  // seconds to render a thousand rows.
   it('reuses one formatter for the same locale and options', () => {
     const spy = vi.spyOn(Intl, 'DateTimeFormat')
     formatMarketDate('2026-09-14', { weekday: 'long' })
@@ -68,7 +68,7 @@ describe('monthsBetween', () => {
   })
 })
 
-// The positions table calls it once per row per render (GLG-1170).
+// The positions table calls it once per row per render.
 describe('todayIstanbul', () => {
   it('formats the Istanbul day without building a formatter per call', () => {
     const spy = vi.spyOn(Intl, 'DateTimeFormat')

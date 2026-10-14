@@ -43,8 +43,8 @@ export default tseslint.config(
       ],
     },
   },
-  // Components and pages read and write the server through the hooks in api/
-  // (GLG-1164). No other block sets no-restricted-imports for these files.
+  // Components and pages read and write the server through the hooks in api/.
+  // No other block sets no-restricted-imports for these files.
   {
     files: ['src/components/**/*.{ts,tsx}', 'src/pages/**/*.{ts,tsx}'],
     rules: {
@@ -92,7 +92,7 @@ export default tseslint.config(
     },
   },
   // Portfolio-scoped queries are invalidated through the helpers in api/transactions,
-  // and Intl formatters are built once, not per call (GLG-1170).
+  // and Intl formatters are built once, not per call.
   {
     files: ['src/**/*.{ts,tsx}'],
     ignores: [
@@ -104,12 +104,12 @@ export default tseslint.config(
     rules: {
       'no-restricted-syntax': [
         'error',
-        // One radio group control, with the roving tab stop (GLG-1248).
+        // One radio group control, with the roving tab stop.
         {
           selector: "JSXAttribute[name.name='role'][value.value='radiogroup']",
           message: 'use ui/Segmented',
         },
-        // One combobox, on Base UI with its positioning (GLG-1285).
+        // One combobox, on Base UI with its positioning.
         {
           selector: "JSXAttribute[name.name='role'][value.value='combobox']",
           message: 'use Base UI Autocomplete',
@@ -125,7 +125,7 @@ export default tseslint.config(
           message: 'use invalidatePortfolio / invalidatePortfolios from api/transactions',
         },
         {
-          // `Intl.DateTimeFormat()` without `new` builds one too (GLG-1175).
+          // `Intl.DateTimeFormat()` without `new` builds one too.
           selector: ":function :matches(NewExpression, CallExpression)[callee.object.name='Intl']",
           message: 'build Intl formatters once at module scope or cache them',
         },
@@ -134,41 +134,41 @@ export default tseslint.config(
             "JSXOpeningElement[name.name='ul'] > JSXAttribute[name.name='className'][value.value=/(^|\\s)md:hidden(\\s|$)/]",
           message: 'render one layout with useIsDesktop',
         },
-        // Focus recovery after a control leaves the page (GLG-1163).
+        // Focus recovery after a control leaves the page.
         {
           selector: "BinaryExpression[right.object.name='document'][right.property.name='body']",
           message: 'use lib/useFocusLater',
         },
-        // One sortable header, with one aria-sort convention and arrow (GLG-1286).
+        // One sortable header, with one aria-sort convention and arrow.
         { selector: "JSXAttribute[name.name='aria-sort']", message: 'use ui/SortHeader' },
-        // One chart frame: error, faded stale chart, skeleton (GLG-1342).
+        // One chart frame: error, faded stale chart, skeleton.
         { selector: "JSXAttribute[name.name='aria-busy']", message: 'use ui/ChartFrame' },
-        // One compact table, with its header type, padding and row height (GLG-1289).
+        // One compact table, with its header type, padding and row height.
         {
           selector: "JSXOpeningElement[name.name='table']:not(:has(Identifier[name='TABLE']))",
           message: 'use TABLE/TH/TD from ui/table',
         },
-        // One modal shell, with the nested-cancel guard (GLG-1165).
+        // One modal shell, with the nested-cancel guard.
         { selector: "JSXOpeningElement[name.name='dialog']", message: 'use ui/Modal' },
-        // One exact decimal add and subtract (GLG-1288).
+        // One exact decimal add and subtract.
         {
           selector:
             "BinaryExpression[operator=/^[-+]$/][left.callee.name='decimalUnits'][right.callee.name='decimalUnits']",
           message: 'use addDecimal / subDecimal from lib/decimal',
         },
-        // One sheet panel inside it (GLG-1283). `.` stands for the slash,
+        // One sheet panel inside it. `.` stands for the slash,
         // which an esquery regex cannot hold.
         {
           selector:
             ':matches(Literal[value=/md:-translate-y-1.2/], TemplateElement[value.raw=/md:-translate-y-1.2/])',
           message: 'use sheetPanel from ui/sheetPanel',
         },
-        // A control busy with its request keeps focus: one pending prop (GLG-1245).
+        // A control busy with its request keeps focus: one pending prop.
         {
           selector: "JSXAttribute[name.name='aria-disabled']",
           message: 'use the pending prop of ui/Button or ui/Checkbox',
         },
-        // One share format (GLG-1250).
+        // One share format.
         {
           selector:
             "ObjectExpression:has(> Property[key.name='style'][value.value='percent']):has(> Property[key.name='minimumFractionDigits'][value.value=1])",
@@ -176,7 +176,7 @@ export default tseslint.config(
         },
         // A field's height, width, background, text colour and padding come
         // from inputClass, not from editing or appending to its string: two
-        // classes for one property conflict (GLG-1284, GLG-1295). Text size
+        // classes for one property conflict. Text size
         // and alignment classes are fine.
         {
           selector:
@@ -188,7 +188,7 @@ export default tseslint.config(
           message: 'pass an option to inputClass',
         },
         // Select appends its className to inputClass, so the same holds for
-        // it; a plain string keeps that className readable here (GLG-1298).
+        // it; a plain string keeps that className readable here.
         {
           selector: `JSXOpeningElement[name.name='Select'] > JSXAttribute[name.name='className'] > Literal[value=${inputClassClash}]`,
           message: 'pass an option to inputClass in Select',
@@ -198,52 +198,52 @@ export default tseslint.config(
             "JSXOpeningElement[name.name='Select'] > JSXAttribute[name.name='className'] > JSXExpressionContainer",
           message: 'pass Select a plain string className',
         },
-        // One excess-over-benchmark return, with its 1 + b > 0 guard (GLG-1287).
+        // One excess-over-benchmark return, with its 1 + b > 0 guard.
         {
           selector:
             "BinaryExpression[operator='/'][left.operator='+'][left.left.value=1][right.operator='+'][right.left.value=1]",
           message: 'use excessReturn from lib/returns',
         },
-        // One day count between two market dates (GLG-1291).
+        // One day count between two market dates.
         {
           selector: "BinaryExpression[operator='/'][right.value=86400000]",
           message: 'use daysBetween from lib/date',
         },
-        // A Map of groups grows its group in place (GLG-1337).
+        // A Map of groups grows its group in place.
         {
           selector:
             "CallExpression[callee.property.name='set'] > ArrayExpression > SpreadElement > LogicalExpression > CallExpression[callee.property.name='get']",
           message: 'push into the group, copying it per item is quadratic',
         },
-        // One double-click guard (GLG-1268).
+        // One double-click guard.
         {
           selector: "AssignmentExpression[left.property.name='current'][right.value=true]",
           message: 'use lib/useOneAtATime',
         },
-        // Helpers in i18n/strings.ts call t() themselves (GLG-1344).
+        // Helpers in i18n/strings.ts call t() themselves.
         {
           selector: "CallExpression[callee.name!='t'] > Identifier[name='t']",
           message: 'call t() inside the helper, do not pass it',
         },
-        // One day-change and weight rule (GLG-1346).
+        // One day-change and weight rule.
         {
           selector:
             "BinaryExpression[operator='/'] MemberExpression[property.name=/^(prev_close|market_value_reporting)$/]",
           message: 'use dayRatio / weightOf from lib/positions',
         },
-        // The transaction list's pages stay inside its hook (GLG-1347).
+        // The transaction list's pages stay inside its hook.
         {
           selector:
             "CallExpression[callee.property.name='flatMap'][callee.object.property.name='pages']",
           message: 'useTransactions returns the rows',
         },
-        // One typed navigation state, read and cleared in one place (GLG-1348).
+        // One typed navigation state, read and cleared in one place.
         {
           selector:
             "TSAsExpression:matches([expression.name='state'], [expression.property.name='state'])",
           message: 'read navigation state through lib/navState',
         },
-        // t() turns its vars into text itself (GLG-1349).
+        // t() turns its vars into text itself.
         {
           selector:
             "CallExpression[callee.name='t'] > ObjectExpression > Property > CallExpression[callee.name='String']",
@@ -252,7 +252,7 @@ export default tseslint.config(
       ],
     },
   },
-  // A function past 300 lines wants splitting (GLG-1162). An error, not a
+  // A function past 300 lines wants splitting. An error, not a
   // warning: npm run lint passes with warnings. A test file's describe block
   // is one long function by design.
   {
@@ -263,7 +263,7 @@ export default tseslint.config(
     },
   },
   // Long parameter lists are a sign a function wants an options object. An
-  // error, as above (GLG-1230); a test fixture builder with one argument per
+  // error, as above; a test fixture builder with one argument per
   // field is fine.
   {
     files: ['src/**/*.{ts,tsx}'],

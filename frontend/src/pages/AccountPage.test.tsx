@@ -43,7 +43,7 @@ describe('AccountPage', () => {
     })
   }
 
-  // The app shell mounts the Toaster (GLG-166); the page alone does not, so
+  // The app shell mounts the Toaster; the page alone does not, so
   // render it here to read back the toast text.
   function renderPage() {
     const queryClient = new QueryClient()
@@ -62,13 +62,13 @@ describe('AccountPage', () => {
     mockMe('TRY')
     renderPage()
 
-    // GLG-968: PageHeader's 20 px title, visually hidden below lg where the
+    // PageHeader's 20 px title, visually hidden below lg where the
     // top bar shows it.
     const heading = await screen.findByRole('heading', { level: 1, name: 'Hesap' })
     expect(heading).toHaveClass('text-[20px]', 'max-lg:sr-only')
   })
 
-  // GLG-968: the portfolio pages' column, not a centred narrow one.
+  // The portfolio pages' column, not a centred narrow one.
   it('puts the content in the portfolio pages wrapper', async () => {
     mockMe('TRY')
     renderPage()
@@ -78,7 +78,7 @@ describe('AccountPage', () => {
     expect(wrapper).not.toHaveClass('max-w-2xl')
   })
 
-  // GLG-968: one Tercihler card with three rows and one Şifre card, side by
+  // One Tercihler card with three rows and one Şifre card, side by
   // side from lg, with the shared 14 px card title.
   it('groups the settings into a Tercihler card and a Şifre card', async () => {
     mockMe('TRY')
@@ -119,7 +119,7 @@ describe('AccountPage', () => {
   })
 
   // The portfolio list carries values in the reporting currency, and the
-  // sidebar showing it stays mounted on this page (GLG-875).
+  // sidebar showing it stays mounted on this page.
   it('refreshes the portfolio list after a currency change', async () => {
     mockMe('TRY')
     const queryClient = renderPage()
@@ -131,7 +131,7 @@ describe('AccountPage', () => {
     await waitFor(() => expect(spy).toHaveBeenCalledWith({ queryKey: ['portfolios'], exact: true }))
   })
 
-  // GLG-905: Chromium blurs a focused control the moment it is disabled, so a
+  // Chromium blurs a focused control the moment it is disabled, so a
   // keyboard user who picked a currency lost focus to <body> while it saved.
   // jsdom does not blur on disable, so the test checks the trigger stays
   // enabled during the save as well as focused after it.
@@ -176,7 +176,7 @@ describe('AccountPage', () => {
     await waitFor(() => expect(select).toHaveAttribute('aria-invalid', 'true'))
   })
 
-  // GLG-1078: password managers tie the new password to the account through a
+  // Password managers tie the new password to the account through a
   // username field in the same form.
   it('carries the account email as the password form username', async () => {
     mockMe('TRY')
@@ -224,7 +224,7 @@ describe('AccountPage', () => {
     expect(screen.queryByText('Yeni şifreler eşleşmiyor.')).not.toBeInTheDocument()
   })
 
-  // GLG-994: Chromium blurs a focused button the moment it is disabled, so the
+  // Chromium blurs a focused button the moment it is disabled, so the
   // running change marks the button pending instead; a second submit sends
   // nothing.
   it('keeps the password button focused and pending while the change runs', async () => {
@@ -281,7 +281,7 @@ describe('AccountPage', () => {
     expect(current).not.toHaveAttribute('aria-invalid')
   })
 
-  // GLG-1353: a password over 72 bytes pasted into both fields is the same
+  // A password over 72 bytes pasted into both fields is the same
   // password, so the server's length rule shows, not a mismatch.
   it('shows the 72-byte limit, not a mismatch, for a long pasted password', async () => {
     const fetchMock = mockMe('TRY')
@@ -309,8 +309,8 @@ describe('AccountPage', () => {
     expect(screen.queryByText('Yeni şifreler eşleşmiyor.')).not.toBeInTheDocument()
   })
 
-  // GLG-1090: a server error is about the values sent, so editing the form
-  // drops it, as on the signed-out forms (GLG-1075).
+  // A server error is about the values sent, so editing the form
+  // drops it, as on the signed-out forms.
   it('clears the wrong current password error once the field is edited', async () => {
     const fetchMock = mockMe('TRY')
     const me = fetchMock.getMockImplementation()!
@@ -354,7 +354,7 @@ describe('AccountPage', () => {
     setLocale('tr')
   })
 
-  // GLG-453: one Tab stop, and the arrow keys move and select.
+  // One Tab stop, and the arrow keys move and select.
   it('moves the appearance choice with the arrow keys', async () => {
     mockMe('TRY')
     renderPage()

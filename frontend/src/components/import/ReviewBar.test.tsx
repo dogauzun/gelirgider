@@ -29,7 +29,7 @@ it('stays at the bottom of the screen at every width', () => {
   expect(screen.queryByText(/aktarılmayacak/)).not.toBeInTheDocument()
 })
 
-// GLG-1055: on a phone the page buttons wrap to the bar's second line and
+// On a phone the page buttons wrap to the bar's second line and
 // stay on the right there, as they are on a wide screen. jsdom has no
 // layout, so the classes stand in.
 it('keeps the page buttons on the right when they wrap', () => {

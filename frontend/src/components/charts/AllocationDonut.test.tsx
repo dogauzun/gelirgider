@@ -91,7 +91,7 @@ describe('AllocationDonut', () => {
     expect(onActive).toHaveBeenLastCalledWith(null)
   })
 
-  // GLG-1044: a press or tap focused the slice and drew a focus frame.
+  // A press or tap focused the slice and drew a focus frame.
   it('takes no focus from a mouse press on a slice', () => {
     const { container } = renderDonut()
 

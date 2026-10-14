@@ -181,7 +181,7 @@ describe('attentionItems', () => {
   })
 
   it("a short mover's ratio has the sign of its day change", () => {
-    // Short one share (GLG-27): the price fell from 100 to 95, a gain of 5,
+    // Short one share: the price fell from 100 to 95, a gain of 5,
     // which the Günlük cell shows as +5%.
     const short = position(1, 'S', '-95', {
       quantity: '-1',

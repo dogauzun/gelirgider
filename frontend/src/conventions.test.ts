@@ -11,7 +11,7 @@ const BANNED: [pattern: RegExp, why: string][] = [
   [/\bshadow-(sm|md|lg|xl|2xl)\b/, 'use shadow-card, shadow-ctl or shadow-pop'],
   [/<select\b/, 'use ui/Select'],
   [/type="checkbox"/, 'use ui/Checkbox'],
-  // GLG-1022: `faint` misses WCAG AA text contrast; it is for placeholders,
+  // `faint` misses WCAG AA text contrast; it is for placeholders,
   // disabled text and chart axis labels (charts use var(--color-faint)).
   [/(?<!placeholder:|disabled:)\btext-faint\b/, 'readable text is text-muted'],
 ]
@@ -33,7 +33,7 @@ it.each(BANNED)('no component uses %s (%s)', (pattern) => {
   expect(hits).toEqual([])
 })
 
-// GLG-915: Recharts and the charts are one lazy chunk. Only files under
+// Recharts and the charts are one lazy chunk. Only files under
 // components/charts/ import recharts, and only LazyChart.tsx imports them, so
 // no page pulls Recharts into the main chunk. Tests are left out: they are
 // not in the bundle.

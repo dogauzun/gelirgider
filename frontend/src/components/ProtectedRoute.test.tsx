@@ -44,7 +44,7 @@ describe('ProtectedRoute', () => {
     vi.restoreAllMocks()
   })
 
-  // GLG-330: a failing backend is not a logout.
+  // A failing backend is not a logout.
   it('shows the server error, not the login page, when /api/me fails', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 502 }))
 
@@ -54,7 +54,7 @@ describe('ProtectedRoute', () => {
     expect(screen.queryByText('login page')).not.toBeInTheDocument()
   })
 
-  // GLG-1263: once the retries end nothing refetches /api/me, so the error
+  // Once the retries end nothing refetches /api/me, so the error
   // screen offers a retry that renders the page when the backend is back.
   it('renders the page when Retry succeeds after /api/me failed', async () => {
     const fetchMock = vi
@@ -71,7 +71,7 @@ describe('ProtectedRoute', () => {
     expect(await screen.findByText('account page')).toBeInTheDocument()
   })
 
-  // GLG-810: a pending /api/me is announced, not silent.
+  // A pending /api/me is announced, not silent.
   it('announces the loading session while /api/me is pending', () => {
     vi.spyOn(globalThis, 'fetch').mockReturnValue(new Promise<Response>(() => {}))
 
@@ -89,7 +89,7 @@ describe('ProtectedRoute', () => {
     expect(await screen.findByText('login page')).toBeInTheDocument()
   })
 
-  // GLG-833: the null me a logout leaves can reach the protected page before
+  // The null me a logout leaves can reach the protected page before
   // the navigation to /login commits; that is no expired session.
   it('adds no session-expired notice after a logout the user chose', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) =>
@@ -109,7 +109,7 @@ describe('ProtectedRoute', () => {
     expect(await screen.findByText('login page')).toBeInTheDocument()
     expect(screen.queryByText('auth.login.sessionExpired')).not.toBeInTheDocument()
     // Nothing to resume either: the next login, maybe another user's, starts
-    // at home instead of the page left (GLG-843).
+    // at home instead of the page left.
     expect(screen.getByText('from:')).toBeInTheDocument()
   })
 })

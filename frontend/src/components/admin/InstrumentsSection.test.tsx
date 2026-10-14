@@ -58,7 +58,7 @@ describe('InstrumentsSection', () => {
     )
   })
 
-  // GLG-1268: isPending reaches the button a tick after the click, so a double
+  // isPending reaches the button a tick after the click, so a double
   // click's second click came before pending and posted the instrument twice.
   it('posts once on a double click', async () => {
     const fetchMock = vi

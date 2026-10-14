@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { ImportPage } from './ImportPage'
 
-// GLG-1068: an action whose button leaves the page with it moves focus on,
+// An action whose button leaves the page with it moves focus on,
 // rather than dropping it to <body>. fireEvent.click does not focus what it
 // clicks, so each test focuses the button first, as a click or Enter would.
 

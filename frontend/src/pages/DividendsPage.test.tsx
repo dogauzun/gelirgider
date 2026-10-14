@@ -145,7 +145,7 @@ it('leads with the dividends to confirm, open, and books them from there', async
   ).toBeVisible()
 
   // Booking the expected dividend refetches the timeline, so the figures
-  // below take the new row in (GLG-605).
+  // below take the new row in.
   expect(calls.timeline).toBe(1)
   fireEvent.click(screen.getByRole('button', { name: t('dividends.expected.addAll') }))
   await waitFor(() => expect(calls.timeline).toBe(2))
@@ -198,9 +198,9 @@ it('draws a bar per month or year', async () => {
 
   // Monthly: the last 24 months, zero-filled; yearly: 2024 through 2026.
   const bars = () => container.querySelectorAll('.series-bars .recharts-bar-rectangle')
-  // The chart arrives with its lazy chunk (GLG-915), which can take longer
+  // The chart arrives with its lazy chunk, which can take longer
   // than vi.waitFor's fixed 1s in a parallel run; waitFor has setupTests.ts's
-  // longer timeout (GLG-983).
+  // longer timeout.
   await waitFor(() => expect(bars()).toHaveLength(24))
   fireEvent.click(screen.getByRole('radio', { name: t('dividends.page.yearly') }))
   expect(bars()).toHaveLength(3)
@@ -238,7 +238,7 @@ it('lists payments, share and the last payment with its year per instrument', as
   )
 
   // The table starts sorted by net, largest first, as the API sends it, and
-  // says so; a click on net flips it (GLG-811, GLG-841).
+  // says so; a click on net flips it.
   const symbols = () => Array.from(table.querySelectorAll('tbody a')).map((a) => a.textContent)
   const netHeader = within(table).getByRole('button', { name: t('dividends.page.net') })
   expect(symbols()).toEqual(['THYAO', 'AKBNK'])
