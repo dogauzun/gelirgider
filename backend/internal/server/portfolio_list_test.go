@@ -3,11 +3,13 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
@@ -362,5 +364,104 @@ func TestPortfolioListClosedPositionCurrencyNotMissing(t *testing.T) {
 	}
 	if got[0].TotalValue != "200.00" {
 		t.Errorf("total_value = %s, want 200.00", got[0].TotalValue)
+	}
+}
+
+// TestPortfolioListSharedInstrumentMatchesSummary checks that the list, which
+// prices every instrument and loads the rates once for all portfolios, still
+// reports each portfolio the totals its own GET /api/portfolios/{id}/summary
+// does, when the same USD instrument is held in two of three portfolios (the
+// third is empty).
+func TestPortfolioListSharedInstrumentMatchesSummary(t *testing.T) {
+	ctx := context.Background()
+	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	res, err := conn.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES ('AAPL', 'US', 'Apple', 'USD')`)
+	if err != nil {
+		t.Fatalf("insert instrument: %v", err)
+	}
+	instrumentID, err := res.LastInsertId()
+	if err != nil {
+		t.Fatalf("instrument id: %v", err)
+	}
+
+	handler := New(logger, conn, false, settings.NewRepo(conn, nil), nil)
+	usr, err := user.NewRepo(conn).Create(ctx, "gina@example.com", "hash")
+	if err != nil {
+		t.Fatalf("users.Create: %v", err)
+	}
+	session, err := auth.NewRepo(conn).CreateSession(ctx, usr.ID)
+	if err != nil {
+		t.Fatalf("sessions.CreateSession: %v", err)
+	}
+
+	portfolios := portfolio.NewRepo(conn)
+	transactions := transaction.NewRepo(conn)
+	var ids []int64
+	for i, name := range []string{"A", "B", "Empty"} {
+		pf, err := portfolios.Create(ctx, usr.ID, name)
+		if err != nil {
+			t.Fatalf("portfolios.Create: %v", err)
+		}
+		ids = append(ids, pf.ID)
+		qty := []string{"10", "3", ""}[i]
+		if qty == "" {
+			continue
+		}
+		q := decimal.RequireFromString(qty)
+		for _, tx := range []transaction.Transaction{
+			{PortfolioID: pf.ID, Type: transaction.TypeDeposit, Date: "2024-01-01", Amount: decimal.RequireFromString("1000"), Currency: "USD"},
+			{PortfolioID: pf.ID, InstrumentID: &instrumentID, Type: transaction.TypeBuy, Date: "2024-01-02", Quantity: q, Price: decimal.RequireFromString("100"), Amount: q.Mul(decimal.RequireFromString("100")), Currency: "USD"},
+		} {
+			if _, err := transactions.Create(ctx, usr.ID, tx); err != nil {
+				t.Fatalf("transactions.Create: %v", err)
+			}
+		}
+	}
+	if err := price.NewRepo(conn).Upsert(ctx, instrumentID, "2024-01-03", "130", "test"); err != nil {
+		t.Fatalf("prices.Upsert: %v", err)
+	}
+	if err := fx.NewRepo(conn).Upsert(ctx, "USD", "2024-01-03", "40", "tcmb"); err != nil {
+		t.Fatalf("fx.Upsert: %v", err)
+	}
+
+	do := func(path string, into any) {
+		t.Helper()
+		r := httptest.NewRequest(http.MethodGet, path, nil)
+		r.AddCookie(&http.Cookie{Name: "session", Value: session.ID})
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, r)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s: status = %d; body: %s", path, rec.Code, rec.Body.String())
+		}
+		if err := json.NewDecoder(rec.Body).Decode(into); err != nil {
+			t.Fatalf("%s: decode: %v", path, err)
+		}
+	}
+
+	var list []portfolioListResponse
+	do("/api/portfolios", &list)
+	if len(list) != len(ids) {
+		t.Fatalf("len(list) = %d, want %d", len(list), len(ids))
+	}
+	for i, id := range ids {
+		var sum summaryResponse
+		do(fmt.Sprintf("/api/portfolios/%d/summary", id), &sum)
+		got := list[i]
+		if got.ID != id || got.TotalValue != sum.TotalValue || got.Cash != sum.Cash || !slices.Equal(got.MissingRates, sum.MissingRates) {
+			t.Errorf("portfolio %d: list = %+v, summary total_value=%s cash=%s missing=%v", id, got, sum.TotalValue, sum.Cash, sum.MissingRates)
+		}
+		if (got.UnrealizedPL == nil) != (sum.UnrealizedPL == nil) || (got.UnrealizedPL != nil && *got.UnrealizedPL != *sum.UnrealizedPL) {
+			t.Errorf("portfolio %d: unrealized_pl list = %v, summary = %v", id, got.UnrealizedPL, sum.UnrealizedPL)
+		}
+	}
+	// A: cash 0 + 10 x 130 = 1300 USD; B: cash 700 + 3 x 130 = 1090 USD; x 40.
+	if list[0].TotalValue != "52000.00" || list[1].TotalValue != "43600.00" || list[2].TotalValue != "0.00" {
+		t.Errorf("total_value = %s, %s, %s; want 52000.00, 43600.00, 0.00", list[0].TotalValue, list[1].TotalValue, list[2].TotalValue)
 	}
 }
