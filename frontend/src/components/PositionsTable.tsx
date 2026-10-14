@@ -63,8 +63,8 @@ function dayChange(
 
 // One line: the amount, then its percent.
 function plText(amount: string | null, percent: string | null, currency: string): string {
-  if (amount === null) return MISSING
-  return percent ? `${signedMoney(amount, currency)} · ${percent}` : signedMoney(amount, currency)
+  const money = signedMoney(amount, currency)
+  return amount !== null && percent ? `${money} · ${percent}` : money
 }
 
 // The sortable columns, in order, with what each sorts by; numbers go in as
@@ -305,9 +305,7 @@ function PositionRow({
         className={`${TD_NUM} font-medium`}
         title={foreign ? formatMoney(position.market_value, position.currency) : undefined}
       >
-        {position.market_value_reporting !== null
-          ? formatMoney(position.market_value_reporting, reporting)
-          : MISSING}
+        {formatMoney(position.market_value_reporting, reporting)}
       </td>
       <td className={`${TD_NUM} ${plTone(pl.amount)}`}>
         {plText(pl.amount, pl.percent, reporting)}
@@ -422,12 +420,10 @@ function PositionListItem({
       <ListItemName position={position} portfolioId={portfolioId} reporting={reporting} />
       <div className="shrink-0 text-right tabular-nums">
         <div className="font-medium text-ink">
-          {position.market_value_reporting !== null
-            ? formatMoney(position.market_value_reporting, reporting)
-            : MISSING}
+          {formatMoney(position.market_value_reporting, reporting)}
         </div>
         <div className={`text-[12px] ${plTone(pl.amount)}`}>
-          {pl.amount !== null ? signedMoney(pl.amount, reporting) : MISSING}
+          {signedMoney(pl.amount, reporting)}
           {pl.amount !== null && pl.percent && <span className="ml-1">{pl.percent}</span>}
         </div>
         {day && (
@@ -668,9 +664,7 @@ export function PositionsTable({
             <td colSpan={6} className={`${TD} text-[12px] text-muted`}>
               {totalLabel}
             </td>
-            <td className={`${TD_NUM} font-medium`}>
-              {totalValue !== null ? formatMoney(totalValue, reporting) : MISSING}
-            </td>
+            <td className={`${TD_NUM} font-medium`}>{formatMoney(totalValue, reporting)}</td>
             <td className={`${TD_NUM} ${plTone(summary.unrealized_pl)}`}>
               {plText(summary.unrealized_pl, totalPercent, reporting)}
             </td>
@@ -773,9 +767,7 @@ export function PositionsTable({
             <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3">
               <p className="text-[12px] text-muted">{totalLabel}</p>
               <div className="shrink-0 text-right tabular-nums">
-                <div className="font-medium text-ink">
-                  {totalValue !== null ? formatMoney(totalValue, reporting) : MISSING}
-                </div>
+                <div className="font-medium text-ink">{formatMoney(totalValue, reporting)}</div>
                 <div className={`text-[12px] ${plTone(summary.unrealized_pl)}`}>
                   {plText(summary.unrealized_pl, totalPercent, reporting)}
                 </div>

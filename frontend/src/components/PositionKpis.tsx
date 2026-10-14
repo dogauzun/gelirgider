@@ -3,14 +3,7 @@ import type { Position, Summary } from '../api/summary'
 import { t } from '../i18n/strings'
 import { SHARE_FORMAT } from '../lib/allocation'
 import { formatQuantity } from '../lib/decimal'
-import {
-  formatMoney,
-  formatNumber,
-  formatUnitPrice,
-  MISSING,
-  plTone,
-  signedMoney,
-} from '../lib/format'
+import { formatMoney, formatNumber, formatUnitPrice, plTone, signedMoney } from '../lib/format'
 import { holdingsTotal, unrealized as unrealizedOf, weightOf } from '../lib/positions'
 import { FitFigure, KPI_FIGURE, KPI_WIDE, KpiCell, KpiStrip } from './ui/Kpi'
 
@@ -70,7 +63,7 @@ export function PositionKpis({
       <KpiCell label={t('position.total')} className={closed ? '' : KPI_WIDE}>
         <FitFigure
           className={`${KPI_FIGURE} ${plTone(total)}`}
-          text={total !== null ? signedMoney(total, reporting) : MISSING}
+          text={signedMoney(total, reporting)}
         />
         <p className="text-[12px] text-muted">{t('position.totalHint')}</p>
       </KpiCell>
@@ -79,11 +72,7 @@ export function PositionKpis({
           <KpiCell label={t('position.marketValue')}>
             <FitFigure
               className={`${KPI_FIGURE} text-ink`}
-              text={
-                position.market_value_reporting !== null
-                  ? formatMoney(position.market_value_reporting, reporting)
-                  : MISSING
-              }
+              text={formatMoney(position.market_value_reporting, reporting)}
             />
             <p className="text-[12px] text-muted">
               {t('position.units', {
@@ -96,7 +85,7 @@ export function PositionKpis({
           <KpiCell label={t('position.unrealized')}>
             <FitFigure
               className={`${KPI_FIGURE} ${plTone(unrealized)}`}
-              text={unrealized !== null ? signedMoney(unrealized, reporting) : MISSING}
+              text={signedMoney(unrealized, reporting)}
             />
             {percent && <p className={`text-[12px] ${plTone(unrealized)}`}>{percent}</p>}
             {/* The part of it from the exchange rate, as Özet's table
@@ -113,7 +102,7 @@ export function PositionKpis({
       <KpiCell label={t('position.realized')}>
         <FitFigure
           className={`${KPI_FIGURE} ${plTone(realized)}`}
-          text={realized !== null ? signedMoney(realized, reporting) : MISSING}
+          text={signedMoney(realized, reporting)}
         />
         <p className="text-[12px] text-muted">{t('position.realizedHint')}</p>
       </KpiCell>
@@ -121,7 +110,7 @@ export function PositionKpis({
         <KpiCell label={t('position.dividends')}>
           <FitFigure
             className={`${KPI_FIGURE} ${plTone(dividendNet)}`}
-            text={dividendNet !== null ? signedMoney(dividendNet, reporting) : MISSING}
+            text={signedMoney(dividendNet, reporting)}
           />
           {dividendRow && (
             <p className="text-[12px] text-muted">

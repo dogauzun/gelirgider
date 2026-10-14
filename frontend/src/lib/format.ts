@@ -32,19 +32,30 @@ export function formatNumber(value: string | number, options?: Intl.NumberFormat
   return formatter(options).format(typeof value === 'string' ? (value as `${number}`) : value)
 }
 
-// Formats with the value's own currency, so a USD figure carries a $ and a
-// TRY figure a ₺ -- never a bare number with no currency shown. narrowSymbol:
-// the `en` locale has no TRY symbol and would print "TRY 1,234.50".
-// signDisplay 'negative': an amount that rounds to zero, such as a sub-cent
-// difference, reads "$0,00", never "-$0,00".
-export function formatMoney(value: string | number, currency: string): string {
+// A null amount is one the backend could not work out: MISSING, never a zero,
+// and not masked since there is nothing to hide.
+function money(
+  value: string | number | null,
+  currency: string,
+  signDisplay: Intl.NumberFormatOptions['signDisplay'],
+): string {
+  if (value === null) return MISSING
   if (getPrivacy()) return MASK
   return formatNumber(value, {
     style: 'currency',
     currency,
     currencyDisplay: 'narrowSymbol',
-    signDisplay: 'negative',
+    signDisplay,
   })
+}
+
+// Formats with the value's own currency, so a USD figure carries a $ and a
+// TRY figure a ₺ -- never a bare number with no currency shown. narrowSymbol:
+// the `en` locale has no TRY symbol and would print "TRY 1,234.50".
+// signDisplay 'negative': an amount that rounds to zero, such as a sub-cent
+// difference, reads "$0,00", never "-$0,00".
+export function formatMoney(value: string | number | null, currency: string): string {
+  return money(value, currency, 'negative')
 }
 
 // A short money figure for a narrow slot, the sidebar's portfolio rows:
@@ -94,14 +105,8 @@ export function currencySymbol(currency: string): string {
 
 // Every P/L figure carries its sign, so color is never the only cue
 // (ADR 0005). Zero is neither a gain nor a loss, so it stays unsigned.
-export function signedMoney(value: string | number, currency: string): string {
-  if (getPrivacy()) return MASK
-  return formatNumber(value, {
-    style: 'currency',
-    currency,
-    currencyDisplay: 'narrowSymbol',
-    signDisplay: 'exceptZero',
-  })
+export function signedMoney(value: string | number | null, currency: string): string {
+  return money(value, currency, 'exceptZero')
 }
 
 // A P/L ratio as a percent (0.059 -> "+%5,9"), signed like signedMoney.
