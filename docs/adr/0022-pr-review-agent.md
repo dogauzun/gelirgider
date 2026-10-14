@@ -162,7 +162,7 @@ seventh.
 ## Recorded simplifications
 
 - Nothing on GitHub says that a clean PR was reviewed. The merger's merge
-  comment states either `reviewer skipped: exempt paths` or the head the
+  comment states either `reviewer skipped (exempt paths)` or the head the
   reviewer ran on.
 - A review that starts while the checks run is wasted when a failing check
   forces a push that changes the diff. The cost is accepted; the cost line
