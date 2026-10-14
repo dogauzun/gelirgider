@@ -40,21 +40,26 @@ setup: ## Install frontend dependencies, cloning the main checkout's node_module
 	echo "$$want" > node_modules/.lockfile-sha256
 
 # Remove the worktrees whose work is finished: not locked, nothing uncommitted,
-# and the branch is either an ancestor of origin/main or pushed once and gone
-# from origin now (GitHub deletes the branch when its PR merges or closes; the
-# fetch --prune below drops the remote ref, so the upstream is read from the
-# branch config, where it shows as [gone]). A never-pushed branch with commits
-# and a detached HEAD stay, and so do the worktree it runs in, a branch exactly
-# at origin/main and a branch whose reflog holds only its creation (both mean
-# just cut: such a branch turns into an ancestor of origin/main as soon as any
-# other PR merges). DRY=1 only prints.
+# and the branch is either an ancestor of origin/main or pushed with -u and gone
+# from origin now (GitHub deletes the branch when its PR merges or closes), with
+# every local commit still in the remote-tracking ref (fetch runs without
+# --prune so that ref survives; commits made after the last push keep the
+# branch). A worktree made with `git worktree add -b <b> <path> origin/main`
+# starts with upstream origin/main, so the branch must be pushed with -u (as
+# CLAUDE.md says) for the gone check to apply; otherwise it stays, the safe
+# side. A never-pushed branch with commits and a detached HEAD stay, and so do
+# the worktree it runs in, a branch exactly at origin/main and a branch whose
+# reflog holds only its creation (both mean just cut: such a branch turns into
+# an ancestor of origin/main as soon as any other PR merges). DRY=1 changes
+# nothing: it skips the removals and the remote and worktree prunes.
 prune-worktrees: ## Remove finished worktrees and their local branches (DRY=1 only prints)
-	@git fetch --prune origin && cur=$$(cd "$$(git rev-parse --show-toplevel)" && pwd -P) && \
+	@git fetch origin && heads=$$(git ls-remote --heads origin | cut -f2) && cur=$$(cd "$$(git rev-parse --show-toplevel)" && pwd -P) && \
 	git worktree list --porcelain | awk -v RS= -F'\n' 'NR > 1 { p = ""; b = "-"; l = 0; \
 		for (i = 1; i <= NF; i++) { if ($$i ~ /^worktree /) p = substr($$i, 10); \
 			else if ($$i ~ /^branch refs\/heads\//) b = substr($$i, 19); else if ($$i ~ /^locked/) l = 1 } \
 		print p "\t" b "\t" l }' | \
 	while IFS="$$(printf '\t')" read -r p b l; do \
+		if [ ! -d "$$p" ]; then echo "kept    $$p ($$b): directory missing (git worktree repair or prune)"; continue; fi; \
 		if [ "$$(cd "$$p" && pwd -P)" = "$$cur" ]; then echo "kept    $$p ($$b): current worktree"; continue; fi; \
 		if [ "$$l" = 1 ]; then echo "kept    $$p: locked"; continue; fi; \
 		if [ "$$b" = - ]; then echo "kept    $$p: detached HEAD"; continue; fi; \
@@ -63,16 +68,18 @@ prune-worktrees: ## Remove finished worktrees and their local branches (DRY=1 on
 		if [ "$$tip" = "$$(git rev-parse origin/main)" ]; then echo "kept    $$p ($$b): at origin/main, may be just cut"; continue; \
 		elif [ "$$(git reflog show --format=%gs "refs/heads/$$b" | wc -l | tr -d ' ')" = 1 ]; then echo "kept    $$p ($$b): no commits yet, may be just cut"; continue; \
 		elif git merge-base --is-ancestor "$$tip" origin/main; then why="merged into origin/main"; \
-		else up=$$(git for-each-ref --format='%(upstream:short) %(upstream:track)' "refs/heads/$$b"); \
+		else up=$$(git for-each-ref --format='%(upstream:short)' "refs/heads/$$b"); \
 			case "$$up" in \
-				origin/*"[gone]"*) why="upstream $${up%% *} is gone";; \
-				origin/*) echo "kept    $$p ($$b): upstream still on origin, commits not on origin/main"; continue;; \
-				" "*|"") echo "kept    $$p ($$b): never pushed, commits not on origin/main"; continue;; \
-				*) echo "kept    $$p ($$b): upstream $${up%% *} is not on origin"; continue;; \
-			esac; fi; \
+				"") echo "kept    $$p ($$b): never pushed, commits not on origin/main"; continue;; \
+				origin/*) ;; \
+				*) echo "kept    $$p ($$b): upstream $$up is not on origin"; continue;; \
+			esac; \
+			if printf '%s\n' "$$heads" | grep -Fxq "refs/heads/$${up#origin/}"; then echo "kept    $$p ($$b): upstream still on origin, commits not on origin/main"; continue; fi; \
+			if ! git merge-base --is-ancestor "$$tip" "refs/remotes/$$up" 2>/dev/null; then echo "kept    $$p ($$b): upstream gone but unpushed commits (or its remote ref is pruned)"; continue; fi; \
+			why="upstream $$up is gone, every commit was pushed"; fi; \
 		if [ -n "$(DRY)" ]; then echo "removable $$p ($$b): $$why"; continue; fi; \
 		git worktree remove "$$p" && git branch -D "$$b" >/dev/null && echo "removed $$p ($$b): $$why"; \
-	done && git worktree prune
+	done && { [ -n "$(DRY)" ] || { git remote prune origin && git worktree prune; }; }
 
 dev: ## Run backend and frontend together (Ctrl+C stops both)
 	@trap 'kill 0' INT TERM EXIT; \
