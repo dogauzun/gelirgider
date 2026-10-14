@@ -11,6 +11,7 @@ import (
 	"maps"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/shopspring/decimal"
@@ -111,6 +112,12 @@ type Skipped struct {
 // statement is still returned. Code is stable and the UI translates it, with
 // Value filling its one parameter (a cell count or an unknown type); Message
 // is the English text for logs and for a UI that does not know the code.
+//
+// Value means one thing per code: for bad_number, ambiguous_number and
+// missing_field it is the field key (quantity, price, fee, amount, avg_cost,
+// gross, tax, net); for cell_count the expected cell count; for the unknown_*
+// codes the cell that was not recognised; bad_date carries none. The raw cell
+// of an unreadable number or date is in Row.
 type ParseError struct {
 	Section string
 	Row     []string
@@ -118,6 +125,22 @@ type ParseError struct {
 	Value   string
 	Message string
 	Date    string // YYYY-MM-DD when readable, else ""
+}
+
+// BadNumber records that the number cell for field could not be read. date is
+// the row's date when it was readable, else "".
+func (st *Statement) BadNumber(section string, row []string, field, date string) {
+	st.Errors = append(st.Errors, ParseError{Section: section, Row: row, Code: "bad_number", Value: field, Message: "unreadable " + field, Date: date})
+}
+
+// BadDate records that the row's date cell could not be read.
+func (st *Statement) BadDate(section string, row []string) {
+	st.Errors = append(st.Errors, ParseError{Section: section, Row: row, Code: "bad_date", Message: "unreadable date"})
+}
+
+// CellCount records a row that does not have the want cells its section needs.
+func (st *Statement) CellCount(section string, row []string, want int) {
+	st.Errors = append(st.Errors, ParseError{Section: section, Row: row, Code: "cell_count", Value: strconv.Itoa(want), Message: "expected " + strconv.Itoa(want) + " cells"})
 }
 
 // Parsers maps a broker key to its parser. Each broker package registers

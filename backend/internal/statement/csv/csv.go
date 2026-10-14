@@ -130,7 +130,7 @@ func parseRow(st *statement.Statement, col map[string]int, row []string, currenc
 	}
 	date, err := parseDate(cell("date"))
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: "CSV", Row: row, Code: "bad_date", Message: "unreadable date"})
+		st.BadDate("CSV", row)
 		return
 	}
 	kind, ok := lookup(typeAliases, cell("type"))
@@ -154,11 +154,11 @@ func parseRow(st *statement.Statement, col map[string]int, row []string, currenc
 			longAmount, err = true, nil
 		}
 		if err != nil {
-			code, message := "bad_number", "unreadable number"
 			if err == errAmbiguous {
-				code, message = "ambiguous_number", "ambiguous thousands separator"
+				st.Errors = append(st.Errors, statement.ParseError{Section: "CSV", Row: row, Code: "ambiguous_number", Value: f, Message: "ambiguous thousands separator", Date: date})
+				return
 			}
-			st.Errors = append(st.Errors, statement.ParseError{Section: "CSV", Row: row, Code: code, Value: f, Message: message, Date: date})
+			st.BadNumber("CSV", row, f, date)
 			return
 		}
 		nums[f] = n
@@ -197,7 +197,7 @@ func parseRow(st *statement.Statement, col map[string]int, row []string, currenc
 			amount = nums["quantity"].Mul(nums["price"])
 		}
 		if longAmount && !amount.Equal(nums["quantity"].Mul(nums["price"])) {
-			st.Errors = append(st.Errors, statement.ParseError{Section: "CSV", Row: row, Code: "bad_number", Value: "amount", Message: "unreadable number", Date: date})
+			st.BadNumber("CSV", row, "amount", date)
 			return
 		}
 		st.Trades = append(st.Trades, statement.Trade{

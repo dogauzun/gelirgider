@@ -3561,7 +3561,7 @@ describe('ImportPage', () => {
       key: 'err-1',
       status: 'error',
       section: 'HESAP İŞLEMLERİ',
-      code: 'unknown_cash_type',
+      code: 'unknown_type',
       value: 'Faiz',
       message: 'unknown cash type Faiz',
       date: '2025-12-20',
@@ -3587,7 +3587,7 @@ describe('ImportPage', () => {
       key: 'err-1',
       status: 'error',
       section: 'HESAP İŞLEMLERİ',
-      code: 'unknown_cash_type',
+      code: 'unknown_type',
       value: 'Faiz',
       message: 'unknown cash type Faiz',
       date: '2025-12-20',
@@ -3611,7 +3611,7 @@ describe('ImportPage', () => {
       key: 'err-1',
       status: 'error',
       section: 'HESAP İŞLEMLERİ',
-      code: 'unknown_cash_type',
+      code: 'unknown_type',
       value: 'Faiz',
       message: 'unknown cash type Faiz',
       date: '2025-12-20',
@@ -3656,10 +3656,16 @@ describe('ImportPage', () => {
       message: 'ambiguous thousands separator',
       raw: ['2025-05-02', 'buy', 'SISE', '1.000', '10'],
     }
+    // A statement parser's field key reads the same way.
+    const avgCostError = { ...numberError, key: 'err-3', value: 'avg_cost', raw: ['avg'] }
     mockApi(
       () =>
         new Response(
-          JSON.stringify({ ...preview, broker: 'csv', rows: [numberError, ambiguousError] }),
+          JSON.stringify({
+            ...preview,
+            broker: 'csv',
+            rows: [numberError, ambiguousError, avgCostError],
+          }),
           { status: 200 },
         ),
     )
@@ -3669,6 +3675,7 @@ describe('ImportPage', () => {
     await screen.findAllByRole('table')
 
     expect(table().getByText('Sayı okunamadı: Adet')).toBeInTheDocument()
+    expect(table().getByText('Sayı okunamadı: Ortalama maliyet')).toBeInTheDocument()
     expect(table().getByText('Adet: Binlik ayırıcı mı? 1000 veya 1.000,00 yaz')).toBeInTheDocument()
     // Its raw line breaks between cells rather than inside a
     // number.

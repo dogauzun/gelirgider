@@ -175,17 +175,17 @@ func isPageNumber(row []string) bool {
 // PORTFÖY ÖZETİ: Sermaye Piyasası Aracı|Adet|Hisse Başı Ortalama Maliyet|Kar / Zarar|Toplam Değeri
 func parseHolding(st *statement.Statement, row []string) {
 	if len(row) != 5 {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secHoldings, Row: row, Code: "cell_count", Value: "5", Message: "expected 5 cells"})
+		st.CellCount(secHoldings, row, 5)
 		return
 	}
 	quantity, err := parseNumber(row[1])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secHoldings, Row: row, Code: "unreadable_quantity", Message: "unreadable quantity"})
+		st.BadNumber(secHoldings, row, "quantity", "")
 		return
 	}
 	avgCost, currency, err := parseMoney(row[2])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secHoldings, Row: row, Code: "unreadable_avg_cost", Message: "unreadable average cost"})
+		st.BadNumber(secHoldings, row, "avg_cost", "")
 		return
 	}
 	hold := statement.Holding{
@@ -209,7 +209,7 @@ func parseHolding(st *statement.Statement, row []string) {
 // depending on whether the order was placed by amount or by quantity.
 func parseTrade(st *statement.Statement, row []string) {
 	if len(row) != 12 {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secTrades, Row: row, Code: "cell_count", Value: "12", Message: "expected 12 cells"})
+		st.CellCount(secTrades, row, 12)
 		return
 	}
 	if row[4] != executed {
@@ -218,7 +218,7 @@ func parseTrade(st *statement.Statement, row []string) {
 	}
 	date, err := parseDate(row[0])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secTrades, Row: row, Code: "unreadable_date", Message: "unreadable date"})
+		st.BadDate(secTrades, row)
 		return
 	}
 	var side string
@@ -228,27 +228,27 @@ func parseTrade(st *statement.Statement, row []string) {
 	case "Satış":
 		side = "sell"
 	default:
-		st.Errors = append(st.Errors, statement.ParseError{Section: secTrades, Row: row, Code: "unknown_trade_type", Value: row[3], Message: "unknown trade type " + row[3], Date: date})
+		st.Errors = append(st.Errors, statement.ParseError{Section: secTrades, Row: row, Code: "unknown_type", Value: row[3], Message: "unknown trade type " + row[3], Date: date})
 		return
 	}
 	quantity, err := parseNumber(row[8])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secTrades, Row: row, Code: "unreadable_quantity", Message: "unreadable quantity", Date: date})
+		st.BadNumber(secTrades, row, "quantity", date)
 		return
 	}
 	price, err := parseNumber(row[9])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secTrades, Row: row, Code: "unreadable_price", Message: "unreadable price", Date: date})
+		st.BadNumber(secTrades, row, "price", date)
 		return
 	}
 	fee, err := parseNumber(row[10])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secTrades, Row: row, Code: "unreadable_fee", Message: "unreadable fee", Date: date})
+		st.BadNumber(secTrades, row, "fee", date)
 		return
 	}
 	amount, err := parseNumber(row[11])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secTrades, Row: row, Code: "unreadable_amount", Message: "unreadable amount", Date: date})
+		st.BadNumber(secTrades, row, "amount", date)
 		return
 	}
 	st.Trades = append(st.Trades, statement.Trade{
@@ -267,7 +267,7 @@ func parseTrade(st *statement.Statement, row []string) {
 // Durumu|Tutar (YP).
 func parseCash(st *statement.Statement, row []string) {
 	if len(row) != 6 {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secCash, Row: row, Code: "cell_count", Value: "6", Message: "expected 6 cells"})
+		st.CellCount(secCash, row, 6)
 		return
 	}
 	var kind string
@@ -291,7 +291,7 @@ func parseCash(st *statement.Statement, row []string) {
 		kind = "deposit"
 	default:
 		date, _ := parseDate(row[1])
-		st.Errors = append(st.Errors, statement.ParseError{Section: secCash, Row: row, Code: "unknown_cash_type", Value: row[2], Message: "unknown cash type " + row[2], Date: date})
+		st.Errors = append(st.Errors, statement.ParseError{Section: secCash, Row: row, Code: "unknown_type", Value: row[2], Message: "unknown cash type " + row[2], Date: date})
 		return
 	}
 	if row[4] != executed {
@@ -300,12 +300,12 @@ func parseCash(st *statement.Statement, row []string) {
 	}
 	date, err := parseDate(row[1])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secCash, Row: row, Code: "unreadable_date", Message: "unreadable date"})
+		st.BadDate(secCash, row)
 		return
 	}
 	amount, currency, err := parseMoney(row[5])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secCash, Row: row, Code: "unreadable_amount", Message: "unreadable amount", Date: date})
+		st.BadNumber(secCash, row, "amount", date)
 		return
 	}
 	if kind == "fee" {
@@ -341,27 +341,27 @@ func parseCash(st *statement.Statement, row []string) {
 // Tutarı|Stopaj|Net Temettü Tutarı.
 func parseDividend(st *statement.Statement, row []string) {
 	if len(row) != 5 {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secDividends, Row: row, Code: "cell_count", Value: "5", Message: "expected 5 cells"})
+		st.CellCount(secDividends, row, 5)
 		return
 	}
 	date, err := parseDate(row[0])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secDividends, Row: row, Code: "unreadable_date", Message: "unreadable date"})
+		st.BadDate(secDividends, row)
 		return
 	}
 	gross, currency, err := parseMoney(row[2])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secDividends, Row: row, Code: "unreadable_gross", Message: "unreadable gross amount", Date: date})
+		st.BadNumber(secDividends, row, "gross", date)
 		return
 	}
 	tax, _, err := parseMoney(row[3])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secDividends, Row: row, Code: "unreadable_tax", Message: "unreadable withholding tax", Date: date})
+		st.BadNumber(secDividends, row, "tax", date)
 		return
 	}
 	net, _, err := parseMoney(row[4])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: secDividends, Row: row, Code: "unreadable_net", Message: "unreadable net amount", Date: date})
+		st.BadNumber(secDividends, row, "net", date)
 		return
 	}
 	if !gross.Sub(tax).Equal(net) {

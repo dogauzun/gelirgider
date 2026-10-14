@@ -1376,7 +1376,7 @@ func TestParseCSVFlagsRowsTheCommitRefuses(t *testing.T) {
 		"cash-3":  {"unsupported_currency", "", false},
 		"cash-4":  {"error", "date: must be on or after 1990-01-01", false},
 		// The negative withdrawal is already unreadable to the parser.
-		"err-0": {"error", "unreadable number", false},
+		"err-0": {"error", "unreadable amount", false},
 		"err-1": {"error", "unknown type", false},
 	}
 	if len(p.Rows) != len(want) {

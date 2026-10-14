@@ -143,7 +143,7 @@ func TestParse(t *testing.T) {
 	badLedger := page(append([]string{"Hesap Ekstresi", "Tarih", "Açıklama", "İşlem", "Kalan"}, badRow...)...)
 	bad := feb
 	bad.Trades = nil
-	bad.Errors = []statement.ParseError{{Section: "ledger", Row: badRow, Code: "bad_number", Value: "-500.00", Message: "amount is not price x quantity", Date: "2024-02-01"}}
+	bad.Errors = []statement.ParseError{{Section: "ledger", Row: badRow, Code: "bad_number", Value: "amount", Message: "amount is not price x quantity", Date: "2024-02-01"}}
 
 	// A statement printed in Turkish number format; the description prices
 	// stay US.
@@ -568,7 +568,7 @@ var badIPO = statement.Statement{
 	Cash: []statement.CashMovement{ipoCash,
 		{Date: "2024-09-12", Kind: "withdrawal", Amount: d("3000.00"), Currency: "TRY", Description: "IPO refund XYZAS"}},
 	Skipped: []statement.Skipped{ipoSkip, {Section: "ledger", Reason: "IPO refund", Row: []string{"12/09/2024", "+3,000.00"}}},
-	Errors:  []statement.ParseError{{Section: "trades", Row: ipoMove, Code: "bad_number", Value: "20.000", Message: "IPO allotment does not match the ledger's payment and refund", Date: "2024-09-16"}},
+	Errors:  []statement.ParseError{{Section: "trades", Row: ipoMove, Code: "bad_number", Value: "quantity", Message: "IPO allotment does not match the ledger's payment and refund", Date: "2024-09-16"}},
 }
 
 // TestParseIPONetCash checks that a partly allotted IPO's buy, cash rows and
