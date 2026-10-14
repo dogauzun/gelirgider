@@ -1,0 +1,43 @@
+export const trDividends = {
+  // Expected dividends panel on the Temettü tab (ADR 0009).
+  'dividends.expected.title': 'Onay bekleyen temettüler',
+  // The collapsed panel's summary line after the title.
+  'dividends.expected.summary': '{count} · {net} net',
+  'dividends.expected.exDate': 'Hak kullanım',
+  'dividends.expected.perShare': 'Hisse başı',
+  'dividends.expected.gross': 'Brüt',
+  'dividends.expected.net': 'Net',
+  'dividends.expected.add': 'Ekle',
+  'dividends.expected.addAll': 'Tümünü ekle',
+  'dividends.expected.dismiss': 'Yoksay',
+  // Screen-reader names for a row's buttons, so six "Ekle" read apart.
+  'dividends.expected.addLabel': '{symbol} {date} temettüsünü ekle',
+  'dividends.expected.dismissLabel': '{symbol} {date} temettüsünü yoksay',
+  'dividends.expected.added': '{count} temettü eklendi',
+  'dividends.expected.addAllFailed':
+    '{symbol} {date} eklenemedi, {count} temettü eklenmeden kaldı. {error}',
+  'dividends.expected.dismissed': 'Temettü yoksayıldı',
+  // The Temettü tab: what came in, by period and by instrument.
+  'dividends.page.title': 'Temettü',
+  'dividends.page.last12': 'Son 12 ay net',
+  'dividends.page.yieldOnCost': 'Maliyete göre verim',
+  'dividends.page.yieldOnCostHint': 'Son 12 ay net / açık pozisyonların maliyeti',
+  'dividends.page.thisYear': 'Bu yıl net',
+  'dividends.page.totalNet': 'Toplam net',
+  'dividends.page.totalTax': 'Toplam stopaj',
+  'dividends.page.interest': 'Faiz toplam',
+  'dividends.page.received': 'Alınan temettüler',
+  'dividends.page.group': 'Gruplama',
+  'dividends.page.monthly': 'Aylık',
+  'dividends.page.yearly': 'Yıllık',
+  'dividends.page.byInstrument': 'Enstrüman bazında',
+  'dividends.page.payments': 'Ödeme sayısı',
+  'dividends.page.paymentsCount': '{count} ödeme',
+  'dividends.page.share': 'Pay',
+  'dividends.page.net': 'Net',
+  'dividends.page.lastPayment': 'Son ödeme',
+  'dividends.page.empty': 'Henüz temettü yok.',
+  'dividends.page.emptyAdd': 'Temettü ekle',
+  'dividends.page.loading': 'Temettüler yükleniyor...',
+  'dividends.page.error': 'Temettüler yüklenemedi',
+} as const
