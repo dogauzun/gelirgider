@@ -63,9 +63,10 @@ shows error rows, unknown symbols and deliberately skipped rows, and the user
 fixes them before committing. Rejected: all-or-nothing parsing, which turns
 every layout change into "import is broken".
 
-An unknown row type is an error row, never a guess. A number with one kind of
-separator in thousands shape (`1.000`, `1,000`) is an `ambiguous_number`
-error row, the same rule as the transaction form. A CSV that is not valid
+An unknown row type is an error row, never a guess. In a CSV, a number with
+one kind of separator in thousands shape (`1.000`, `1,000`) is an
+`ambiguous_number` error row, the same rule as the transaction form; the PDF
+parsers read their broker's fixed number format. A CSV that is not valid
 UTF-8 is read as Windows-1254, which Excel in a Turkish locale writes, with a
 small built-in table instead of a dependency.
 

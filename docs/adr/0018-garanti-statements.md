@@ -66,8 +66,11 @@ resolving.
 
 - A buy or sell is dated on the trade date its description prints when that
   date is inside the period, else on the ledger's value date. The sell code
-  is read like the buy code. Any other ledger description is an `unknown_row`
-  error, never a guess.
+  is read like the buy code. A description the parser does not recognise is
+  an `unknown_row` error, never a guess.
+- Fees (custody, account-keeping and order-cancel charges) are booked as a
+  fee, or as a deposit when positive. IPO payments and refunds are cash
+  movements, and a fractional share cashed out in the ledger is a sell.
 - A commission is split pro rata over the trades of its date, on the side whose
   amounts sum to its base when one does. A commission on a date with no trade
   stays a fee.
