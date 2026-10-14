@@ -28,7 +28,7 @@ of a phase epic, or a workflow rule.
 | 0018 | [Garanti BBVA statements](0018-garanti-statements.md)                                                              | accepted 2026-10-01                               |
 | 0019 | [Core engine and auth](0019-core-engine-and-auth.md)                                                               | accepted 2026-10-01                               |
 | 0020 | [Deployment topology](0020-deployment-topology.md)                                                                 | accepted 2026-10-01                               |
-| 0021 | [Product and UI decisions of Phases 15, 20 and 21, and i18n](0021-product-and-ui-decisions.md)                     | accepted 2026-10-01                               |
+| 0021 | [i18n and CSV export](0021-product-and-ui-decisions.md)                                                            | accepted 2026-10-01                               |
 | 0022 | [PR review by a subagent of the merger](0022-pr-review-agent.md)                                                   | accepted 2026-10-02                               |
 | 0023 | [UI design system v2 ("soft depth") — Inter, shadow tokens, Base UI, sidebar shell](0023-ui-design-system-v2.md)   | accepted 2026-10-04                               |
 
