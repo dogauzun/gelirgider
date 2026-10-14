@@ -77,9 +77,10 @@ statement preview's reconciliation applies the same rule.
 
 Each such buy is also moved to the ex-date of the split it books, so the
 position is held at the scaled price with the scaled quantity from the
-ex-date. The statement import's duplicate check reads the rows on their
-stored dates (`transaction.Repo.ListStored`), so a re-imported bonus row still
-pairs with the booked one.
+ex-date. The statement import's duplicate check runs on `List`'s rows but pairs
+a moved bonus buy on the date it is stored on (`Transaction.StoredDate`), so a
+re-imported bonus row still pairs with the booked one. The CSV export reads
+`transaction.Repo.ListStored` for the same reason.
 
 Ceiling: any zero-price buy in the window suppresses the split, so shares
 gifted by hand next to a split lose it. The upgrade path is an explicit marker
