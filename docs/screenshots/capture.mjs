@@ -54,6 +54,13 @@ if (!chromeBin) {
   process.exit(1)
 }
 
+// vite preview and the backend start in the background: wait for both
+// before Chrome starts.
+await waitFor('the backend', () => fetch(`${front}/api/health`).then((r) => r.ok)).catch((err) => {
+  console.error(err.message)
+  process.exit(1)
+})
+
 const profile = mkdtempSync(join(tmpdir(), 'gelirgider-chrome-'))
 const chrome = spawn(chromeBin, [
   '--headless=new',
@@ -70,9 +77,6 @@ const chrome = spawn(chromeBin, [
 ])
 let failed = false
 try {
-  // vite preview and the backend start in the background: wait for both
-  // before the first navigation.
-  await waitFor('the backend', () => fetch(`${front}/api/health`).then((r) => r.ok))
   const wsUrl = await new Promise((resolve, reject) => {
     let err = ''
     chrome.stderr.on('data', (chunk) => {
