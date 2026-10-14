@@ -26,6 +26,7 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/btcturk"
 	"github.com/dogauzun/gelirgider/backend/internal/config"
 	"github.com/dogauzun/gelirgider/backend/internal/db"
+	"github.com/dogauzun/gelirgider/backend/internal/demo"
 	"github.com/dogauzun/gelirgider/backend/internal/dividend"
 	"github.com/dogauzun/gelirgider/backend/internal/evds"
 	"github.com/dogauzun/gelirgider/backend/internal/fx"
@@ -61,11 +62,13 @@ func main() {
 	var backfillPrices bool
 	var backfillFrom string
 	var healthcheck bool
+	var demoSeed bool
 	flag.BoolVar(&backfillPrices, "backfill-prices", false, "backfill historical BIST bulletin prices, TCMB FX rates, BtcTurk crypto closes, TEFAS fund NAVs, Tiingo US closes, the gram gold series and EVDS BIST 100 closes, plus the latest US prices, then exit")
 	flag.StringVar(&backfillFrom, "backfill-from", "", "override the BIST/TCMB/crypto/TEFAS/US/gold/XU100 backfill start date (YYYY-MM-DD); default is the earliest transaction date (for BIST, the earliest BIST instrument transaction; for US, each instrument's own earliest transaction)")
 	resetEmail := flag.String("set-password", "", "set the password of the user with this email, read from stdin, then exit (no server). Operator escape hatch for a forgotten password; there is no self-service reset")
 	addSplit := flag.String("add-split", "", "record a split as MARKET:SYMBOL,YYYY-MM-DD,RATIO (ratio = new shares per old share, date = ex-date), then exit (no server). Operator fallback for splits no provider covers")
 	backupPath := flag.String("backup", "", "write a consistent copy of the database to path via VACUUM INTO, then exit (no server)")
+	flag.BoolVar(&demoSeed, "demo", false, "fill an empty database with a synthetic demo user, portfolio and two years of prices, then exit (no server); refuses a database that has a user")
 	flag.BoolVar(&healthcheck, "healthcheck", false, "GET /api/health on localhost and exit 0/1 (for use as a container HEALTHCHECK; distroless image has no shell/curl)")
 	flag.Parse()
 
@@ -135,6 +138,15 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
+		return
+	}
+
+	if demoSeed {
+		if err := demo.Seed(context.Background(), conn, price.Today()); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		fmt.Printf("demo data seeded, log in as %s with password %s\n", demo.Email, demo.Password)
 		return
 	}
 
