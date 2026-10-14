@@ -410,10 +410,14 @@ copy of the current state, and step 2 picks the older file instead.
 
 1. Pin the images of the previous known-good commit in `deploy/.env`, by
    the first 7 characters of its SHA (`git log --oneline` lists the
-   commits), or a release tag `vX.Y.Z` once there is one:
+   commits), or by a release:
    ```
    IMAGE_TAG=sha-<7>
    ```
+   `IMAGE_TAG=v1` follows the major version (minor and patch releases arrive
+   on `docker compose pull`); `IMAGE_TAG=v1.4.2` pins one release. Releases
+   are cut by the `release` workflow in Actions and listed on the GitHub
+   Releases page (<https://github.com/dogauzun/gelirgider/releases>).
    A merge that landed while another publish run was queued may have no
    `sha-<7>` tag: GitHub keeps one pending run per concurrency group and
    drops the older one, so that commit's images were never built. Pick the
