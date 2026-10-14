@@ -55,7 +55,7 @@ function ReportingRow() {
         <Select
           value={me.reporting_currency}
           // Not disabled while saving: Chromium blurs a focused control that
-          // becomes disabled, dropping a keyboard user to <body> (GLG-905).
+          // becomes disabled, dropping a keyboard user to <body>.
           // The "saving" hint says a save runs; a pick meanwhile is ignored.
           onChange={(currency) => {
             if (!mutation.isPending) mutation.mutate(currency)
@@ -78,7 +78,7 @@ function PasswordSection() {
   const [newPasswordAgain, setNewPasswordAgain] = useState('')
   // Set on submit, cleared on any edit of either new-password field: the
   // native minLength check can block the next submit, and a stale mismatch
-  // error would sit next to it (GLG-384).
+  // error would sit next to it.
   const [mismatch, setMismatch] = useState(false)
 
   const mutation = useChangePassword(currentPassword, newPassword, () => {
@@ -91,7 +91,7 @@ function PasswordSection() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     // A typo in the new password locks the user out: there is no self-service
-    // reset, only the operator running -set-password (GLG-126). So confirm it
+    // reset, only the operator running -set-password. So confirm it
     // here and never send a password the user typed only once.
     if (newPassword !== newPasswordAgain) {
       setMismatch(true)
@@ -104,7 +104,7 @@ function PasswordSection() {
 
   // The server's "password must ..." rejections are about the new password,
   // so they go under that field; anything else, "current password is
-  // incorrect" above all, stays under the current one (GLG-477).
+  // incorrect" above all, stays under the current one.
   const serverError = mutation.error instanceof ApiError ? mutation.error.body.error : undefined
   const newPasswordRejected =
     typeof serverError === 'string' && serverError.startsWith('password must ')
@@ -113,14 +113,14 @@ function PasswordSection() {
   return (
     <Card title={t('account.section.password')} help={t('account.passwordHelp')}>
       {/* A server error is about the values sent: any edit drops it, as on
-          the signed-out forms (GLG-1075). Only an error: a reset while
+          the signed-out forms. Only an error: a reset while
           pending would drop the success that clears the fields. */}
       <form
         onSubmit={handleSubmit}
         onChange={() => mutation.isError && mutation.reset()}
         className="flex max-w-sm flex-col gap-4"
       >
-        {/* Password managers tie the new password to this account (GLG-1078). */}
+        {/* Password managers tie the new password to this account. */}
         <input
           type="email"
           name="username"
@@ -191,7 +191,7 @@ function LanguageRow() {
   const locale = useLocale()
 
   // The only place to change the language once signed in (the header has no
-  // switch since GLG-572). The auth and setup pages keep their own
+  // switch). The auth and setup pages keep their own
   // LanguageSwitch on the same store, so neither needs to know about the other.
   return (
     <Row label={t('account.section.language')} help={t('account.languageHelp')}>
@@ -238,7 +238,7 @@ function AppearanceRow() {
 
 export function AccountPage() {
   useTitle(t('account.heading'))
-  // The portfolio pages' column (GLG-968): left-aligned beside the sidebar,
+  // The portfolio pages' column: left-aligned beside the sidebar,
   // 24 px gutter at every width.
   return (
     <main id="main">

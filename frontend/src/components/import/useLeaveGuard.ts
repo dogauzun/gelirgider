@@ -7,8 +7,8 @@ const blocking = (guard: Guard) => guard.when && !guard.released
 
 // The mounted guard's popstate handler. Chromium runs window listeners in the
 // order they were added, capture or not, and the router's listener re-renders
-// the app, unmounting the page and its listener, before a later one runs
-// (GLG-1089). This one is added when the module loads, before <BrowserRouter>
+// the app, unmounting the page and its listener, before a later one runs.
+// This one is added when the module loads, before <BrowserRouter>
 // mounts and adds the router's, so it always runs first.
 let onPop: ((event: PopStateEvent) => void) | null = null
 window.addEventListener('popstate', (event) => onPop?.(event))
@@ -41,7 +41,7 @@ function guardNavigator(navigator: Navigator, guard: Guard) {
   }
 }
 
-// Asks before the user leaves a page while `when` holds (GLG-1073): `ask`
+// Asks before the user leaves a page while `when` holds: `ask`
 // for an in-app link or a push navigate() and for Back or Forward, the browser's own
 // prompt for a reload or a tab close. react-router's useBlocker needs a data
 // router and the app runs on <BrowserRouter>, so the guard sits on the
@@ -73,7 +73,7 @@ export function useLeaveGuard(when: boolean, ask: () => Promise<boolean>) {
     const guard = latest.current
     let undoing = false
     let redoing = false
-    // The redo of a move the user agreed to before its undo landed (GLG-1092).
+    // The redo of a move the user agreed to before its undo landed.
     let redoLater: (() => void) | null = null
     function onPopState(event: PopStateEvent) {
       if (redoing) {

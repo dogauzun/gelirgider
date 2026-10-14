@@ -20,14 +20,14 @@ const providerInfo: Record<string, { label: string; use: StringKey }> = {
   evds: { label: 'TCMB EVDS', use: 'admin.providers.evdsUse' },
 }
 
-// The `error` of a failed key test (GLG-308).
+// The `error` of a failed key test.
 const testErrorKeys: Record<string, StringKey> = {
   'invalid key': 'admin.providers.testInvalidKey',
   'rate limited': 'admin.providers.testRateLimited',
   unreachable: 'admin.providers.testUnreachable',
 }
 
-// Takes no props, so the setup wizard's step 2 renders it as is (GLG-316).
+// Takes no props, so the setup wizard's step 2 renders it as is.
 export function ProvidersSection() {
   const { data: providers, isError, error } = useProviders()
 
@@ -68,7 +68,7 @@ function ProviderRow({ provider }: { provider: ProviderStatus }) {
   // A save empties the input and so disables Kaydet; a clear disables
   // Temizle once the refetch reports no key. A focused button that turns
   // disabled drops focus to <body>, so it moves to the key input first,
-  // unless the admin has moved on (GLG-1308).
+  // unless the admin has moved on.
   const save = useSaveProviderKey(provider.name, typed, () => {
     setTyped('')
     focusIfLost(inputRef.current, saveRef.current)
@@ -78,7 +78,7 @@ function ProviderRow({ provider }: { provider: ProviderStatus }) {
     focusIfLost(inputRef.current, clearRef.current)
     toast(t('admin.providers.cleared', { provider: label }))
   })
-  // One per action, so a save and a test still run side by side (GLG-1292).
+  // One per action, so a save and a test still run side by side.
   const saveOnce = useOneAtATime()
   const testOnce = useOneAtATime()
   const actionError = save.error ?? clear.error ?? test.error

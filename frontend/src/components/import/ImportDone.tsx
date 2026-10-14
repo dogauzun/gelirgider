@@ -5,7 +5,7 @@ import { Pill } from '../ui/Pill'
 import { ParseError } from './ImportQueue'
 import { viewImportClass, type QueueItem } from './shared'
 
-// Step 3 of a multi-file import, "Bitti" (GLG-967): each imported statement
+// Step 3 of a multi-file import, "Bitti": each imported statement
 // with its rows and a link to İşlemler filtered to it, each skipped or failed
 // file with its reason. With nothing imported there is no success line.
 export function ImportDone({

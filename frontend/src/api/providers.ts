@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../api'
 
-// Admin data provider keys (GLG-302, GLG-308). The server never returns a
+// Admin data provider keys. The server never returns a
 // key, only whether one is stored and its last 4 characters ("" for keys of
 // 4 characters or fewer). error is "undecryptable" when the stored key
-// cannot be read after a SECRET_KEY change (GLG-320).
+// cannot be read after a SECRET_KEY change.
 export interface ProviderStatus {
   name: string
   configured: boolean

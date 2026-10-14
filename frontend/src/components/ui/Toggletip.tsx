@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 
-// A `title` tooltip that touch and keyboard users can reach (GLG-808): the
+// A `title` tooltip that touch and keyboard users can reach: the
 // content becomes a button that shows `tip` in a bubble on tap, focus or mouse
 // hover, and closes on blur, Escape, a tap elsewhere or the mouse leaving.
 // The tip is the button's description, so a screen reader reads it with the

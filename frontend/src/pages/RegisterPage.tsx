@@ -10,7 +10,7 @@ export function RegisterPage() {
   useTitle(t('auth.register.title'))
   const navigate = useNavigate()
   const { state } = useNavState()
-  // Forwarded from LoginPage: the deep link to land on afterwards (GLG-400).
+  // Forwarded from LoginPage: the deep link to land on afterwards.
   const from = state?.from
   const registrationClosed = useAuthConfig().data?.registration_open === false
 

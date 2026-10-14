@@ -5,7 +5,7 @@ export type ReviewFilterValue = 'all' | 'problems'
 
 const VALUES: ReviewFilterValue[] = ['all', 'problems']
 
-// "Tümü N | Sorunlu N" above the review's rows (GLG-966): one filter in place
+// "Tümü N | Sorunlu N" above the review's rows: one filter in place
 // of the two notices that counted the same rows twice. `problems` is
 // problemRows(rows).length.
 export function ReviewFilter({

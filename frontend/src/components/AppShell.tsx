@@ -14,11 +14,11 @@ import { useModal } from './ui/useModal'
 import { Modal } from './ui/Modal'
 
 // The signed-in layout (ADR 0023): the sidebar from `lg`; below it a top bar
-// with the menu button that opens the same sidebar as a drawer (GLG-876), and
+// with the menu button that opens the same sidebar as a drawer, and
 // the routed page. The pages and PortfolioHeader own the <main>, so the shell
 // adds none; so does the error fallback, which replaces the page's.
 // `children` stands in for the routed page on a route that is not under the
-// shell's layout route (GLG-1077).
+// shell's layout route.
 export function AppShell({ children }: { children?: ReactNode }) {
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
@@ -30,7 +30,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
     setOpen(false)
   }
 
-  // A link to another page starts it at the top (GLG-881); BrowserRouter
+  // A link to another page starts it at the top; BrowserRouter
   // keeps the old offset, and its ScrollRestoration needs a data router.
   // Back and forward (POP) keep what the browser restores. Search params or
   // state on the same pathname, and the remount on a language switch, do not
@@ -80,7 +80,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
               navigation, logout and privacy, in place; resetKey clears the
               error once the user goes to another page, without remounting a
               page that only changed its params (App keys each portfolio page
-              by the portfolio id itself, GLG-1062). */}
+              by the portfolio id itself). */}
           <ErrorBoundary resetKey={pathname}>{children ?? <Outlet />}</ErrorBoundary>
         </div>
         {open && <Drawer onClose={() => setOpen(false)} />}
@@ -89,8 +89,8 @@ export function AppShell({ children }: { children?: ReactNode }) {
   )
 }
 
-// Where the user is, in words: the open portfolio, or the page's own title
-// (GLG-882), any other URL being the not-found page. A plain span, as the
+// Where the user is, in words: the open portfolio, or the page's own title,
+// any other URL being the not-found page. A plain span, as the
 // page owns the h1.
 function PageTitle() {
   // Matched the router's way (any case, a trailing slash). `*` is set only by
@@ -105,8 +105,8 @@ function PageTitle() {
   let title: string
   if (notFound) title = t('notFound.title')
   else if (id === 'all') title = t('portfolio.all')
-  // An id the loaded list lacks is the not-found page, as in the tab title
-  // (GLG-840); the app's name stands in while the list loads or has failed.
+  // An id the loaded list lacks is the not-found page, as in the tab title;
+  // the app's name stands in while the list loads or has failed.
   else if (id !== undefined)
     title =
       data?.find((p) => String(p.id) === id)?.name ??

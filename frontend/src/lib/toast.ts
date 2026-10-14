@@ -1,6 +1,6 @@
 // Module-level store like `i18n/strings.ts`: `toast()` is a plain function any
 // module can call without a provider, and `<Toaster/>` (ui/Toast)
-// subscribes to it. Mounting `<Toaster/>` is the app shell's job (GLG-166).
+// subscribes to it. Mounting `<Toaster/>` is the app shell's job.
 import { createStore } from './createStore'
 
 export type Toast = {
@@ -13,7 +13,7 @@ export type Toast = {
 
 const MAX_VISIBLE = 3
 const DISMISS_MS = 3000
-// Long enough to read the message, find the button and press it (GLG-795).
+// Long enough to read the message, find the button and press it.
 const UNDO_MS = 8000
 
 const store = createStore<readonly Toast[]>(() => [])
@@ -68,10 +68,9 @@ export function pauseToasts(pause: boolean): void {
 // `commit` is the action an undo toast holds back, such as a deferred delete:
 // it runs unless the undo is pressed. It may return a promise, which
 // flushToasts waits for. `focus` moves focus to the undo button, so a
-// keyboard user reaches it at once and the timer waits while it has focus
-// (GLG-838). `error` is for what failed: it stays until closed and is
-// announced assertively, so a user who looked away still learns of it
-// (GLG-848).
+// keyboard user reaches it at once and the timer waits while it has focus.
+// `error` is for what failed: it stays until closed and is
+// announced assertively, so a user who looked away still learns of it.
 export function toast(
   message: string,
   options: { undo?: () => void; commit?: () => unknown; focus?: boolean; error?: boolean } = {},
@@ -98,9 +97,9 @@ export function toast(
 // Expires every toast now, running the commits held back, and resolves once
 // they have settled. The Toaster calls it when the page is left and logout
 // awaits it before ending the session, so a deferred action is not dropped
-// or sent without a session (GLG-795). Repeats until none is left: a commit
+// or sent without a session. Repeats until none is left: a commit
 // that fails adds an error toast, which would otherwise outlive the logout
-// into the next session (GLG-848).
+// into the next session.
 export async function flushToasts(): Promise<void> {
   while (store.get().length) {
     await Promise.allSettled(store.get().map((item) => expire(item.id)))
@@ -110,9 +109,9 @@ export async function flushToasts(): Promise<void> {
 // Drops every toast now without running the commits held back. For when
 // the user has already gone (an expired session, another account signed in):
 // a commit would only be sent without that user's session, and nothing on
-// screen is meant for whoever logs in next (GLG-849). A dropped commit was
+// screen is meant for whoever logs in next. A dropped commit was
 // never sent, so its undo runs, as if pressed: what the toast hid comes
-// back rather than staying hidden for good (GLG-856).
+// back rather than staying hidden for good.
 export function clearToasts(): void {
   const undos = store
     .get()

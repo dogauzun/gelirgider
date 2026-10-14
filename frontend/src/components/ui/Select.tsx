@@ -38,7 +38,7 @@ export function Select<T extends string>({
   // select that has no visible label of its own.
   prefix?: string
   // Layout classes on the trigger, such as flex-1 or max-w-xs, as a plain
-  // string: lint blocks one that clashes with inputClass (GLG-1298).
+  // string: lint blocks one that clashes with inputClass.
   className?: string
 }) {
   // A modal <dialog> is in the top layer: a popup portaled to <body> would

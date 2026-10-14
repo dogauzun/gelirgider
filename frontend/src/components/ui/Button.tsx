@@ -7,7 +7,7 @@ type ButtonProps = ComponentProps<'button'> & {
   size?: keyof typeof sizes
   // A request this button started is running. The button stays enabled, so
   // it keeps focus and its place in the tab order, but is announced as
-  // unavailable and ignores clicks (GLG-920).
+  // unavailable and ignores clicks.
   pending?: boolean
 } & ({ iconOnly: true; 'aria-label': string } | { iconOnly?: false })
 
@@ -26,7 +26,7 @@ export function Button({
   // A focused button that turns disabled makes the browser
   // drop focus to <body>, and it does not come back when the button is enabled
   // again. So a failed request left focus outside the form or dialog. Put it
-  // back here, unless something else took focus in the meantime (GLG-483).
+  // back here, unless something else took focus in the meantime.
   const lostFocus = useRef<HTMLButtonElement | null>(null)
   useEffect(() => {
     const button = lostFocus.current
@@ -57,7 +57,7 @@ export function Button({
         onFocus?.(event)
       }}
       // A fixed height holds one line, so a label that wrapped at phone width
-      // spilled past the border (GLG-837).
+      // spilled past the border.
       className={buttonClass({ variant, size, iconOnly, className })}
       {...props}
     />

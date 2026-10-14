@@ -15,19 +15,18 @@ export function GuestRoute({ children }: { children: ReactNode }) {
 
   if (me) {
     // Same target as LoginPage: a successful login refetches me, and this
-    // redirect must not race the deep link back to "/" (GLG-380).
+    // redirect must not race the deep link back to "/".
     return <Navigate to={loginRedirectPath(location.state)} replace />
   }
   // Only a 401 (fetchMe returns null) means logged out. On a 5xx or network
-  // error the visitor may hold a valid session, so do not offer the form
-  // (GLG-330).
+  // error the visitor may hold a valid session, so do not offer the form.
   if (me === null) {
     return children
   }
   // A failing /api/me is retried for about seven seconds (shouldRetryQuery)
   // and has no data for that whole window, so rendering null leaves a blank
-  // page. Once the first attempt has failed, say why instead (GLG-154), with
-  // a retry, as nothing else refetches it but a tab switch (GLG-1263).
+  // page. Once the first attempt has failed, say why instead, with
+  // a retry, as nothing else refetches it but a tab switch.
   return isError || failureCount > 0 ? (
     <LoadError
       title={t('health.error')}

@@ -17,7 +17,7 @@ const currencies: Record<string, string[]> = {
   GOLD: ['TRY'],
 }
 
-// Adds an instrument missing from the seed lists (GLG-562).
+// Adds an instrument missing from the seed lists.
 export function InstrumentsSection() {
   const [market, setMarket] = useState('BIST')
   const [currency, setCurrency] = useState('TRY')

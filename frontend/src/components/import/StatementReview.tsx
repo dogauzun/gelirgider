@@ -44,7 +44,7 @@ const warningKey: Record<string, StringKey> = {
 }
 
 function warningText(warning: PreviewWarning): string {
-  // A period the commit refuses carries the commit's own error (GLG-435).
+  // A period the commit refuses carries the commit's own error.
   if (warning.code === 'period') return translateError(warning.message)
   const key = warningKey[warning.code]
   if (!key) return warning.message
@@ -54,11 +54,11 @@ function warningText(warning: PreviewWarning): string {
   })
 }
 
-// A commit error about one row: `rows[i].<field>: <message>` (GLG-1018).
+// A commit error about one row: `rows[i].<field>: <message>`.
 const ROW_ERROR = /^rows\[(\d+)\]\.(.*)$/
 
 // The review's heading: the statement named by its file, then broker, period
-// and currency (GLG-790), and the filter of its rows.
+// and currency, and the filter of its rows.
 function ReviewHeading({
   file,
   preview,
@@ -74,8 +74,8 @@ function ReviewHeading({
   filter: ReviewFilterValue
   onFilter: (value: ReviewFilterValue) => void
 }) {
-  // An error-only CSV has no period (GLG-624): an empty date would make
-  // formatMarketDate throw (GLG-647).
+  // An error-only CSV has no period: an empty date would make
+  // formatMarketDate throw.
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
@@ -101,7 +101,7 @@ function ReviewHeading({
         </p>
       </div>
       {/* One filter in place of the two notices that counted the
-        same rows twice (GLG-966). */}
+        same rows twice. */}
       {total > 0 && (
         <ReviewFilter
           value={problems > 0 ? filter : 'all'}
@@ -119,8 +119,7 @@ type StatementReviewProps = {
   review: Review
   preview: StatementPreview
   dispatch: Dispatch<ReviewAction>
-  // The file in review, and the batch's fund names every parse of it sends
-  // (GLG-1181).
+  // The file in review, and the batch's fund names every parse of it sends.
   file: File | undefined
   names: ImportAlias[] | undefined
   refused: Refused[]
@@ -134,13 +133,13 @@ type StatementReviewProps = {
   focusLater: ReturnType<typeof useFocusLater>
   onCancel: () => void
   onSkip: () => void
-  // `from` is the control the user committed with (GLG-1068).
+  // `from` is the control the user committed with.
   onCommitted: (result: ImportResult, from: Element | null) => void
 }
 
 // A double click's second click (detail 2) would hit the next statement's
-// Atla or İçe aktar, opened where the first one moved the batch on from
-// (GLG-1297). It is dropped only when an earlier click of the same run went
+// Atla or İçe aktar, opened where the first one moved the batch on from.
+// It is dropped only when an earlier click of the same run went
 // through: one on a pending button did nothing, so the next one counts. A run
 // starts with a mousedown of detail 1, which a pending button still gets. The
 // flag outlives the review, as the next statement's is a new one.
@@ -184,18 +183,18 @@ export function StatementReview({
   const { rows, dialog, filter, announcement } = review
   const desktop = useIsDesktop()
   // The keys of the rows the last commit sent, in order: its `rows[i]` error
-  // names the row on screen through these (GLG-1018).
+  // names the row on screen through these.
   const [sentKeys, setSentKeys] = useState<string[]>([])
   // İçe aktar, Vazgeç and a batch's Atla share it: either of the last two
   // would move on while a commit runs, before its pending state is in, and
-  // drop the commit's outcome (GLG-1292, GLG-1296, GLG-1299).
-  // Atla and İçe aktar act once per double click (oncePerRun, GLG-1297).
+  // drop the commit's outcome.
+  // Atla and İçe aktar act once per double click (oncePerRun).
   const once = useOneAtATime()
   const cancel = () => once(async () => onCancel())
 
   // A change to the rows (each sets `touched`, so Vazgeç asks first from now
-  // on, GLG-772), and a failed commit's error, which may name a row now
-  // fixed, goes (GLG-1065). Only a failed one: resetting a commit in flight
+  // on), and a failed commit's error, which may name a row now
+  // fixed, goes. Only a failed one: resetting a commit in flight
   // drops its onSuccess.
   function change(action: ReviewAction) {
     dispatch(action)
@@ -204,7 +203,7 @@ export function StatementReview({
 
   // Choosing an instrument is the whole fix for an unknown symbol
   // (resolveRows). The preview is then requested again with every pick so far, so its
-  // opening rows and reconciliation follow the picks (GLG-752). Only the
+  // opening rows and reconciliation follow the picks. Only the
   // latest request's answer is applied, and it is merged into the rows as
   // they are by then (mergeRows).
   function pickInstrument(key: string, instrument: Instrument) {
@@ -239,8 +238,7 @@ export function StatementReview({
   }
 
   // A fixed row keeps focus on its pencil; one that left Sorunlu hands it to
-  // the next row still to fix, else the one before, else the review heading
-  // (GLG-1068).
+  // the next row still to fix, else the one before, else the review heading.
   function focusAfterFix(key: string) {
     const byDate = inDateOrder(rows)
     const at = byDate.findIndex((row) => row.key === key)
@@ -255,8 +253,7 @@ export function StatementReview({
   }
 
   // Rows that still need fixing are left out of the commit: asked about
-  // once, and named in the toast, so they are never dropped silently
-  // (GLG-784).
+  // once, and named in the toast, so they are never dropped silently.
   async function handleCommit() {
     const from = document.activeElement
     const leftOut = attentionCount
@@ -300,7 +297,7 @@ export function StatementReview({
           onCommitted(result, from)
         },
         // The refused row is a checked ok row, which Sorunlu never shows:
-        // Tümü puts it on screen at the number the error names (GLG-966).
+        // Tümü puts it on screen at the number the error names.
         onError: (error) => {
           if (error instanceof ApiError && ROW_ERROR.test(String(error.body.error))) {
             dispatch({ type: 'filter', filter: 'all' })
@@ -311,12 +308,12 @@ export function StatementReview({
   }
 
   // The rows as İçe aktar would send them, so the comparison below follows
-  // every check, edit and added row (GLG-1191).
+  // every check, edit and added row.
   const committed = rows.flatMap((row) => (row.checked ? (toImportRow(row) ?? []) : []))
   const { reconciliation, cash: cashReconciliation } = liveReconciliation(preview, committed)
   // Every warning but `period` names an earlier import. One undone below
   // while this preview is open no longer applies: its notice goes, and a
-  // same_period block on İçe aktar lifts with it (GLG-361).
+  // same_period block on İçe aktar lifts with it.
   const warnings = (preview.warnings ?? []).filter(
     (warning) =>
       warning.code === 'period' ||
@@ -328,25 +325,25 @@ export function StatementReview({
   )
   // A same_period statement's portfolio side already counts the earlier
   // import, so a mismatch there says nothing about missing months. The raw
-  // warning is used: until an undo's preview is read again (GLG-1063), the
-  // reconciliation still counts the undone import (GLG-418).
+  // warning is used: until an undo's preview is read again, the
+  // reconciliation still counts the undone import.
   const samePeriod = (preview.warnings ?? []).some((warning) => warning.code === 'same_period')
   const checkedCount = rows.filter((row) => row.checked).length
   // A CSV prints no period of its own: the commit takes it from the rows
-  // sent, so a CSV with none checked is not recorded as an empty import
-  // (GLG-647). An error-only one would send an empty period and fail.
+  // sent, so a CSV with none checked is not recorded as an empty import.
+  // An error-only one would send an empty period and fail.
   const nothingToImport = preview.broker === 'csv' && checkedCount === 0
   const problems = problemRows(rows)
   const attentionCount = problems.length
   const previewFile = file?.name
-  // The rows in date order (GLG-966), as the table and the list show them
+  // The rows in date order, as the table and the list show them
   // and as a commit error numbers them. Sorunlu with nothing left to fix
   // shows every row rather than an empty table.
   const ordered = inDateOrder(rows)
   const shown = filter === 'problems' && problems.length > 0 ? inDateOrder(problems) : ordered
 
   // A commit row error counts the rows sent, which skip the unchecked ones,
-  // so `rows[i]` is mapped back to the row's place in the preview (GLG-1018).
+  // so `rows[i]` is mapped back to the row's place in the preview.
   function commitErrorMessage(error: Error): string {
     const match = error instanceof ApiError && ROW_ERROR.exec(String(error.body.error))
     const n = match ? ordered.findIndex((row) => row.key === sentKeys[Number(match[1])]) : -1
@@ -356,15 +353,14 @@ export function StatementReview({
       message: translateError(match[2], feeLabelKey(ordered[n].type)),
     })
   }
-  // The row a commit error names, marked by the error and scrolled to
-  // (GLG-1065).
+  // The row a commit error names, marked by the error and scrolled to.
   const rowError =
     commit.error instanceof ApiError && ROW_ERROR.exec(String(commit.error.body.error))
   const failedKey = rowError ? sentKeys[Number(rowError[1])] : undefined
 
   // The preview proposes no opening rows while a buy or sell is unknown,
   // an error row's unknown symbol included (backend proposeOpenings), so a statement with holdings says they come
-  // once the symbols are matched (GLG-785).
+  // once the symbols are matched.
   const openingPending =
     !rows.some((row) => row.opening) &&
     preview.holdings.length > 0 &&
@@ -373,7 +369,7 @@ export function StatementReview({
         (row.status === 'unknown_instrument' || row.unknown_instrument) &&
         (row.type === 'buy' || row.type === 'sell'),
     )
-  // A pick requests the preview again (GLG-752); İçe aktar waits for it.
+  // A pick requests the preview again; İçe aktar waits for it.
   const refreshing = parse.isPending
 
   return (
@@ -397,7 +393,7 @@ export function StatementReview({
         </div>
       )}
 
-      {/* A same_period or period warning blocks İçe aktar (GLG-794). */}
+      {/* A same_period or period warning blocks İçe aktar. */}
       {warnings.length > 0 && (
         <div className="mt-3">
           <Notice tone={blocked ? 'error' : 'warn'}>
@@ -413,7 +409,7 @@ export function StatementReview({
           key={dialog.key ?? 'new'}
           portfolioId={portfolioId}
           // An added row opens an add dialog, titled İşlem ekle, with
-          // "Ekle ve yeni" (GLG-1055).
+          // "Ekle ve yeni".
           editing={
             dialog.row &&
             asTransaction(dialog.row, portfolioId, preview.period_end, preview.currency)
@@ -469,7 +465,7 @@ export function StatementReview({
         )}
 
       {/* The preview requested again after a pick failed; the rows
-        keep the pick (GLG-752). */}
+        keep the pick. */}
       {parse.isError && (
         <div className="mt-4">
           <Notice role="alert">
@@ -478,8 +474,7 @@ export function StatementReview({
         </div>
       )}
 
-      {/* The totals and the buttons stay in view over a long review
-        (GLG-791, GLG-966). */}
+      {/* The totals and the buttons stay in view over a long review. */}
       <ReviewBar
         selected={checkedCount}
         leftOut={attentionCount}
@@ -488,7 +483,7 @@ export function StatementReview({
           commit.isError && (
             <div id="import-commit-error">
               {/* A second commit of the same statement (double click, a
-                second tab) gets the parse step's notice (GLG-364). */}
+                second tab) gets the parse step's notice. */}
               <Notice role="alert">
                 {commit.error instanceof ApiError && commit.error.status === 409 ? (
                   <ParseError error={commit.error} portfolioId={portfolioId} />
@@ -521,13 +516,13 @@ export function StatementReview({
         )}
         {confirmDialog}
         {/* Enabled with nothing checked: an empty month is still
-            recorded, so it shows under past imports (GLG-360).
+            recorded, so it shows under past imports.
             Disabled for a statement already imported, which the
-            server refuses until that import is undone (GLG-361),
-            and for a period it refuses outright (GLG-435), and
-            for a CSV with nothing checked (GLG-647), and while the
+            server refuses until that import is undone,
+            and for a period it refuses outright, and
+            for a CSV with nothing checked, and while the
             preview is requested again after a pick, as its opening
-            rows are not in yet (GLG-752). */}
+            rows are not in yet. */}
         <Button
           {...oncePerRun(() => once(handleCommit))}
           disabled={blocked || nothingToImport}

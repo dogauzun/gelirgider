@@ -58,10 +58,10 @@ export function Toaster() {
   )
 
   // The live regions are always in the page: one that arrives together with
-  // its text is often not announced (GLG-795). Errors go to an assertive one
-  // (GLG-848). From lg they centre on the content column, right of the
+  // its text is often not announced. Errors go to an assertive one.
+  // From lg they centre on the content column, right of the
   // sidebar (232 px, AppShell's grid); below md they sit above the floating
-  // add button (bottom-4, size-14) rather than over it (GLG-940).
+  // add button (bottom-4, size-14) rather than over it.
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4 max-md:bottom-24 lg:left-[232px]">
       <div role="alert" aria-atomic="false" className="flex flex-col items-center gap-2">

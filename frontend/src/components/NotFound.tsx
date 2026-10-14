@@ -2,7 +2,7 @@ import { Link } from 'react-router'
 import { buttonClass } from './ui/buttonClass'
 
 // The 404 page's heading, explanation and way back, also used where a
-// portfolio or position in the URL does not exist (GLG-814).
+// portfolio or position in the URL does not exist.
 export function NotFound({
   heading,
   explanation,

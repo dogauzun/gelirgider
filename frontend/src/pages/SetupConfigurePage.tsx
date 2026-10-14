@@ -19,7 +19,7 @@ export function SetupConfigurePage() {
   useTitle(me?.is_admin ? t('setup.title') : t('notFound.title'))
 
   // A non-admin gets the not-found page of any unknown URL, in the shell
-  // with its link home (GLG-1077).
+  // with its link home.
   if (!me?.is_admin) {
     return (
       <AppShell>
@@ -32,8 +32,8 @@ export function SetupConfigurePage() {
 
   // The page is long, so Skip and Finish stay in view in a bar fixed to the
   // bottom; the page's bottom padding is the bar's height (h-16), so the bar
-  // never covers the language switch at the end (GLG-970), and keyboard focus
-  // never scrolls a control under it (GLG-1067).
+  // never covers the language switch at the end, and keyboard focus
+  // never scrolls a control under it.
   return (
     <div className="pb-16">
       <SignedOutFrame>

@@ -11,7 +11,7 @@ import type { ReturnBarsProps } from './charts/ReturnBars'
 import { ErrorBoundary } from './ErrorBoundary'
 import { Skeleton } from './ui/Skeleton'
 
-// The only way pages get a chart (GLG-915). Recharts and both charts are one
+// The only way pages get a chart. Recharts and both charts are one
 // chunk, `charts/index.ts`, fetched when a page first renders a chart.
 // ponytail: a failed fetch stays failed until a reload. React keeps a
 // rejected lazy component, and the browser keeps a failed module fetch for
@@ -23,7 +23,7 @@ const LazyReturnBars = lazyNamed(() => import('./charts'), 'ReturnBars')
 const LazyAllocationDonut = lazyNamed(() => import('./charts'), 'AllocationDonut')
 
 // The default fallback is built on each render, so `t()` reads the locale
-// active then, not the one at import (GLG-1254).
+// active then, not the one at import.
 function Loaded({
   placeholder,
   fallback = (

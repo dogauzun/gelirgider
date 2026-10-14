@@ -20,7 +20,7 @@ export function SortHeader<K extends string>({
   const active = sort.key === column
   return (
     <th
-      // eslint-disable-next-line no-restricted-syntax
+      // eslint-disable-next-line no-restricted-syntax -- the one aria-sort
       aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
       className={`${TH} ${className}`}
     >

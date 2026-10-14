@@ -30,7 +30,7 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-// The whole two-step delete (GLG-123) behind one call: confirm, let the server
+// The whole two-step delete behind one call: confirm, let the server
 // refuse with 409 plus the transaction count, then confirm again naming that
 // count before sending ?force=true. `error` is the message to render inline;
 // `dialog` has to be rendered by the caller. `remove` resolves true once the
@@ -88,14 +88,14 @@ function useDeletePortfolioFlow() {
 // Below sm the tabs split the row between them, with the focus ring inside
 // the tab, as the row may scroll and would clip it; from sm they sit at their
 // natural width on the left. A label never wraps: a row too narrow for them
-// scrolls instead (GLG-1047).
+// scrolls instead.
 const tabClass = ({ isActive }: { isActive: boolean }) =>
   `inline-flex h-10 flex-1 items-center justify-center gap-1.5 border-b-2 text-[14px] font-medium whitespace-nowrap max-sm:-outline-offset-2 sm:flex-none sm:justify-start ${
     isActive ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink'
   }`
 
 // Every page renders its own header, so a tab change unmounts the focused tab
-// with the page and focus dropped to <body> (GLG-1262). A tab activated while
+// with the page and focus dropped to <body>. A tab activated while
 // it had focus -- Enter, or a click that focused it -- notes its href here,
 // and the header that mounts at that URL focuses its active tab instead.
 let focusedTab: string | null = null
@@ -117,32 +117,32 @@ const fabClass =
 // The portfolio page header: which portfolio, which tab, and what can be done
 // to the portfolio. Every portfolio page renders it, so the tab it sits on
 // comes from the URL rather than from a prop. Switching portfolio is the
-// sidebar's job (GLG-875).
+// sidebar's job.
 //
-// `onAdd` is the transactions page opening its own dialog (GLG-167). Without
+// `onAdd` is the transactions page opening its own dialog. Without
 // it -- on the summary page -- the button navigates to the transactions page
 // and asks it to open that dialog on arrival. `add` says how it shows. By
-// default (`float`) it is primary and, below md, floats at the bottom right
-// (GLG-876). `quiet` renders it secondary in the header: an empty summary has
-// its own primary add button in the page body (GLG-781). `inline` keeps it
+// default (`float`) it is primary and, below md, floats at the bottom right.
+// `quiet` renders it secondary in the header: an empty summary has
+// its own primary add button in the page body. `inline` keeps it
 // primary in the header: the import page pins its own action row to the
 // bottom of the screen, which a floating button would cover.
 //
 // `children` is the page body. When the id is not in the user's portfolio
 // list (a stale or foreign URL) the header and body give way to a not-found
-// message, so no action is offered on a portfolio that is not there (GLG-338).
+// message, so no action is offered on a portfolio that is not there.
 //
 // In the `all` scope (every portfolio together, ADR 0014) the header has no
-// portfolio actions (GLG-540), and its tab row holds Özet and Performans only
-// (GLG-955); it offers a new portfolio instead, which opens once created, as
-// from the sidebar (GLG-935).
+// portfolio actions, and its tab row holds Özet and Performans only;
+// it offers a new portfolio instead, which opens once created, as
+// from the sidebar.
 //
 // The header and the body share one <main>, so the header block is inside a
 // landmark and pages render their body without a <main> of their own. The
-// portfolio name is the page's h1 (GLG-668), unless `ownHeading` says the
+// portfolio name is the page's h1, unless `ownHeading` says the
 // page body has an h1 of its own: a position page once its summary is in (the
 // symbol, or its not-found message), where the name is a plain paragraph, so
-// the page has exactly one h1 while it loads or fails too (GLG-677).
+// the page has exactly one h1 while it loads or fails too.
 export function PortfolioHeader({
   portfolioId,
   onAdd,
@@ -163,8 +163,8 @@ export function PortfolioHeader({
   const [renaming, setRenaming] = useState(false)
   const [name, setName] = useState('')
   // The portfolio a delete was tried on. The redirect to Tüm portföyler
-  // remounts this header (App keys each portfolio page by the portfolio id,
-  // GLG-1062), so the attempt does not carry over there.
+  // remounts this header (App keys each portfolio page by the portfolio id),
+  // so the attempt does not carry over there.
   const [removedId, setRemovedId] = useState<PortfolioScope | null>(null)
   const removeTried = removedId === portfolioId
   const [creating, setCreating] = useState(false)
@@ -178,11 +178,11 @@ export function PortfolioHeader({
   const isAll = portfolioId === 'all'
   const onPosition = pathname.startsWith(`/portfolios/${portfolioId}/positions/`)
   // The Özet tab keeps the chart range from Özet and its position pages, as
-  // the sidebar does (GLG-988); İşlemler's from / to is not a chart range.
+  // the sidebar does; İşlemler's from / to is not a chart range.
   const range = onPosition || pathname === `/portfolios/${portfolioId}` ? rangeSearch(search) : ''
   // While the list loads or fails, or the name is being edited, the h1 is
   // there for screen readers only, falling back to the generic label: every
-  // state has exactly one h1 (GLG-690).
+  // state has exactly one h1.
   const heading = isAll ? t('portfolio.all') : (portfolio?.name ?? t('portfolio.label'))
   const named = !renaming && Boolean(portfolio || (isAll && data))
   const Title = ownHeading ? 'p' : 'h1'
@@ -190,9 +190,9 @@ export function PortfolioHeader({
 
   // The delete flow only reports failures (through `error`), so success is
   // read as the portfolio leaving the refetched list. Gated on an attempt so
-  // a summary 404 still gets to show its own message (GLG-94) rather than
+  // a summary 404 still gets to show its own message rather than
   // being redirected away. The header, and the focus it held, unmount on the
-  // way, so the state asks Tüm portföyler to place focus (GLG-857).
+  // way, so the state asks Tüm portföyler to place focus.
   useEffect(() => {
     if (removeTried && data && !portfolio) {
       navigate('/portfolios/all', {
@@ -205,7 +205,7 @@ export function PortfolioHeader({
   // A portfolio created on Tüm portföyler opens here with the create
   // dialog's opener gone, so focus fell to <body>: the add button takes it,
   // once the refetched list names the portfolio, unless focus has moved on;
-  // then the state is cleared so a remount does not do it again (GLG-1324).
+  // then the state is cleared so a remount does not do it again.
   const focusAfterCreate = Boolean(state?.focusAfterCreate)
   useEffect(() => {
     if (!focusAfterCreate || !portfolio) return
@@ -213,7 +213,7 @@ export function PortfolioHeader({
     clear()
   }, [focusAfterCreate, portfolio, clear])
 
-  // A tab row that scrolls sideways shows the open page's tab (GLG-1060). It
+  // A tab row that scrolls sideways shows the open page's tab. It
   // sets the row's scrollLeft rather than calling scrollIntoView, which would
   // scroll the window too. The row's side padding stays beside the tab, so
   // it does not end flush at the screen edge. A row that fits has nothing to
@@ -249,9 +249,9 @@ export function PortfolioHeader({
 
   // Enter saves through the blur handler; Escape puts the original name back
   // first, so the same blur is a no-op revert. The input unmounts with the
-  // save, so focus goes back to the menu the rename came from, not to <body>
-  // (GLG-441). The key's default is cancelled, or Enter's activation lands on
-  // the newly focused menu button and opens the menu again (GLG-474).
+  // save, so focus goes back to the menu the rename came from, not to <body>.
+  // The key's default is cancelled, or Enter's activation lands on
+  // the newly focused menu button and opens the menu again.
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== 'Enter' && event.key !== 'Escape') return
     event.preventDefault()
@@ -285,11 +285,11 @@ export function PortfolioHeader({
       <div className="mx-auto max-w-6xl px-6 pt-6">
         {/* Below md the floating add button leaves the menu alone in the
             actions, so it stays on the title's row, at its end; the title
-            truncates and the rename input takes the room left (GLG-876),
-            up to a width that fits a long name (GLG-940). Tüm portföyler's one
+            truncates and the rename input takes the room left,
+            up to a width that fits a long name. Tüm portföyler's one
             button sits there too. Below lg a shown name is for screen readers
             only, leaving the title block empty, so the gap waits for lg and
-            stacked actions start at the top (GLG-995). */}
+            stacked actions start at the top. */}
         <div
           className={`flex sm:flex-row sm:items-center sm:justify-between ${
             named ? 'lg:gap-3' : 'gap-3'
@@ -299,7 +299,7 @@ export function PortfolioHeader({
             {(named || !ownHeading) && (
               <Title
                 // Below lg the top bar shows the title, so the page's own is
-                // for screen readers only there (GLG-940).
+                // for screen readers only there.
                 className={
                   named ? 'truncate text-[20px] font-semibold text-ink max-lg:sr-only' : 'sr-only'
                 }
@@ -320,7 +320,7 @@ export function PortfolioHeader({
               />
             ) : named ? null : isError ? (
               // The list failed to load, so there is no name or switcher;
-              // say why instead of leaving the slot blank (GLG-469).
+              // say why instead of leaving the slot blank.
               <p role="alert" className="mt-1 text-[13px] text-loss">
                 {t('portfolios.error')}
               </p>
@@ -347,7 +347,7 @@ export function PortfolioHeader({
               <Button
                 ref={addRef}
                 // Where the transactions page sends focus after deleting its
-                // last row (GLG-386).
+                // last row.
                 data-add-transaction
                 variant={add === 'quiet' ? 'secondary' : 'primary'}
                 onClick={() =>
@@ -360,7 +360,7 @@ export function PortfolioHeader({
                 // Floating: a round `+` named by its hidden label, under the
                 // toasts (z-50) and the modal dialogs (top layer).
                 className={floatAdd ? fabClass : ''}
-                // index.css keeps keyboard focus clear of it (GLG-1067).
+                // index.css keeps keyboard focus clear of it.
                 data-fab={floatAdd || undefined}
               >
                 <Icon name="plus" />
@@ -420,13 +420,13 @@ export function PortfolioHeader({
         )}
       </div>
       {/* Below sm the tab row sticks under the top bar (h-12, z-20), so a
-          long list can switch tabs without scrolling back up (GLG-571). It is
+          long list can switch tabs without scrolling back up. It is
           a sibling of the page body rather than inside the wrapper above: a
           sticky box only sticks within its parent, and that one ends here.
           Full width, so the rule and the background span the page. Five tabs
           fill a 375 px row in English, so a narrower one scrolls sideways
-          rather than the page (GLG-955). The gap keeps neighbouring labels
-          apart at every width (GLG-1047). */}
+          rather than the page. The gap keeps neighbouring labels
+          apart at every width. */}
       <nav
         aria-label={t('portfolio.tabs')}
         data-sticky-tabs
@@ -437,7 +437,7 @@ export function PortfolioHeader({
           className="mx-auto -mb-px flex max-w-6xl px-6 gap-3 max-sm:overflow-x-auto sm:gap-6"
         >
           {/* A position page is a drill-down of the summary, so the summary
-              tab stays active under /positions/ (GLG-587): dropping `end`
+              tab stays active under /positions/: dropping `end`
               there lets NavLink's prefix match mark it, aria-current and all. */}
           <NavLink to={`/portfolios/${portfolioId}${range}`} end={!onPosition} {...tab}>
             {t('summary.title')}

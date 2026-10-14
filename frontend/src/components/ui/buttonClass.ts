@@ -10,7 +10,7 @@ export const variants = {
   ghost: 'text-ink-2 hover:bg-paper',
   danger: 'bg-loss text-on-ink shadow-ctl',
   // A destructive action that sits on every row of a list, so it should not
-  // be the loudest thing on the page; its confirm keeps \`danger\` (GLG-800).
+  // be the loudest thing on the page; its confirm keeps \`danger\`.
   'danger-quiet': 'bg-raised text-loss shadow-ctl hover:bg-loss-soft',
 }
 
@@ -29,7 +29,7 @@ const paddings = {
   sm: 'px-2',
 }
 
-// The class string of a Button, for a link that looks like one (GLG-871), so
+// The class string of a Button, for a link that looks like one, so
 // the two cannot drift apart.
 export function buttonClass({
   variant = 'primary',

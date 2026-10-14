@@ -8,7 +8,7 @@ export interface HistoryEntry {
   cash: string
   cost_basis: string
   // Set when the point holds an instrument with no price yet on its date;
-  // that holding counts at cost, so the point is incomplete (GLG-254).
+  // that holding counts at cost, so the point is incomplete.
   price_unknown?: boolean
   // The benchmark's shadow portfolio value, a 2-decimal money string in the
   // reporting currency; absent when no benchmark is requested or it has no
@@ -31,15 +31,15 @@ export interface HistoryResponse {
   // Currencies excluded from at least one point in the range for lack of an
   // FX rate that day -- same field and same caveat as Summary.missing_rates:
   // it names the currency that was left out, not necessarily the one whose
-  // rate is absent (GLG-135).
+  // rate is absent.
   missing_rates: string[]
   // Symbols held with no price yet on at least one point in the range, the
-  // union behind the per-point price_unknown flags (GLG-254).
+  // union behind the per-point price_unknown flags.
   missing_prices: string[]
   // Deposits minus withdrawals dated after the first point, in the reporting
   // currency: the part of last - first that is money put in rather than a
-  // gain (GLG-219). Also holds the first-price jump of holdings the first
-  // point had no price for, which is not the range's gain either (GLG-254).
+  // gain. Also holds the first-price jump of holdings the first
+  // point had no price for, which is not the range's gain either.
   net_flow: string
   // The range's return by each method, as a fraction string with 6 decimals
   // ("0.250000" is 25%), null when the method is undefined (ADR 0011).
@@ -58,7 +58,7 @@ export interface HistoryResponse {
 export type ReturnMethod = 'simple' | 'twr' | 'mwr'
 export const RETURN_METHODS: ReturnMethod[] = ['simple', 'twr', 'mwr']
 
-// A fixed benchmark, or a position of the scope as instrument:<id> (GLG-701).
+// A fixed benchmark, or a position of the scope as instrument:<id>.
 export type Benchmark = 'USD' | 'EUR' | 'XU100' | 'TUFE' | 'GOLD' | `instrument:${number}`
 
 function fetchHistory(
@@ -88,7 +88,7 @@ export function usePortfolioHistory(
     queryKey: [...historyQueryKey(portfolioId), from, to, benchmark ?? null] as const,
     queryFn: () => fetchHistory(portfolioId, from, to, benchmark),
     // A new range or benchmark keeps the last chart on screen until it
-    // answers, instead of blanking it (GLG-771). Another portfolio starts
+    // answers, instead of blanking it. Another portfolio starts
     // empty: its old line would be a wrong chart, not a stale one.
     placeholderData: (previous, previousQuery) =>
       previousQuery?.queryKey[1] === portfolioId ? previous : undefined,
@@ -130,7 +130,7 @@ export function usePeriodReturns(scope: PortfolioScope, benchmark?: Benchmark | 
 
 // A day a portfolio's cash in currency reached a new low below zero; amount
 // is the decimal deposit that keeps it at the previous low, rounded up to 9
-// fraction digits (GLG-1109).
+// fraction digits.
 export interface CashGap {
   portfolio_id: number
   date: string

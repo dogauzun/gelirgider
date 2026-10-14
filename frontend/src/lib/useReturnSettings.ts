@@ -5,12 +5,12 @@ import { t } from '../i18n/strings'
 import { useStoredChoice } from './useStoredChoice'
 
 // The return method and the benchmark that Özet's return card and the
-// Performans tab share (GLG-955), each kept in localStorage.
+// Performans tab share, each kept in localStorage.
 
 // Benchmarks for the return comparison (ADR 0012). USD and EUR are hidden
 // when they are the reporting currency, where they would be a flat line.
-// A position of the scope can be the benchmark too, as instrument:<id>
-// (GLG-702); the select lists those under their own group.
+// A position of the scope can be the benchmark too, as instrument:<id>;
+// the select lists those under their own group.
 type FixedBenchmark = Exclude<Benchmark, `instrument:${number}`>
 const BENCHMARKS: FixedBenchmark[] = ['USD', 'EUR', 'XU100', 'TUFE', 'GOLD']
 const isInstrumentBenchmark = (code: string): code is `instrument:${number}` =>

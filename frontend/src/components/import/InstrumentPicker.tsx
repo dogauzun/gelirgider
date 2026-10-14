@@ -9,13 +9,13 @@ import { Button } from '../ui/Button'
 import type { Row } from './shared'
 
 // The box starts empty: the statement's symbol is what failed to match, so
-// prefilling it only made typing append to a dead query (GLG-349). Its
+// prefilling it only made typing append to a dead query. Its
 // placeholder is the search's own, not that symbol, which read like a typed
-// value; the status text already names it (GLG-789).
+// value; the status text already names it.
 //
 // A fund row named by its name may name a fund the app does not have yet. On
 // a TEFAS row, a typed fund code the search has no TEFAS match for offers a
-// TEFAS lookup, which creates the fund TEFAS confirms and picks it (GLG-733).
+// TEFAS lookup, which creates the fund TEFAS confirms and picks it.
 export function InstrumentPicker({
   row,
   onPick,
@@ -35,7 +35,7 @@ export function InstrumentPicker({
     !!results && !results.some((i) => i.market === 'TEFAS' && i.symbol === fundCode)
   // In the table, 12rem: room for the placeholder in tr and en at the
   // table's 13px ("Search by symbol or name" needs 190 px with the input's
-  // padding and border), which 9rem cut (GLG-966).
+  // padding and border), which 9rem cut.
   return (
     <div className="min-w-[9rem] md:min-w-[12rem]">
       <InstrumentSearchInput

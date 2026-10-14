@@ -11,10 +11,10 @@ import { todayIstanbul } from '../lib/date'
 // page: RANGES, then up to three previous calendar years back to the
 // portfolio's first transaction, then Özel, which reveals a from / to pair of
 // date inputs. The page keeps the value in the URL (lib/useRange). From sm up
-// the options are chips that wrap (GLG-619); below sm, where the chips do not
+// the options are chips that wrap; below sm, where the chips do not
 // fit the card, they are one Select. With onClear, Özel leads its dates with
-// a clear button (drag to zoom, GLG-949); below sm it sits beside the Select,
-// as the dates need the whole row at 320 px (GLG-1030).
+// a clear button (drag to zoom); below sm it sits beside the Select,
+// as the dates need the whole row at 320 px.
 export function RangePicker({
   value,
   onChange,

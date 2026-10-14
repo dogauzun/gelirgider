@@ -51,7 +51,7 @@ function PortfolioDetail({
   )
 }
 
-// One position of the positions card in a dialog (GLG-1104), so the owner
+// One position of the positions card in a dialog, so the owner
 // stays on Özet or Tüm portföyler and flips through `positions`, the table's
 // rows in its order, by the arrows or ←/→. Its title row, figures, price
 // chart over the summary's range, and last transactions, as on the position
@@ -100,7 +100,7 @@ export function PositionDialog({
   return (
     <Modal ref={dialogRef} aria-labelledby={titleId} onKeyDown={handleKeyDown} onClose={onClose}>
       {/* Full screen on phones, not a bottom sheet, so not sheetPanel. */}
-      {/* eslint-disable-next-line no-restricted-syntax */}
+      {/* eslint-disable-next-line no-restricted-syntax -- a full-screen panel on phones, not a sheetPanel */}
       <div className="absolute inset-0 overflow-y-auto bg-surface p-4 shadow-pop md:inset-auto md:top-1/2 md:left-1/2 md:max-h-[90vh] md:w-[60rem] md:max-w-[calc(100%-2rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-card md:p-5">
         <div className="flex items-start justify-between gap-3">
           <PositionTitle position={position}>

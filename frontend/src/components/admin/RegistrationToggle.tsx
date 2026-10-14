@@ -3,7 +3,7 @@ import { t } from '../../i18n/strings'
 import { useOneAtATime } from '../../lib/useOneAtATime'
 import { Checkbox } from '../ui/Checkbox'
 
-// Its own component so the setup wizard's step 2 can reuse it (GLG-316).
+// Its own component so the setup wizard's step 2 can reuse it.
 export function RegistrationToggle() {
   const { data } = useAuthConfig()
   const mutation = useSetRegistrationOpen()

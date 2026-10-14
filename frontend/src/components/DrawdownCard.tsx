@@ -9,7 +9,7 @@ import { DrawdownChart } from './LazyChart'
 import { LoadError } from './ui/LoadError'
 import { Skeleton } from './ui/Skeleton'
 
-// The "Zirveden düşüş" card on the Performans tab (GLG-957): how far the
+// The "Zirveden düşüş" card on the Performans tab: how far the
 // return index 1 + twr of the all-time history is below its highest value so
 // far (lib/drawdown.ts), with the largest drawdown and its peak and trough
 // dates and the current one in the header, and the chart under them. The
@@ -62,7 +62,7 @@ export function DrawdownCard({ portfolioId }: { portfolioId: PortfolioScope }) {
         ) : points.length < 2 ? (
           // One day, with twr null: a scope with no transactions (today, all
           // zero) or the day of its first one, not an undefined return. The
-          // empty text is the periodic returns card's (GLG-1049).
+          // empty text is the periodic returns card's.
           <p className="text-[13px] text-muted">
             {t(
               points.every((p) =>

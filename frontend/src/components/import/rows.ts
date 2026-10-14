@@ -7,8 +7,8 @@ import type { Row } from './shared'
 
 // Only `ok` rows are ever checked, and those always carry a type and a date.
 // A row without them is dropped rather than sent as a half transaction.
-// So is an opening deposit with no opening buy left to pay for (GLG-817), and
-// a closing withdrawal with no closing sell checked (GLG-1190).
+// So is an opening deposit with no opening buy left to pay for, and
+// a closing withdrawal with no closing sell checked.
 export function toImportRow(row: Row): ImportRow | null {
   if (!row.type || !row.date) return null
   if (row.opening && row.type === 'deposit' && !row.manual && row.amount === '0') return null
@@ -19,7 +19,7 @@ export function toImportRow(row: Row): ImportRow | null {
     fee: row.fee ?? '0',
     currency: row.currency ?? '',
   }
-  // A statement trade keeps its İşlem Tutarı as the amount (GLG-366); an
+  // A statement trade keeps its İşlem Tutarı as the amount; an
   // estimated one is left to the server's quantity × price.
   if (!row.estimated) out.amount = row.amount ?? '0'
   if (row.instrument_id !== undefined) out.instrument_id = row.instrument_id
@@ -30,14 +30,13 @@ export function toImportRow(row: Row): ImportRow | null {
 
 // An unknown_cash_type row is a HESAP İŞLEMLERİ row of a type the parser does
 // not know (Talep Tarihi|İşlem Tarihi|İşlem Tipi|Açıklama|Durum|Tutar). Its
-// last cell, "47,93 TRY", still gives the amount and currency (GLG-359).
+// last cell, "47,93 TRY", still gives the amount and currency.
 // Statement text is Turkish format whatever the UI locale, so "1.000 TRY" is
-// a thousand: it is read here, not with the UI-locale parseDecimalInput
-// (GLG-497).
+// a thousand: it is read here, not with the UI-locale parseDecimalInput.
 function unknownCash(row: Row | null): { amount: string; currency: string } | null {
   if (row?.code !== 'unknown_cash_type' || row.raw?.length !== 6) return null
   // Not parseDecimalInput: that reads by UI locale, the statement is Turkish
-  // in every locale (GLG-497). Same first-group rule though (GLG-977, GLG-993).
+  // in every locale. Same first-group rule though.
   const match = /^([1-9]\d{0,2}(?:\.\d{3})*(?:,\d+)?|\d+(?:,\d+)?) (TRY|USD|EUR)$/.exec(
     row.raw[5].trim(),
   )
@@ -52,7 +51,7 @@ function unknownCash(row: Row | null): { amount: string; currency: string } | nu
 // date, except an unknown cash type, which becomes a deposit of its amount. A
 // row the commit would refuse (code invalid) fills in all of it. A row
 // without a date starts on the period end, or on today when the preview has
-// no period, as for a CSV of error rows alone (GLG-649).
+// no period, as for a CSV of error rows alone.
 export function asTransaction(
   row: Row | null,
   portfolioId: number,
@@ -73,7 +72,7 @@ export function asTransaction(
     amount: cash?.amount ?? row?.amount ?? '0',
     fee: row?.fee ?? '0',
     // A row whose currency contradicts its instrument opens in the
-    // instrument's, as the dialog shows and books it (GLG-1361): the one the
+    // instrument's, as the dialog shows and books it: the one the
     // user picked, else the one the server's message names. Only a server
     // row has no instrument_currency, and its message is the server's
     // verdict on its own instrument, since mergeRows replaces it on each
@@ -91,11 +90,11 @@ export function asTransaction(
 }
 
 // The dialog hands back a TransactionInput with the row's currency, the
-// instrument's for a trade or dividend (GLG-646), and that instrument's symbol
-// for the Enstrüman cell (GLG-656), but no amount once quantity or price
+// instrument's for a trade or dividend, and that instrument's symbol
+// for the Enstrüman cell, but no amount once quantity or price
 // changed: the server derives it from quantity × price (see
 // backend/internal/transaction/handlers.go fromRequest). It is filled in here
-// for the preview table only, and not sent (GLG-366).
+// for the preview table only, and not sent.
 // ponytail: Number arithmetic for that preview amount, like the dialog's cash
 // strip -- the figure that is stored is the server's.
 export function rowFromInput(
@@ -119,7 +118,7 @@ export function rowFromInput(
     quantity: input.quantity,
     price: input.price,
     amount: input.amount ?? gross,
-    // An unchanged trade gets its amount back from the dialog (GLG-368): the
+    // An unchanged trade gets its amount back from the dialog: the
     // statement's İşlem Tutarı, or on a row edited before, this estimate again.
     estimated:
       input.amount === undefined || (input.quantity !== undefined && previous?.estimated === true),
@@ -127,22 +126,22 @@ export function rowFromInput(
     currency: input.currency ?? previous?.currency ?? currency,
     description: previous?.description,
     // An edited opening row stays in the opening group; its price is now the
-    // user's, so the approximate-price note goes (GLG-738).
+    // user's, so the approximate-price note goes.
     opening: previous?.opening,
     closing: previous?.closing,
   }
 }
 
 // A likely duplicate of a hand-entered transaction starts unchecked, so a
-// plain commit does not book it twice (GLG-415, GLG-559). So does a proposed
-// closing sell: the gap may be months not imported yet (GLG-1190). Its
+// plain commit does not book it twice. So does a proposed
+// closing sell: the gap may be months not imported yet. Its
 // withdrawal starts checked and follows the checked sells (withCashRows).
 export function fromPreview(row: PreviewRow): Row {
   const sell = row.closing && row.type === 'sell'
   return { ...row, checked: row.status === 'ok' && !row.duplicate_of && !sell }
 }
 
-// The rows of a preview requested again with the user's picks (GLG-752),
+// The rows of a preview requested again with the user's picks,
 // with the user's work on the rows before it kept. Rows are matched by key,
 // which a statement row takes from its place in the parser's own list
 // (trade-3, cash-0), so opening rows coming or going in front of the list do
@@ -150,9 +149,9 @@ export function fromPreview(row: PreviewRow): Row {
 // it, an ok row keeps its check mark, and rows added by hand stay at the end.
 // Opening rows are keyed by instrument and currency (open-5, open-cash-USD),
 // so the new preview decides which there are, and one the user priced or
-// unchecked keeps that (GLG-820); the opening deposits then follow them. A
+// unchecked keeps that; the opening deposits then follow them. A
 // likely duplicate that is one no more, its import undone, starts checked
-// like a fresh row (GLG-1063).
+// like a fresh row.
 export function mergeRows(fresh: PreviewRow[], current: Row[]): Row[] {
   const before = new Map(current.map((row) => [row.key, row]))
   const rows = fresh.map((row): Row => {
@@ -163,7 +162,7 @@ export function mergeRows(fresh: PreviewRow[], current: Row[]): Row[] {
       ? { ...next, checked: next.status === 'ok' && old.checked }
       : next
   })
-  // A deposit the page added for a buy priced in the dialog (GLG-817) is in
+  // A deposit the page added for a buy priced in the dialog is in
   // no preview; unchecked or edited by the user, it stays so.
   const fresher = new Set(fresh.map((row) => row.key))
   const kept = current.filter(
@@ -178,9 +177,9 @@ export function mergeRows(fresh: PreviewRow[], current: Row[]): Row[] {
 // The proposed cash rows of one side follow that side's checked, priced
 // trades in each currency: quantity × price summed exactly, in 1e-18 units,
 // as the preview proposes them (backend proposeOpenings). The opening deposit
-// pays for the opening buys, rounded up to the cent (GLG-817); the closing
+// pays for the opening buys, rounded up to the cent; the closing
 // withdrawal takes out what the closing sells bring in less their fee,
-// rounded down (GLG-1190). A trade priced or re-priced in the dialog, checked
+// rounded down. A trade priced or re-priced in the dialog, checked
 // or unchecked, changes that sum, so the cash row follows: added in front of
 // the opening rows, or after the closing rows, when the preview had none.
 // With no such trade left it stays, at 0 and with its check mark, so a row

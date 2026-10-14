@@ -4,7 +4,7 @@ import type { TradeType } from './PositionsTable'
 import { Button } from './ui/Button'
 
 // A position's Al, Sat and Fiyat gir, as in the positions table's row
-// actions (GLG-933); a closed position can only be bought again.
+// actions; a closed position can only be bought again.
 export function PositionActions({
   position,
   onTrade,

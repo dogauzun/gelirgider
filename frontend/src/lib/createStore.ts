@@ -1,7 +1,7 @@
 // A module-level store: a value, `get`/`set` for plain code and `use()` for
 // components, no provider and no context. The theme, the privacy mode, the
-// locale, the transactions page's pending deletes (GLG-1247) and the toast
-// queue (GLG-1255) are built on it. `read` gives the first value; `onSet` runs on every `set`,
+// locale, the transactions page's pending deletes and the toast
+// queue are built on it. `read` gives the first value; `onSet` runs on every `set`,
 // before the subscribers re-render, for the store's side effect (the
 // `data-theme` or `lang` attribute, the localStorage write).
 import { useSyncExternalStore } from 'react'

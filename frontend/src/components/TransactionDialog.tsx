@@ -197,8 +197,7 @@ function TransactionFields({
       )}
 
       {/* The import commit sets every row's note to the broker and the
-          period (ADR 0006), so the preview (onSubmit) offers none
-          (GLG-981). */}
+          period (ADR 0006), so the preview (onSubmit) offers none. */}
       {withNote && (
         <div className="sm:col-span-2">
           <Field label={`${t('transactions.note')} · ${t('transactions.optional')}`}>
@@ -232,20 +231,20 @@ export function TransactionDialog({
   portfolioId: number
   editing: Transaction | null
   // Add mode only: the form to start from instead of an empty one (an
-  // expected dividend, GLG-292).
+  // expected dividend).
   initial?: FormState
   onClose: () => void
   // When given, the dialog hands the validated input to the caller instead of
   // saving it, so a caller that keeps unsaved rows in local state (the
   // statement import preview) reuses the same form. That input always carries
   // the row's currency, the instrument's for an instrument type, and the
-  // instrument's symbol for the caller's row to show (GLG-656).
+  // instrument's symbol for the caller's row to show.
   onSubmit?: (input: TransactionInput, symbol: string | undefined) => void
   // Selector focused on close when the element that opened the dialog is
   // gone (useModal).
   focusFallback?: string
   // Shown under the title: the import preview puts the statement line being
-  // fixed here, which the dialog would otherwise cover (GLG-787).
+  // fixed here, which the dialog would otherwise cover.
   context?: ReactNode
 }) {
   // Keyed by `editing?.id` in the parent, so switching between add mode and
@@ -272,7 +271,7 @@ export function TransactionDialog({
   const dialogRef = useModal(focusFallback)
   // showModal() focuses the first focusable element in tree order: the first
   // type radio, even when another type is checked and that one has tabIndex
-  // -1. Focus the checked radio instead, the group's Tab stop (GLG-625).
+  // -1. Focus the checked radio instead, the group's Tab stop.
   // Declared after useModal, so it runs after showModal().
   useEffect(() => {
     dialogRef.current?.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.focus()
@@ -291,7 +290,7 @@ export function TransactionDialog({
 
   function submit(keepOpen: boolean) {
     // The pending buttons ignore clicks, but ⌘↵ comes straight here: a second
-    // press while the save runs would book the row twice (GLG-990).
+    // press while the save runs would book the row twice.
     if (isPending) return
     const validationError = validate(form)
     if (validationError) {
@@ -304,7 +303,7 @@ export function TransactionDialog({
     if (onSubmit) {
       // The server fills in an instrument row's currency on save, but the
       // caller keeps the row itself, so it gets the instrument's here: the
-      // import commit refuses any other (GLG-646).
+      // import commit refuses any other.
       onSubmit(
         { ...input, currency: rowCurrency(form) },
         input.instrument_id !== undefined ? (form.instrumentSymbol ?? undefined) : undefined,
@@ -348,10 +347,10 @@ export function TransactionDialog({
 
   // "Add and next" starts a fresh form, which is the new baseline: closing it
   // untouched loses nothing. Focus goes to the first field (the instrument for
-  // a trade, else the date), so the next row is typed without the mouse
-  // (GLG-937); flushSync renders the fresh form before that. It keeps the
+  // a trade, else the date), so the next row is typed without the mouse;
+  // flushSync renders the fresh form before that. It keeps the
   // starting form's cash currency: the import preview starts on the
-  // statement's, which the next row is in too (GLG-1055).
+  // statement's, which the next row is in too.
   function startNext() {
     const next = { ...emptyForm(form.type, form.date), currency: (initial ?? emptyForm()).currency }
     flushSync(() => {
@@ -391,7 +390,7 @@ export function TransactionDialog({
 
   const effect = cashEffect(form)
   const heldWhenOversold = onSubmit ? null : sellExceedsHeld(form, summary.data?.positions, editing)
-  // The ⌘↵ hint names a key a touch screen has none of (GLG-937). jsdom has
+  // The ⌘↵ hint names a key a touch screen has none of. jsdom has
   // no matchMedia, hence the optional call.
   const finePointer = window.matchMedia?.('(pointer: fine)').matches === true
 
@@ -405,8 +404,8 @@ export function TransactionDialog({
           }}
           onKeyDown={handleKeyDown}
           // A validation error belongs to the form as it was when submitted, so
-          // any edit drops it instead of leaving it under a fixed field
-          // (GLG-224). Delegated onChange covers every input below; the type
+          // any edit drops it instead of leaving it under a fixed field.
+          // Delegated onChange covers every input below; the type
           // buttons and the currency Select, which fires no change event, clear
           // it themselves.
           onChange={() => setError(null)}
@@ -420,7 +419,7 @@ export function TransactionDialog({
           <div className="mt-4">
             {/* The type only decides which fields are shown; it keeps the rest of
               the form intact so a Buy -> Deposit -> Buy round trip does not
-              lose the instrument or the amount (GLG-223). toInput drops
+              lose the instrument or the amount. toInput drops
               whatever the chosen type does not use. */}
             <span className="text-ink-2 block text-[13px] font-medium">
               {t('transactions.type')}
@@ -435,7 +434,7 @@ export function TransactionDialog({
               label={(type) => t(typeShortLabelKey[type])}
               aria-label={t('transactions.type')}
               // Seven labels do not fit one row at phone width, so below sm: they
-              // sit in two rows of four (GLG-227, GLG-538).
+              // sit in two rows of four.
               trackClassName="rounded-ctl bg-well grid grid-cols-4 gap-0.5 p-0.5 sm:flex"
               className="mt-1.5"
               itemClassName="h-8 flex-1"
@@ -478,9 +477,9 @@ export function TransactionDialog({
           )}
 
           {/* Stuck to the bottom of the scrolling sheet, so Kaydet stays in
-              view on a phone whatever the form's height (GLG-791). Sticky
+              view on a phone whatever the form's height. Sticky
               offsets count from inside the sheet's p-5, hence -bottom-5. Keyboard
-              focus never scrolls a field under it (GLG-1067). */}
+              focus never scrolls a field under it. */}
           <div
             ref={bottomBar}
             className="border-line bg-surface sticky -bottom-5 -mx-5 mt-5 -mb-5 flex flex-wrap items-center justify-end gap-3 border-t px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"

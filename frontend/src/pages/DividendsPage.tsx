@@ -40,8 +40,8 @@ type SortKey = 'symbol' | 'count' | 'net' | 'last_date'
 
 // The instrument table's columns. Text sorts A to Z first, figures and dates
 // largest or newest first. Pay, the share of the net, sorts as net does, so
-// it has no sort of its own. Below `sm` the table must fit a 375px screen
-// (GLG-939): Pay is left out, and the payment count moves under the symbol in
+// it has no sort of its own. Below `sm` the table must fit a 375px screen:
+// Pay is left out, and the payment count moves under the symbol in
 // place of the name.
 const COLUMNS: { key: SortKey | 'share'; labelKey: StringKey; className: string }[] = [
   { key: 'symbol', labelKey: 'transactions.instrument', className: '' },
@@ -106,7 +106,7 @@ function barsFor(group: Group, months: DividendBucket[], years: DividendBucket[]
   }))
 }
 
-// The Temettü tab (GLG-605): dividends received by month or year, by
+// The Temettü tab: dividends received by month or year, by
 // instrument, and the expected ones still to book. Per portfolio only, like
 // İşlemler; the `all` scope goes back to its summary.
 export function DividendsPage() {
@@ -122,7 +122,7 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
   const [group, setGroup] = useStoredChoice('dividendsGroup', GROUP_KEYS, 'month')
   const [adding, setAdding] = useState(false)
   // The API already sends the rows net largest first, so the table starts
-  // there and says so (GLG-841).
+  // there and says so.
   const [sort, setSort] = useState<Sort<SortKey>>({ key: 'net', dir: 'desc' })
   const toggleSort = (key: SortKey) => setSort((cur) => nextSort(cur, key))
   const today = todayIstanbul()
@@ -147,7 +147,7 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
     // Last 12 months net over what the open positions cost; nothing to
     // divide by when they cost nothing (all closed, or cash only).
     // The open positions' cost in the reporting currency, summed and rounded
-    // once on the server (GLG-976); a position without a rate is left out.
+    // once on the server; a position without a rate is left out.
     const cost = Number(summary.data?.cost_basis ?? 0)
     const yieldOnCost = cost > 0 ? percent(Number(last12) / cost) : MISSING
     const money = (key: StringKey, value: string) => (
@@ -277,7 +277,7 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
   }
 
   return (
-    // An empty Temettü's one primary action is the card's own (GLG-781).
+    // An empty Temettü's one primary action is the card's own.
     <PortfolioHeader portfolioId={portfolioId} add={isEmpty ? 'quiet' : 'float'}>
       <div className="mx-auto max-w-6xl px-6 pt-6 pb-12">
         {adding && (
@@ -288,7 +288,7 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
             onClose={() => setAdding(false)}
           />
         )}
-        {/* The one thing here that asks for an action leads (GLG-939). */}
+        {/* The one thing here that asks for an action leads. */}
         <ExpectedDividends portfolioId={portfolioId} />
         {isLoading && <SkeletonRows label={t('dividends.page.loading')} />}
         {isError && (

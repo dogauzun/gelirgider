@@ -46,9 +46,9 @@ function netTotal(rows: ExpectedDividend[]): string {
     .join(' + ')
 }
 
-// Dividends to confirm, the first card on the Temettü tab (GLG-292, GLG-605,
-// GLG-939). Renders nothing while the list is empty, which is most of the
-// time; the header carries the count and the net total (GLG-568).
+// Dividends to confirm, the first card on the Temettü tab. Renders nothing
+// while the list is empty, which is most of the time; the header carries the
+// count and the net total.
 export function ExpectedDividends({ portfolioId }: { portfolioId: number }) {
   const { data } = useExpectedDividends(portfolioId)
   const addAllMutation = useAddExpectedDividends()
@@ -60,13 +60,13 @@ export function ExpectedDividends({ portfolioId }: { portfolioId: number }) {
   const rows = data ?? []
   // The suggestion last acted on (added in the dialog or dismissed), with the
   // row order at the time. "Tümünü ekle" records no rows, so focus goes to
-  // "İşlem ekle" once the panel empties (GLG-459).
+  // "İşlem ekle" once the panel empties.
   const openedRef = useRef<{ key: string; keys: string[] } | null>(null)
 
   // Adding a suggestion books it, so the refetch removes its row, and the
   // dialog hands focus back to that row's button, now gone: focus drops to
-  // <body> (GLG-442). "Yoksay" and "Tümünü ekle" remove the focused button
-  // the same way (GLG-459). Once the row is gone and the buttons are enabled
+  // <body>. "Yoksay" and "Tümünü ekle" remove the focused button
+  // the same way. Once the row is gone and the buttons are enabled
   // again, move focus to the next suggestion's add button, else the previous
   // one's, else the page's "İşlem ekle" -- unless the user has already moved
   // it elsewhere. A failed action clears the record: its row stays.
@@ -196,9 +196,9 @@ export function ExpectedDividends({ portfolioId }: { portfolioId: number }) {
           )}
 
           {/* Eight columns and two buttons are wider than the card at tablet
-              widths in English (GLG-1369): the table scrolls in its own box,
+              widths in English: the table scrolls in its own box,
               as on Pozisyonlar. relative keeps the actions header's absolute
-              sr-only label inside the clip (GLG-679). */}
+              sr-only label inside the clip. */}
           {desktop ? (
             <div className="relative overflow-x-auto">
               <table className={TABLE}>

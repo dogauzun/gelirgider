@@ -19,11 +19,11 @@ function period(item: Import): string {
 }
 
 // The browser's own zone, read once: `Intl.DateTimeFormat()` builds a
-// formatter even without `new` (GLG-1175).
+// formatter even without `new`.
 const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
 // `created_at` is an instant: the day it fell on where the user is, with the
-// year only when it is not this year (GLG-965).
+// year only when it is not this year.
 function importedOn(iso: string): string {
   const date = new Date(iso)
   return formatMarketDate(iso, {
@@ -39,7 +39,7 @@ function importedOn(iso: string): string {
 // every import of the user, newest first, so the portfolio filter is done
 // here rather than through a query parameter the endpoint does not have.
 // `onUndone` runs once an undo has deleted the import, for a preview open
-// above (GLG-1063).
+// above.
 export function PastImports({
   portfolioId,
   onUndone,
@@ -71,7 +71,7 @@ export function PastImports({
       onSuccess: () => {
         toast(t('import.undone'))
         // The dialog handed focus back to this row's undo button, which
-        // leaves with the row and drops focus to <body> (GLG-985). Move it to
+        // leaves with the row and drops focus to <body>. Move it to
         // the next row, else the previous one, else the heading -- unless the
         // user has already moved it elsewhere.
         focusIfLost(
@@ -114,7 +114,7 @@ export function PastImports({
                   {[
                     t('transactions.count', { count: item.transaction_count }),
                     // The TRY and USD statements of a month are only told
-                    // apart by their currency (GLG-375).
+                    // apart by their currency.
                     item.currency,
                     importedOn(item.created_at),
                   ]

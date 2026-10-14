@@ -3,7 +3,7 @@ import { expect } from 'vitest'
 import { signedOutTitle } from '../components/SignedOutFrame'
 
 // The signed-out pages' shared frame around a page's h1: the brand above, the
-// language switch below, and the one title size (GLG-970).
+// language switch below, and the one title size.
 export function expectSignedOutFrame(heading: HTMLElement) {
   const frame = heading.closest('main')
   expect(frame).not.toBeNull()

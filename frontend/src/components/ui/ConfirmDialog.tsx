@@ -51,7 +51,7 @@ export function ConfirmDialog({
       dialog.close()
       // A double click closes the dialog on its first click, and its second
       // (detail 2) lands on what sat under the button, e.g. a row that opens
-      // its edit dialog (GLG-1360). Swallow that one; the listener goes with
+      // its edit dialog. Swallow that one; the listener goes with
       // the next click whatever it is.
       document.addEventListener(
         'click',
@@ -69,8 +69,7 @@ export function ConfirmDialog({
     <Modal ref={dialogRef} aria-labelledby={titleId} onClose={onCancel}>
       <div className={sheetPanel('p-5 md:w-[26rem]')}>
         {/* Titles and bodies carry user content (an email, a symbol): a long
-            unbroken one wraps inside the card instead of running past it
-            (GLG-1070). */}
+            unbroken one wraps inside the card instead of running past it. */}
         <h2 id={titleId} className="text-ink text-[15px] font-semibold wrap-anywhere">
           {title}
         </h2>

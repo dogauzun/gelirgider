@@ -20,7 +20,7 @@ import { InstrumentPicker } from './InstrumentPicker'
 import type { Row } from './shared'
 
 // The reasons the Midas parser (ADR 0006) and the Garanti Yatırım parser
-// (GLG-1095) emit. An unknown reason is shown as the parser wrote it rather
+// emit. An unknown reason is shown as the parser wrote it rather
 // than swallowed.
 const reasonKey: Record<string, StringKey> = {
   'fx conversion': 'import.reason.fxConversion',
@@ -33,7 +33,7 @@ const reasonKey: Record<string, StringKey> = {
   'unsupported asset type': 'import.reason.unsupportedAssetType',
 }
 
-// The row error codes the statement parsers emit (GLG-328). An unknown code shows
+// The row error codes the statement parsers emit. An unknown code shows
 // the server's English message, like an unknown reason above.
 const errorKey: Record<string, StringKey> = {
   cell_count: 'import.error.cellCount',
@@ -49,7 +49,7 @@ const errorKey: Record<string, StringKey> = {
   net_mismatch: 'import.error.netMismatch',
   unknown_trade_type: 'import.error.unknownTradeType',
   unknown_cash_type: 'import.error.unknownCashType',
-  // The CSV parser's codes (GLG-597).
+  // The CSV parser's codes.
   bad_date: 'import.error.unreadableDate',
   bad_number: 'import.error.badNumber',
   ambiguous_number: 'import.error.ambiguousNumber',
@@ -57,23 +57,23 @@ const errorKey: Record<string, StringKey> = {
   unknown_market: 'import.error.unknownMarket',
   missing_field: 'import.error.missingField',
   fee_on_fee: 'import.error.feeOnFee',
-  // The Garanti parsers' codes (GLG-696, GLG-697). Both Garanti fund and
+  // The Garanti parsers' codes. Both Garanti fund and
   // Garanti Yatırım statements emit them, ledger and trade-list rows alike,
-  // so the text names neither (GLG-754). A bad_row shows no value.
+  // so the text names neither. A bad_row shows no value.
   unknown_row: 'import.error.unknownRow',
   bad_row: 'import.error.badRow',
-  // A transfer in without a cost; the edit dialog takes one (GLG-754).
+  // A transfer in without a cost; the edit dialog takes one.
   unknown_cost: 'import.error.unknownCost',
-  // An opening buy no price was found for (GLG-737); the edit dialog takes one.
+  // An opening buy no price was found for; the edit dialog takes one.
   opening_price: 'import.error.openingPrice',
-  // A closing sell no price was found for (GLG-1190).
+  // A closing sell no price was found for.
   closing_price: 'import.error.closingPrice',
 }
 
-// A CSV row error with one of these codes names its column by field key
-// (GLG-621); the column is shown by its name in the UI locale. Any other
+// A CSV row error with one of these codes names its column by field key;
+// the column is shown by its name in the UI locale. Any other
 // value, such as a Midas cell or an unknown CSV type cell, is shown as the
-// parser wrote it, even when it reads like a column name (GLG-660).
+// parser wrote it, even when it reads like a column name.
 const columnCodes = new Set(['bad_number', 'ambiguous_number', 'missing_field'])
 
 const fieldKey: Record<string, StringKey> = {
@@ -101,8 +101,8 @@ function statusText(row: PreviewRow): string {
       return key ? t(key) : reason
     }
     case 'error': {
-      // A row the commit would refuse carries the commit's own error (GLG-617),
-      // after its unknown symbol when it has one (GLG-678).
+      // A row the commit would refuse carries the commit's own error,
+      // after its unknown symbol when it has one.
       if (row.code === 'invalid') {
         const error = translateError(row.message, feeLabelKey(row.type))
         return row.unknown_instrument
@@ -132,8 +132,8 @@ function money(value: string | undefined, currency: string | undefined): string 
 }
 
 // Date, symbol, type, quantity × price and amount -- whichever the row has --
-// so eight row controls read apart to a screen reader (GLG-351, GLG-365),
-// even two same-day deposits in TRY and USD (GLG-1364).
+// so eight row controls read apart to a screen reader,
+// even two same-day deposits in TRY and USD.
 function rowWhat(row: Row): string {
   return [
     row.date && formatMarketDate(row.date),
@@ -161,7 +161,7 @@ function RowCheckbox({ row, onToggle }: { row: Row; onToggle: () => void }) {
   )
 }
 
-// Checked when every committable row is, mixed when some are (GLG-798).
+// Checked when every committable row is, mixed when some are.
 function SelectAll({ rows, onChange }: { rows: Row[]; onChange: (checked: boolean) => void }) {
   const ok = rows.filter((row) => row.status === 'ok')
   if (ok.length === 0) return null
@@ -180,14 +180,14 @@ function SelectAll({ rows, onChange }: { rows: Row[]; onChange: (checked: boolea
 // The cells the parser could not use, as one line. A skipped or error row
 // carries them so the statement can be checked against what was read.
 // Readable text, so `muted` rather than `faint`, which misses WCAG AA
-// (GLG-761, ADR 0005).
+// (ADR 0005).
 function rawLine(row: PreviewRow): string | null {
   return row.raw && row.raw.length > 0 ? row.raw.join(' | ') : null
 }
 
 // Breaks at the spaces between cells first, inside a cell only when one
 // alone is wider than the line: `break-all` split "300" into "3" / "00" on a
-// phone (GLG-796).
+// phone.
 const rawClass = 'text-[11px] wrap-anywhere text-muted'
 
 function StatusText({ row }: { row: PreviewRow }) {
@@ -203,9 +203,9 @@ function StatusText({ row }: { row: PreviewRow }) {
 }
 
 // The status with the raw line under it, for the edit dialog. The table puts
-// the raw line on its own full-width row instead (GLG-215) -- the Durum column
+// the raw line on its own full-width row instead -- the Durum column
 // is far too narrow for a statement line -- and the table and the phone list
-// open it on demand (GLG-966).
+// open it on demand.
 function StatusCell({ row }: { row: PreviewRow }) {
   const raw = rawLine(row)
   return (
@@ -217,7 +217,7 @@ function StatusCell({ row }: { row: PreviewRow }) {
 }
 
 // The statement line being fixed, in the edit dialog that would otherwise
-// cover it (GLG-787). Nothing for a row the parser read cleanly.
+// cover it. Nothing for a row the parser read cleanly.
 export function DialogContext({ row }: { row: PreviewRow }) {
   if (!statusText(row) && !rawLine(row)) return null
   return (
@@ -238,14 +238,14 @@ function SymbolLabel({ row }: { row: PreviewRow }) {
 }
 
 // The symbol cell: the symbol, also while the instrument is unknown, whose
-// picker is in the block above the table (GLG-1193). A symbol resolved by the
-// user's earlier pick, or by a fund name an earlier statement printed
-// (GLG-766), says so and names the instrument it resolved to (GLG-750). A
-// wrong one can be replaced (GLG-736) through Değiştir, which shows the
-// picker; an empty picker on a matched row read as unmatched (GLG-789).
+// picker is in the block above the table. A symbol resolved by the
+// user's earlier pick, or by a fund name an earlier statement printed,
+// says so and names the instrument it resolved to. A
+// wrong one can be replaced through Değiştir, which shows the
+// picker; an empty picker on a matched row read as unmatched.
 // The caller owns Değiştir's open state; `children` is the picker shown in
 // the cell, left out by a caller that renders it on its own line, as the
-// phone list does (GLG-1053).
+// phone list does.
 function InstrumentCell({
   row,
   changing,
@@ -344,7 +344,7 @@ function TypeCell({ row }: { row: Row }) {
   )
 }
 
-// The raw line of an unreadable row opens under it on demand (GLG-966), so
+// The raw line of an unreadable row opens under it on demand, so
 // every row stays short and the statement text is one click away.
 function RawToggle({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   return (
@@ -359,7 +359,7 @@ function RawToggle({ open, onToggle }: { open: boolean; onToggle: () => void }) 
   )
 }
 
-// A row the commit refused (GLG-1065): tinted, described by the error in the
+// A row the commit refused: tinted, described by the error in the
 // review bar, and scrolled to, as the table shows no row numbers to count by.
 // Once per error: a row remounted by the filter or the breakpoint stays put.
 const scrolled = new WeakSet<Error>()
@@ -378,11 +378,11 @@ function useFailed<T extends HTMLElement>(failed: Error | null) {
 }
 
 // The compact table of ui/table.ts in nine columns that fit the card at
-// 1280 px (GLG-966): quantity and price share a cell, and the one fee field
+// 1280 px: quantity and price share a cell, and the one fee field
 // (a commission, or a dividend's withholding) is "Kesinti", as on İşlemler.
 // Below that (`wide` false) the card is 720 to 1000 px and the fixed-width
 // Durum column pushed the table past it, so the status goes under the
-// instrument, in the column that gives, and the table has eight (GLG-1066).
+// instrument, in the column that gives, and the table has eight.
 export function PreviewTableRow({
   row,
   wide = true,
@@ -404,8 +404,8 @@ export function PreviewTableRow({
   const raw = rawLine(row)
   const picker = <ChangePicker row={row} onChanging={setChanging} onPick={onPick} />
   // Below xl Değiştir's picker gets its own line under the row, as in the
-  // phone list (GLG-1053): in the instrument cell its 12rem min width spilled
-  // over "Adet × fiyat" (GLG-1080).
+  // phone list: in the instrument cell its 12rem min width spilled
+  // over "Adet × fiyat".
   const marked = row.opening || row.closing || row.manual
   const status = (
     <>
@@ -429,15 +429,15 @@ export function PreviewTableRow({
         <td className={cell}>{row.date ? formatMarketDate(row.date) : ''}</td>
         {/* The type alone: beside it the opening and manual markers stacked
             in this narrow column, or widened the table past its card; they
-            go to the fixed-width Durum column (GLG-1056). */}
+            go to the fixed-width Durum column. */}
         <td className={cell}>
           <TypePill tx={row} />
         </td>
         {/* The column that gives: it takes the room the others leave and cuts
-            a description there, so the table never gets wider than its card
-            (GLG-417, GLG-966). Its text wraps: a statement's fund name, kept
+            a description there, so the table never gets wider than its card.
+            Its text wraps: a statement's fund name, kept
             as the symbol of a row an earlier pick resolved, ran over
-            "Adet × fiyat" (GLG-1184). */}
+            "Adet × fiyat". */}
         <td className={`${TD_WRAP} w-full max-w-0 py-2 align-top`}>
           <InstrumentCell row={row} changing={changing} onChanging={setChanging}>
             {wide && picker}
@@ -509,8 +509,7 @@ export function PreviewListItem({
   const [changing, setChanging] = useState(false)
   const raw = rawLine(row)
   // Değiştir's picker gets its own line under the row: the middle column
-  // beside the amount was ~142 px at 375 px and cut the placeholder
-  // (GLG-1053).
+  // beside the amount was ~142 px at 375 px and cut the placeholder.
   const { className: mark, ...failedProps } = useFailed<HTMLLIElement>(failed)
 
   return (
@@ -528,8 +527,7 @@ export function PreviewListItem({
           <TypeCell row={row} />
           <InstrumentCell row={row} changing={changing} onChanging={setChanging} />
         </span>
-        {/* Wraps rather than truncates: the cut fell inside the price
-            (GLG-791). */}
+        {/* Wraps rather than truncates: the cut fell inside the price. */}
         {details.length > 0 && (
           <span className="mt-0.5 block text-[12px] wrap-anywhere text-muted">
             {details.join(' · ')}
@@ -562,7 +560,7 @@ export function PreviewListItem({
 }
 
 // The unknown names of a statement, each once with one picker and the number
-// of rows it covers, above the table (GLG-1193): one picker per row made a
+// of rows it covers, above the table: one picker per row made a
 // wall of identical pickers, and only the first pick showed that it fixes
 // every row of its name. A name is a symbol in one currency, as resolveRows
 // fixes them; `onPick` gets the first row of the name.
@@ -606,7 +604,7 @@ export function UnknownNames({
               />
               {/* A fund row may name a fund TEFAS has renamed since by its old
                   name, which only a later statement in the batch links to the
-                  code (GLG-1181, GLG-1197). */}
+                  code. */}
               {first.market === 'TEFAS' && (
                 <span className="mt-1 block text-[12px] text-muted">
                   {t('import.unknownNameRenamedFund')}
@@ -620,8 +618,8 @@ export function UnknownNames({
   )
 }
 
-// The rows of a statement's review, a table from md up and a list below
-// (GLG-451), the opening and closing rows each under a line that says what
+// The rows of a statement's review, a table from md up and a list below,
+// the opening and closing rows each under a line that says what
 // they are. `failedKey` is the row a commit error names.
 export function PreviewRows({
   shown,
@@ -642,15 +640,15 @@ export function PreviewRows({
   onEdit: (row: Row) => void
   onPick: (key: string, instrument: Instrument) => void
 }) {
-  // The review table's Durum column only from xl up (GLG-1066).
+  // The review table's Durum column only from xl up.
   const wide = useIsWide()
-  // The opening rows come first by their date, the day before the period
-  // (GLG-737); one line above the first of them says what they are (GLG-738).
+  // The opening rows come first by their date, the day before the period;
+  // one line above the first of them says what they are.
   const firstOpening = shown.find((row) => row.opening)?.key
-  // The closing sells follow them, under a line of their own (GLG-1190).
+  // The closing sells follow them, under a line of their own.
   const firstClosing = shown.find((row) => row.closing)?.key
   // The line above the opening rows names their price only when every
-  // proposed buy has the same source (GLG-1185): the statement's average
+  // proposed buy has the same source: the statement's average
   // cost, or the price of the day before the period. Otherwise it names none
   // and each row priced from the statement says so itself. A buy left
   // without a price, or edited, has no source to name.
@@ -676,7 +674,7 @@ export function PreviewRows({
   return (
     // relative: the select and actions headers' sr-only labels are
     // absolute, so without a positioned card they escape the scroll
-    // clip and widen the page (GLG-689, as GLG-679).
+    // clip and widen the page.
     <div className="relative mt-3 overflow-x-auto card">
       {desktop ? (
         <table className={TABLE}>

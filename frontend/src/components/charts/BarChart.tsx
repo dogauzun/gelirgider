@@ -15,7 +15,7 @@ import { ChartTooltip } from './ChartTooltip'
 // formats the exact string. A negative value is drawn as zero; a zero bar is
 // a 1px hairline so the slot still reads as "nothing" rather than missing,
 // and a non-zero bar is at least 3px, so a ₺812 month next to ₺1,28 Mn does
-// not look like an empty one (GLG-939).
+// not look like an empty one.
 export interface BarChartProps {
   bars: ChartBar[]
   currency: string
@@ -54,7 +54,7 @@ export function BarChart({ bars, currency, height = 200 }: BarChartProps) {
   }
 
   return (
-    // A mouse press takes no focus (pressWithoutFocus, GLG-1034).
+    // A mouse press takes no focus (pressWithoutFocus).
     <div onMouseDown={pressWithoutFocus}>
       <RechartsBarChart
         {...BAR_FRAME}
@@ -69,7 +69,7 @@ export function BarChart({ bars, currency, height = 200 }: BarChartProps) {
           ticks={[0, max]}
           domain={[0, max]}
           // Compact currency ticks (`₺450 B`) with the sign where formatMoney
-          // puts it (GLG-893); `{}` keeps Intl's default compact rounding.
+          // puts it; `{}` keeps Intl's default compact rounding.
           tickFormatter={(v: number) => formatCompactMoney(v, currency, {})}
         />
         <Bar

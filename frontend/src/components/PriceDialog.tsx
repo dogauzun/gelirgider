@@ -34,8 +34,8 @@ function anchorStyle(anchor: Element): CSSProperties {
     : { bottom: window.innerHeight - rect.top + 4, right }
 }
 
-// The manual price editor (GLG-134), opened from a positions-table row's
-// Fiyat gir (GLG-933): a price and a date, Kaydet and Vazgeç. Enter saves,
+// The manual price editor, opened from a positions-table row's
+// Fiyat gir: a price and a date, Kaydet and Vazgeç. Enter saves,
 // Escape cancels. A native modal <dialog> as ConfirmDialog, anchored to the
 // row from md up and a bottom sheet below it; without an anchor it is centred.
 // Mounted only while open; useModal hands focus back to its opener.
@@ -64,7 +64,7 @@ export function PriceDialog({
 
   function save() {
     // Kaydet ignores clicks while pending, but Enter in a field comes straight
-    // here: a second press while the save runs would send it twice (GLG-994).
+    // here: a second press while the save runs would send it twice.
     if (mutation.isPending) return
     setError(null)
     if (isAmbiguousThousands(price)) {
@@ -81,13 +81,13 @@ export function PriceDialog({
       return
     }
     // The date is a path segment: empty (cleared, or a partial date the input
-    // reports as '') it would PUT .../prices/, which only the mux 404s (GLG-478).
+    // reports as '') it would PUT .../prices/, which only the mux 404s.
     if (!date) {
       setError(t('error.field.date'))
       return
     }
     // Re-saving the manual price already in effect changes nothing: no
-    // request, no toast (GLG-813).
+    // request, no toast.
     if (manualDate === date && Number(close) === Number(position.last_price)) {
       onClose()
       return
@@ -141,7 +141,7 @@ export function PriceDialog({
               onChange={(event) => setPrice(event.target.value)}
               onKeyDown={handleKeyDown}
               // Read-only, not disabled: Chromium blurs a disabled field, and
-              // Enter in it is how the save usually starts (GLG-994).
+              // Enter in it is how the save usually starts.
               readOnly={mutation.isPending}
               className={`${inputClass()} text-right`}
             />

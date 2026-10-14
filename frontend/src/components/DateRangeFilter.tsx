@@ -55,7 +55,7 @@ export function DateRangeFilter({
       <Popover.Portal container={dialogRef}>
         {/* Above the sticky app header (z-20), as Select and Menu. */}
         <Popover.Positioner sideOffset={4} align="start" className="z-30">
-          {/* Named by the filter's label, as a dialog needs a name (GLG-1091). */}
+          {/* Named by the filter's label, as a dialog needs a name. */}
           <Popover.Popup
             initialFocus={fromRef}
             aria-label={t('transactions.date')}
@@ -90,8 +90,7 @@ export function DateRangeFilter({
                 onClick={() => {
                   onClear()
                   // The clear button unmounts with the dates, which dropped
-                  // focus to <body>; a new range starts at the start date
-                  // (GLG-620).
+                  // focus to <body>; a new range starts at the start date.
                   fromRef.current?.focus()
                 }}
               >

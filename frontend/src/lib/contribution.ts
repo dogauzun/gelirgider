@@ -1,7 +1,7 @@
 import type { Position } from '../api/summary'
 import { unrealized } from './positions'
 
-// The Katkı card's two figures (GLG-948): the open P/L, or today's move.
+// The Katkı card's two figures: the open P/L, or today's move.
 export const CONTRIBUTION_MODES = ['total', 'day'] as const
 export type ContributionMode = (typeof CONTRIBUTION_MODES)[number]
 

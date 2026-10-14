@@ -38,11 +38,11 @@ import { ANIMATION_MS, AXIS_TICK, GRID, MARGIN, X_AXIS, Y_AXIS } from './chartSt
 import { ChartTooltip, type ChartTooltipRow } from './ChartTooltip'
 
 // A drag to zoom spans at least this many px sideways, so a wobbly click on a
-// dense series, a point every 1.5 px, does not zoom (GLG-1032).
+// dense series, a point every 1.5 px, does not zoom.
 const MIN_ZOOM_DRAG_PX = 8
 
 // The three series' strokes: dash pattern and color token. The benchmark is
-// dotted so it never reads as the dashed cost line (GLG-491). Colors go
+// dotted so it never reads as the dashed cost line. Colors go
 // through `style`: SVG presentation attributes do not take `var()`.
 const STROKES = {
   value: { dash: undefined, color: 'var(--color-accent)' },
@@ -59,7 +59,7 @@ const MARKER_COLORS: Record<ChartMarker['kind'], string> = {
 const MARKER_KINDS = Object.keys(MARKER_COLORS) as ChartMarker['kind'][]
 
 // Each marker kind has its own shape as well as its colour, so the kinds tell
-// apart without colour (GLG-807): buy points up, sell points down, a dividend
+// apart without colour: buy points up, sell points down, a dividend
 // is a dot, a split a diamond. r is the half-size around (cx, cy).
 function MarkerShape({
   kind,
@@ -116,7 +116,7 @@ function Swatch({ kind = 'value' }: { kind?: keyof typeof STROKES }) {
 
 // LegendToggle is a legend entry that hides and shows its series. The label
 // is the button's name and aria-pressed carries the state; a hidden entry
-// keeps the muted label, struck through, with a faded swatch (GLG-922).
+// keeps the muted label, struck through, with a faded swatch.
 function LegendToggle({
   kind,
   label,
@@ -237,19 +237,19 @@ const toNumber = (v: string | null | undefined) =>
 // listed in the tooltip and, by kind, in the legend; labels, already
 // translated, rename the two lines. formatValue prints the tooltip's and the
 // screen reader summary's amounts: whole numbers (formatChartValue) unless a
-// page passes its own, as the price chart does for a unit price's decimals
-// (GLG-918, GLG-927); it masks in privacy mode like formatChartValue. A null total_value or cost_basis is a gap in that
-// line, as a missing benchmark_value is: nothing is drawn for that day
-// (GLG-589). A series without any value is neither drawn nor in the legend.
+// page passes its own, as the price chart does for a unit price's decimals;
+// it masks in privacy mode like formatChartValue. A null total_value or cost_basis is a gap in that
+// line, as a missing benchmark_value is: nothing is drawn for that day.
+// A series without any value is neither drawn nor in the legend.
 // The cost and benchmark legend entries hide and show their series: a hidden
 // series is not drawn, not in the tooltip and not in the y axis's range.
 // height fixes the plot's height in px; without it the plot is 5:2 with a
 // 200 px floor.
-// onZoom turns on drag to zoom (GLG-949): with a mouse, press on the plot,
+// onZoom turns on drag to zoom: with a mouse, press on the plot,
 // drag sideways and release, and it gets the span's first and last dates, in
 // order. A drag shorter than MIN_ZOOM_DRAG_PX, within one point or released
 // outside the plot does nothing, and Escape cancels. Touch and pen keep scrubbing the tooltip.
-// unit 'percent' (GLG-954) reads the same point fields as fractions, as the
+// unit 'percent' reads the same point fields as fractions, as the
 // return card's percent mode passes its twr and benchmark_twr: percent ticks
 // (formatPercentTicks), a solid zero line, no area fill, and the tooltip,
 // the summary and formatValue's place taken by signed percentages, never
@@ -405,8 +405,8 @@ export function LineChart({
     (inPercent ? formatPercentTicks : formatTicks)(yTicks).map((label, i) => [yTicks[i], label]),
   )
 
-  // The date labels carry the year when the range spans calendar years
-  // (GLG-809); which dates are labelled depends on the plot's width
+  // The date labels carry the year when the range spans calendar years;
+  // which dates are labelled depends on the plot's width
   // (DateAxis).
   const multiYear = points[0].date.slice(0, 4) !== points[points.length - 1].date.slice(0, 4)
 
@@ -418,10 +418,10 @@ export function LineChart({
   const markerKinds = MARKER_KINDS.filter((k) => plotted.some((m) => m.kind === k))
 
   // The screen reader summary: the date range and the value line's first and
-  // last value with the change between them (GLG-807), subtracted exactly:
-  // a float difference can round the other way at .5 (GLG-919). All three go
+  // last value with the change between them, subtracted exactly:
+  // a float difference can round the other way at .5. All three go
   // through formatValue, so the price chart's summary keeps the tooltip's
-  // decimals (GLG-927). The change is formatted without its sign, then signed
+  // decimals. The change is formatted without its sign, then signed
   // unless it printed as zero, the way signDisplay 'exceptZero' would; a masked
   // value has no digit, so privacy mode leaks no sign.
   const valued = points.filter((p) => p.total_value !== null)
@@ -509,7 +509,7 @@ export function LineChart({
 
   return (
     <div>
-      {/* A mouse press takes no focus (pressWithoutFocus, GLG-1034). */}
+      {/* A mouse press takes no focus (pressWithoutFocus). */}
       <div onPointerDown={onPointerDown} onMouseDown={pressWithoutFocus}>
         <ComposedChart
           responsive

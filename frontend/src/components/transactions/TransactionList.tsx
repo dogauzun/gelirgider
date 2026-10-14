@@ -14,9 +14,9 @@ import { Pill } from '../ui/Pill'
 import { GROUP_ROW, ROW_44, TABLE, TD, TD_NUM, TH } from '../ui/table'
 
 // What a row's icon buttons act on, so a screen reader can tell twenty
-// "Sil" buttons apart (GLG-341): symbol, date and type, then quantity × price
+// "Sil" buttons apart: symbol, date and type, then quantity × price
 // and the signed amount, which tell a TRY and a USD deposit or two buys of
-// one day apart (GLG-1364).
+// one day apart.
 function rowLabel(tx: Transaction): string {
   const parts = [
     formatMarketDate(tx.date),
@@ -62,7 +62,7 @@ const monthHeaderClass =
 // "Elle" for a row entered by hand (core pages spec, "Kaynak"). An import the
 // list has not loaded yet reads as a plain "içe aktarıldı". An imported row
 // is edited and deleted like any other; the pill only says where it came
-// from (GLG-206).
+// from.
 function Source({ tx, imports }: { tx: Transaction; imports: Map<number, Import> }) {
   if (!tx.import_id) return <span className="text-muted">{t('transactions.source.manual')}</span>
   const item = imports.get(tx.import_id)
@@ -95,8 +95,8 @@ function EditableTransactionRow({
   onClone: () => void
   onDelete: (event: React.MouseEvent) => void
 }) {
-  // A click anywhere on the row edits it, as a tap does on the phone list
-  // (GLG-574). Clicks on the row's own buttons keep their behaviour; the
+  // A click anywhere on the row edits it, as a tap does on the phone list.
+  // Clicks on the row's own buttons keep their behaviour; the
   // keyboard reaches edit through the pencil button, so the row takes no
   // focus itself.
   return (
@@ -199,8 +199,7 @@ function TransactionListItem({
 }) {
   const fee = feeText(tx)
   // A named month, not dd/MM: the numeric pattern reads 12/09 in tr, unlike
-  // the rest of the app, and the group header above already gives the year
-  // (GLG-462).
+  // the rest of the app, and the group header above already gives the year.
   const details = [formatMarketDate(tx.date, { day: '2-digit', month: 'short' })]
   const trade = quantityTimesPrice(tx)
   if (trade) details.push(trade)
@@ -211,18 +210,18 @@ function TransactionListItem({
   // which keeps their 104px free (2 × 44px and the gaps) and is at least
   // their height, so their tap targets never cover the details line. Beside
   // the button, the line got the li minus those 104px and cut
-  // "0,004 × ₺2.100.000,00" at 360px (GLG-1307, GLG-1321).
+  // "0,004 × ₺2.100.000,00" at 360px.
   return (
     <li className="relative border-b border-line px-4 last:border-0">
       <button type="button" onClick={onEdit} className="block w-full py-2 text-left">
         {/* The row button says nothing about what tapping it does, so a hidden
-            prefix names it (GLG-227). It prefixes rather than aria-labels the
+            prefix names it. It prefixes rather than aria-labels the
             button, which would hide the row's own amount and quantity. */}
         <span className="sr-only">{`${t('transactions.editTitle')}:`}</span>
         <span className="flex min-h-11 flex-wrap items-start gap-x-3 gap-y-0.5 pr-26">
           {/* The pills wrap inside their own column, and the widest one is the
-              column's floor (no min-w-0), so it never shrinks under the amount
-              (GLG-858, GLG-1017). When one pill and the amount do not fit side
+              column's floor (no min-w-0), so it never shrinks under the amount.
+              When one pill and the amount do not fit side
               by side, the amount wraps under the pills, right-aligned, instead
               of overlapping them. */}
           <span className="flex-1">
@@ -247,7 +246,7 @@ function TransactionListItem({
         <Button
           variant="ghost"
           iconOnly
-          // 44px touch target on a phone (GLG-806); this list renders only below md.
+          // 44px touch target on a phone; this list renders only below md.
           className="max-md:h-11 max-md:w-11"
           aria-label={t('transactions.clone', { what: rowLabel(tx) })}
           onClick={onClone}
@@ -292,7 +291,7 @@ export function TransactionList({
 }) {
   const groups = groupByMonth(rows)
   // relative: the actions header's sr-only label is absolute, so without a
-  // positioned card it escapes the scroll clip and widens the page (GLG-679).
+  // positioned card it escapes the scroll clip and widens the page.
   return (
     <div ref={cardRef} className="relative overflow-x-auto card">
       {desktop ? (

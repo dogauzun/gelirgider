@@ -3,10 +3,10 @@ import { useEffect, useRef } from 'react'
 // Focus `target`, unless the user has already moved focus elsewhere: it moves
 // only when focus was lost to <body>, or is still on `from`, the control the
 // user acted on. A control that leaves the page with its row drops focus to
-// <body> (GLG-386, GLG-442, GLG-985, GLG-1146).
+// <body>.
 export function focusIfLost(target: HTMLElement | null | undefined, from: Element | null = null) {
   const active = document.activeElement
-  // eslint-disable-next-line no-restricted-syntax
+  // eslint-disable-next-line no-restricted-syntax -- the one focus recovery helper
   if (active === null || active === document.body || active === from) target?.focus()
 }
 
@@ -18,7 +18,7 @@ export function neighbourOf<K>(keys: K[], key: K, stillThere: (key: K) => boolea
 }
 
 // An action whose control leaves the page with it -- a batch step, a fixed
-// row leaving Sorunlu -- dropped focus to <body> (GLG-1068). `focusLater`
+// row leaving Sorunlu -- dropped focus to <body>. `focusLater`
 // moves focus, after the render the action's state change causes, to the
 // first of `selectors` on the page. The target may come later, as the next
 // file's review waits for its parse, so the request waits until one is there.

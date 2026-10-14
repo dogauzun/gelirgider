@@ -12,7 +12,7 @@ export function useConfirm(): {
 
   const confirm = useCallback((next: ConfirmOptions) => {
     // A second confirm replaces an open one (the leave guard on Back): end
-    // the first as cancelled so its caller's await returns (GLG-1081).
+    // the first as cancelled so its caller's await returns.
     resolveRef.current?.(false)
     setOptions(next)
     return new Promise<boolean>((resolve) => {

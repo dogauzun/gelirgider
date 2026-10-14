@@ -16,7 +16,7 @@ import { t } from '../i18n/strings'
 import { useBenchmark, useReturnMethod } from '../lib/useReturnSettings'
 import { usePortfolioTitle } from '../lib/useTitle'
 
-// The Performans tab (GLG-955), for a portfolio and for `all`: the benchmark
+// The Performans tab, for a portfolio and for `all`: the benchmark
 // and method selects, stored as Özet stores them, over one card per view.
 export function PerformancePage() {
   const params = useParams()
@@ -66,7 +66,7 @@ const SHAPES: Shape[] = ['heatmap', 'bars']
 // "Dönemsel getiri": the heatmap of every month and year. With a benchmark,
 // "Portföy | Fark" switches the cells to the excess over it. "Isı haritası |
 // Çubuk" switches to the last 24 months as bars, portfolio and benchmark
-// side by side (GLG-956); it opens on the heatmap and is not stored.
+// side by side; it opens on the heatmap and is not stored.
 function PeriodReturnsCard({
   portfolioId,
   benchmark,
@@ -90,8 +90,7 @@ function PeriodReturnsCard({
   const empty = data !== undefined && buckets.length === 0
   const undefinedReturns = buckets.length > 0 && buckets.every((b) => b.returns[method] === null)
   // The whole scope is one day, the day of the first transaction: too little
-  // data, as the drawdown card says, not a return that cannot be computed
-  // (GLG-1051).
+  // data, as the drawdown card says, not a return that cannot be computed.
   const oneDay = buckets.length > 0 && buckets[0].from === buckets[buckets.length - 1].to
   // Against TÜFE the excess is the real return, as on the return card.
   const viewLabel = (option: View) =>

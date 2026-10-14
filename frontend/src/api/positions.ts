@@ -44,7 +44,7 @@ export function usePositionHistory(
     queryKey: [...historyQueryKey(portfolioId), 'position', instrumentId, from, to] as const,
     queryFn: () => fetchPositionHistory(portfolioId, instrumentId, from, to),
     // As usePortfolioHistory: the same position's last range stays on screen
-    // while a new one loads, another position starts empty (GLG-771).
+    // while a new one loads, another position starts empty.
     placeholderData: (previous, previousQuery) =>
       previousQuery?.queryKey[1] === portfolioId && previousQuery.queryKey[4] === instrumentId
         ? previous

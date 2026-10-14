@@ -36,7 +36,7 @@ export function PositionKpis({
   // The backend folds each dividend's net into the position's realized_pl
   // (holdings.State.Apply), so the total is unrealized + realized, which
   // holds the dividends once, and the realized cell says it includes them.
-  // The server sums the two unrounded and rounds once (GLG-1354); an open
+  // The server sums the two unrounded and rounds once; an open
   // position without a price has no total, as it has no unrealized.
   // Unrealized and its percent come from the positions table's
   // unrealized(), so the two never disagree.
@@ -100,8 +100,8 @@ export function PositionKpis({
             />
             {percent && <p className={`text-[12px] ${plTone(unrealized)}`}>{percent}</p>}
             {/* The part of it from the exchange rate, as Özet's table
-                shows it (GLG-537); Özet's phone row leaves it to the
-                position page (GLG-774). */}
+                shows it; Özet's phone row leaves it to the
+                position page. */}
             {position.fx_pl_reporting != null && (
               <p className={`text-[12px] ${plTone(position.fx_pl_reporting)}`}>
                 {`${t('summary.fxPl')} ${signedMoney(position.fx_pl_reporting, reporting)}`}

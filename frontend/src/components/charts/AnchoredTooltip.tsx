@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode 
 import { Tooltip, useActiveTooltipLabel, usePlotArea, useXAxisScale, useYAxisScale } from 'recharts'
 import { placeTooltip } from '../../lib/chart'
 
-// Gap between the active point and the tooltip card's near edge (GLG-779).
+// Gap between the active point and the tooltip card's near edge.
 const TOOLTIP_GAP = 12
 
 export type TooltipProps = { active?: boolean; activeIndex?: unknown }
@@ -33,7 +33,7 @@ function TooltipCard({
 // on a bar chart; anchors holds each category's y value, and one without
 // anchors on the plot's middle. centred puts the card's middle on the point's
 // x whenever placeTooltip put it above or below the point, so a bar's card
-// sits over its own slot (GLG-924). filterNull is off, or Recharts would hide
+// sits over its own slot. filterNull is off, or Recharts would hide
 // the card on a category without any value.
 export function AnchoredTooltip({
   anchors,

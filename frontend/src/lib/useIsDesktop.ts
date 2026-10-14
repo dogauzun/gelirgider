@@ -1,8 +1,8 @@
 import { useSyncExternalStore } from 'react'
 
 // One media query as a store for useSyncExternalStore. Pages with a table
-// from a breakpoint up and a phone list below render only the matching one
-// (GLG-451, GLG-460): hiding the other with CSS still builds both, doubling
+// from a breakpoint up and a phone list below render only the matching one:
+// hiding the other with CSS still builds both, doubling
 // the DOM.
 function mediaStore(media: string) {
   return {
@@ -24,7 +24,7 @@ export function useIsDesktop() {
 
 // Tailwind's xl breakpoint: from here up the content card is 1000 px wide
 // whatever the sidebar does, room enough for the import review's Durum
-// column (GLG-1066).
+// column.
 const wide = mediaStore('(min-width: 80rem)')
 
 export function useIsWide() {

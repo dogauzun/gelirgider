@@ -10,12 +10,12 @@ import type { Row } from './shared'
 // - dialog: the row the open dialog edits, or `key: null` for an operation
 //   the statement never had. Closed is `null`.
 // - touched: whether the user changed the open preview (a check, a pick, an
-//   edit, an added row), so cancelling it asks first (GLG-772).
-// - filter: "Tümü | Sorunlu" (GLG-966), on Sorunlu when a preview opens with
+//   edit, an added row), so cancelling it asks first.
+// - filter: "Tümü | Sorunlu", on Sorunlu when a preview opens with
 //   rows to fix, so they come first; the rule of each row is the same either
 //   way.
 // - announcement: what the last re-requested preview changed, read out by
-//   the footer's status line (GLG-785).
+//   the footer's status line.
 export type Review = {
   preview: StatementPreview | null
   rows: Row[]
@@ -77,7 +77,7 @@ export function reviewReducer(state: Review, action: ReviewAction): Review {
       }
     case 'clear':
       return { ...noReview, filter: state.filter }
-    // Every row that can be committed, or none (GLG-798). A likely duplicate
+    // Every row that can be committed, or none. A likely duplicate
     // is checked too; its note stays next to it.
     case 'selectAll':
       return {
@@ -104,7 +104,7 @@ export function reviewReducer(state: Review, action: ReviewAction): Review {
     case 'applyDialog': {
       const { key, input, symbol, currency } = action
       // An added row is an ok row, which Sorunlu never shows: Tümü puts it in
-      // view, so it is not added twice (GLG-966).
+      // view, so it is not added twice.
       if (key !== null) {
         const rows = inStep(
           state.rows.map((row) =>

@@ -1,5 +1,5 @@
 // Touch areas of at least 44px (Apple HIG) on phones, below `sm`, drawn as an
-// invisible ::before so the control keeps its compact look (GLG-777). The
+// invisible ::before so the control keeps its compact look. The
 // element becomes the containing block; a parent with overflow other than
 // visible clips the extension, so it needs the room as padding.
 

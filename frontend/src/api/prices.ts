@@ -18,7 +18,7 @@ function setPrice(instrumentId: number, date: string, close: string): Promise<Pr
 
 // Removes this user's own manual price for the given instrument and date.
 // Fetched prices are untouched: the backend only ever deletes from
-// manual_prices, so valuation falls back to the last fetched close (GLG-134).
+// manual_prices, so valuation falls back to the last fetched close.
 function deletePrice(instrumentId: number, date: string): Promise<void> {
   return apiFetch<void>(`/api/instruments/${instrumentId}/prices/${date}`, { method: 'DELETE' })
 }

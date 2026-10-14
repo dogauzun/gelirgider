@@ -50,12 +50,12 @@ import { toast } from '../lib/toast'
 import { focusIfLost } from '../lib/useFocusLater'
 import { useOneAtATime } from '../lib/useOneAtATime'
 
-// Özet's KPI strip (layout A, GLG-934): one row of five from lg, the total a
+// Özet's KPI strip (layout A): one row of five from lg, the total a
 // little wider; two columns on a phone with the total across both.
 const KPI_COLUMNS = 'grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1fr_1fr]'
 
 // One money figure that never breaks inside: the browser may otherwise
-// wrap between a "+" and a "₺" (GLG-778). Lines wrap at the spaces and
+// wrap between a "+" and a "₺". Lines wrap at the spaces and
 // " · " separators around it instead.
 function Fig({ children }: { children: ReactNode }) {
   return <span className="whitespace-nowrap tabular-nums">{children}</span>
@@ -95,8 +95,8 @@ function SummarySkeleton() {
 }
 
 // One portfolio's positions table with what its row menu opens: the
-// transaction dialog prefilled from the row (GLG-558), the price dialog
-// anchored to the row, and the removal of a manual price (GLG-134). The
+// transaction dialog prefilled from the row, the price dialog
+// anchored to the row, and the removal of a manual price. The
 // `all` scope renders the table alone: these need a numeric portfolio id
 // (ADR 0014).
 function PortfolioPositions({ summary, portfolioId }: { summary: Summary; portfolioId: number }) {
@@ -121,13 +121,13 @@ function PortfolioPositions({ summary, portfolioId }: { summary: Summary; portfo
   )
 }
 
-// The "Dikkat" card (GLG-932) with what its buttons do: Ekle books the
+// The "Dikkat" card with what its buttons do: Ekle books the
 // expected dividend as the Temettü tab's "Tümünü ekle" does, one row; Yoksay
 // dismisses it; Fiyat gir and Güncelle open the price editor, centred, for
 // that position. On one portfolio's Özet `portfolios` is that one, unnamed,
 // and `linkTo` its id for the movers' links. On Tüm portföyler it is every
 // portfolio: each one's items come from its own summary and expected
-// dividends, named (GLG-935), as expected dividends are per portfolio.
+// dividends, named, as expected dividends are per portfolio.
 function Attention({
   portfolios,
   linkTo,
@@ -143,7 +143,7 @@ function Attention({
   const invalidatePortfolios = useInvalidatePortfolios()
   const [pricing, setPricing] = useState<{ position: Position; portfolioId: number } | null>(null)
   // On Tüm portföyler a saved price refetches the other portfolios after the
-  // editor closes; the card keeps its focus target until they have (GLG-1145).
+  // editor closes; the card keeps its focus target until they have.
   const [refreshing, setRefreshing] = useState(false)
   const today = todayIstanbul()
   // Which portfolio each dividend item came from, for Ekle and Yoksay.
@@ -242,7 +242,7 @@ function elapsedLabel(first: string): string {
   return parts.join(' ')
 }
 
-// The summary's stats (GLG-596): net contributions, dividends net of stopaj,
+// The summary's stats: net contributions, dividends net of stopaj,
 // interest, fees and the first transaction. Without reporting totals (a
 // currency with no rate) the money cells show MISSING; the attention card
 // already says why.
@@ -289,7 +289,7 @@ function StatsCard({
 
   return (
     // A full-width strip under the main KPI strip, visible without scrolling
-    // (GLG-1099; it sat under Dağılım and Katkı before). The cells name
+    // (it sat under Dağılım and Katkı before). The cells name
     // themselves, as in the KPI strip above; the heading is for screen
     // readers. The fifth cell spans two columns below lg, so the grid has no
     // hole.
@@ -309,8 +309,8 @@ function StatsCard({
   )
 }
 
-// Özet, layout A (GLG-934): the return card beside the attention card, one
-// KPI strip, İstatistikler as a strip under it (GLG-948, GLG-1099), the
+// Özet, layout A: the return card beside the attention card, one
+// KPI strip, İstatistikler as a strip under it, the
 // positions table, then Dağılım beside Katkı. Each
 // number is on the page once; what used to be a sub-line is a cell's hint.
 export function SummaryPage() {
@@ -325,10 +325,10 @@ export function SummaryPage() {
   const history = usePortfolioHistory(portfolioId, from, to, benchmark)
   const [method, setMethod] = useReturnMethod()
 
-  // Closed positions come down the same array (GLG-218) but are held apart:
+  // Closed positions come down the same array but are held apart:
   // they are not holdings, so they stay out of the allocation, the total
-  // value and the position count. A quantity of 0 alone is not closed
-  // (GLG-827). The positions table sorts its own rows.
+  // value and the position count. A quantity of 0 alone is not closed.
+  // The positions table sorts its own rows.
   const positions = (data?.positions ?? []).filter((p) => !p.closed)
   const closed = (data?.positions ?? []).filter((p) => p.closed)
   const cashByCurrency = data
@@ -342,7 +342,7 @@ export function SummaryPage() {
     data && positions.length === 0 && closed.length === 0 && cashByCurrency.length === 0
 
   // Same exclusion, one step further: data.cash and data.total_value are
-  // summed by skipping every currency in missing_rates (GLG-114), so when
+  // summed by skipping every currency in missing_rates, so when
   // nothing is left to convert they read 0,00 next to real holdings. That is
   // a wrong number, not an incomplete one -- show MISSING instead, the same way a
   // position with no reporting value does. The cash cell's hint then carries
@@ -358,7 +358,7 @@ export function SummaryPage() {
 
   // The reporting-currency cost the unrealized P/L was earned on, as the
   // server sums it: total_value less cash less the gain, each rounded on its
-  // own, can be a cent off the rows and the chart (GLG-976). Without a
+  // own, can be a cent off the rows and the chart. Without a
   // percent (lib/positions returnPercent) the cost is dropped from the hint
   // too.
   const unrealized = data?.unrealized_pl ?? null
@@ -378,9 +378,9 @@ export function SummaryPage() {
     return date > latest ? date : latest
   }, '')
 
-  // Tüm portföyler (GLG-935): the same page summed over every portfolio, with
+  // Tüm portföyler: the same page summed over every portfolio, with
   // a row per portfolio. Its figures leave out what any portfolio left out,
-  // so they carry the mark the sidebar's total carries (GLG-979); the
+  // so they carry the mark the sidebar's total carries; the
   // attention card names the currencies, per portfolio.
   const isAll = portfolioId === 'all'
   const { data: portfolios } = usePortfolios()
@@ -394,7 +394,7 @@ export function SummaryPage() {
   // A portfolio deleted from its own page lands here with its header, and
   // the focus it held, gone: focus the first remaining row, else the new
   // portfolio button, unless focus has moved on; then clear the state so a
-  // remount does not do it again (GLG-857).
+  // remount does not do it again.
   const { state, clear } = useNavState()
   const focusAfterDelete = Boolean(state?.focusAfterDelete)
   useEffect(() => {
@@ -407,7 +407,7 @@ export function SummaryPage() {
   }, [focusAfterDelete, portfolios, data, clear])
 
   return (
-    // An empty portfolio's one primary action is the card's own (GLG-781).
+    // An empty portfolio's one primary action is the card's own.
     <PortfolioHeader portfolioId={portfolioId} add={isEmpty ? 'quiet' : 'float'}>
       <div className="mx-auto max-w-6xl px-6 pt-6 pb-12">
         {isAll && portfolios?.length === 0 ? (
@@ -438,7 +438,7 @@ export function SummaryPage() {
                           {t('summary.emptyLink')}
                         </Button>
                         {/* Import is the faster start for a broker user, so it
-                            sits under the one primary action as a link (GLG-781). */}
+                            sits under the one primary action as a link. */}
                         <Link
                           to={`/portfolios/${portfolioId}/import`}
                           className="inline-flex h-11 items-center px-2 text-[14px] font-medium text-ink-2 underline underline-offset-2 hover:text-ink sm:h-9"
@@ -455,8 +455,7 @@ export function SummaryPage() {
                   {/* Tracks with a zero minimum (grid-cols-1 is minmax(0,
                       1fr)): a long attention line, as one naming its
                       portfolio, truncates instead of widening the page
-                      below lg or taking the return card's room from lg
-                      (GLG-935). */}
+                      below lg or taking the return card's room from lg. */}
                   <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
                     <ReturnCard
                       currency={data.currency}
@@ -538,7 +537,7 @@ export function SummaryPage() {
                     </KpiCell>
                   </KpiStrip>
 
-                  {/* A backend deployed before GLG-595 sends no stats. */}
+                  {/* An older backend sends no stats. */}
                   {data.stats?.first_transaction_date && (
                     <StatsCard
                       stats={data.stats}
@@ -581,7 +580,7 @@ export function SummaryPage() {
 }
 
 // Tüm portföyler with no portfolio at all: the first one to create, as the
-// home page offered before it went (GLG-935).
+// home page offered before it went.
 function NoPortfolio() {
   const navigate = useNavigate()
   const [creating, setCreating] = useState(false)

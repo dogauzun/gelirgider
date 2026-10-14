@@ -61,7 +61,7 @@ export function UsersSection() {
   const deleteMutation = useDeleteUser((user) => {
     toast(t('admin.users.deleted'))
     // The dialog closed and the refetch removes this row's delete button,
-    // dropping a keyboard user to <body> (GLG-1146). Move focus to the next
+    // dropping a keyboard user to <body>. Move focus to the next
     // user's delete button, else the previous one's, else the heading --
     // unless the user has already moved it elsewhere. The caller's row has
     // no delete button, so it is skipped.
@@ -86,7 +86,7 @@ export function UsersSection() {
   }
 
   // The phone list puts the delete button beside the email: at 375 px three
-  // buttons overflow one line and the last one wraps (GLG-1057).
+  // buttons overflow one line and the last one wraps.
   function actions(user: AdminUser, withDelete: boolean): ReactNode {
     return (
       <div className="flex flex-wrap items-center justify-end gap-1 whitespace-nowrap md:flex-nowrap">
@@ -128,7 +128,7 @@ export function UsersSection() {
         >
           {/* Both labels share one grid cell with the other one hidden, so
               the button is as wide as the longer label on every row and the
-              row's buttons line up across rows (GLG-1057). */}
+              row's buttons line up across rows. */}
           <span className="grid justify-items-center [&>*]:col-start-1 [&>*]:row-start-1">
             <span className={user.is_admin ? '' : 'invisible'}>{t('admin.users.removeAdmin')}</span>
             <span className={user.is_admin ? 'invisible' : ''}>{t('admin.users.makeAdmin')}</span>
@@ -261,7 +261,7 @@ export function UsersSection() {
         />
       )}
       {/* Stays mounted: removing an open <dialog> drops focus to <body>,
-          close() hands it back to the delete button (GLG-1207). */}
+          close() hands it back to the delete button. */}
       <ConfirmDialog
         open={deleting !== null}
         danger

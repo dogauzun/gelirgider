@@ -39,7 +39,7 @@ const paths = {
   chevronRight: <path d="M9.5 6l6 6-6 6" />,
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   minus: <path d="M6 12h12" />,
-  // The sidebar's glyphs (GLG-875): the small-screen menu button, all
+  // The sidebar's glyphs: the small-screen menu button, all
   // portfolios, administration.
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
   layers: <path d="M12 3 3 8l9 5 9-5-9-5zM3 13l9 5 9-5" />,

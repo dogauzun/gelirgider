@@ -8,7 +8,7 @@ import { getLocale } from '../i18n/strings'
 // in UTC keeps the calendar day the user actually entered.
 //
 // Building a DateTimeFormat costs far more than formatting with one, and the
-// transactions page formats several dates per row on every render (GLG-431),
+// transactions page formats several dates per row on every render,
 // so formatters are kept per locale and options. The locale is part of the
 // key, so a runtime locale switch still takes effect.
 const formatters = new Map<string, Intl.DateTimeFormat>()
@@ -31,8 +31,8 @@ const istanbulYear = new Intl.DateTimeFormat('en-CA', {
 
 // formatShortMarketDate renders a market date as day and short month ("12 Eyl")
 // when it falls in the current Europe/Istanbul year, and adds the year
-// otherwise ("01 Oca 1990"), so a years-old date never reads as recent
-// (GLG-430). A named month keeps it unambiguous across locales, where a
+// otherwise ("01 Oca 1990"), so a years-old date never reads as recent.
+// A named month keeps it unambiguous across locales, where a
 // numeric day-month pattern is dd/MM in tr and MM/dd in en.
 export function formatShortMarketDate(iso: string): string {
   const sameYear = iso.slice(0, 4) === istanbulYear.format(new Date())
@@ -44,7 +44,7 @@ export function formatShortMarketDate(iso: string): string {
 }
 
 // isStale reports whether a fetched price dated priceDate is too old for its
-// market on the Europe/Istanbul day `today` (GLG-557): more than 2 calendar
+// market on the Europe/Istanbul day `today`: more than 2 calendar
 // days for CRYPTO, which trades daily, and more than 7 for every other market.
 // No holiday calendar, so a long bayram can flag BIST briefly.
 export function isStale(market: string, priceDate: string | null, today: string): boolean {
@@ -74,7 +74,7 @@ const istanbulDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Istanbu
 
 // todayIstanbul is today's date as "YYYY-MM-DD" in Europe/Istanbul: the
 // market day, and so the date input default. The positions table calls it
-// once per row per render, so the formatter is built once (GLG-1170).
+// once per row per render, so the formatter is built once.
 export function todayIstanbul(): string {
   return istanbulDay.format(new Date())
 }

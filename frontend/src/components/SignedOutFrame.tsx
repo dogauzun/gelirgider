@@ -3,7 +3,7 @@ import { t } from '../i18n/strings'
 import { LanguageSwitch } from './LanguageSwitch'
 import { Mark } from './Mark'
 
-// The one title size of the signed-out pages' cards (GLG-970).
+// The one title size of the signed-out pages' cards.
 export const signedOutTitle = 'text-[22px] font-semibold text-ink'
 
 // The frame of the pages without the app shell: login, register, both setup

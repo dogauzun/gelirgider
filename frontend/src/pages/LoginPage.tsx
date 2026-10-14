@@ -12,7 +12,7 @@ export function LoginPage() {
   // RegisterPage passes an i18n key here when it could not log the user in.
   const notice = state?.notice
   // The deep link ProtectedRoute sent the visitor away from. It rides along to
-  // the register page and back so either way ends there (GLG-400).
+  // the register page and back so either way ends there.
   const from = state?.from
   const registrationClosed = useAuthConfig().data?.registration_open === false
 

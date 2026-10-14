@@ -9,14 +9,14 @@ export const alreadyImportedSkip = (): Pick<QueueItem, 'status' | 'reason'> => (
 
 // The queue of a batch from its upfront parses: the files still to review
 // first, by period then currency, then the ones the batch dropped, then the
-// ones the drop zone refused (GLG-577).
+// ones the drop zone refused.
 //
 // A file already imported into this portfolio and a second copy of a file
-// are skipped, each with its reason (GLG-765); a file imported into another
-// portfolio fails, naming it (GLG-1182). A statement is one broker, period
-// and currency, as at the commit (GLG-361). Two different files of one
+// are skipped, each with its reason; a file imported into another
+// portfolio fails, naming it. A statement is one broker, period
+// and currency, as at the commit. Two different files of one
 // statement, a corrected re-issue or a fuller re-download, both stay queued,
-// each naming the other, for the user to skip one at its turn (GLG-1183):
+// each naming the other, for the user to skip one at its turn:
 // the later one opens with the same_period warning once the first is in.
 export function queueFromParses(
   selected: File[],
@@ -78,7 +78,7 @@ export function queueFromParses(
 const maxNames = 200
 
 // The fund names the batch's statements of broker print, each with the
-// instrument of its code, for a preview to take as learned (GLG-1181): a
+// instrument of its code, for a preview to take as learned: a
 // fund renamed on TEFAS is named in an early statement only by its old name,
 // which a later statement prints next to the code. A name two statements
 // give two instruments is left out, as the server leaves one it learned so.

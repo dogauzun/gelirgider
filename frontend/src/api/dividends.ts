@@ -26,8 +26,8 @@ function fetchExpectedDividends(portfolioId: number): Promise<ExpectedDividend[]
   return apiFetch<ExpectedDividend[]>(`/api/portfolios/${portfolioId}/dividends/expected`)
 }
 
-// Expected dividends are per portfolio: the `all` scope makes no request
-// (GLG-540); Tüm portföyler asks each portfolio (GLG-935).
+// Expected dividends are per portfolio: the `all` scope makes no request;
+// Tüm portföyler asks each portfolio.
 export function useExpectedDividends(portfolioId: PortfolioScope) {
   return useQuery({
     queryKey: expectedDividendsQueryKey(portfolioId),

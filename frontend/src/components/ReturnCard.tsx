@@ -23,7 +23,7 @@ import { FitSelect, type SelectOption } from './ui/Select'
 import { Segmented } from './ui/Segmented'
 import { TAP_Y } from './ui/tap'
 
-// The chart's "% | ₺" switch (GLG-954), kept in localStorage as chartMode;
+// The chart's "% | ₺" switch, kept in localStorage as chartMode;
 // it is LineChart's unit.
 type ChartMode = 'percent' | 'money'
 const CHART_MODES: ChartMode[] = ['percent', 'money']
@@ -33,13 +33,13 @@ export type HistoryQuery = Pick<
   'data' | 'isError' | 'error' | 'refetch' | 'isFetching' | 'isPlaceholderData'
 >
 
-// The return card at the top of Özet (layout A, GLG-934): the return of the
+// The return card at the top of Özet (layout A): the return of the
 // chosen range by the chosen method, with the change in value (rangeDelta)
 // and the range in words; a pill with the benchmark's return and the
 // difference, coloured by the difference's sign; the benchmark and method
 // selects; the range picker; the chart and the range's notices.
 // `benchmarks` are the benchmark options other than none, already labelled.
-// The chart opens in percent (GLG-954): the portfolio's twr and the
+// The chart opens in percent: the portfolio's twr and the
 // benchmark's benchmark_twr from 0%, without the cost line, so a deposit does
 // not bend it. The line is time-weighted whatever the method, and with
 // another method its legend entry says so and why. "₺" is the value chart.
@@ -86,7 +86,7 @@ export function ReturnCard({
       ? `${from ? formatMarketDate(from) : '…'} – ${formatMarketDate(to)}`
       : range.key
 
-  // The previous range's chart stays up while a new one loads (GLG-771), but
+  // The previous range's chart stays up while a new one loads, but
   // its change and returns would read as the new range's, so they wait.
   const delta = history && !stale ? rangeDelta(history.points, history.net_flow) : null
   const pct = history && delta !== null ? history.returns[method] : null
@@ -95,7 +95,7 @@ export function ReturnCard({
   const historyBenchmark = history?.benchmark ?? null
   const benchmarkPct = historyBenchmark?.returns[method] ?? null
   // Values with a null return mean the method is undefined for the range
-  // (ADR 0011), not that the benchmark is missing (GLG-499).
+  // (ADR 0011), not that the benchmark is missing.
   const benchmarkHasValues = !!history?.points.some((p) => p.benchmark_value !== undefined)
   const benchmarkHasData = benchmarkPct !== null && benchmarkHasValues
   const excess =
@@ -106,20 +106,20 @@ export function ReturnCard({
     !!historyBenchmark?.estimated_from &&
     !!lastDate &&
     historyBenchmark.estimated_from <= lastDate
-  // A position reads as its symbol (GLG-702).
+  // A position reads as its symbol.
   const benchmarkLabel = historyBenchmark
     ? (benchmarks.find((b) => b.value === historyBenchmark.code)?.label ?? historyBenchmark.code)
     : undefined
   // Above inflation the difference is the real return, in the pill and the
-  // chart's tooltip alike (GLG-1050).
+  // chart's tooltip alike.
   const excessLabel = t(
     historyBenchmark?.code === 'TUFE' ? 'chart.benchmark.real' : 'chart.benchmark.excess',
   )
-  // A range of a year or more also shows the returns annualized (GLG-607),
+  // A range of a year or more also shows the returns annualized,
   // over the days between the first and last point. A range 364 to 366 days
   // apart is one year: a calendar year (2025-01-01..2025-12-31 is 364 days
   // apart, 2024 is 365) as well as the 1Y preset (365, or 366 over a leap
-  // day), so its annualized return is its period return (GLG-661, GLG-675).
+  // day), so its annualized return is its period return.
   const firstPoint = history?.points[0]?.date
   const gap = firstPoint && lastDate ? daysBetween(firstPoint, lastDate) : 0
   const days = gap <= 366 ? 365 : gap
@@ -159,7 +159,7 @@ export function ReturnCard({
     <section className="min-w-0 card">
       {/* From sm the heading and the selects share the first row and the
           figures have the card's whole width under them, so a long benchmark
-          pill stays on the figures' line in Turkish and English (GLG-934).
+          pill stays on the figures' line in Turkish and English.
           Below sm the selects come last and share one row. */}
       <div className="grid grid-cols-1 gap-x-3 gap-y-1 px-4 pt-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <h2 className="text-[11px] font-medium tracking-wide text-muted uppercase">
@@ -194,7 +194,7 @@ export function ReturnCard({
                 }
               >
                 {/* A method null for the range (ADR 0011) shows a
-                    placeholder rather than vanishing (GLG-410). */}
+                    placeholder rather than vanishing. */}
                 {pct !== null ? signedPercent(Number(pct)) : MISSING}
               </span>
               <span className={`text-[13px] font-medium tabular-nums ${plTone(delta)}`}>
@@ -279,7 +279,7 @@ export function ReturnCard({
           />
         </ChartFrame>
         {/* Non-empty means some points leave a currency out, which is what
-            makes the line jump on the day rates start (GLG-135). */}
+            makes the line jump on the day rates start. */}
         {(history?.missing_rates ?? []).length > 0 && (
           <div className="mt-3">
             <Notice>
@@ -292,7 +292,7 @@ export function ReturnCard({
         )}
         {/* Holdings with no price yet on some days count at cost there; the
             jump when the first price lands is kept out of the change via
-            net_flow (GLG-254). */}
+            net_flow. */}
         {(history?.missing_prices ?? []).length > 0 && (
           <div className="mt-3">
             <Notice>
