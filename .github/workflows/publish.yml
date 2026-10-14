@@ -1,13 +1,22 @@
 # Publishes the backend and frontend images to ghcr.io (ADR 0020): `latest`
-# and `sha-<7>` on a push to main, the tag name on a `v*` tag. Plain docker
-# commands in `run:` steps, because the Actions policy allows GitHub-owned
-# actions only. linux/amd64 only, no buildx.
+# and `sha-<7>` on a push to main; `vX.Y.Z` plus the floating major `vX` on a
+# `v*` tag push or when release.yml calls this workflow with `version` (a tag
+# created with GITHUB_TOKEN fires no push event, so the call is explicit). The
+# version, or `sha-<7>` on main, goes into the build as `--build-arg VERSION`.
+# Plain docker commands in `run:` steps, because the Actions policy allows
+# GitHub-owned actions only. linux/amd64 only, no buildx.
 name: publish
 
 on:
   push:
     branches: [main]
     tags: ['v*']
+  workflow_call:
+    inputs:
+      version:
+        description: Release tag to publish (vX.Y.Z)
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -27,18 +36,28 @@ jobs:
         image: [backend, frontend]
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.version || github.ref }}
       - run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: Build and push
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           name="ghcr.io/${GITHUB_REPOSITORY,,}-${{ matrix.image }}"
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            tags="$GITHUB_REF_NAME"
+          version="$INPUT_VERSION"
+          if [ -z "$version" ] && [ "$GITHUB_REF_TYPE" = tag ]; then
+            version="$GITHUB_REF_NAME"
+          fi
+          if [ -n "$version" ]; then
+            tags="$version ${version%%.*}"
           else
-            tags="latest sha-${GITHUB_SHA::7}"
+            version="sha-${GITHUB_SHA::7}"
+            tags="latest $version"
           fi
           args=()
           for t in $tags; do args+=(-t "$name:$t"); done
           docker build -f deploy/${{ matrix.image }}.Dockerfile \
+            --build-arg VERSION="$version" \
             --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
             --label org.opencontainers.image.revision=${{ github.sha }} \
             --label org.opencontainers.image.licenses=AGPL-3.0-only \
