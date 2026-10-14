@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -86,8 +85,7 @@ func (h *setupHandler) status(w http.ResponseWriter, r *http.Request) {
 //	@Router		/setup/admin [post]
 func (h *setupHandler) createAdmin(w http.ResponseWriter, r *http.Request) {
 	var req setupRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !DecodeJSON(w, r, &req) {
 		return
 	}
 

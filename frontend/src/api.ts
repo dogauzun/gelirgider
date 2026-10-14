@@ -31,7 +31,6 @@ const messageKeys: Record<string, StringKey> = {
   'source has no backfill': 'error.sourceHasNoBackfill',
   'backfill_from: must not be in the future': 'error.backfillFromFuture',
   'backfill_from: must be on or after 1990-01-01': 'transactions.error.dateTooEarly',
-  'invalid JSON body': 'error.invalidRequestBody',
   'too many requests': 'error.tooManyRequests',
   'current password is incorrect': 'error.currentPasswordIncorrect',
   'portfolio not found': 'error.portfolioNotFound',

@@ -46,3 +46,34 @@ func TestWriteInternalErrorClientCancel(t *testing.T) {
 		t.Errorf("live request not logged at ERROR: %q", logs.String())
 	}
 }
+
+func TestDecodeJSON(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+		ok   bool
+	}{
+		{"valid", `{"name":"x"}`, true},
+		{"malformed", `{"name":`, false},
+		{"empty", ``, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tc.body))
+			rec := httptest.NewRecorder()
+			var v struct{ Name string }
+			if got := DecodeJSON(rec, r, &v); got != tc.ok {
+				t.Fatalf("DecodeJSON = %v, want %v", got, tc.ok)
+			}
+			if tc.ok {
+				if v.Name != "x" || rec.Code != http.StatusOK {
+					t.Fatalf("v = %+v, code = %d", v, rec.Code)
+				}
+				return
+			}
+			if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), `"invalid request body"`) {
+				t.Fatalf("code = %d, body = %s", rec.Code, rec.Body)
+			}
+		})
+	}
+}

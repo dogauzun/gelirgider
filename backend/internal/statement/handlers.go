@@ -2603,8 +2603,7 @@ func (h *handler) lookupFundRoute(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Code string `json:"code"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !auth.DecodeJSON(w, r, &req) {
 		return
 	}
 	code := strings.ToUpper(strings.TrimSpace(req.Code))

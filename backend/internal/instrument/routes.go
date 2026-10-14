@@ -1,7 +1,6 @@
 package instrument
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -139,8 +138,7 @@ func seededPair(market, currency string) bool {
 //	@Router		/admin/instruments [post]
 func (h *handler) add(w http.ResponseWriter, r *http.Request) {
 	var req addRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !auth.DecodeJSON(w, r, &req) {
 		return
 	}
 	if !seededPair(req.Market, req.Currency) {

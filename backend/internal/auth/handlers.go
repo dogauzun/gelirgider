@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/mail"
@@ -137,8 +136,7 @@ func (h *handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var creds credentials
-	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !DecodeJSON(w, r, &creds) {
 		return
 	}
 	email, locale, msg := validateRegistration(creds)
@@ -225,8 +223,7 @@ func (h *handler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var creds credentials
-	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !DecodeJSON(w, r, &creds) {
 		return
 	}
 	// Not run through validateEmail on purpose: addresses that were accepted
@@ -323,8 +320,7 @@ func (h *handler) updateReportingCurrency(w http.ResponseWriter, r *http.Request
 	userID := MustUserID(r.Context())
 
 	var req reportingCurrencyRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !DecodeJSON(w, r, &req) {
 		return
 	}
 	if !currency.IsValid(req.ReportingCurrency) {
@@ -370,8 +366,7 @@ func (h *handler) changePassword(w http.ResponseWriter, r *http.Request) {
 	userID := MustUserID(r.Context())
 
 	var req changePasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !DecodeJSON(w, r, &req) {
 		return
 	}
 	if msg := validatePassword(req.NewPassword); msg != "" {
