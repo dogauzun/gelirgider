@@ -29,18 +29,48 @@ jobs:
           - { target: build-frontend, name: Web build }
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The PR merge commit plus its first parent (the base branch tip).
+          fetch-depth: 2
+      # On a pull request, Go tests runs only for backend changes and the web
+      # checks only for frontend changes; Makefile and workflow changes run
+      # everything, and lint and pushes to main always run. Skipping steps
+      # instead of using on.pull_request.paths keeps the required check
+      # reporting green when there is nothing to check.
+      - id: scope
+        name: Decide whether this check has work
+        env:
+          EVENT: ${{ github.event_name }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          case "$TARGET" in
+            test-backend) dir=backend ;;
+            test-frontend | build-frontend) dir=frontend ;;
+            *) dir= ;;
+          esac
+          run=true
+          if [ "$EVENT" = pull_request ] && [ -n "$dir" ]; then
+            # A variable, not a pipe: grep -q under pipefail can fail on SIGPIPE.
+            changed=$(git diff --name-only HEAD^1 HEAD)
+            if ! grep -qE "^($dir/|Makefile$|\.github/workflows/)" <<<"$changed"; then
+              run=false
+              echo "no $dir/, Makefile or workflow changes, skipping make $TARGET"
+            fi
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-go@v7
-        if: matrix.target == 'lint' || matrix.target == 'test-backend'
+        if: steps.scope.outputs.run == 'true' && (matrix.target == 'lint' || matrix.target == 'test-backend')
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
       - uses: actions/setup-node@v7
-        if: matrix.target != 'test-backend'
+        if: steps.scope.outputs.run == 'true' && matrix.target != 'test-backend'
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-        if: matrix.target != 'test-backend'
+        if: steps.scope.outputs.run == 'true' && matrix.target != 'test-backend'
         working-directory: frontend
       - run: make ${{ matrix.target }}
+        if: steps.scope.outputs.run == 'true'
