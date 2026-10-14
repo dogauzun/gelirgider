@@ -50,7 +50,9 @@ setup: ## Install frontend dependencies, cloning the main checkout's node_module
 # side. A never-pushed branch with commits and a detached HEAD stay, and so do
 # the worktree it runs in, a branch exactly at origin/main and a branch whose
 # reflog holds only its creation (both mean just cut: such a branch turns into
-# an ancestor of origin/main as soon as any other PR merges). DRY=1 changes
+# an ancestor of origin/main as soon as any other PR merges). A worktree that
+# still holds ignored data files (*.db, .env, *.pdf, deploy/data/) stays too,
+# since git worktree remove deletes them. DRY=1 changes
 # nothing: it skips the removals and the remote prune. It never runs
 # git worktree prune: a worktree whose directory is missing is the user's to
 # repair or prune.
@@ -68,6 +70,7 @@ prune-worktrees: ## Remove finished worktrees and their local branches (DRY=1 on
 		if [ "$$l" = 1 ]; then echo "kept    $$p: locked"; continue; fi; \
 		if [ "$$b" = - ]; then echo "kept    $$p: detached HEAD"; continue; fi; \
 		if [ -n "$$(git -C "$$p" status --porcelain 2>&1)" ]; then echo "kept    $$p ($$b): uncommitted changes"; continue; fi; \
+		if [ -n "$$(git -C "$$p" ls-files --others --ignored --exclude-standard -- '*.db' '*.db-*' '.env' '.env.*' '*.pdf' 'deploy/data/')" ]; then echo "kept    $$p ($$b): ignored data files present"; continue; fi; \
 		tip=$$(git rev-parse "refs/heads/$$b") && why=""; \
 		if [ "$$tip" = "$$(git rev-parse origin/main)" ]; then echo "kept    $$p ($$b): at origin/main, may be just cut"; continue; \
 		elif [ "$$(git reflog show --format=%gs "refs/heads/$$b" | wc -l | tr -d ' ')" = 1 ]; then echo "kept    $$p ($$b): no commits yet, may be just cut"; continue; \
