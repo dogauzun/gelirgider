@@ -1,0 +1,71 @@
+# Cuts a release on demand (ADR 0020): picks the next version from the squash
+# titles since the last `v*` tag, creates the tag and the GitHub Release with
+# generated notes, then calls publish.yml to push the images at that version.
+# The explicit call is needed because a tag created with GITHUB_TOKEN fires no
+# push event. The first release is v1.0.0 whatever `bump` says.
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version part to bump (auto reads the squash titles)
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: release
+        name: Pick the version and create the release
+        env:
+          BUMP: ${{ inputs.bump }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          last=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          if [ -z "$last" ]; then
+            next=v1.0.0
+          else
+            subjects=$(git log "$last"..HEAD --format=%s)
+            if [ -z "$subjects" ] && [ "$BUMP" = auto ]; then
+              echo "nothing to release since $last"
+              exit 0
+            fi
+            if [ "$BUMP" = auto ]; then
+              if grep -q '^feat:' <<< "$subjects"; then BUMP=minor; else BUMP=patch; fi
+            fi
+            IFS=. read -r major minor patch <<< "${last#v}"
+            case "$BUMP" in
+              major) next="v$((major + 1)).0.0" ;;
+              minor) next="v$major.$((minor + 1)).0" ;;
+              patch) next="v$major.$minor.$((patch + 1))" ;;
+            esac
+          fi
+          gh release create "$next" --target "$GITHUB_SHA" --title "$next" --generate-notes
+          echo "version=$next" >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: release
+    if: needs.release.outputs.version != ''
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish.yml
+    with:
+      version: ${{ needs.release.outputs.version }}
+    secrets: inherit
