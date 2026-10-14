@@ -3,7 +3,7 @@
 Status: accepted (GLG-762, 2026-10-02); amended 2026-10-05 (GLG-974, the
 merger's hygiene step checks tests and swag annotations); amended 2026-10-14
 (GLG-1373, the required GitHub Actions checks replace the merger's local
-check run)
+check run); amended 2026-10-14 (GLG-1385, the checks are renamed)
 
 ## Context
 
@@ -89,6 +89,8 @@ The merger no longer reads the whole diff. It:
 > leaves to the merger.
 
 > Superseded 2026-10-14 (GLG-1373): step 1 is reading the required GitHub Actions checks (`lint`, `test-backend`, `test-frontend`, `build-frontend`, `pr-title`) on the PR head, see [ADR 0015](0015-pr-review-routine.md); the merger no longer runs them locally, and the reviewer is spawned once they are green.
+
+> Amended 2026-10-14 (GLG-1385): the checks are now named `Lint (Go + web)`, `Go tests`, `Web tests` and `Web build` (workflow `ci`) and `Title` (workflow `pr`); the Make targets keep their names.
 
 ### Merge gate
 

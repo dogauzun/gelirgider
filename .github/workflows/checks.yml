@@ -1,6 +1,6 @@
 # The check set of docs/PRINCIPLES.md #6. The Makefile says what each check
 # runs; this file only installs the toolchains and calls the target.
-name: checks
+name: ci
 
 on:
   pull_request:
@@ -16,12 +16,17 @@ concurrency:
 
 jobs:
   checks:
-    name: ${{ matrix.target }}
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        target: [lint, test-backend, test-frontend, build-frontend]
+        # target is the Make target; name is the check name GitHub shows.
+        include:
+          - { target: lint, name: Lint (Go + web) }
+          - { target: test-backend, name: Go tests }
+          - { target: test-frontend, name: Web tests }
+          - { target: build-frontend, name: Web build }
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7

@@ -1,4 +1,4 @@
-name: pr-title
+name: pr
 
 on:
   pull_request:
@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   pr-title:
+    name: Title
     if: github.event.pull_request.user.type != 'Bot'
     runs-on: ubuntu-latest
     steps:
