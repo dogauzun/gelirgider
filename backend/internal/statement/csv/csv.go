@@ -156,9 +156,9 @@ func parseRow(st *statement.Statement, col map[string]int, row []string, currenc
 		if err != nil {
 			if err == errAmbiguous {
 				st.Errors = append(st.Errors, statement.ParseError{Section: "CSV", Row: row, Code: "ambiguous_number", Value: f, Message: "ambiguous thousands separator", Date: date})
-			} else {
-				st.BadNumber("CSV", row, f, date)
+				return
 			}
+			st.BadNumber("CSV", row, f, date)
 			return
 		}
 		nums[f] = n
