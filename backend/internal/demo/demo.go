@@ -38,24 +38,25 @@ const (
 var ErrNotEmpty = errors.New("database is not empty: -demo only fills a database with no users")
 
 // walk is one random-walk series: an instrument's daily close, or, with an
-// empty market, the TRY rate of currency symbol. Each day multiplies the
-// value by exp(drift + vol × N(0,1)).
+// empty market, the TRY rate of currency symbol. It starts at start and
+// ends at start × growth; each day in between moves by vol × N(0,1) in log
+// terms.
 type walk struct {
-	market, symbol    string
-	start, drift, vol float64
-	places            int32
+	market, symbol     string
+	start, growth, vol float64
+	places             int32
 }
 
 var walks = []walk{
-	{"BIST", "THYAO", 280, 0.0008, 0.022, 2},
-	{"BIST", "ASELS", 60, 0.0010, 0.025, 2},
-	{"BIST", "TUPRS", 160, 0.0006, 0.020, 2},
-	{"US", "AAPL", 190, 0.0004, 0.016, 2},
-	{"TEFAS", "TTE", 2.5, 0.0009, 0.012, 6},
-	{"CRYPTO", "BTC-TRY", 2_000_000, 0.0012, 0.030, 2},
-	{"GOLD", "GRAM", 2400, 0.0010, 0.010, 2},
-	{"", "USD", 32, 0.0004, 0.004, 4},
-	{"", "EUR", 35, 0.0005, 0.005, 4},
+	{"BIST", "THYAO", 280, 1.9, 0.022, 2},
+	{"BIST", "ASELS", 60, 1.7, 0.025, 2},
+	{"BIST", "TUPRS", 160, 1.5, 0.020, 2},
+	{"US", "AAPL", 190, 1.3, 0.016, 2},
+	{"TEFAS", "TTE", 2.5, 1.6, 0.012, 6},
+	{"CRYPTO", "BTC-TRY", 2_000_000, 2.0, 0.030, 2},
+	{"GOLD", "GRAM", 2400, 1.6, 0.010, 2},
+	{"", "USD", 27, 41.0 / 27, 0.004, 4},
+	{"", "EUR", 29, 46.0 / 29, 0.005, 4},
 }
 
 // step is one demo transaction, day days after the first day. n is the
@@ -172,14 +173,19 @@ func writePrices(ctx context.Context, conn *sql.DB, dates []string) (map[string]
 	return instruments, closes, nil
 }
 
-// series returns n daily values of w drawn from r, each rounded once to
-// w.places.
+// series returns n (at least 2) daily values of w drawn from r, each
+// rounded once to w.places. The log path is a random walk tilted into a
+// Brownian bridge, so it ends at start × growth whatever the draws.
 func (w walk) series(r *rand.Rand, n int) []decimal.Decimal {
+	logs := make([]float64, n)
+	for i := 1; i < n; i++ {
+		logs[i] = logs[i-1] + w.vol*r.NormFloat64()
+	}
+	tilt := math.Log(w.growth) - logs[n-1]
 	out := make([]decimal.Decimal, n)
-	v := w.start
 	for i := range out {
+		v := w.start * math.Exp(logs[i]+tilt*float64(i)/float64(n-1))
 		out[i] = decimal.NewFromFloat(v).Round(w.places)
-		v *= math.Exp(w.drift + w.vol*r.NormFloat64())
 	}
 	return out
 }
