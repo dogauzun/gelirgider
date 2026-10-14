@@ -88,7 +88,7 @@ The merger no longer reads the whole diff. It:
 > the missing tests and documentation that `.claude/agents/pr-reviewer.md`
 > leaves to the merger.
 
-> Superseded 2026-10-14 (GLG-1373): step 1 is reading the required GitHub Actions checks (`lint`, `test`, `build-frontend`, `pr-title`) on the PR head, see [ADR 0015](0015-pr-review-routine.md); the merger no longer runs them locally, and the reviewer is spawned once they are green.
+> Superseded 2026-10-14 (GLG-1373): step 1 is reading the required GitHub Actions checks (`lint`, `test-backend`, `test-frontend`, `build-frontend`, `pr-title`) on the PR head, see [ADR 0015](0015-pr-review-routine.md); the merger no longer runs them locally, and the reviewer is spawned once they are green.
 
 ### Merge gate
 

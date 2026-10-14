@@ -1416,11 +1416,12 @@ starts again at 1 here.
 
 GitHub Actions runs `make lint`, `make test` and `make build-frontend` on every
 pull request and on `main` (GLG-1372, #4) and checks pull request titles
-(GLG-1374, #3). The four checks are required on `main` and, green on the PR
-head, are the merge bar in place of the merger's local run (GLG-1373, #7).
+(GLG-1374, #3); the `test` job then splits into `test-backend` and
+`test-frontend` (GLG-1379, #9). The five checks are required on `main` and,
+green on the PR head, are the merge bar in place of the merger's local run (GLG-1373, #7).
 The owner set the repository up the same day: Actions allows GitHub-owned
 actions only (`actions/*`, `github/*`); CodeQL default setup runs, and the
 three alerts it raised were cleared by GLG-1377 (#6); Dependabot alerts and
 security updates, secret scanning with push protection and private
-vulnerability reporting are on; `main` requires `lint`, `test`,
-`build-frontend` and `pr-title` with branches up to date.
+vulnerability reporting are on; `main` requires `lint`, `test-backend`,
+`test-frontend`, `build-frontend` and `pr-title` with branches up to date.

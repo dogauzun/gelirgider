@@ -30,7 +30,7 @@ it has to work without Actions.
 are deleted and `.github/` with them. Nothing runs on GitHub. Backend and
 frontend checks stay local, run by whoever merges, as CLAUDE.md says.
 
-> Superseded 2026-10-14 (GLG-1373): the repository is public since 2026-10-14 and `.github/workflows/checks.yml` runs `make lint`, `make test` and `make build-frontend` on every pull request and on `main` (GLG-1372), with `.github/workflows/pr-title.yml` checking the PR title (GLG-1374). The no-Actions decision no longer stands: the four checks are required on `main`, and green on the PR head they are the merge bar in place of the merger's local run (GLG-1373).
+> Superseded 2026-10-14 (GLG-1373): the repository is public since 2026-10-14 and `.github/workflows/checks.yml` runs `make lint`, `make test-backend`, `make test-frontend` and `make build-frontend` on every pull request and on `main` (GLG-1372, GLG-1379), with `.github/workflows/pr-title.yml` checking the PR title (GLG-1374). The no-Actions decision no longer stands: the five checks are required on `main`, and green on the PR head they are the merge bar in place of the merger's local run (GLG-1373).
 
 ### `pr review` cloud routine
 
