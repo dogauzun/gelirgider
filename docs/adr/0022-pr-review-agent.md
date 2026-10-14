@@ -111,6 +111,20 @@ The merger does not read the whole diff. It:
    new GLG ticket for a real but out-of-scope problem (CLAUDE.md rule 4);
 6. resolves every thread once it is fixed or answered.
 
+The merge comment on the PR and the comment on the Jira `Done` transition each
+carry one line, so a ticket's cost can be found by a text search for `Cost:`:
+
+    Cost: implementer 412k tokens, reviewer 188k tokens in 2 runs, 1 review round with findings
+
+The figures are the usage the Agent tool result reports for each subagent the
+merger spawned, summed per role over every run for that PR (an implementer
+respawned after findings, a fresh reviewer after a push). A round is defined
+below; the line also gives the number of reviewer runs. When the reviewer was
+skipped, the reviewer part reads `reviewer skipped (exempt paths)`. A figure
+the merger does not have (a ticket taken over after stale recovery, so the
+earlier session's usage is gone) is written `unknown`, never left out. The
+merger's own tokens are not in the line; it counts tokens only, no prices.
+
 ### Merge gate
 
 A PR merges when all of these hold (CLAUDE.md rules 6 and 7):
