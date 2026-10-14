@@ -16,11 +16,13 @@ docker build -f deploy/backend.Dockerfile -t gelirgider-backend .
 docker build -f deploy/frontend.Dockerfile -t gelirgider-frontend .
 ```
 
-This is a standalone image build, not a step of the compose run below.
-`deploy/compose.yml` builds its own images from the same Dockerfiles
-(`build:`, no `image:`), so it never uses the `gelirgider-backend` and
-`gelirgider-frontend` tags. Use `make build` to check that the images build
-or to get tagged images for another runtime.
+This is a standalone image build, not a step of the compose run below, and
+compose never uses the `gelirgider-backend` and `gelirgider-frontend` tags.
+`deploy/compose.yml` pulls the published images below by default (`image:`,
+at the tag `IMAGE_TAG` in `deploy/.env` names, `latest` when unset) and
+builds from the same Dockerfiles (`build:`) only with `--build` or when the
+pull fails. Use `make build` to check that the images build or to get
+tagged images for another runtime.
 
 ## Published images
 
@@ -31,9 +33,9 @@ the GitHub Container Registry:
 - `ghcr.io/dogauzun/gelirgider-frontend`
 
 A push to `main` publishes `latest` and `sha-<first 7 of the commit sha>`; a
-`v*` tag publishes the tag name, for example `v1.2.0`. A host that wants to
-build itself still runs `make build`, which tags the local images
-`gelirgider-backend` and `gelirgider-frontend`.
+`v*` tag publishes the tag name, for example `v1.2.0`. Compose pulls `latest`
+unless `IMAGE_TAG` in `deploy/.env` pins another tag (`deploy/RUNBOOK.md`,
+Rollback).
 
 ## Run locally (production-like)
 
@@ -61,6 +63,10 @@ Then start the stack:
 docker compose -f deploy/compose.yml up --build
 ```
 
+`--build` builds both images from this checkout and tags them with the
+published names, so they stand in for the pulled ones until the next
+`docker compose -f deploy/compose.yml pull`. Without it, compose runs the
+images it already has and pulls the published ones when it has none.
 Compose refuses to start without `SECRET_KEY`. On first start the backend
 logs a `setup_token`; open https://localhost/setup and enter it to create the
 admin (`deploy/RUNBOOK.md`, First deploy).
