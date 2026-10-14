@@ -10,8 +10,8 @@
 // Ekstresi") switches the section.
 //
 // Parsing is partial by design (ADR 0006): a record that cannot be read
-// becomes a statement.ParseError. Its Value only ever carries a ledger
-// description, a date or a number cell, never the repeated customer cells;
+// becomes a statement.ParseError. Its Value only ever carries a field key,
+// a ledger description or a date cell, never the repeated customer cells;
 // an IPO refund's description starts with the customer's name, so it is
 // replaced by a fixed one.
 // The only returned error is "not a garanti_yatirim statement".
@@ -212,7 +212,7 @@ func (p *parser) statusCell(i int) int {
 		return 2
 	case c == "Cari Bakiye" && p.at(i+1) == "Mevcudu" && p.at(i+2) == "Rezervi (T + 1)" && f.number.MatchString(p.at(i+3)):
 		if n, err := parseNumber(p.at(i+3), f); err != nil {
-			p.st.Errors = append(p.st.Errors, statement.ParseError{Section: holdingsSection, Row: p.cells[i : i+4], Code: "bad_number", Value: p.at(i + 3), Message: "unreadable cash balance"})
+			p.st.BadNumber(holdingsSection, p.cells[i:i+4], "amount", "")
 		} else if p.st.CashBalance == nil {
 			p.st.CashBalance = &n
 		}
@@ -296,7 +296,7 @@ func parseHolding(st *statement.Statement, rec []string, f numberFormat) {
 	q := rec[len(rec)-3]
 	quantity, err := parseNumber(q, f)
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: holdingsSection, Row: rec, Code: "bad_number", Value: q, Message: "unreadable quantity"})
+		st.BadNumber(holdingsSection, rec, "quantity", "")
 		return
 	}
 	hold := statement.Holding{Symbol: rec[1], Quantity: quantity, Currency: "TRY"}
@@ -410,7 +410,7 @@ func parseMove(st *statement.Statement, rec []string, f numberFormat, requests m
 	}
 	date, err := parseDate(rec[n-4])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: tradesSection, Row: rec, Code: "bad_date", Value: rec[n-4], Message: "unreadable date"})
+		st.BadDate(tradesSection, rec)
 		return
 	}
 	if kind == "HS-Virman Çıkış" {
@@ -426,11 +426,11 @@ func parseMove(st *statement.Statement, rec []string, f numberFormat, requests m
 	}
 	quantity, err := parseNumber(rec[n-3], f)
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: tradesSection, Row: rec, Code: "bad_number", Value: rec[n-3], Message: "unreadable quantity", Date: date})
+		st.BadNumber(tradesSection, rec, "quantity", date)
 		return
 	}
 	if !quantity.IsPositive() {
-		st.Errors = append(st.Errors, statement.ParseError{Section: tradesSection, Row: rec, Code: "bad_number", Value: rec[n-3], Message: "quantity is not positive", Date: date})
+		st.Errors = append(st.Errors, statement.ParseError{Section: tradesSection, Row: rec, Code: "bad_number", Value: "quantity", Message: "quantity is not positive", Date: date})
 		return
 	}
 	if r, ok := requests[rec[0]]; ok && kind == "HS-Virman Giriş" {
@@ -439,7 +439,7 @@ func parseMove(st *statement.Statement, rec []string, f numberFormat, requests m
 			price = r.paid.DivRound(r.requested, 9)
 		}
 		if !price.IsPositive() || quantity.Mul(price).Sub(paid).Abs().GreaterThan(cent) {
-			st.Errors = append(st.Errors, statement.ParseError{Section: tradesSection, Row: rec, Code: "bad_number", Value: rec[n-3], Message: "IPO allotment does not match the ledger's payment and refund", Date: date})
+			st.Errors = append(st.Errors, statement.ParseError{Section: tradesSection, Row: rec, Code: "bad_number", Value: "quantity", Message: "IPO allotment does not match the ledger's payment and refund", Date: date})
 			return
 		}
 		st.Trades = append(st.Trades, statement.Trade{
@@ -451,7 +451,7 @@ func parseMove(st *statement.Statement, rec []string, f numberFormat, requests m
 	price := decimal.Zero
 	if kind == "HS-Virman Giriş" {
 		if price, err = parseNumber(rec[n-1], f); err != nil {
-			st.Errors = append(st.Errors, statement.ParseError{Section: tradesSection, Row: rec, Code: "bad_number", Value: rec[n-1], Message: "unreadable price", Date: date})
+			st.BadNumber(tradesSection, rec, "price", date)
 			return
 		}
 		if !price.IsPositive() {
@@ -496,12 +496,12 @@ func parseLedger(st *statement.Statement, ledger [][]string, f numberFormat) {
 		}
 		valueDate, err := parseDate(dateCell)
 		if err != nil {
-			st.Errors = append(st.Errors, statement.ParseError{Section: ledgerSection, Row: rec, Code: "bad_date", Value: dateCell, Message: "unreadable date"})
+			st.BadDate(ledgerSection, rec)
 			continue
 		}
 		amount, err := parseNumber(amountCell, f)
 		if err != nil {
-			st.Errors = append(st.Errors, statement.ParseError{Section: ledgerSection, Row: rec, Code: "bad_number", Value: amountCell, Message: "unreadable amount", Date: valueDate})
+			st.BadNumber(ledgerSection, rec, "amount", valueDate)
 			continue
 		}
 		div := dividendRow.FindStringSubmatch(desc)
@@ -522,7 +522,7 @@ func parseLedger(st *statement.Statement, ledger [][]string, f numberFormat) {
 		case fraction != nil && amount.IsPositive():
 			quantity, err := parseNumber(fraction[1], usFormat)
 			if err != nil || !quantity.IsPositive() {
-				st.Errors = append(st.Errors, statement.ParseError{Section: ledgerSection, Row: rec, Code: "bad_number", Value: fraction[1], Message: "unreadable quantity", Date: valueDate})
+				st.BadNumber(ledgerSection, rec, "quantity", valueDate)
 				continue
 			}
 			// The amount is booked as printed; the price is rounded to the
@@ -579,17 +579,17 @@ func parseLedger(st *statement.Statement, ledger [][]string, f numberFormat) {
 func parseTradeRow(st *statement.Statement, rec, m []string, amount decimal.Decimal, valueDate string) (trade, bool) {
 	price, err := parseNumber(m[3], usFormat)
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: ledgerSection, Row: rec, Code: "bad_number", Value: m[3], Message: "unreadable price", Date: valueDate})
+		st.BadNumber(ledgerSection, rec, "price", valueDate)
 		return trade{}, false
 	}
 	quantity, err := parseNumber(m[4], usFormat)
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: ledgerSection, Row: rec, Code: "bad_number", Value: m[4], Message: "unreadable quantity", Date: valueDate})
+		st.BadNumber(ledgerSection, rec, "quantity", valueDate)
 		return trade{}, false
 	}
 	// An amount that is not price x quantity was misread; never book it.
 	if amount.Abs().Sub(price.Mul(quantity)).Abs().GreaterThan(cent) {
-		st.Errors = append(st.Errors, statement.ParseError{Section: ledgerSection, Row: rec, Code: "bad_number", Value: rec[2], Message: "amount is not price x quantity", Date: valueDate})
+		st.Errors = append(st.Errors, statement.ParseError{Section: ledgerSection, Row: rec, Code: "bad_number", Value: "amount", Message: "amount is not price x quantity", Date: valueDate})
 		return trade{}, false
 	}
 	date := valueDate

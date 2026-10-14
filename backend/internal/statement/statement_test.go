@@ -1,6 +1,9 @@
 package statement
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestGrouped(t *testing.T) {
 	for _, c := range []struct {
@@ -96,5 +99,21 @@ func TestMaskIdentifiers(t *testing.T) {
 		if got := MaskIdentifiers(c.in); got != c.want {
 			t.Errorf("MaskIdentifiers(%q) = %q, want %q", c.in, got, c.want)
 		}
+	}
+}
+
+func TestParseErrorConstructors(t *testing.T) {
+	row := []string{"a", "b"}
+	var st Statement
+	st.BadNumber("sec", row, "price", "2025-01-02")
+	st.BadDate("sec", row)
+	st.CellCount("sec", row, 5)
+	want := []ParseError{
+		{Section: "sec", Row: row, Code: "bad_number", Value: "price", Message: "unreadable price", Date: "2025-01-02"},
+		{Section: "sec", Row: row, Code: "bad_date", Message: "unreadable date"},
+		{Section: "sec", Row: row, Code: "cell_count", Value: "5", Message: "expected 5 cells"},
+	}
+	if !reflect.DeepEqual(st.Errors, want) {
+		t.Errorf("errors = %+v, want %+v", st.Errors, want)
 	}
 }

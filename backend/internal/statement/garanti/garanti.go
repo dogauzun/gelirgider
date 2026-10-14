@@ -191,7 +191,7 @@ func parseBalance(st *statement.Statement, cells []string, i int, names []string
 	}
 	units, err := parseNumber(cells[i+2])
 	if err != nil {
-		st.Errors = append(st.Errors, statement.ParseError{Section: holdingsSection, Row: rec, Code: "bad_number", Value: "quantity", Message: "unreadable quantity"})
+		st.BadNumber(holdingsSection, rec, "quantity", "")
 		return j
 	}
 	// The Fiyat column; an unreadable one only costs the opening position
@@ -261,7 +261,7 @@ func parseMovement(st *statement.Statement, rec, lead, nums []string) (movement,
 		return movement{}, false
 	}
 	if date == "" || date < st.PeriodStart || date > st.PeriodEnd {
-		st.Errors = append(st.Errors, statement.ParseError{Section: movementsSection, Row: rec, Code: "bad_date", Value: rec[0], Message: "date outside the statement period"})
+		st.Errors = append(st.Errors, statement.ParseError{Section: movementsSection, Row: rec, Code: "bad_date", Message: "date outside the statement period"})
 		return movement{}, false
 	}
 	// A negative stopaj is a withholding refund, one cell "-   9,87" that
@@ -275,7 +275,7 @@ func parseMovement(st *statement.Statement, rec, lead, nums []string) (movement,
 	for x, field := range []string{"quantity", "price", "fee", "amount"} {
 		v, err := parseNumber(f[x])
 		if err != nil {
-			st.Errors = append(st.Errors, statement.ParseError{Section: movementsSection, Row: rec, Code: "bad_number", Value: field, Message: "unreadable " + field, Date: date})
+			st.BadNumber(movementsSection, rec, field, date)
 			return movement{}, false
 		}
 		n[x] = v

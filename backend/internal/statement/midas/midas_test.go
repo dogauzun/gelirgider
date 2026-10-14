@@ -306,7 +306,7 @@ func TestParsePartialRows(t *testing.T) {
 	if len(st.Errors) != 1 {
 		t.Fatalf("errors = %+v, want one", st.Errors)
 	}
-	if e := st.Errors[0]; e.Date != "2026-04-07" || e.Code != "unreadable_quantity" || e.Message != "unreadable quantity" || e.Section != "YATIRIM İŞLEMLERİ" {
+	if e := st.Errors[0]; e.Date != "2026-04-07" || e.Code != "bad_number" || e.Message != "unreadable quantity" || e.Section != "YATIRIM İŞLEMLERİ" {
 		t.Errorf("error[0] = %+v", e)
 	}
 }
@@ -322,9 +322,9 @@ func TestParseExponentIsUnreadable(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Parse: %v", err)
 		}
-		if len(st.Trades) != 0 || len(st.Errors) != 1 || st.Errors[0].Code != "unreadable_quantity" {
+		if len(st.Trades) != 0 || len(st.Errors) != 1 || st.Errors[0].Code != "bad_number" {
 			// Counts only: printing the trade would materialize the exponent.
-			t.Errorf("%q: %d trades, %d errors, want one unreadable_quantity error", cell, len(st.Trades), len(st.Errors))
+			t.Errorf("%q: %d trades, %d errors, want one bad_number error", cell, len(st.Trades), len(st.Errors))
 		}
 	}
 }
@@ -365,7 +365,7 @@ func TestParseUnknownCashType(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
-	if len(st.Errors) != 1 || st.Errors[0].Code != "unknown_cash_type" || st.Errors[0].Value != "Bilinmeyen İşlem" || st.Errors[0].Date != "2026-04-02" {
+	if len(st.Errors) != 1 || st.Errors[0].Code != "unknown_type" || st.Errors[0].Value != "Bilinmeyen İşlem" || st.Errors[0].Date != "2026-04-02" {
 		t.Fatalf("errors = %+v", st.Errors)
 	}
 }
@@ -467,8 +467,8 @@ func TestParseMalformedThousandsIsUnreadable(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Parse: %v", err)
 		}
-		if len(st.Cash) != 0 || len(st.Errors) != 1 || st.Errors[0].Code != "unreadable_amount" {
-			t.Errorf("%q: cash = %+v, errors = %+v, want one unreadable_amount error", cell, st.Cash, st.Errors)
+		if len(st.Cash) != 0 || len(st.Errors) != 1 || st.Errors[0].Code != "bad_number" {
+			t.Errorf("%q: cash = %+v, errors = %+v, want one bad_number error", cell, st.Cash, st.Errors)
 		}
 	}
 }
