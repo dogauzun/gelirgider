@@ -1418,13 +1418,63 @@ GitHub Actions runs `make lint`, `make test` and `make build-frontend` on every
 pull request and on `main` (GLG-1372, #4) and checks pull request titles
 (GLG-1374, #3); the `test` job then splits into `test-backend` and
 `test-frontend` (GLG-1379, #9). The five checks are required on `main` and,
-green on the PR head, are the merge bar in place of the merger's local run (GLG-1373, #7).
+green on the PR head, are the merge bar in place of the merger's local run
+(GLG-1373, #7). GLG-1385 (#17) then renamed them so the pull request checks
+list reads at a glance: workflow `ci` has `Lint (Go + web)`, `Go tests`,
+`Web tests` and `Web build`, workflow `pr` has `Title`; the Make targets keep
+their names. GLG-1387 (#19) scopes them on a pull request: `Go tests` works
+only when `backend/` changed, `Web tests` and `Web build` only when
+`frontend/` changed, a `Makefile` or `.github/workflows/` change runs all of
+them, `Lint (Go + web)` always runs, a skipped check still reports green and a
+push to `main` runs everything.
 The owner set the repository up the same day: Actions allows GitHub-owned
 actions only (`actions/*`, `github/*`); CodeQL default setup runs, and the
-three alerts it raised were cleared by GLG-1377 (#6); Dependabot alerts and
-security updates, secret scanning with push protection and private
-vulnerability reporting are on; `main` requires `lint`, `test-backend`,
-`test-frontend`, `build-frontend` and `pr-title` with branches up to date.
+three alerts it raised were cleared by GLG-1377 (#6): the `-set-password`
+flag's variable is `resetEmail`, `mergeDesc` sizes its slice from the two
+fetched lists and a test uses `replaceAll`; Dependabot alerts and security
+updates, secret scanning with push protection and private vulnerability
+reporting are on; `main` required `lint`, `test-backend`, `test-frontend`,
+`build-frontend` and `pr-title` with branches up to date. Those were the check
+names on 2026-10-14 until GLG-1385 (#17) and are kept as history; the current
+required checks are the five names above, and a ticket that names one of
+them writes it as it is now.
+
+Other work merged in the public repository on 2026-10-14:
+
+- The CSV market column is read through aliases (the codes and the Turkish and
+  English market names, `bist`, `borsa istanbul`, `us`, `abd`, `tefas`,
+  `crypto`, `kripto`, `gold`, `altın`, `altin`) and any other non-empty value
+  is an `unknown_market` error row that names the cell, mapped in the UI as
+  `unknown_type` is; ADR 0006 notes the alias table (GLG-1370, #2).
+- The copyright holder reads "Doğa Uzuncukoğlu" in the README, in
+  `THIRD_PARTY_NOTICES.md` and its generator `deploy/notices.mjs`, and in the
+  Phase 31 entry above (GLG-1376, #5).
+- ADR 0002 gets dated correction notes: GLG-46 never copied backups off the
+  host, `deploy/backup.sh` and RUNBOOK §4 leave that to the operator
+  (GLG-1367, #8).
+- `server -demo` seeds a synthetic demo portfolio whose series end at a
+  realistic two-year growth (`backend/internal/demo`, GLG-1380, #10), and
+  `make screenshots` seeds a throwaway demo database with the price fetches
+  off, serves the built frontend with `vite preview` and captures the summary,
+  performance and transactions pages with headless Chrome into
+  `docs/screenshots/` for the README (`docs/screenshots/capture.mjs`, plain
+  Node, GLG-1381, #13).
+- The README lists which paths skip the off-by-default TEFAS source (the daily
+  schedule, the startup catch-up and backfill, `-backfill-prices`, "Backfill
+  all", the fetch after a transaction is saved or imported, the statement
+  import's fund lookup) and which by-name runs still fetch (the tefas row's
+  "Run now" and "Backfill", `server -fetch tefas`, and `cmd/symbols` with
+  `-market tefas`) (GLG-1368, #12).
+- `README.tr.md` is a Turkish translation of the README, linked from the README
+  and CONTRIBUTING (GLG-1375, #15).
+- The expected dividends table on the Temettü tab scrolls inside its card at
+  768 and 1024 px, so its Dismiss buttons no longer sit past the card's
+  border (GLG-1369, #16).
+- `docs/HISTORY.md`'s code-quality sweep 2 section gains GLG-1364 to GLG-1366
+  (GLG-1371, #18).
+- The ticket implementer is pinned to Sonnet 5.5 and the reviewer to Opus 5.5,
+  both at high effort, in `.claude/agents/`, CLAUDE.md and ADR 0022
+  (GLG-1388, #20).
 
 ## Published images
 
@@ -1437,4 +1487,5 @@ only, as `ghcr.io/dogauzun/gelirgider-backend` and
 the tag name from a tag (GLG-1382, #11). `deploy/compose.yml` pulls those
 images instead of building them on the Docker host, at the tag `IMAGE_TAG`
 names in `deploy/.env` (`latest` by default, `sha-<7>` or `vX.Y.Z` to pin a
-version or roll back), and keeps `build:` for a modified checkout (GLG-1383).
+version or roll back), and keeps `build:` for a modified checkout (GLG-1383,
+#14).
