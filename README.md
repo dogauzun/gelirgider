@@ -1,5 +1,7 @@
 # gelirgider
 
+Türkçe: [README.tr.md](README.tr.md)
+
 Multi-user portfolio tracking tool. BIST, US stocks, TEFAS funds, crypto and gold.
 
 - Backend: Go, stdlib `net/http`, SQLite (kept as the production datastore, see
