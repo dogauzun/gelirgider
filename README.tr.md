@@ -4,7 +4,7 @@ English: [README.md](README.md)
 
 Çok kullanıcılı portföy takip aracı. BIST, ABD hisseleri, TEFAS fonları, kripto ve altın.
 
-- Backend: Go, stdlib `net/http`, SQLite (üretimde de veri deposu olarak kalıyor, bkz.
+- Backend: Go, stdlib `net/http`, SQLite (canlı ortamda da veritabanı olarak SQLite kullanılır, bkz.
   [ADR 0002](docs/adr/0002-production-datastore-and-migrations.md))
 - Frontend: React + TypeScript + Vite
 - Backend ve frontend ayrı ayrı dağıtılır
@@ -28,7 +28,7 @@ Seçim yalnızca tarayıcıda saklanır.
 
 ## Ekran görüntüleri
 
-`-demo` tohumundan gelen Demo portföyü (bkz. [Geliştirme](#geliştirme)).
+`-demo` örnek verisiyle oluşturulan Demo portföyü (bkz. [Geliştirme](#geliştirme)).
 
 ![Demo portföyünün Özet sayfası: getiri grafiği, toplamlar ve pozisyonlar](docs/screenshots/summary.png)
 
@@ -48,7 +48,7 @@ Performans: aylara ve yıllara göre getiriler ve zaman içinde zirveden düşü
 - [docs/HISTORY.md](docs/HISTORY.md): tamamlanan aşamalar ve her birinin getirdikleri
 - [docs/PRINCIPLES.md](docs/PRINCIPLES.md): yol gösterici ilkeler
 - [docs/adr/](docs/adr/): mimari karar kayıtları
-- [deploy/README.md](deploy/README.md): Docker Compose ile üretime kurulum
+- [deploy/README.md](deploy/README.md): Docker Compose ile canlı ortama kurulum
 - [deploy/RUNBOOK.md](deploy/RUNBOOK.md): çalışan bir kurulumu işletmek
 - [frontend/README.md](frontend/README.md): frontend notları
 - [CONTRIBUTING.md](CONTRIBUTING.md): nasıl katkı verilir, kontroller nasıl çalıştırılır ve pull request nasıl biçimlendirilir
@@ -94,9 +94,9 @@ değişkenini ayarlar), bu yüzden yerel ağdaki diğer cihazlar ona doğrudan u
 `SECRET_KEY` (sakla, kayıtlı sağlayıcı anahtarlarını o şifreler) ve
 `backend/gelirgider.db` konumundaki geliştirme veritabanı. İkisi de gitignore'dadır.
 
-`backend/apidocs/` içindeki API tanımı depoya işlenmiştir, bu yüzden `make dev`
+`backend/apidocs/` içindeki API tanımı depoda hazır bulunur, bu yüzden `make dev`
 onu olduğu gibi sunar. `swag` aracını yalnızca `make swagger` (tanımı yeniden
-üretir, sonra işlemen gerekir) ve `make lint` (güncel olduğunu denetler) çalıştırır;
+üretir, sonra değişikliği commit etmen gerekir) ve `make lint` (güncel olduğunu denetler) çalıştırır;
 ilk çalıştırmalarında aracı indirmek için ağ erişimi gerekir.
 
 Backend'i başka bir portta çalıştırmak için, örneğin ikinci bir checkout'un
@@ -114,7 +114,7 @@ olan `demo@example.com` yöneticisini oluşturur ve şifreyi yazdırır. Zaten k
 olan bir veritabanını reddeder.
 
 `make screenshots`, [Ekran görüntüleri](#ekran-görüntüleri) altındaki resimleri
-aynı demo tohumundan, fiyat çekmeleri kapalı, geçici bir veritabanında yeniden
+aynı demo örnek verisinden, fiyat çekmeleri kapalı, geçici bir veritabanında yeniden
 üretir. Google Chrome (varsayılan yerde değilse `CHROME` değişkenini onun
 çalıştırılabilir dosyasına ayarla) ve `sqlite3` komutu gerekir.
 
@@ -128,14 +128,14 @@ ayarları `backend/.golangci.yml` içinde), `deadcode`, frontend lint, `jscpd`
 `knip` (kullanılmayan dışa aktarımlar ve tipler, ayarları `frontend/knip.json`
 içinde) ve `frontend/`, `docs/`, `deploy/`, `.claude/` ile kök dizindeki Markdown
 dosyaları üzerinde prettier denetimleri.
-`make build-frontend` frontend'in tiplerini denetler ve onu üretim için
+`make build-frontend` frontend'in tiplerini denetler ve onu canlı ortam için
 `frontend/dist/` altına derler; diğer ikisi bunu çalıştırmaz. Tüm hedefler için
 `make help` çalıştır.
 
 ## Veri kaynakları
 
 gelirgider piyasa verisini bu sağlayıcılardan çeker. Onlardan alınan sembol
-listeleri ve test verileri `backend/` altında depoya işlenmiştir.
+listeleri ve test verileri `backend/` altında depoda bulunur.
 
 | Sağlayıcı                                      | Ne için                                               | Erişim                                                                                                   |
 | ---------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
