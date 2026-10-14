@@ -53,7 +53,7 @@ export function useSaveProviderKey(name: string, apiKey: string, onSaved: () => 
     mutationFn: () => saveProviderKey(name, apiKey),
     onSuccess: () => {
       onSaved()
-      queryClient.invalidateQueries({ queryKey: providersQueryKey })
+      void queryClient.invalidateQueries({ queryKey: providersQueryKey })
     },
   })
 }

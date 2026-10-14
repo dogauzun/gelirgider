@@ -102,7 +102,7 @@ export function useBackfill(name: string, onQueued: (queued: string[]) => void) 
     mutationFn: () => backfill(name),
     onSuccess: (result) => {
       onQueued(result.queued)
-      queryClient.invalidateQueries({ queryKey: sourcesQueryKey })
+      void queryClient.invalidateQueries({ queryKey: sourcesQueryKey })
     },
   })
 }

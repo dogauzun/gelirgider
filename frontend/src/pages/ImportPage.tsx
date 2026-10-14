@@ -305,7 +305,7 @@ export function ImportPage() {
     // İşlemler opens on this import's rows, with a banner naming it
     // (core pages spec, "After an import").
     releaseLeave()
-    navigate(`/portfolios/${portfolioId}/transactions?import=${result.id}`, {
+    void navigate(`/portfolios/${portfolioId}/transactions?import=${result.id}`, {
       state: { imported: result.id } satisfies NavState,
     })
   }

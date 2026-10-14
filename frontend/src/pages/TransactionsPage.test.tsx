@@ -63,10 +63,10 @@ function openAddDialog() {
 }
 
 describe('TransactionsPage', () => {
-  afterEach(() => {
+  afterEach(async () => {
     // A delete waits behind its undo toast; send it while this
     // test's fetch mock still answers.
-    flushToasts()
+    await flushToasts()
     cleanup()
     vi.restoreAllMocks()
     desktop = true
@@ -952,7 +952,7 @@ describe('TransactionsPage', () => {
     // The row goes at once; the request waits for the undo toast.
     await screen.findByText('Henüz işlem yok.')
     expect(deleted).toBe(false)
-    flushToasts()
+    void flushToasts()
     await vi.waitFor(() => expect(deleted).toBe(true))
   })
 
@@ -1166,7 +1166,7 @@ describe('TransactionsPage', () => {
     fireEvent.click(undo)
     expect(screen.queryByText('Henüz işlem yok.')).toBeNull()
     expect(document.activeElement).toBe(screen.getAllByRole('button', { name: /işlemini sil$/ })[0])
-    flushToasts()
+    void flushToasts()
     expect(deleted).toBe(false)
   })
 

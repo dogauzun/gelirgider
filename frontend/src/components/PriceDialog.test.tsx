@@ -22,9 +22,9 @@ beforeAll(() => {
     }) as unknown as MediaQueryList
 })
 
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks()
-  flushToasts()
+  await flushToasts()
 })
 
 function position(fields: Partial<Position> = {}): Position {
