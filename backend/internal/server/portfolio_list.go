@@ -1,12 +1,12 @@
 package server
 
 import (
-	"context"
 	"net/http"
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
 	"github.com/dogauzun/gelirgider/backend/internal/holdings"
+	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 )
 
 // GET /api/portfolios is registered by registerSummaryRoutes in summary.go:
@@ -63,12 +63,44 @@ func (h *summaryHandler) list(w http.ResponseWriter, r *http.Request) {
 	reporting := usr.ReportingCurrency
 
 	out := make([]portfolioListResponse, len(portfolios))
+	if len(portfolios) == 0 {
+		auth.WriteJSON(w, http.StatusOK, out)
+		return
+	}
+
+	// Price every instrument and load every rate once for the whole list:
+	// the same instrument held in several portfolios is valued a single time.
+	// The lists are loaded here, not through scopeTransactions, so they stay
+	// index-aligned with portfolios even if one is created in between.
+	lists := make([][]transaction.Transaction, len(portfolios))
 	for i, p := range portfolios {
-		totals, plKnown, err := h.totals(r.Context(), userID, p.ID, reporting)
-		if err != nil {
+		if lists[i], err = h.transactions.List(r.Context(), userID, p.ID); err != nil {
 			auth.WriteInternalError(w, r, err)
 			return
 		}
+	}
+	v, err := h.value(r.Context(), userID, distinctInstrumentIDs(flatByDate(lists)))
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	// Each portfolio gets its own holdings.Compute (each List carries its own
+	// synthetic split rows); only the rate lookup is shared, over the union of
+	// the currencies they hold. Only the totals are used here, never
+	// CostBasisReporting, so the trade-date rates computeSummary loads are
+	// not needed.
+	summaries := make([]holdings.Summary, len(lists))
+	for i, l := range lists {
+		summaries[i] = holdings.Compute(l, v.latest, v.currencyOf)
+	}
+	rates, err := h.latestRates(r.Context(), holdings.Merge(summaries), reporting, v.asOf)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+
+	for i, p := range portfolios {
+		totals := holdings.Convert(summaries[i], rates, reporting)
 		missingRates := totals.Missing
 		if missingRates == nil {
 			missingRates = []string{}
@@ -82,33 +114,12 @@ func (h *summaryHandler) list(w http.ResponseWriter, r *http.Request) {
 			Currency:     reporting,
 			MissingRates: missingRates,
 		}
-		if plKnown {
+		// unrealizedKnown's verdict on the unrealized total, so the list
+		// nulls unrealized_pl on exactly the input the summary does.
+		if unrealizedKnown(summaries[i], rates, reporting) {
 			upl := totals.UnrealizedPL.StringFixed(2)
 			out[i].UnrealizedPL = &upl
 		}
 	}
 	auth.WriteJSON(w, http.StatusOK, out)
-}
-
-// totals computes one portfolio's totals in reporting through the summary's
-// value and latestRates, with holdings.Compute in place of computeSummary:
-// only the totals are used here, never CostBasisReporting, so the trade-date
-// rates it would load are not needed. The second result is unrealizedKnown's
-// verdict on the unrealized total, so the list nulls unrealized_pl on exactly
-// the input the summary does.
-func (h *summaryHandler) totals(ctx context.Context, userID, portfolioID int64, reporting string) (holdings.Totals, bool, error) {
-	txs, err := h.transactions.List(ctx, userID, portfolioID)
-	if err != nil {
-		return holdings.Totals{}, false, err
-	}
-	v, err := h.value(ctx, userID, distinctInstrumentIDs(txs))
-	if err != nil {
-		return holdings.Totals{}, false, err
-	}
-	summary := holdings.Compute(txs, v.latest, v.currencyOf)
-	rates, err := h.latestRates(ctx, summary, reporting, v.asOf)
-	if err != nil {
-		return holdings.Totals{}, false, err
-	}
-	return holdings.Convert(summary, rates, reporting), unrealizedKnown(summary, rates, reporting), nil
 }
