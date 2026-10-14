@@ -48,8 +48,13 @@ API keys, and the BIST 100 benchmark needs a TCMB EVDS API key (free account
 at <https://evds3.tcmb.gov.tr>, key on its profile page). Enter them in
 Yönetim / Administration after setup; everything else works without them.
 TEFAS fund prices are off by default: the TEFAS endpoint is disallowed by
-tefas.gov.tr's robots.txt, so the `tefas` source fetches nothing until you
-turn it on in the same place.
+tefas.gov.tr's robots.txt, so until you turn the `tefas` source on in the same
+place, the daily schedule, the startup catch-up and backfill,
+`server -backfill-prices`, "Backfill all", the fetch after a transaction is
+saved or imported and the statement import's fund lookup all skip TEFAS.
+Asking for the source by name still fetches from TEFAS while it is off: its
+"Run now" and "Backfill" buttons, `server -fetch tefas` and
+`go run ./cmd/symbols -market tefas`.
 
 ```
 (cd frontend && npm ci)
