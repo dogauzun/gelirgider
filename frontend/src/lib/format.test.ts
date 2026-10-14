@@ -6,6 +6,7 @@ import {
   formatNumber,
   formatUnitPrice,
   MASK,
+  MISSING,
   plTone,
   signedMoney,
   signedPercent,
@@ -44,6 +45,17 @@ describe('formatMoney', () => {
     expect(formatMoney('-0.004', 'USD')).toBe('$0,00')
     expect(signedMoney('0.004', 'USD')).toBe('$0,00')
     expect(formatMoney('-1.5', 'USD')).toBe('-$1,50')
+  })
+
+  // An amount the backend could not work out is not a zero, and privacy
+  // mode has nothing to mask in it.
+  it('shows MISSING for null, also in privacy mode', () => {
+    expect(formatMoney(null, 'USD')).toBe(MISSING)
+    expect(signedMoney(null, 'USD')).toBe(MISSING)
+    setPrivacy(true)
+    expect(formatMoney(null, 'USD')).toBe(MISSING)
+    expect(signedMoney(null, 'USD')).toBe(MISSING)
+    setPrivacy(false)
   })
 })
 

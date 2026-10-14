@@ -506,7 +506,7 @@ export function SummaryPage() {
                     >
                       <FitFigure
                         className={`${KPI_FIGURE} ${plTone(dayTotal)}`}
-                        text={dayTotal !== null ? signedMoney(dayTotal, data.currency) : MISSING}
+                        text={signedMoney(dayTotal, data.currency)}
                       />
                     </KpiCell>
                     <KpiCell label={t('summary.cash')} hint={cashHint}>
@@ -519,20 +519,14 @@ export function SummaryPage() {
                     <KpiCell label={t('summary.unrealizedPl')} hint={unrealizedHint}>
                       <FitFigure
                         className={`${KPI_FIGURE} ${plTone(unrealized)}`}
-                        text={
-                          unrealized !== null ? signedMoney(unrealized, data.currency) : MISSING
-                        }
+                        text={signedMoney(unrealized, data.currency)}
                         mark={mark}
                       />
                     </KpiCell>
                     <KpiCell label={t('summary.realizedPl')}>
                       <FitFigure
                         className={`${KPI_FIGURE} ${plTone(data.realized_pl)}`}
-                        text={
-                          data.realized_pl !== null
-                            ? signedMoney(data.realized_pl, data.currency)
-                            : MISSING
-                        }
+                        text={signedMoney(data.realized_pl, data.currency)}
                       />
                     </KpiCell>
                   </KpiStrip>
