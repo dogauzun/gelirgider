@@ -111,7 +111,7 @@ describe('PortfoliosTable', () => {
     setPrivacy(false)
   })
 
-  // GLG-1386: the table scrolls sideways inside the card, never the page.
+  // The table scrolls sideways inside the card, never the page.
   it('scrolls the table sideways inside the card', () => {
     mockApi()
     renderTable()
@@ -129,7 +129,7 @@ describe('PortfoliosTable', () => {
       'Eğilim',
       'Günlük',
     ])
-    // The sparkline column is named for screen readers (GLG-1358).
+    // The sparkline column is named for screen readers.
     expect(screen.getByRole('columnheader', { name: 'Eğilim' })).toBeInTheDocument()
     const ana = within(rowOf('Ana portföy'))
     expect(ana.getByText('₺600,00')).toBeInTheDocument()

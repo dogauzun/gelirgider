@@ -38,8 +38,8 @@ const resolved: Row = {
   instrument_name: 'Xyz Holding',
 }
 
-// An unknown symbol's picker is in the block above the rows, once per name
-// (GLG-1193): the row shows the symbol and no picker of its own.
+// An unknown symbol's picker is in the block above the rows, once per name:
+// the row shows the symbol and no picker of its own.
 it('shows an unknown row its symbol without a picker', () => {
   const { unmount } = renderItem(row)
   expect(screen.getByText('XYZ')).toBeInTheDocument()
@@ -52,7 +52,7 @@ it('shows an unknown row its symbol without a picker', () => {
 })
 
 // In the middle column, beside the amount and the edit button, the picker got
-// ~142 px at 375 px and cut its placeholder (GLG-1053).
+// ~142 px at 375 px and cut its placeholder.
 it('opens the change picker of a resolved row on that full-width line', () => {
   renderItem(resolved)
   expect(screen.queryByTestId('picker-line')).not.toBeInTheDocument()
@@ -80,7 +80,7 @@ it('closes the change picker once the row is no longer resolved', () => {
 // "Alış" and "elle" stacked in the narrow Tür column after an alias pick and
 // made the row taller than its neighbours; kept side by side, an opening row's
 // three pills widened the table past its card. So Tür holds the type alone
-// and the markers sit in the fixed-width Durum column (GLG-1056).
+// and the markers sit in the fixed-width Durum column.
 it('puts the opening and manual markers of a table row in Durum, not Tür', () => {
   render(
     <QueryClientProvider client={client}>
@@ -104,7 +104,7 @@ it('puts the opening and manual markers of a table row in Durum, not Tür', () =
 })
 
 // The phone list's type column is ~100-150 px: an opening row's three pills
-// must wrap there rather than run into the amount (GLG-1056).
+// must wrap there rather than run into the amount.
 it('lets the type pills wrap in the phone list', () => {
   renderItem({ ...resolved, manual: true, opening: true })
 
@@ -115,7 +115,7 @@ it('lets the type pills wrap in the phone list', () => {
 
 // Between 768 and 1280 px the card is 720 to 1000 px and the fixed-width
 // Durum column pushed the table past it; there the status and markers sit
-// under the instrument and the row has eight cells (GLG-1066).
+// under the instrument and the row has eight cells.
 it('folds Durum under the instrument when the table is not wide', () => {
   render(
     <QueryClientProvider client={client}>
@@ -157,7 +157,7 @@ const tableRow = (r: Row, wide: boolean) => (
 
 // In the instrument cell the picker's 12rem min width spilled over the
 // "Adet × fiyat" cell at 768-860 px. Below xl it gets its own line under the
-// row, from the instrument column to the end, as in the phone list (GLG-1080).
+// row, from the instrument column to the end, as in the phone list.
 it('gives the picker of a table row that is not wide its own line', () => {
   render(tableRow(resolved, false))
   expect(screen.getAllByRole('row')).toHaveLength(1)
@@ -180,7 +180,7 @@ it('keeps the picker in the instrument cell of a wide table row', () => {
 })
 
 // The Garanti Yatırım parser's skip reasons showed as raw English text in
-// Türkçe (GLG-1095). A Midas reason still reads as before and a reason
+// Türkçe. A Midas reason still reads as before and a reason
 // without a key falls back to the server's text.
 it('translates the skip reasons of every parser and shows an unknown one raw', () => {
   const skipped = (reason: string): Row => ({
@@ -204,7 +204,7 @@ it('translates the skip reasons of every parser and shows an unknown one raw', (
   expect(screen.getByText('Opening balance, skipped')).toBeInTheDocument()
 })
 
-// The unknown rows group by name, each name once with its row count (GLG-1193).
+// The unknown rows group by name, each name once with its row count.
 it('groups the unknown rows by name and counts each name', () => {
   render(
     <QueryClientProvider client={client}>
@@ -221,7 +221,7 @@ it('groups the unknown rows by name and counts each name', () => {
 })
 
 // A Garanti fund row names a fund TEFAS may have renamed since by its old name;
-// on its own, nothing links that name to the code (GLG-1197). Its unknown name
+// on its own, nothing links that name to the code. Its unknown name
 // says what helps; a stock's does not.
 it('hints at a renamed fund under the picker of a TEFAS name only', () => {
   const fund: Row = {

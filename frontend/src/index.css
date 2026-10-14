@@ -207,7 +207,7 @@ body {
 }
 
 /* Keyboard focus never scrolls a control under a sticky or fixed bar
-   (GLG-1067, WCAG 2.4.11); 4px more keeps the focus ring clear. Below lg the
+   (WCAG 2.4.11); 4px more keeps the focus ring clear. Below lg the
    app's top bar (h-12) sticks, below sm a portfolio page's tab row (h-10 and
    its 1px rule) sticks under it, and below md a portfolio page's add button
    floats 1rem above the bottom (size-14). A bottom bar sets its own padding
@@ -230,7 +230,7 @@ body {
 
 /* In the base layer, so a control that draws its own focus (inputClass's
    border and ring, menu and select items' highlight) can turn it off with
-   outline-none. Unlayered, it beat every utility (GLG-884). */
+   outline-none. Unlayered, it beat every utility. */
 @layer base {
   :focus-visible {
     outline: 2px solid var(--color-accent);
@@ -238,7 +238,7 @@ body {
   }
   /* Chromium tabs to a date input's calendar icon and draws its own black
      ring on it. The field shows the focus instead, through inputClass's
-     focus-within border and ring (GLG-892). Chromium matches no :focus or
+     focus-within border and ring. Chromium matches no :focus or
      :focus-visible on this pseudo-element, so the ring goes off outright. */
   ::-webkit-calendar-picker-indicator {
     outline: none;

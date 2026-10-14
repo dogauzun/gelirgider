@@ -8,7 +8,7 @@ import { UsersSection } from './UsersSection'
 // jsdom implements neither method on <dialog>; both flip the open state, and
 // close() hands focus back to what had it before showModal(), as browsers do.
 // Nor matchMedia: the section renders the table from md up and the phone list
-// below (GLG-1166), so tests get the table unless they clear `desktop`.
+// below, so tests get the table unless they clear `desktop`.
 let desktop = true
 let focusBeforeDialog: Element | null = null
 beforeAll(() => {
@@ -81,7 +81,7 @@ describe('UsersSection', () => {
     expect(screen.queryByText('bob@example.com')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Kullanıcı ekle' }))
-    // Named by its heading, not just any dialog (GLG-452).
+    // Named by its heading, not just any dialog.
     const dialog = screen.getByRole('dialog', { name: 'Kullanıcı ekle' })
     fireEvent.change(within(dialog).getByLabelText('E-posta'), {
       target: { value: bob.email },
@@ -106,7 +106,7 @@ describe('UsersSection', () => {
     ).toBeInTheDocument()
   })
 
-  // GLG-1386: the table scrolls sideways inside its box, never the page.
+  // The table scrolls sideways inside its box, never the page.
   it('scrolls the table sideways inside its box', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) =>
       String(input) === '/api/admin/users' ? json([ada, bob]) : json({}),
@@ -116,7 +116,7 @@ describe('UsersSection', () => {
     expect(table.parentElement).toHaveClass('relative', 'overflow-x-auto')
   })
 
-  // GLG-917: Chromium blurs a focused control the moment it is disabled, so a
+  // Chromium blurs a focused control the moment it is disabled, so a
   // keyboard user lost focus to <body> while the toggle or the admin button
   // saved. jsdom does not blur on disable, so the test checks both stay
   // enabled during the save as well as focused.
@@ -162,7 +162,7 @@ describe('UsersSection', () => {
     expect(makeAdmin).toHaveFocus()
   })
 
-  // GLG-994: the same for a dialog's submit button while its request runs.
+  // The same for a dialog's submit button while its request runs.
   it('keeps the add user submit button focused and pending while it saves', async () => {
     let release!: () => void
     const held = new Promise<void>((resolve) => (release = resolve))
@@ -200,7 +200,7 @@ describe('UsersSection', () => {
     release()
   })
 
-  // GLG-1268: isPending reaches the controls a tick after the click, so a
+  // isPending reaches the controls a tick after the click, so a
   // double click's second click came before pending and sent the request twice.
   it('sends one request per double click on every control', async () => {
     const sent: string[] = []
@@ -305,7 +305,7 @@ describe('UsersSection', () => {
     expect(await within(table).findByText(long.email)).toHaveClass('whitespace-normal', 'break-all')
   })
 
-  // GLG-1057: the admin toggle holds both labels, the other one hidden, so it
+  // The admin toggle holds both labels, the other one hidden, so it
   // is equally wide on every row, and the caller's row, which has no delete
   // button, keeps an empty slot of the delete button's width.
   it('keeps the row actions the same width on every row', async () => {
@@ -351,7 +351,7 @@ describe('UsersSection', () => {
       item.getByRole('button', { name: /şifre sıfırla$/ }).parentElement,
     )
   })
-  // GLG-1146: deleting a user removed the focused delete button with its row,
+  // Deleting a user removed the focused delete button with its row,
   // dropping a keyboard user to <body>. Focus moves to the next user's delete
   // button, else the previous one's, else the section heading.
   it('moves focus to a neighbouring delete button, else the heading, after a delete', async () => {
@@ -392,7 +392,7 @@ describe('UsersSection', () => {
     expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Kullanıcılar' }))
   })
 
-  // GLG-1207: the delete confirm was unmounted while still open on cancel,
+  // The delete confirm was unmounted while still open on cancel,
   // which drops focus to <body>; close() is what hands it back to the opener.
   it('returns focus to the delete button when the delete confirm is cancelled', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {

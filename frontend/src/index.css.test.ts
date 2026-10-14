@@ -41,7 +41,7 @@ function contrast(a: string, b: string): number {
 }
 
 describe('color tokens', () => {
-  // raised-hover is the hovered table row (GLG-933, GLG-935, GLG-1356).
+  // raised-hover is the hovered table row.
   it('muted text meets WCAG AA on paper, surface, chip, well and raised-hover in every theme', () => {
     const muted = values('muted')
     expect(muted).toHaveLength(3)
@@ -72,7 +72,7 @@ describe('color tokens', () => {
   // The cash and Diğer (cat-6) slices are graphics, so 3:1 (WCAG 1.4.11) on
   // the card. They share a slate hue and sit side by side in the donut, so
   // they keep 3:1 apart by lightness too, cash the lighter one in every
-  // theme (GLG-1033, GLG-1045).
+  // theme.
   it('cash and cat-6 reach 3:1 on surface and 3:1 apart, cash the lighter', () => {
     const cash = values('cash')
     const surface = values('surface')
@@ -108,7 +108,7 @@ describe('color tokens', () => {
     fgs.forEach((f, i) => expect(contrast(f, bgs[i]), `#${i}`).toBeGreaterThanOrEqual(4.5))
   })
 
-  // The periodic returns heatmap (GLG-955) mixes gain or loss into surface,
+  // The periodic returns heatmap mixes gain or loss into surface,
   // `color-mix(in srgb, ...)`: a straight blend of the encoded channels.
   it('keeps ink at 4.5:1 on every heatmap step in every theme', () => {
     const mix = (a: string, b: string, percent: number) =>

@@ -129,7 +129,7 @@ it('shows the excess over the benchmark, a dash where the benchmark has none', (
   expect(cells[1]).toHaveTextContent(MISSING)
 })
 
-// GLG-1357: below md the heatmap scrolls sideways and holds nothing focusable,
+// Below md the heatmap scrolls sideways and holds nothing focusable,
 // so its scroller must be a named tab stop that arrow keys scroll.
 it('makes the sideways scroller a named, focusable region', () => {
   const { table } = renderTable()

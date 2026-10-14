@@ -84,7 +84,7 @@ describe('PortfolioHeader', () => {
     vi.restoreAllMocks()
   })
 
-  // GLG-587: the position page is a drill-down of Özet, so Özet is its tab.
+  // The position page is a drill-down of Özet, so Özet is its tab.
   it('marks the summary tab active on a position page', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () =>
@@ -115,7 +115,7 @@ describe('PortfolioHeader', () => {
     )
   })
 
-  // GLG-988: the Özet tab keeps the chart range from a position page, as the
+  // The Özet tab keeps the chart range from a position page, as the
   // sidebar does; İşlemler's own from / to filter is not a chart range.
   it.each([
     ['/portfolios/1/positions/7?range=1y', '/portfolios/1?range=1y'],
@@ -159,7 +159,7 @@ describe('PortfolioHeader', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(t('portfolios.error'))
   })
 
-  // GLG-568: the pending-dividend count lives in the panel's summary; on the
+  // The pending-dividend count lives in the panel's summary; on the
   // tab it read as a transaction count. The header no longer asks for it.
   it('puts no count on the transactions tab', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
@@ -181,14 +181,14 @@ describe('PortfolioHeader', () => {
       </QueryClientProvider>,
     )
 
-    // GLG-890: the truncated name shows in full on hover.
+    // The truncated name shows in full on hover.
     expect(await screen.findByRole('heading', { level: 1, name: 'Emeklilik' })).toHaveAttribute(
       'title',
       'Emeklilik',
     )
     expect(screen.getByRole('link', { name: 'İşlemler' })).toHaveTextContent(/^İşlemler$/)
-    // GLG-605: the Temettü tab sits between İşlemler and İçe aktar; GLG-955:
-    // Performans between Özet and İşlemler.
+    // The Temettü tab sits between İşlemler and İçe aktar; the
+    // Performans tab between Özet and İşlemler.
     expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual([
       t('summary.title'),
       t('performance.title'),
@@ -283,13 +283,13 @@ describe('PortfolioHeader', () => {
     const heading = await screen.findByRole('heading', { level: 1, name: 'Emeklilik' })
     const main = screen.getByRole('main')
     expect(main).toContainElement(heading)
-    // Visible now that the sidebar switches portfolios (GLG-875).
+    // Visible now that the sidebar switches portfolios.
     expect(heading).not.toHaveClass('sr-only')
     const names = screen.getAllByRole('navigation').map((nav) => nav.getAttribute('aria-label'))
     expect(names).toEqual([t('nav.label'), t('portfolio.tabs')])
   })
 
-  // GLG-940: below lg the top bar already names the page, so the h1 is there
+  // Below lg the top bar already names the page, so the h1 is there
   // for screen readers only; from lg it shows. Tüm portföyler too.
   it.each([
     [1, 'Emeklilik'],
@@ -318,7 +318,7 @@ describe('PortfolioHeader', () => {
     expect(heading).not.toHaveClass('sr-only')
   })
 
-  // GLG-995: below lg the hidden title leaves its block empty, so the header
+  // Below lg the hidden title leaves its block empty, so the header
   // row spaces it from the actions only from lg; on a phone an empty Özet's
   // stacked actions start where the header starts. The rename input shows
   // below lg, so it gets the gap back.
@@ -349,7 +349,7 @@ describe('PortfolioHeader', () => {
     expect(row).toHaveClass('gap-3')
   })
 
-  // GLG-940: the rename input takes the title row's width, up to a maximum,
+  // The rename input takes the title row's width, up to a maximum,
   // instead of shrinking to its own 208 px.
   it('widens the rename input to the title row (GLG-940)', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
@@ -452,7 +452,7 @@ describe('PortfolioHeader', () => {
       const input = screen.getByLabelText(t('portfolios.name'))
       fireEvent.change(input, { target: { value } })
       // Default cancelled, so Enter does not go on to click the menu button
-      // that now has focus and reopen the menu (GLG-474).
+      // that now has focus and reopen the menu.
       expect(fireEvent.keyDown(input, { key })).toBe(false)
     }
 
@@ -470,9 +470,9 @@ describe('PortfolioHeader', () => {
     expect(patches).toHaveLength(1)
   })
 
-  // GLG-857: the header unmounts on the way home, taking focus with it; the
-  // home page puts it on the first remaining card instead of <body>. GLG-863:
-  // the status region says the portfolio was deleted.
+  // The header unmounts on the way home, taking focus with it; the
+  // home page puts it on the first remaining card instead of <body>.
+  // The status region says the portfolio was deleted.
   it('focuses the next portfolio on Tüm portföyler and announces the delete from its own page', async () => {
     mockDeleteApi()
 
@@ -567,7 +567,7 @@ describe('PortfolioHeader', () => {
     )
 
     await screen.findByRole('heading', { level: 1, name: t('portfolio.all') })
-    // Özet and Performans only (GLG-955).
+    // Özet and Performans only.
     expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
       '/portfolios/all',
       '/portfolios/all/performance',

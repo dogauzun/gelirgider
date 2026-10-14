@@ -62,7 +62,7 @@ describe('RegisterPage', () => {
     expect(screen.getByRole('button', { name: /giriş yap/i })).toBeInTheDocument()
   })
 
-  // GLG-1268: isPending reaches the button a tick after the click, so a double
+  // isPending reaches the button a tick after the click, so a double
   // click's second click came before pending and registered twice.
   it('registers once on a double click', async () => {
     const fetchSpy = vi
@@ -77,7 +77,7 @@ describe('RegisterPage', () => {
     expect(fetchSpy.mock.calls.filter(([url]) => url === '/api/auth/register')).toHaveLength(1)
   })
 
-  // GLG-1075: editing the email drops the error about the one already sent.
+  // Editing the email drops the error about the one already sent.
   it('clears the server error once the email is edited', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) =>
       String(url) === '/api/auth/register'
@@ -96,7 +96,7 @@ describe('RegisterPage', () => {
     )
   })
 
-  // GLG-400: a deep link that bounced to login survives the detour through
+  // A deep link that bounced to login survives the detour through
   // register, both when auto-login works and via the login fallback.
   it.each([true, false])(
     'returns to the protected deep link after register (auto-login ok: %s)',
@@ -192,7 +192,7 @@ describe('RegisterPage', () => {
     expectSignedOutFrame(screen.getByRole('heading', { level: 1, name: 'Kayıt ol' }))
   })
 
-  // GLG-970: the signed-out pages share one frame and one title size.
+  // The signed-out pages share one frame and one title size.
   it('renders the form in the signed-out frame', () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () => new Response(JSON.stringify({ registration_open: true }), { status: 200 }),

@@ -159,7 +159,7 @@ describe('PriceDialog', () => {
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 
-  // GLG-994: Chromium blurs a focused control the moment it is disabled, so
+  // Chromium blurs a focused control the moment it is disabled, so
   // the running save marks Kaydet pending and the fields read-only instead; a
   // second click or Enter sends nothing.
   it('keeps Kaydet focused and pending while the save runs', async () => {
@@ -186,7 +186,7 @@ describe('PriceDialog', () => {
     await waitFor(() => expect(save).not.toHaveAttribute('aria-disabled'))
   })
 
-  // GLG-1268: isPending reaches the button a tick after the click, so a double
+  // isPending reaches the button a tick after the click, so a double
   // click's second click came before pending and sent the price twice.
   it('saves once on a double click of Kaydet', async () => {
     const fetchMock = vi

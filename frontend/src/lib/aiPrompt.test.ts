@@ -95,7 +95,7 @@ describe('buildAiPrompt', () => {
 
   it('weighs positions like the allocation card when cash is negative', () => {
     // A USD buy with no USD deposit: net cash is negative, so total_value
-    // (positions plus cash) is smaller than the positions alone (GLG-662).
+    // (positions plus cash) is smaller than the positions alone.
     const summary: Summary = {
       currency: 'TRY',
       cash: '-3000.00',
@@ -127,7 +127,7 @@ describe('buildAiPrompt', () => {
   })
 
   it('gives a position with a negative value no weight, like the positions table', () => {
-    // A short (GLG-27) is worth less than nothing: it has no share of the
+    // A short is worth less than nothing: it has no share of the
     // total and leaves the others' weights alone.
     const summary: Summary = {
       currency: 'TRY',

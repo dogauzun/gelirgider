@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { authConfigQueryKey, dropDataOnUserChange, meQueryKey, setupStatusQueryKey } from './auth'
 
 describe('dropDataOnUserChange', () => {
-  // GLG-998. After a logout the page still on screen can refetch its queries,
+  // After a logout the page still on screen can refetch its queries,
   // without a session, before it unmounts. The next user's page must not join
   // those requests and get their 401.
   it('keeps a request sent while signed out from answering the next user', async () => {
@@ -25,7 +25,7 @@ describe('dropDataOnUserChange', () => {
     expect(await list).toEqual(['Bora'])
   })
 
-  // GLG-999. After a logout the page still on screen can render once more
+  // After a logout the page still on screen can render once more
   // before it unmounts, and useQuery hands its observers their options again.
   // Its data goes when it unmounts, not before: a query removed under a
   // mounted observer is rebuilt and fetched, without a session.

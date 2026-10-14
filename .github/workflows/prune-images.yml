@@ -1,4 +1,4 @@
-# Weekly retention for the images publish.yml pushes to ghcr.io (GLG-1384).
+# Weekly retention for the images publish.yml pushes to ghcr.io.
 # GHCR has no retention setting, so the version list would grow forever.
 #
 # Keeps every version tagged `latest` or `v*`, and the 30 newest versions

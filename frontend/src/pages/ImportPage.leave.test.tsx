@@ -94,7 +94,7 @@ function renderWith(router: ReactNode) {
   )
 }
 
-// Opens a preview and unchecks its row, a change Vazgeç asks about (GLG-772).
+// Opens a preview and unchecks its row, a change Vazgeç asks about.
 async function editPreview() {
   const files = [new File(['%PDF-1.4'], 'ekstre.pdf', { type: 'application/pdf' })]
   fireEvent.change(document.querySelector('input[type="file"]')!, { target: { files } })
@@ -112,7 +112,7 @@ function beforeUnloadPrevented() {
   return event.defaultPrevented
 }
 
-// GLG-1073: a link out of a changed review asks first, as Vazgeç does.
+// A link out of a changed review asks first, as Vazgeç does.
 it('asks before a link leaves a changed review', async () => {
   renderWith(<MemoryRouter initialEntries={['/portfolios/1/import']}>{routes()}</MemoryRouter>)
   await editPreview()
@@ -138,7 +138,7 @@ it('asks the browser to confirm a reload of a changed review only', async () => 
 })
 
 // Chromium runs window listeners in the order they were added, capture or
-// not, where jsdom runs capture ones first (GLG-1089). Adds every popstate
+// not, where jsdom runs capture ones first. Adds every popstate
 // listener from here on as a non-capture one, so jsdom orders them the same.
 function popstateInAddOrder() {
   const add = window.addEventListener.bind(window)
@@ -180,7 +180,7 @@ it('asks before Back leaves a changed review', async () => {
   expect(window.location.pathname).toBe('/portfolios/1/transactions')
 })
 
-// GLG-1092: agreeing before the undo of Back has landed still leaves.
+// Agreeing before the undo of Back has landed still leaves.
 it('leaves on Back when the user agrees before the undo lands', async () => {
   popstateInAddOrder()
   window.history.replaceState({ idx: 0 }, '', '/portfolios/1/transactions')
@@ -198,7 +198,7 @@ it('leaves on Back when the user agrees before the undo lands', async () => {
 
 // A confirmed leave that keeps the page mounted leaves the guard on for the
 // next way out. These routes have no PerPortfolio, so another portfolio's
-// import page keeps the page mounted here; in the app it remounts (GLG-1062).
+// import page keeps the page mounted here; in the app it remounts.
 it('asks again on Back after a confirmed leave that kept the page', async () => {
   window.history.replaceState({ idx: 0 }, '', '/portfolios/1/import')
   renderWith(<BrowserRouter>{routes()}</BrowserRouter>)

@@ -96,7 +96,7 @@ it('groups the gaps by portfolio in the all scope', async () => {
   expect(rows[4]).toHaveTextContent('20.05.2024KriptoTRY₺75,00')
 })
 
-// GLG-1386: the table scrolls sideways inside its box, never the page.
+// The table scrolls sideways inside its box, never the page.
 it('scrolls the gaps table sideways inside the dialog', async () => {
   renderNotice(1, gaps.slice(0, 3))
 
@@ -126,7 +126,7 @@ it('posts the note on confirm and closes', async () => {
   expect(posts).toEqual([{ note: t('performance.cashGaps.note') }])
 })
 
-// GLG-1268: isPending reaches the button a tick after the click, so a double
+// isPending reaches the button a tick after the click, so a double
 // click's second click came before pending and posted the deposits twice.
 it('posts once on a double click of confirm', async () => {
   const posts = renderNotice(1, gaps.slice(0, 1), () => new Promise<Response>(() => {}))

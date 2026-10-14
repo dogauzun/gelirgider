@@ -21,7 +21,7 @@ const buy: Transaction = {
   import_id: null,
 }
 
-// GLG-1386: the table scrolls sideways inside its box, never the page.
+// The table scrolls sideways inside its box, never the page.
 it('scrolls the table sideways inside its box', () => {
   const query = { data: [buy] } as unknown as ReturnType<typeof useTransactions>
   render(<PositionTransactions transactions={query} />)

@@ -26,10 +26,10 @@ describe('i18n', () => {
     expect(t('transactions.count', { count: 2 })).toBe('2 transactions')
   })
 
-  // The tr UI addresses the user as "sen" (GLG-337, GLG-859). The -ınız/-iniz/
+  // The tr UI addresses the user as "sen". The -ınız/-iniz/
   // -unuz/-ünüz ending marks the formal "siz" voice anywhere in a word:
   // "seçiminiz", "hesabınızda", "düzenleyebilirsiniz". No `\b` after it: a JS
-  // regex word boundary is ASCII-only and misses "seçiminizi" (GLG-864). The
+  // regex word boundary is ASCII-only and misses "seçiminizi". The
   // formal imperative "-(y)in" reads like a genitive ("hesabın"), so it is
   // caught by a word list instead.
   const formalVoice = /[ıiuü]n[ıiuü]z/

@@ -97,7 +97,7 @@ describe('Allocation', () => {
   })
 
   it('claims cash in the header only when cash is in the donut (GLG-1323)', () => {
-    // Zero or negative cash stays out of the donut (GLG-662), so the header
+    // Zero or negative cash stays out of the donut, so the header
     // must not say "nakit dahil", in any view.
     for (const cash of ['-500.00', '0']) {
       const { container, scoped } = renderAllocation({

@@ -43,7 +43,7 @@ describe('LoginPage', () => {
     )
   })
 
-  // GLG-797: password managers fill the login form, and a short password is
+  // Password managers fill the login form, and a short password is
   // the server's to reject, not an untranslated browser tooltip.
   it('marks the login password as current and leaves its length to the server', () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
@@ -64,7 +64,7 @@ describe('LoginPage', () => {
     expect(password).not.toHaveAttribute('minlength')
   })
 
-  // GLG-970: the signed-out pages share one frame and one title size.
+  // The signed-out pages share one frame and one title size.
   it('renders in the signed-out frame', () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () => new Response(JSON.stringify({}), { status: 200 }),
@@ -80,7 +80,7 @@ describe('LoginPage', () => {
     expectSignedOutFrame(screen.getByRole('heading', { level: 1, name: 'Giriş yap' }))
   })
 
-  // GLG-409: a failed submit is announced to screen readers.
+  // A failed submit is announced to screen readers.
   it('announces a failed login as an alert', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) =>
       String(url) === '/api/auth/login'
@@ -103,7 +103,7 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('E-posta veya şifre hatalı.')
   })
 
-  // GLG-1075: a server error is about the values sent, so editing a field
+  // A server error is about the values sent, so editing a field
   // drops it.
   it('clears the server error once a field is edited', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) =>
@@ -130,7 +130,7 @@ describe('LoginPage', () => {
     await waitFor(() => expect(screen.queryByTestId('auth-error')).not.toBeInTheDocument())
   })
 
-  // GLG-1075: the session-expired notice is no success, and is announced.
+  // The session-expired notice is no success, and is announced.
   it('shows the session-expired notice as a neutral status', () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () => new Response(JSON.stringify({}), { status: 200 }),
@@ -150,7 +150,7 @@ describe('LoginPage', () => {
     expect(notice).not.toHaveClass('text-gain')
   })
 
-  // GLG-380: a deep link that bounced to the login page is where login lands.
+  // A deep link that bounced to the login page is where login lands.
   it('returns to the protected deep link after login', async () => {
     let loggedIn = false
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {

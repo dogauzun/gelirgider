@@ -215,7 +215,7 @@ func backfillUSHistory(ctx context.Context, r backfillRun, s *us.Syncer) (int, e
 // and TCMB's XML archive, Finnhub's /quote endpoint has no historical-range
 // parameter: it only ever answers with the latest close, so walking
 // start..end the way runBackfillRange does would just fetch the same value
-// once per weekday for no benefit (see docs/adr/0003, "Known risks"). One
+// once per weekday for no benefit; US history comes from Tiingo instead. One
 // Sync call covers every tracked US symbol (it already loops per symbol
 // internally), each close stored under its own quote's session date.
 func backfillUS(ctx context.Context, logger *slog.Logger, conn *sql.DB, usFetcher *us.Fetcher, now time.Time) error {

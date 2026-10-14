@@ -51,8 +51,8 @@ it('does not toggle when disabled', () => {
   expect(onChange).not.toHaveBeenCalled()
 })
 
-// GLG-1245: a pending box stays enabled and focused, as Button's pending does
-// (GLG-920), and ignores a change while its save runs.
+// A pending box stays enabled and focused, as Button's pending does,
+// and ignores a change while its save runs.
 it('keeps a pending box enabled and focused, and ignores changes', () => {
   const onChange = vi.fn()
   render(<Checkbox aria-label="Satırı seç" checked={false} pending onChange={onChange} />)

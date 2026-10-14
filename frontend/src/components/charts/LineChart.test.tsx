@@ -127,7 +127,7 @@ describe('LineChart', () => {
     const shapes = container.querySelectorAll('[data-marker]')
     expect(shapes).toHaveLength(1)
     expect(shapes[0].getAttribute('data-marker')).toBe('buy')
-    // Only the plotted kind is in the legend (GLG-807).
+    // Only the plotted kind is in the legend.
     const kinds = [...container.querySelectorAll('[data-legend-marker]')]
     expect(kinds.map((el) => el.textContent)).toEqual(['Alış'])
 
@@ -154,7 +154,7 @@ describe('LineChart', () => {
 
   // A press would focus the layer under the pointer (tabindex -1), which
   // bubbles to Recharts' focus handler and pins the keyboard tooltip on the
-  // first date (GLG-1034). Preventing the press's default keeps focus out; a
+  // first date. Preventing the press's default keeps focus out; a
   // field focused elsewhere still blurs, as the rename field saves on blur.
   it('takes no focus from a mouse press, and still blurs a focused field', () => {
     const { container, rerender } = render(<LineChart points={threeMonths} />)
@@ -511,7 +511,7 @@ describe('LineChart', () => {
     })
 
     // A year of days puts about 1.5 px between points, so a short drag still
-    // crosses several of them (GLG-1032).
+    // crosses several of them.
     it('zooms only on a drag of at least 8 px', async () => {
       const start = Date.UTC(2025, 0, 1)
       const year = Array.from({ length: 366 }, (_, i) =>

@@ -9,7 +9,7 @@ import { summaryQueryKey } from './summary'
 afterEach(() => vi.restoreAllMocks())
 
 describe('useDeletePortfolio', () => {
-  // GLG-1005. The deleted portfolio's page is still on screen when the delete
+  // The deleted portfolio's page is still on screen when the delete
   // succeeds; refetching its queries can only answer 404. The list and Tüm
   // portföyler change with the delete, so those do refetch.
   it('refetches the list and Tüm portföyler, never the deleted portfolio', async () => {

@@ -199,12 +199,12 @@ it('leads with one title row: the Özet link, the symbol as the one h1, name, ma
   const h1 = await screen.findByRole('heading', { level: 1, name: 'THYAO' })
   expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
   const row = h1.parentElement!.parentElement!
-  // The link back keeps the range (GLG-930).
+  // The link back keeps the range.
   expect(within(row).getByRole('link', { name: 'Özet ›' })).toHaveAttribute(
     'href',
     '/portfolios/1?range=1y',
   )
-  // GLG-890: the truncated instrument name shows in full on hover.
+  // The truncated instrument name shows in full on hover.
   expect(within(row).getByText('Türk Hava Yolları')).toHaveAttribute('title', 'Türk Hava Yolları')
   expect(within(row).getByText('BIST')).toBeInTheDocument()
   expect(within(row).getByText(formatUnitPrice('125.00', 'TRY'))).toBeInTheDocument()
@@ -270,14 +270,14 @@ it('shows six KPI cells: the total counts the dividends inside realized P/L once
   expect(within(cell('Piyasa değeri')).getByText('10 adet · Ağırlık %50,0')).toBeInTheDocument()
   expect(within(cell('Gerçekleşmemiş')).getByText('+₺245,00')).toBeInTheDocument()
   expect(within(cell('Gerçekleşmemiş')).getByText('+%24,4')).toBeInTheDocument()
-  // Özet's phone row leaves the currency gain to this page (GLG-774).
+  // Özet's phone row leaves the currency gain to this page.
   expect(within(cell('Gerçekleşmemiş')).getByText('Kur farkı +₺40,00')).toBeInTheDocument()
   expect(
     within(cell('Ort. maliyet')).getByText(formatUnitPrice('100.5', 'TRY', 6)),
   ).toBeInTheDocument()
 })
 
-// GLG-1354: the server sums unrealized 1526.875 and realized 531.975 before
+// The server sums unrealized 1526.875 and realized 531.975 before
 // rounding; the rounded parts would add up to a cent more.
 it('shows the total the summary gives, not the sum of the rounded parts', async () => {
   mockApi({
@@ -298,7 +298,7 @@ it('shows the total the summary gives, not the sum of the rounded parts', async 
   expect(within(cell('Gerçekleşmiş')).getByText('+₺531,98')).toBeInTheDocument()
 })
 
-// Review of PR #913: realized_pl_reporting converts at today's rate, the
+// Realized_pl_reporting converts at today's rate, the
 // timeline each dividend at its own date's, so their difference is not "from
 // sales". A USD stock, no sells, one $10 net dividend at 30 TRY/USD, today 40.
 it('shows realized P/L as the summary gives it, dividends included, never less the timeline', async () => {
@@ -387,7 +387,7 @@ it('has one chart card that switches between the price chart with markers and th
   renderPage('/portfolios/1/positions/7?range=1y')
   await screen.findByRole('heading', { level: 1, name: 'THYAO' })
 
-  // The range comes from the URL (GLG-930).
+  // The range comes from the URL.
   await vi.waitFor(() =>
     expect(urls).toContain('/api/portfolios/1/instruments/7/history?to=2026-09-28&from=2025-09-28'),
   )
@@ -397,7 +397,7 @@ it('has one chart card that switches between the price chart with markers and th
   // its marker, with a marker per loaded buy and sell and per summary split;
   // the average cost carries over into the closing day instead of dropping
   // to the zero the API sends for it (ADR 0016). The chart arrives with its
-  // lazy chunk; waitFor has setupTests.ts's longer timeout (GLG-983).
+  // lazy chunk; waitFor has setupTests.ts's longer timeout.
   const card = chartCard()
   expect(within(card).getByRole('radio', { name: 'Fiyat' })).toHaveAttribute('aria-checked', 'true')
   await waitFor(() =>
@@ -409,7 +409,7 @@ it('has one chart card that switches between the price chart with markers and th
   expect(costLine).toHaveLength(3)
   expect(new Set(costLine.map((xy) => xy.split(',')[1])).size).toBe(1)
 
-  // The price tooltip keeps a unit price's decimals (GLG-918), and privacy
+  // The price tooltip keeps a unit price's decimals, and privacy
   // masks it.
   const tooltip = () => card.querySelector('[role="tooltip"]')?.textContent ?? ''
   fireEvent.keyDown(within(card as HTMLElement).getByRole('application'), { key: 'ArrowRight' })
@@ -515,7 +515,7 @@ it('draws nothing on the days nothing is held: before the first held day and in 
   await screen.findByRole('heading', { level: 1, name: 'THYAO' })
 
   const lines = () => [...runs(chartCard(), 'cost'), ...runs(chartCard(), 'value')]
-  // The lazy chart chunk, as above (GLG-983).
+  // The lazy chart chunk, as above.
   await waitFor(() => expect(lines().length).toBeGreaterThan(0))
 
   // Price: from 09-21 in one line through the gap; the average cost carries
@@ -560,7 +560,7 @@ it('has exactly one h1 while loading and for an instrument not held (GLG-677)', 
   resolveSummary(Response.json({ ...summary([]), total_value: '0.00' }))
 
   // Not held: the not-found message is the h1, and the only one, with a way
-  // back to the portfolio's summary (GLG-814).
+  // back to the portfolio's summary.
   expect(
     await screen.findByRole('heading', { level: 1, name: 'Pozisyon bulunamadı.' }),
   ).toBeInTheDocument()
@@ -569,7 +569,7 @@ it('has exactly one h1 while loading and for an instrument not held (GLG-677)', 
   expect(document.title).toBe('Sayfa bulunamadı · Emeklilik · gelirgider')
 })
 
-// GLG-771: the history query's failure is announced once, with a Retry.
+// The history query's failure is announced once, with a Retry.
 it('announces a failed history load once, with a Retry', async () => {
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const url = String(input)
@@ -591,7 +591,7 @@ it('announces a failed history load once, with a Retry', async () => {
   expect(screen.getAllByRole('button', { name: 'Tekrar dene' })).toHaveLength(1)
 })
 
-// GLG-994: Chromium blurs a focused button the moment it is disabled, so the
+// Chromium blurs a focused button the moment it is disabled, so the
 // load-more button is pending while the next page loads; a second click asks
 // for nothing.
 it('keeps the load-more button focused and pending while the next page loads', async () => {

@@ -31,7 +31,7 @@ afterEach(() => {
 })
 
 describe('TransactionList', () => {
-  // GLG-1364: a TRY and a USD deposit on one day read as the same "sil"
+  // A TRY and a USD deposit on one day read as the same "sil"
   // button; the amount tells them apart.
   it.each([
     ['tr', true],

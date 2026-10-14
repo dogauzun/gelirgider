@@ -82,7 +82,7 @@ describe('SetupPage', () => {
     expect(await screen.findByLabelText('Kurulum anahtarı')).toBeInTheDocument()
   })
 
-  // GLG-797: setup promotes an existing account only on its stored password,
+  // Setup promotes an existing account only on its stored password,
   // so both fields ask the password manager for the saved one.
   it('marks both setup password fields as current-password', async () => {
     mockServer(201, {})
@@ -111,7 +111,7 @@ describe('SetupPage', () => {
     expect(await screen.findByText('Kurulum anahtarı hatalı.')).toBeInTheDocument()
   })
 
-  // GLG-1075: editing a field drops the server error about the values sent.
+  // Editing a field drops the server error about the values sent.
   it('clears the server error once a field is edited', async () => {
     mockServer(403, { error: 'invalid setup token' })
     renderAt('/setup')
@@ -124,7 +124,7 @@ describe('SetupPage', () => {
     expect(screen.queryByText('Kurulum anahtarı hatalı.')).not.toBeInTheDocument()
   })
 
-  // GLG-1075: the same reveal toggle as on login and register.
+  // The same reveal toggle as on login and register.
   it('reveals and hides the step 1 password', async () => {
     mockServer(201, {})
     renderAt('/setup')
@@ -152,7 +152,7 @@ describe('SetupPage', () => {
     expect(screen.queryByText('Şifreler eşleşmiyor.')).not.toBeInTheDocument()
   })
 
-  // GLG-1353: a password over 72 bytes pasted into both fields is the same
+  // A password over 72 bytes pasted into both fields is the same
   // password, so the server's length rule shows, not a mismatch.
   it('shows the 72-byte limit, not a mismatch, for a long pasted password', async () => {
     mockServer(400, { error: 'password must be at most 72 bytes' })
@@ -170,7 +170,7 @@ describe('SetupPage', () => {
     expect(screen.queryByText('Şifreler eşleşmiyor.')).not.toBeInTheDocument()
   })
 
-  // GLG-994: Chromium blurs a focused button the moment it is disabled, so the
+  // Chromium blurs a focused button the moment it is disabled, so the
   // running request marks the button pending instead; a second submit sends
   // nothing.
   it('keeps the submit button focused and pending while the admin is created', async () => {
@@ -212,7 +212,7 @@ describe('SetupPage', () => {
     renderAt('/setup/configure')
     expect(await screen.findByRole('heading', { name: 'Veri sağlayıcılar' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Kaynaklar' })).toBeInTheDocument()
-    // GLG-970: Yönetim's sources table, one row per source.
+    // Yönetim's sources table, one row per source.
     const table = await screen.findByRole('table')
     expect(within(table).getByRole('checkbox', { name: 'bist açık' })).toBeChecked()
     expect(screen.getByText('Herkese açık kayıt')).toBeInTheDocument()
@@ -220,14 +220,14 @@ describe('SetupPage', () => {
     expect(await screen.findByText('home page')).toBeInTheDocument()
   })
 
-  // GLG-970: the signed-out pages share one frame and one title size.
+  // The signed-out pages share one frame and one title size.
   it('renders step 1 in the signed-out frame', async () => {
     mockServer(201, {})
     renderAt('/setup')
     expectSignedOutFrame(await screen.findByRole('heading', { level: 1, name: 'Kurulum' }))
   })
 
-  // GLG-970: step 2 is long, so "Atla" and "Bitir" sit in a bar fixed to the
+  // Step 2 is long, so "Atla" and "Bitir" sit in a bar fixed to the
   // bottom of the screen, and the page's bottom padding is the bar's height
   // so the bar never covers the end of the page.
   it('keeps the step 2 buttons in a bar fixed to the bottom', async () => {

@@ -18,7 +18,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-// A blank name used to be a silent no-op: no request and no error (GLG-904).
+// A blank name used to be a silent no-op: no request and no error.
 it('shows the name error for a blank name without a request', () => {
   const fetchSpy = vi.spyOn(globalThis, 'fetch')
   render(
@@ -35,8 +35,8 @@ it('shows the name error for a blank name without a request', () => {
   expect(fetchSpy).not.toHaveBeenCalled()
 })
 
-// GLG-1090: the "name already used" error is about the name sent, so editing
-// the name drops it, as on the signed-out forms (GLG-1075).
+// The "name already used" error is about the name sent, so editing
+// the name drops it, as on the signed-out forms.
 it('clears the server error once the name is edited', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValue(
     new Response(JSON.stringify({ error: 'name already used' }), { status: 409 }),
@@ -60,7 +60,7 @@ it('clears the server error once the name is edited', async () => {
   expect(input).not.toHaveAttribute('aria-invalid')
 })
 
-// GLG-1268: isPending reaches the button a tick after the click, so a double
+// isPending reaches the button a tick after the click, so a double
 // click's second click came before pending and created the portfolio twice.
 it('creates the portfolio once on a double click', async () => {
   const fetchSpy = vi

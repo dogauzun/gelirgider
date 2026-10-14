@@ -31,7 +31,7 @@ describe('TransactionDialog', () => {
     vi.restoreAllMocks()
   })
 
-  // GLG-209: with onSubmit the caller keeps the row itself, so the dialog must
+  // With onSubmit the caller keeps the row itself, so the dialog must
   // hand over the input and send nothing.
   it('hands the input to onSubmit and saves nothing', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
@@ -64,7 +64,7 @@ describe('TransactionDialog', () => {
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
-  // GLG-772: backdrop, Escape and Vazgeç close an untouched form at once, but
+  // Backdrop, Escape and Vazgeç close an untouched form at once, but
   // ask before throwing away a changed one.
   it('asks before closing a changed form', async () => {
     const onClose = vi.fn()
@@ -92,7 +92,7 @@ describe('TransactionDialog', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(2))
   })
 
-  // GLG-428: the type control is a radio group, so one Tab stop and the
+  // The type control is a radio group, so one Tab stop and the
   // arrow keys move and select.
   it('moves the type with the arrow keys', () => {
     render(
@@ -117,7 +117,7 @@ describe('TransactionDialog', () => {
     expect(screen.getByRole('radio', { name: 'Ücret' })).toHaveAttribute('aria-checked', 'true')
   })
 
-  // GLG-378: a fee row's amount is the fee, so it has no fee field, and one
+  // A fee row's amount is the fee, so it has no fee field, and one
   // typed under another type before switching must not be sent.
   it('hides the fee field for a fee row and sends fee 0', () => {
     const onSubmit = vi.fn()
@@ -140,7 +140,7 @@ describe('TransactionDialog', () => {
     )
   })
 
-  // GLG-224: the error used to stay until the next submit, so it sat under a
+  // The error used to stay until the next submit, so it sat under a
   // field the user had already fixed.
   it('clears the validation error when a field changes', async () => {
     render(
@@ -163,7 +163,7 @@ describe('TransactionDialog', () => {
     expect(screen.queryByText("Tutar 0'dan büyük olmalı.")).not.toBeInTheDocument()
   })
 
-  // GLG-223: the type switch used to clear the instrument, so a Buy -> Deposit
+  // The type switch used to clear the instrument, so a Buy -> Deposit
   // -> Buy round trip left the field empty and the save failed validation.
   it('keeps the instrument and the amount across a type round trip', () => {
     const onSubmit = vi.fn()
@@ -225,7 +225,7 @@ describe('TransactionDialog', () => {
     )
   })
 
-  // GLG-368: an imported trade stores the statement's rounded amount, which a
+  // An imported trade stores the statement's rounded amount, which a
   // save deriving quantity × price used to replace.
   it('keeps a trade amount on save until quantity or price changes', async () => {
     const fetchSpy = vi
@@ -271,7 +271,7 @@ describe('TransactionDialog', () => {
     expect(putBodies()[1]).not.toHaveProperty('amount')
   })
 
-  // GLG-373: a sell over the quantity held was saved without a word. The
+  // A sell over the quantity held was saved without a word. The
   // warning must not block the save, and an edited sell must count its own
   // quantity as held, since the summary already took it off.
   it('warns about a sell over the quantity held and still saves', async () => {
@@ -323,14 +323,14 @@ describe('TransactionDialog', () => {
     )
   })
 
-  // GLG-634: above 2^53 units Number(held) rounded the hint's quantity.
+  // Above 2^53 units Number(held) rounded the hint's quantity.
   it('shows a held quantity above 2^53 units exactly', () => {
     const form = { ...emptyForm('sell'), instrumentId: 44, quantity: '20000000' }
     const positions = [{ instrument_id: 44, quantity: '12345678.123456789' } as Position]
     expect(sellExceedsHeld(form, positions, null)).toBe('12.345.678,123456789')
   })
 
-  // GLG-625: a browser's showModal() focuses the first focusable element in
+  // A browser's showModal() focuses the first focusable element in
   // tree order, the "Alış" radio, even when the dialog opens on another type.
   it('focuses the checked type radio on open', () => {
     vi.spyOn(HTMLDialogElement.prototype, 'showModal').mockImplementation(function (
@@ -354,9 +354,9 @@ describe('TransactionDialog', () => {
     expect(screen.getByRole('radio', { name: 'Satış' })).toHaveFocus()
   })
 
-  // GLG-483: focus must be inside the open dialog after a rejected save. The
+  // Focus must be inside the open dialog after a rejected save. The
   // submit button is pending, not disabled, during the request, so Chromium
-  // does not drop its focus to <body> (GLG-920).
+  // does not drop its focus to <body>.
   it('keeps focus in the dialog after a rejected save', async () => {
     let reject: (response: Response) => void = () => {}
     vi.spyOn(globalThis, 'fetch').mockImplementation(
@@ -370,7 +370,7 @@ describe('TransactionDialog', () => {
     )
 
     fireEvent.click(screen.getByRole('radio', { name: 'Yatırma' }))
-    // A saved row keeps its note; only the import preview drops it (GLG-981).
+    // A saved row keeps its note; only the import preview drops it.
     expect(screen.getByLabelText('Not · isteğe bağlı')).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Tutar'), { target: { value: '500' } })
     const submit = screen.getByRole('button', { name: 'Ekle' })
@@ -386,7 +386,7 @@ describe('TransactionDialog', () => {
     expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement)
   })
 
-  // GLG-770: a validation error sits on the field that caused it, described by
+  // A validation error sits on the field that caused it, described by
   // its message, and takes focus even when submitted from another input.
   it('shows a validation error on its field and focuses it', () => {
     render(
@@ -415,7 +415,7 @@ describe('TransactionDialog', () => {
   })
 })
 
-// GLG-937: several trades in a row, by button or by ⌘↵.
+// Several trades in a row, by button or by ⌘↵.
 describe('add and new', () => {
   afterEach(() => {
     cleanup()
@@ -510,7 +510,7 @@ describe('add and new', () => {
     await expectSavedAndReset(fetchSpy, onClose)
   })
 
-  // GLG-990: the buttons ignore clicks while a save runs; ⌘↵ must too, or a
+  // The buttons ignore clicks while a save runs; ⌘↵ must too, or a
   // second press on a slow connection books the row twice.
   it('ignores a second ⌘↵ while the save is running', async () => {
     const fetchSpy = vi
@@ -533,7 +533,7 @@ describe('add and new', () => {
     expect(posts).toHaveLength(1)
   })
 
-  // GLG-1268: isPending reaches the buttons a tick after the click, so a
+  // isPending reaches the buttons a tick after the click, so a
   // double click's second click came before pending and booked the row twice.
   it.each(['Ekle', 'Ekle ve yeni'])('books the row once on a double click of %s', async (name) => {
     const fetchSpy = vi
@@ -607,7 +607,7 @@ describe('TransactionDialog numbers', () => {
 
   afterEach(cleanup)
 
-  // GLG-355: "1e3" is not below zero, it is not a number at all.
+  // "1e3" is not below zero, it is not a number at all.
   it('tells a value that is not a number from one that is not above 0', () => {
     renderEditing()
     const amount = screen.getByLabelText('Tutar')
@@ -627,13 +627,13 @@ describe('TransactionDialog numbers', () => {
       expect(screen.getByText("Tutar 0'dan büyük olmalı.")).toBeInTheDocument()
     }
 
-    // The GLG-342 hint still wins over both.
+    // The hint still wins over both.
     fireEvent.change(amount, { target: { value: '10.000' } })
     fireEvent.click(save)
     expect(screen.getByText('Binlik ayırıcı mı? 10000 veya 10.000,00 yaz.')).toBeInTheDocument()
   })
 
-  // GLG-423: a positive value past the server's digit limit was reported as
+  // A positive value past the server's digit limit was reported as
   // "must be greater than 0".
   it('names the digit limit for a positive value with too many digits', () => {
     const form = { ...emptyForm('buy'), instrumentId: 1, quantity: '0,0000000001', price: '10' }
@@ -643,7 +643,7 @@ describe('TransactionDialog numbers', () => {
     })
   })
 
-  // GLG-355: the edit form showed the API's "22.5" next to a page of "₺22,50".
+  // The edit form showed the API's "22.5" next to a page of "₺22,50".
   it('prefills API decimals with the locale separator and saves them unchanged', () => {
     const onSubmit = vi.fn()
     renderEditing(onSubmit)
@@ -659,7 +659,7 @@ describe('TransactionDialog numbers', () => {
   })
 })
 
-// GLG-538: interest is a dividend with no instrument on the API, and one
+// Interest is a dividend with no instrument on the API, and one
 // comes back as interest, whether saved or an import preview row (a Midas
 // nema) with no symbol. A preview dividend whose symbol is still unknown stays
 // a dividend waiting for its instrument.
@@ -699,7 +699,7 @@ describe('interest', () => {
 })
 
 describe('cashEffect', () => {
-  // GLG-382: a fee above the proceeds showed "Added to cash +-$4.00".
+  // A fee above the proceeds showed "Added to cash +-$4.00".
   it('flips to cash out when the fee exceeds the incoming amount', () => {
     const sell = { ...emptyForm('sell'), quantity: '1', price: '1', fee: '5' }
     expect(cashEffect(sell)).toEqual({ out: true, amount: 4 })

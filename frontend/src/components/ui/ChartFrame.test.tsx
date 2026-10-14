@@ -5,7 +5,7 @@ import { ChartFrame } from './ChartFrame'
 
 type Query = ComponentProps<typeof ChartFrame>['query']
 
-// GLG-1342: the failure with a Retry, the skeleton at the chart's height
+// The failure with a Retry, the skeleton at the chart's height
 // before the first data, then the chart, faded while the next range loads.
 it('frames a history query in its four states', () => {
   const refetch = vi.fn()

@@ -66,7 +66,7 @@ describe('AttentionCard', () => {
     expect(screen.getByText('Nakit')).toBeTruthy()
   })
 
-  // GLG-1006: the mover's link dropped the chart range, so the position
+  // The mover's link dropped the chart range, so the position
   // page opened at 3A.
   it("keeps the chart range on a mover's link", () => {
     render(
@@ -115,7 +115,7 @@ describe('AttentionCard', () => {
     expect(handlers.onEditPrice).toHaveBeenCalledWith(5)
   })
 
-  // GLG-1008: on Tüm portföyler the same symbol's actions in two portfolios
+  // On Tüm portföyler the same symbol's actions in two portfolios
   // had identical names; each now names its portfolio. Without a portfolio
   // (a single portfolio's Özet) the names stay as they were, as the test
   // above shows.
@@ -139,7 +139,7 @@ describe('AttentionCard', () => {
     expect(screen.getByRole('button', { name: /^Yan: TUPRS .* temettüsünü yoksay$/ })).toBeTruthy()
   })
 
-  // GLG-1007: Ekle and Yoksay remove the focused button once the expected
+  // Ekle and Yoksay remove the focused button once the expected
   // list refetches, and focus fell to <body>.
   describe('focus after Ekle or Yoksay', () => {
     // As SummaryPage drives the card: busy while the request and the
@@ -182,7 +182,7 @@ describe('AttentionCard', () => {
     })
   })
 
-  // GLG-997: a long portfolio name truncated the whole line, the item's own
+  // A long portfolio name truncated the whole line, the item's own
   // text with it. The name is its own element now, the one that shortens,
   // and carries its full text as a title.
   it('keeps a long portfolio name apart from the item text, with a title', () => {

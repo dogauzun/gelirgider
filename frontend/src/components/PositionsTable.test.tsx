@@ -136,7 +136,7 @@ describe('PositionsTable', () => {
       'K/Z',
       'Eylemler',
     ])
-    // The row menu column is named for screen readers (GLG-1358).
+    // The row menu column is named for screen readers.
     expect(screen.getByRole('columnheader', { name: 'Eylemler' })).toBeInTheDocument()
     // Its sr-only label is absolute: the scroller must be positioned to clip it.
     expect(screen.getByRole('table').parentElement).toHaveClass('relative', 'overflow-x-auto')
@@ -336,7 +336,7 @@ describe('PositionsTable', () => {
     expect(screen.queryByText('THYAO')).toBeNull()
   })
 
-  // The realized percent is over the cost of the shares sold (GLG-1100); a
+  // The realized percent is over the cost of the shares sold; a
   // short's zero cost, or a backend without the field, has no percent.
   const closedRows = () =>
     summary([
@@ -491,7 +491,7 @@ describe('PositionsTable', () => {
   })
 
   it("keeps the total's percent over a negative cost, as the rows do", () => {
-    // A net short portfolio (GLG-27): the percent is over the cost taken
+    // A net short portfolio: the percent is over the cost taken
     // absolute, as each row's is, so a gain still reads positive.
     renderTable(summary(twoPositions(), { unrealized_pl: '300.00', cost_basis: '-600.00' }))
     const footer = within(screen.getAllByRole('rowgroup')[2])
@@ -591,7 +591,7 @@ describe('unrealized', () => {
 })
 
 describe('returnPercent', () => {
-  // The one P/L-over-cost rule every screen uses (GLG-1169): a negative cost
+  // The one P/L-over-cost rule every screen uses: a negative cost
   // is taken absolute, a zero or missing cost gives no percent.
   it('divides by the absolute cost, and gives none without one', () => {
     expect(returnPercent('100.00', '400.00')).toBe('+%25')

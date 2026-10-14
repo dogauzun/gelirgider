@@ -31,7 +31,7 @@ it('leaves the dividends cell out when dividends is null', () => {
   expect(avgCost.closest('section')).toHaveClass('lg:grid-cols-5')
 })
 
-// GLG-1359: en read "1 units" for a quantity of exactly 1, whatever its scale.
+// En read "1 units" for a quantity of exactly 1, whatever its scale.
 afterEach(() => setLocale('tr'))
 
 it('reads the English singular for a quantity of 1', () => {

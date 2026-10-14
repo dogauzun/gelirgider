@@ -54,7 +54,7 @@ describe('BarChart', () => {
     expect(heights[0]).toBeGreaterThan(1)
   })
 
-  // GLG-939: ₺812 next to ₺1,28 Mn scales to a fraction of a pixel, which
+  // ₺812 next to ₺1,28 Mn scales to a fraction of a pixel, which
   // drew the same 1 px hairline as an empty month.
   it('draws a small non-zero month at least 3 px tall and a zero month at 1 px', () => {
     const { container } = render(
@@ -73,7 +73,7 @@ describe('BarChart', () => {
     expect(heights[1]).toBe(1)
   })
 
-  // GLG-893: Intl's own compact currency output prints "450 B ₺" on ICU 77,
+  // Intl's own compact currency output prints "450 B ₺" on ICU 77,
   // so the ticks must put the sign where formatMoney does, with Intl's
   // default compact rounding ("1,3 Mn", not "1,28 Mn").
   it('labels the y ticks as compact money with the sign before the digits', () => {
@@ -103,7 +103,7 @@ describe('BarChart', () => {
     expect(document.querySelector('[role="tooltip"]')).toHaveAttribute('aria-live', 'polite')
   })
 
-  // As on LineChart (GLG-1034).
+  // As on LineChart.
   it('takes no focus from a mouse press, and still blurs a focused field', () => {
     const { container } = render(
       <>
@@ -117,7 +117,7 @@ describe('BarChart', () => {
     expect(document.activeElement).toBe(document.body)
   })
 
-  // GLG-924: the card was placed by the pointer, so it sat over the next
+  // The card was placed by the pointer, so it sat over the next
   // slot and the hovered bar, and anywhere at all for the keyboard.
   it('places the keyboard tooltip centred on the active bar, off its top, inside the plot', () => {
     // jsdom has no layout: the card measures as 150 x 60.

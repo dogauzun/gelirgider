@@ -50,7 +50,7 @@ describe('ImportDone', () => {
     expect(within(items[3]).queryByRole('link')).toBeNull()
   })
 
-  // The same button-styled link as the history card under it (GLG-1056).
+  // The same button-styled link as the history card under it.
   it('styles the view link like the history card does', () => {
     renderDone([{ file: file('ocak.csv'), status: 'imported', id: 41, count: 12 }])
 

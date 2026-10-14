@@ -66,7 +66,7 @@ describe('ProvidersSection', () => {
     expect(await tiingo.findByText('Sağlayıcı anahtarı reddetti.')).toBeInTheDocument()
   })
 
-  // GLG-1309: the test outcome rendered as a plain paragraph, so a screen
+  // The test outcome rendered as a plain paragraph, so a screen
   // reader heard nothing after pressing Test et.
   it('announces the test result politely', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) =>
@@ -85,7 +85,7 @@ describe('ProvidersSection', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Sağlayıcıya ulaşılamadı.')
   })
 
-  // GLG-994: a disabled button loses focus in Chromium, so the running test
+  // A disabled button loses focus in Chromium, so the running test
   // request marks the button pending instead and a second click is ignored.
   it('keeps the test button focused and pending while the test runs', async () => {
     let finish: (response: Response) => void = () => {}
@@ -116,7 +116,7 @@ describe('ProvidersSection', () => {
     await vi.waitFor(() => expect(button).not.toHaveAttribute('aria-disabled'))
   })
 
-  // GLG-1292: isPending reaches the buttons a tick after the click, so a
+  // isPending reaches the buttons a tick after the click, so a
   // double click's second click came before pending and sent the request twice.
   it('sends one request per double click on save and test', async () => {
     const sent: string[] = []
@@ -148,7 +148,7 @@ describe('ProvidersSection', () => {
     ])
   })
 
-  // GLG-1308: a save empties the input, which disables the focused Kaydet,
+  // A save empties the input, which disables the focused Kaydet,
   // and a clear disables the Temizle its dialog hands focus back to. Chromium
   // then drops focus to <body>; jsdom does not blur on disable, so the test
   // checks focus moved to the row's key input and the button is disabled.
@@ -217,7 +217,7 @@ describe('ProvidersSection', () => {
     ).toBeInTheDocument()
   })
 
-  // GLG-1057: below md the status sits under the name and description on
+  // Below md the status sits under the name and description on
   // every row, whatever the description's length.
   it('puts the status under the name on every row below md', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>

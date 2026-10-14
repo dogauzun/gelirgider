@@ -2,8 +2,8 @@ import { expect, it } from 'vitest'
 import { inStep } from './rows'
 import type { Row } from './shared'
 
-// The proposed cash rows follow the checked opening buys and closing sells
-// (GLG-817, GLG-1190): the deposit rounds up to the cent, the withdrawal nets
+// The proposed cash rows follow the checked opening buys and closing sells:
+// the deposit rounds up to the cent, the withdrawal nets
 // the fee and rounds down, a hand-edited deposit is the user's, and a new row
 // goes in front of the opening rows or after the closing rows.
 it('keeps the opening deposits and closing withdrawals in step', () => {

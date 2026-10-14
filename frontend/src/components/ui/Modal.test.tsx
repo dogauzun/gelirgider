@@ -14,7 +14,7 @@ function Nested({ onOuter, onInner }: { onOuter: () => void; onInner: () => void
 }
 
 // React hands a nested dialog's cancel up through every onCancel in the tree:
-// Escape in the inner dialog must close that one only (GLG-1165).
+// Escape in the inner dialog must close that one only.
 test('Escape in a nested dialog closes only the inner one', () => {
   const onOuter = vi.fn()
   const onInner = vi.fn()

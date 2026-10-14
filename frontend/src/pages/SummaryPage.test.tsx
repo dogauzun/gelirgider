@@ -17,7 +17,7 @@ function LocationProbe() {
 }
 
 // jsdom has no matchMedia. The positions card renders the table or the phone
-// list by viewport (GLG-460), so tests get the table unless they set `desktop`.
+// list by viewport, so tests get the table unless they set `desktop`.
 let desktop = true
 beforeAll(() => {
   window.matchMedia = (query) =>
@@ -34,19 +34,19 @@ beforeAll(() => {
 })
 
 // A KPI sub-line by its whole text: each money figure in it is its own
-// nowrap span (GLG-778), and the hero's ▲/▼ arrow is left out.
+// nowrap span, and the hero's ▲/▼ arrow is left out.
 const subLine = (text: string) => (_: string, el: Element | null) =>
   el?.tagName === 'P' && el.textContent?.replace(/^[▲▼] /, '') === text
 
-// The return card's headline (GLG-934): the return, the change and the
+// The return card's headline: the return, the change and the
 // benchmark pill, as "+%30 · +₺100,00 · Dolar +%5 · fark +%23,8".
 async function headline(): Promise<string> {
   const el = await screen.findByTestId('return-headline')
   return [...el.children].map((c) => c.textContent).join(' · ')
 }
 
-// A KPI cell's hint (GLG-934): opened from the cell's label, read, closed.
-// The popup is a dialog named by the label (GLG-1091).
+// A KPI cell's hint: opened from the cell's label, read, closed.
+// The popup is a dialog named by the label.
 async function hint(label: string): Promise<string> {
   // The positions table's sort buttons share some names; a hint sits in a <p>.
   const trigger = screen.getAllByRole('button', { name: label }).find((b) => b.closest('p'))!
@@ -166,20 +166,20 @@ describe('SummaryPage', () => {
     // assertions are scoped to the table.
     const tableEl = await within(container).findByRole('table')
     const table = within(tableEl)
-    // GLG-322: wider than the card at tablet widths, so it must scroll sideways.
+    // Wider than the card at tablet widths, so it must scroll sideways.
     expect(tableEl.parentElement).toHaveClass('overflow-x-auto')
     expect(table.getByText('THYAO')).toBeInTheDocument()
     expect(table.getByText('GARAN')).toBeInTheDocument()
     // The KPI strip's total, in the reporting currency (TRY) with Intl
     // currency formatting.
     expect(screen.getByText('₺13.750,00')).toBeInTheDocument()
-    // GLG-569: two columns even on a phone, with the total spanning both there.
+    // Two columns even on a phone, with the total spanning both there.
     const totalCell = screen.getByText('₺13.750,00').closest('p')!.parentElement!
     expect(totalCell).toHaveClass('col-span-2', 'lg:col-span-1')
     expect(totalCell.parentElement).toHaveClass('grid-cols-2')
     expect(totalCell.parentElement).not.toHaveClass('grid-cols-1')
     // The return against the cost the API sums (cost_basis), as the hint of
-    // the unrealized cell (GLG-934).
+    // the unrealized cell.
     expect(await hint('Gerçekleşmemiş K/Z')).toBe('+%26,2 maliyete göre · Maliyet ₺10.500,00')
     // The USD position's unit price stays in dollars.
     expect(table.getByText('$190,00')).toBeInTheDocument()
@@ -187,11 +187,11 @@ describe('SummaryPage', () => {
     // carries both.
     expect(await hint('Nakit')).toBe('₺500,00 · $20,00')
     // AAPL's market_value_reporting (12000.00 TRY) is the value column, its
-    // own dollars on hover (GLG-933).
+    // own dollars on hover.
     expect(table.getByText('₺12.000,00')).toHaveAttribute('title', '$380,00')
     // P/L in the reporting currency with the return over the cost basis.
     expect(table.getByText('+₺2.500,00 · +%26,7')).toBeInTheDocument()
-    // GARAN has no price yet, so its P/L is unknown, not a flat zero (GLG-275).
+    // GARAN has no price yet, so its P/L is unknown, not a flat zero.
     const garan = within(table.getByText('GARAN').closest('tr')!)
     expect(garan.getAllByRole('cell').at(-2)).toHaveTextContent('—')
     // The footer sums the reporting values of all three positions.
@@ -348,14 +348,14 @@ describe('SummaryPage', () => {
     expect(within(phone.card.getByRole('list')).getByText('THYAO')).toBeInTheDocument()
     expect(phone.card.getAllByText('Toplam · 1 pozisyon, TRY olarak')).toHaveLength(1)
 
-    // The compact row names the instrument; a tap opens the position dialog
-    // (GLG-1105), so the symbol is no link of its own; no Al/Sat on the row.
+    // The compact row names the instrument; a tap opens the position dialog,
+    // so the symbol is no link of its own; no Al/Sat on the row.
     const item = within(phone.card.getByRole('listitem'))
     expect(item.queryByRole('link')).not.toBeInTheDocument()
     expect(item.getByText('Türk Hava Yolları')).toBeInTheDocument()
     expect(item.queryByRole('button', { name: 'Al' })).not.toBeInTheDocument()
     expect(item.queryByRole('button', { name: 'Sat' })).not.toBeInTheDocument()
-    // No price line or price editor on the phone row any more (GLG-933).
+    // No price line or price editor on the phone row any more.
     expect(item.queryByText('₺125,00')).not.toBeInTheDocument()
     expect(item.queryByRole('button', { name: 'THYAO işlemleri' })).not.toBeInTheDocument()
   })
@@ -429,8 +429,7 @@ describe('SummaryPage', () => {
       return { card: within(heading.closest('section')!), unmount }
     }
 
-    // The one-line rows leave AAPL's currency gain to the position page
-    // (GLG-933).
+    // The one-line rows leave AAPL's currency gain to the position page.
     const wide = await renderCard()
     expect(wide.card.getByText('AAPL')).toBeInTheDocument()
     expect(wide.card.queryByText(/Kur farkı/)).not.toBeInTheDocument()
@@ -439,7 +438,7 @@ describe('SummaryPage', () => {
 
     desktop = false
     const phone = await renderCard()
-    // The compact phone row leaves it to the position page (GLG-774).
+    // The compact phone row leaves it to the position page.
     expect(within(phone.card.getByRole('list')).getByText('AAPL')).toBeInTheDocument()
     expect(phone.card.queryByText(/Kur farkı/)).not.toBeInTheDocument()
   })
@@ -476,7 +475,7 @@ describe('SummaryPage', () => {
     })
     // THYAO moved and has a rate; AAPL moved but has no rate, so it stays out
     // of the total; GARAN has no previous close. The total is the server's
-    // day_change (GLG-1204).
+    // day_change.
     let dayChange: string | null = '120.00'
     let positions = [
       position(1, 'THYAO', 'TRY', '120.00', '120.00'),
@@ -535,8 +534,8 @@ describe('SummaryPage', () => {
     const thyao = rows.find((row) => within(row).queryByText('THYAO'))!
     const garan = rows.find((row) => within(row).queryByText('GARAN'))!
     // 120 over the 10.000 it was worth at the previous close. The row shows
-    // the percent alone, keeping it one line (GLG-933); the amount and the
-    // dates are in a toggletip, which a tap or focus shows (GLG-808).
+    // the percent alone, keeping it one line; the amount and the
+    // dates are in a toggletip, which a tap or focus shows.
     const title = `+₺120,00 · Önceki kapanış ${formatShortMarketDate('2026-09-10')} → ${formatShortMarketDate('2026-09-11')}`
     const button = within(thyao).getByRole('button', { description: title })
     expect(button).toHaveTextContent('+%1,2')
@@ -546,7 +545,7 @@ describe('SummaryPage', () => {
     fireEvent.keyDown(button, { key: 'Escape' })
     expect(within(thyao).getByText(title)).not.toBeVisible()
     expect(within(garan).queryByText(/^Önceki kapanış/)).not.toBeInTheDocument()
-    // The total is the KPI strip's Günlük cell, dated in its hint (GLG-934).
+    // The total is the KPI strip's Günlük cell, dated in its hint.
     const dayCell = page.getByText('Günlük', { selector: 'p button' }).closest('div')!
     expect(within(dayCell).getByText('+₺120,00').closest('p')).toHaveClass('text-gain')
     expect(await hint('Günlük')).toBe(`${formatShortMarketDate('2026-09-11')} fiyatlarıyla`)
@@ -646,7 +645,7 @@ describe('SummaryPage', () => {
           },
         ])
       }
-      // The Portföyler row's own requests (GLG-935) are not under test here.
+      // The Portföyler row's own requests are not under test here.
       if (/^\/api\/portfolios\/1\//.test(url)) {
         return Response.json({ error: 'boom' }, { status: 500 })
       }
@@ -708,7 +707,7 @@ describe('SummaryPage', () => {
     const table = within(within(positions.closest('section')!).getByRole('table'))
     expect(table.getByText('THYAO')).toBeInTheDocument()
     expect(table.queryByRole('link')).toBeNull()
-    // No row menu, so no trading and no price entry (GLG-933).
+    // No row menu, so no trading and no price entry.
     expect(table.queryByRole('button', { name: 'THYAO işlemleri' })).toBeNull()
     expect(table.getByText('₺125,00')).toBeInTheDocument()
     expect(screen.queryByText(/Fiyat gir/)).toBeNull()
@@ -725,7 +724,7 @@ describe('SummaryPage', () => {
     )
     localStorage.removeItem('benchmark')
 
-    // The copy button sits in the card header, outside the table (GLG-608).
+    // The copy button sits in the card header, outside the table.
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
     fireEvent.click(screen.getByRole('button', { name: 'AI için kopyala' }))
@@ -841,7 +840,7 @@ describe('SummaryPage', () => {
     )
 
     const table = within(await within(container).findByRole('table'))
-    // In the row menu, so the row stays one line (GLG-933).
+    // In the row menu, so the row stays one line.
     fireEvent.click(table.getByRole('button', { name: 'THYAO işlemleri' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Sat' }))
     const dialog = within(await screen.findByRole('dialog'))
@@ -914,8 +913,8 @@ describe('SummaryPage', () => {
     )
 
     // On a portfolio the attention card says it, with the positions left
-    // out (GLG-934); missing_rates names the currencies left OUT of the
-    // totals (GLG-114).
+    // out; missing_rates names the currencies left OUT of the
+    // totals.
     const card = within(await screen.findByRole('region', { name: 'Dikkat' }))
     expect(
       card.getByText('USD kur eksikliği nedeniyle toplam dışında · 1 pozisyon'),
@@ -1383,8 +1382,8 @@ describe('SummaryPage', () => {
   })
 
   // A range of a year or more adds the annualized returns under the period
-  // figure, the benchmark's after the portfolio's (GLG-607). A calendar year
-  // (GLG-661) and the 1Y preset (GLG-675) are one year: annualized equals
+  // figure, the benchmark's after the portfolio's. A calendar year
+  // and the 1Y preset are one year: annualized equals
   // the period return.
   it.each([
     ['two-year', '2024-01-03', '2026-01-01', 'yıllık +%10 · BIST 100 yıllık +%20'],
@@ -1792,7 +1791,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
-      // GLG-93: the backend should no longer 400 on its own default `from`,
+      // The backend should no longer 400 on its own default `from`,
       // but the chart must still surface any other history-query failure
       // (e.g. a network error, or a future regression) instead of quietly
       // rendering nothing. The retry then answers.
@@ -2014,7 +2013,7 @@ describe('SummaryPage', () => {
       </QueryClientProvider>,
     )
 
-    // Fiyat gir in the row's menu opens the price dialog (GLG-933).
+    // Fiyat gir in the row's menu opens the price dialog.
     const table = within(await within(container).findByRole('table'))
     await vi.waitFor(() => expect(historyCalls()).toBe(1))
     const menu = table.getByRole('button', { name: 'THYAO işlemleri' })
@@ -2039,12 +2038,12 @@ describe('SummaryPage', () => {
 
     // The value chart must refetch its history after the price is saved.
     await vi.waitFor(() => expect(historyCalls()).toBe(2))
-    // The dialog closes and focus is back on the row's menu (GLG-760).
+    // The dialog closes and focus is back on the row's menu.
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(document.activeElement).toBe(menu)
   })
 
-  // GLG-1145: a price saved from the Dikkat card's Fiyat gir removed that
+  // A price saved from the Dikkat card's Fiyat gir removed that
   // button once the summaries refetched, and focus fell to <body>. On Tüm
   // portföyler the price leaves every portfolio's line, the dialog's own
   // first and the others after the dialog has closed.
@@ -2353,11 +2352,11 @@ describe('SummaryPage', () => {
       // The summary refetches, so the fetched close takes over and the tag goes.
       expect((await within(container).findAllByText('₺58,00')).length).toBeGreaterThan(0)
       expect(within(container).queryByText('manuel')).not.toBeInTheDocument()
-      // Focus stays on the row's menu (GLG-760).
+      // Focus stays on the row's menu.
       expect(document.activeElement).toBe(menu)
     })
 
-    // GLG-484: a failed removal must say so, and focus must not be lost.
+    // A failed removal must say so, and focus must not be lost.
     it('reports a failed removal in a toast and keeps focus on the row menu', async () => {
       mockFetch(
         async () => new Response(JSON.stringify({ error: 'internal error' }), { status: 500 }),
@@ -2371,7 +2370,7 @@ describe('SummaryPage', () => {
       expect(document.activeElement).toBe(menu)
     })
 
-    // GLG-760: closing the price dialog unmounts the focused input; focus goes
+    // Closing the price dialog unmounts the focused input; focus goes
     // back to the row's menu, not to <body>.
     it("returns focus to the row's menu when the price dialog closes", async () => {
       mockFetch(async () => new Response(null, { status: 204 }))
@@ -2463,7 +2462,7 @@ describe('SummaryPage', () => {
     fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
   })
 
-  // GLG-135: the chart's own hint, independent of the summary banner --
+  // The chart's own hint, independent of the summary banner --
   // summary.missing_rates is empty here (today's rate exists) while the range
   // still has days that excluded USD, which is exactly the cliff case.
   it('warns under the chart only when the range excludes a currency', async () => {
@@ -2529,8 +2528,8 @@ describe('SummaryPage', () => {
     const uncovered = renderPage()
     expect(await within(uncovered.container).findByText(hint)).toBeInTheDocument()
   })
-  // GLG-169: the hero states the return in percent, which is unrealized over
-  // what the positions cost (cost_basis since GLG-976).
+  // The hero states the return in percent, which is unrealized over
+  // what the positions cost (cost_basis).
   it('states the unrealized return against cost in a hint and drops it without a figure', async () => {
     let unrealized: string | null = '57277.75'
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
@@ -2593,9 +2592,9 @@ describe('SummaryPage', () => {
     expect(within(cell).getByText('—')).toBeInTheDocument()
   })
 
-  // GLG-218: a closed position (quantity 0, e.g. an instrument sold out or one
+  // A closed position (quantity 0, e.g. an instrument sold out or one
   // that only paid a dividend) is listed by the API too, flagged closed. It
-  // belongs behind the Kapalı switch (GLG-933), not in the open rows or the
+  // belongs behind the Kapalı switch, not in the open rows or the
   // allocation; the realized P/L total is the header card's alone.
   it('keeps closed positions behind the Kapalı switch', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
@@ -2661,7 +2660,7 @@ describe('SummaryPage', () => {
                 closed: true,
               },
               {
-                // GLG-827: long in one portfolio, oversold by as much in
+                // Long in one portfolio, oversold by as much in
                 // another. Quantity 0, but open.
                 instrument_id: 11,
                 symbol: 'SISE',
@@ -2718,7 +2717,7 @@ describe('SummaryPage', () => {
     expect(closed.getByText('+₺74,39')).toBeInTheDocument()
   })
 
-  // GLG-238: the API rounds each row to 2 decimals and the totals from the
+  // The API rounds each row to 2 decimals and the totals from the
   // unrounded amounts, so the rows (QA 2026-09-23: 106,070.72 + 10,500.00 -
   // 58,167.43 = 58,403.29) can sum a cent off the header card (58,403.30).
   // With every row converted, the footer shows the server's totals instead.
@@ -2915,7 +2914,7 @@ describe('SummaryPage', () => {
     }
 
     // The nets are the server's, each rounded once: the rounded parts would
-    // read ₺1.206,88 and ₺2,06 (GLG-1354).
+    // read ₺1.206,88 and ₺2,06.
     it('shows net contributions, net dividends, interest, fees and the first trade', async () => {
       renderStats({
         deposits: '1207.25',
@@ -3134,7 +3133,7 @@ describe('SummaryPage', () => {
       expect(top).toHaveClass('lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]')
       expect(top).toContainElement(sections[1])
       // İstatistikler a full-width strip of five under the KPI strip, in view
-      // without scrolling (GLG-948, GLG-1099).
+      // without scrolling.
       expect(sections[3].closest('section')).toHaveClass('lg:grid-cols-5')
       // Dağılım and Katkı side by side from lg, stretched to one height.
       const bottom = sections[5].closest('section')!.parentElement!
@@ -3216,7 +3215,7 @@ describe('SummaryPage', () => {
       expect(requests.filter((r) => r.method === 'POST')).toHaveLength(1)
     })
 
-    // GLG-1260: isPending reaches the buttons a tick after the click, so a
+    // isPending reaches the buttons a tick after the click, so a
     // double click's second click came before pending and booked it twice.
     it('books a dividend once on a double click of Ekle', async () => {
       let resolve = () => {}
@@ -3338,7 +3337,7 @@ describe('SummaryPage', () => {
         mockAll()
         renderAll()
         expect(await screen.findByRole('button', { name: 'Yeni portföy' })).toBeInTheDocument()
-        // GLG-955: Performans brought the tab row back.
+        // Performans brought the tab row back.
         const tabs = screen.getByRole('navigation', { name: 'Portföy sekmeleri' })
         expect(
           within(tabs)
@@ -3354,11 +3353,11 @@ describe('SummaryPage', () => {
         ])
         renderAll()
         const card = within(await screen.findByRole('region', { name: 'Dikkat' }))
-        // The action's name leads with the portfolio (GLG-1008).
+        // The action's name leads with the portfolio.
         const add = await card.findByRole('button', {
           name: 'Ana: TUPRS 12.10.2026 temettüsünü ekle',
         })
-        // The name is its own element, titled with it (GLG-997).
+        // The name is its own element, titled with it.
         const named = (li: HTMLElement) => [
           li.querySelector('[title]')?.getAttribute('title'),
           li.textContent,
@@ -3416,7 +3415,7 @@ describe('SummaryPage', () => {
         ).toBeTruthy()
       })
 
-      // GLG-979: reporting in EUR with no rate, cash in TRY and USD. The
+      // Reporting in EUR with no rate, cash in TRY and USD. The
       // figures that leave the excluded currencies out carry the mark the
       // sidebar total carries.
       it('marks the total, cash and unrealized P/L when currencies are left out', async () => {
@@ -3461,8 +3460,8 @@ describe('SummaryPage', () => {
         ).toBeInTheDocument()
       })
 
-      // GLG-1324: the opener leaves with Tüm portföyler, so the new
-      // portfolio's page takes focus instead of <body>. GLG-1355: the real
+      // The opener leaves with Tüm portföyler, so the new
+      // portfolio's page takes focus instead of <body>. The real
       // hook refetches the list before the create resolves, which unmounts
       // the empty state and its dialog first; the POST answers only once
       // that has happened, so the create still has to navigate and toast.

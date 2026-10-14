@@ -91,7 +91,7 @@ describe('AppShell', () => {
     vi.restoreAllMocks()
   })
 
-  // GLG-875: the shell sits inside the app's outer boundary, so a page error
+  // The shell sits inside the app's outer boundary, so a page error
   // must not take the navigation down with it.
   it('keeps the navigation when a page fails and clears the error on navigation', async () => {
     // React logs the error to the console; keep test output clean.
@@ -123,7 +123,7 @@ describe('AppShell', () => {
 
   // The page boundary resets on a new path without remounting the page: the
   // shell itself does not remount a page whose params change. App's portfolio
-  // routes key each page by the portfolio id on top of this (GLG-1062).
+  // routes key each page by the portfolio id on top of this.
   it('does not remount the page itself when only the route params change', async () => {
     mockApi([portfolio(1, 'One'), portfolio(2, 'Two')])
 
@@ -148,7 +148,7 @@ describe('AppShell', () => {
     expect(screen.getByRole('button', { name: 'count 2' })).toBeInTheDocument()
   })
 
-  // GLG-876: below lg the sidebar opens as a drawer from the top bar.
+  // Below lg the sidebar opens as a drawer from the top bar.
   it('opens the drawer from the menu button', () => {
     mockApi(twoPortfolios)
     renderShell('/portfolios/1')
@@ -199,7 +199,7 @@ describe('AppShell', () => {
     expect(screen.getByRole('dialog', { name: t('nav.label') })).toBe(drawer)
   })
 
-  // GLG-881: a new page starts at the top; back, forward and a change of
+  // A new page starts at the top; back, forward and a change of
   // search params or state on the same page leave the scroll alone.
   it('scrolls to the top only on a link to another page', async () => {
     mockApi(twoPortfolios)
@@ -256,20 +256,20 @@ describe('AppShell', () => {
     expect(within(bar()).getByText(t('portfolio.all'))).toBeInTheDocument()
     view.unmount()
 
-    // GLG-882: an id the loaded list lacks is the not-found page; until the
+    // An id the loaded list lacks is the not-found page; until the
     // list is in, the app's name stands in.
     view = renderShell('/portfolios/999')
     expect(within(bar()).getByText(t('app.name'))).toBeInTheDocument()
     expect(await within(bar()).findByText(t('notFound.title'))).toBeInTheDocument()
     view.unmount()
 
-    // GLG-882: the other pages by their own title, not the app's name.
+    // The other pages by their own title, not the app's name.
     renderShell('/account')
     expect(within(bar()).getByText(t('account.heading'))).toBeInTheDocument()
     expect(within(bar()).queryByText(t('app.name'))).not.toBeInTheDocument()
   })
 
-  // GLG-882: the bar names the page the router rendered, and the router
+  // The bar names the page the router rendered, and the router
   // ignores case and a trailing slash.
   it('titles the bar the way the router matches', () => {
     mockApi(twoPortfolios)
@@ -281,7 +281,7 @@ describe('AppShell', () => {
     }
   })
 
-  // GLG-882: an unknown sub-path of a portfolio is the not-found page.
+  // An unknown sub-path of a portfolio is the not-found page.
   it('titles an unknown portfolio sub-path as not found', async () => {
     mockApi(twoPortfolios)
     renderShell('/portfolios/1/foo')
@@ -290,7 +290,7 @@ describe('AppShell', () => {
     expect(within(screen.getByRole('banner')).getByText(t('notFound.title'))).toBeInTheDocument()
   })
 
-  // GLG-882: jsdom has no layout, so the structure stands in for it. A long
+  // Jsdom has no layout, so the structure stands in for it. A long
   // portfolio name may only truncate the title; anything else that shrinks
   // spills out of the bar and scrolls the page sideways.
   it('lets only the title shrink in the top bar', async () => {

@@ -13,7 +13,7 @@ import {
 import { setPrivacy } from './privacy'
 
 describe('plTone', () => {
-  // A zero P/L (a portfolio with no positions) is neither gain nor loss (GLG-240).
+  // A zero P/L (a portfolio with no positions) is neither gain nor loss.
   it('leaves zero and unknown in ink', () => {
     expect(plTone(1)).toBe('text-gain')
     expect(plTone('-0.01')).toBe('text-loss')
@@ -32,13 +32,13 @@ describe('formatMoney', () => {
     expect(formatMoney('1234.5', 'TRY')).toContain('1,234.50')
   })
 
-  // `en` has no TRY symbol in CLDR, so plain 'symbol' falls back to "TRY" (GLG-270).
+  // `en` has no TRY symbol in CLDR, so plain 'symbol' falls back to "TRY".
   it('shows ₺ for lira in English', () => {
     setLocale('en')
     expect(formatMoney('1234.5', 'TRY')).toBe('₺1,234.50')
   })
 
-  // The import preview's cash difference showed "-$0,00" (GLG-1186): an
+  // The import preview's cash difference showed "-$0,00": an
   // amount that rounds to zero carries no sign, either way.
   it('drops the sign of an amount that rounds to zero', () => {
     expect(formatMoney('-0.004', 'USD')).toBe('$0,00')
@@ -47,7 +47,7 @@ describe('formatMoney', () => {
   })
 })
 
-// The sidebar's portfolio values (GLG-875). Intl may put a no-break space
+// The sidebar's portfolio values. Intl may put a no-break space
 // before the unit, so whitespace is compared as a plain space.
 describe('formatCompactMoney', () => {
   afterEach(() => setPrivacy(false))
@@ -74,14 +74,14 @@ describe('formatUnitPrice', () => {
     expect(formatUnitPrice('8', 'TRY')).toContain('8,00')
   })
 
-  // An average cost drops division noise past 6 decimals (GLG-272).
+  // An average cost drops division noise past 6 decimals.
   it('caps an average cost at the given digits', () => {
     expect(formatUnitPrice('5.046148571', 'TRY', 6)).toContain('5,046149')
     expect(formatUnitPrice('5.1', 'TRY', 6)).toContain('5,10')
   })
 
   // Below 0.0001 a fraction-digit cap drops real digits, not noise: PEPE-USD
-  // at 0.00000874 read "$0,000009" (GLG-1024). The cap counts digits from
+  // at 0.00000874 read "$0,000009". The cap counts digits from
   // the first nonzero one there.
   it('keeps the digits of a price below 1', () => {
     expect(formatUnitPrice('0.00000874', 'USD', 6)).toContain('0,00000874')
@@ -93,7 +93,7 @@ describe('formatUnitPrice', () => {
 describe('privacy mode', () => {
   afterEach(() => setPrivacy(false))
 
-  // Money is masked; quantities and percentages stay visible (GLG-564).
+  // Money is masked; quantities and percentages stay visible.
   it('masks money only while on', () => {
     setPrivacy(true)
     expect(formatMoney('1234.5', 'TRY')).toBe('•••')

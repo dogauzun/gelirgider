@@ -23,7 +23,7 @@ describe('ErrorBoundary', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(t('error.render'))
   })
 
-  // GLG-915: a chart card brings its own small fallback, not a whole page.
+  // A chart card brings its own small fallback, not a whole page.
   it('renders the fallback prop instead of the page fallback', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
@@ -37,7 +37,7 @@ describe('ErrorBoundary', () => {
     expect(screen.queryByRole('main')).not.toBeInTheDocument()
   })
 
-  // GLG-875: the app shell passes the pathname.
+  // The app shell passes the pathname.
   it('renders the children again when resetKey changes', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const { rerender } = render(

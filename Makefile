@@ -90,7 +90,7 @@ notices: ## Regenerate THIRD_PARTY_NOTICES.md from the backend and frontend depe
 	mv "$$d/notices.md" THIRD_PARTY_NOTICES.md && \
 	cd frontend && npx prettier --config .prettierrc.json --log-level warn --write ../THIRD_PARTY_NOTICES.md
 
-# The README screenshots (GLG-1381): a throwaway -demo database served by the
+# The README screenshots: a throwaway -demo database served by the
 # backend and `vite preview` of the built frontend on spare ports, captured
 # with headless Chrome. The scheduler starts its catch-up before any API call
 # could switch it off, so the catch-up, the backfill and every source (the
