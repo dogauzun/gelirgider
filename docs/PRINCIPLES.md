@@ -36,7 +36,7 @@
 
 - Local checks green is the bar; there is no CI. Whoever merges runs these from the repo root on the PR head. Only observed results count.
   - `make lint`: `make swagger-check`, `gofmt -l backend` (fails if it prints a file), `go vet ./...`, `golangci-lint run` (`dupl`, `forbidigo`, `funlen` with `lines` 150 (comments ignored, tests exempt), `gocognit` with `min-complexity` 45, `nestif` with `min-complexity` 10, `noctx`, `revive` with `argument-limit` 6 and `usestdlibvars` with `time-layout`, configured in `backend/.golangci.yml`) and `deadcode ./...` (without `-test`, fails if it prints a function) in `backend/`, `npm run lint`, `npm run lint:dupl` (`jscpd`, configured in `frontend/.jscpd.json`), `npm run knip` (unused exports and types, configured in `frontend/knip.json`), `npx prettier --check .` in `frontend/`, prettier check on `docs/`, `deploy/`, `.claude/` and the root `*.md` files.
-  - `make test`: `go vet ./...` and `go test ./...` in `backend/`, `npm run lint` and `npm test` in `frontend/`.
+  - `make test`: `make test-backend` (`go vet ./...` and `go test ./...` in `backend/`) and `make test-frontend` (`npm run lint` and `npm test` in `frontend/`). CI runs the two as separate jobs.
   - `make build-frontend`: `npm run build` in `frontend/`. Neither `make lint` nor `make test` runs it.
 - Non-trivial logic ships with a test that fails when the logic breaks. One test, not a suite.
 - A bug fix starts with the test. Before writing the fix, turn the bug report into a test that fails for the reported reason, run it and watch it fail. The fix is done when that test passes and the others stay green. The PR's "Testing" section names the test and states that it failed before the fix.
