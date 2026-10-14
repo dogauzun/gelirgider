@@ -63,7 +63,7 @@ func main() {
 	var healthcheck bool
 	flag.BoolVar(&backfillPrices, "backfill-prices", false, "backfill historical BIST bulletin prices, TCMB FX rates, BtcTurk crypto closes, TEFAS fund NAVs, Tiingo US closes, the gram gold series and EVDS BIST 100 closes, plus the latest US prices, then exit")
 	flag.StringVar(&backfillFrom, "backfill-from", "", "override the BIST/TCMB/crypto/TEFAS/US/gold/XU100 backfill start date (YYYY-MM-DD); default is the earliest transaction date (for BIST, the earliest BIST instrument transaction; for US, each instrument's own earliest transaction)")
-	setPassword := flag.String("set-password", "", "set the password of the user with this email, read from stdin, then exit (no server). Operator escape hatch for a forgotten password; there is no self-service reset")
+	setPasswordEmail := flag.String("set-password", "", "set the password of the user with this email, read from stdin, then exit (no server). Operator escape hatch for a forgotten password; there is no self-service reset")
 	addSplit := flag.String("add-split", "", "record a split as MARKET:SYMBOL,YYYY-MM-DD,RATIO (ratio = new shares per old share, date = ex-date), then exit (no server). Operator fallback for splits no provider covers")
 	backupPath := flag.String("backup", "", "write a consistent copy of the database to path via VACUUM INTO, then exit (no server)")
 	flag.BoolVar(&healthcheck, "healthcheck", false, "GET /api/health on localhost and exit 0/1 (for use as a container HEALTHCHECK; distroless image has no shell/curl)")
@@ -138,17 +138,17 @@ func main() {
 		return
 	}
 
-	if *setPassword != "" {
+	if *setPasswordEmail != "" {
 		password, err := readPassword(os.Stdin)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		if err := auth.SetPassword(context.Background(), user.NewRepo(conn), auth.NewRepo(conn), *setPassword, password); err != nil {
+		if err := auth.SetPassword(context.Background(), user.NewRepo(conn), auth.NewRepo(conn), *setPasswordEmail, password); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		fmt.Printf("password set for %s, all its sessions deleted\n", *setPassword)
+		fmt.Printf("password set for %s, all its sessions deleted\n", *setPasswordEmail)
 		return
 	}
 

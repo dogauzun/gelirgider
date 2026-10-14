@@ -170,7 +170,9 @@ describe('PortfoliosTable', () => {
       portfolio(4, 'Borç', '-5.00'),
     ])
     const shares = ['Ana portföy', 'Emeklilik', 'Kripto'].map((name) =>
-      Number(within(rowOf(name)).getByText(/^%/).textContent!.replace('%', '').replace(',', '.')),
+      Number(
+        within(rowOf(name)).getByText(/^%/).textContent!.replaceAll('%', '').replace(',', '.'),
+      ),
     )
     const sum = shares.reduce((a, b) => a + b, 0)
     expect(sum).toBeGreaterThanOrEqual(99.8)

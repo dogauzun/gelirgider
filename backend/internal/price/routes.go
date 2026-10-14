@@ -192,7 +192,7 @@ func (h *handler) history(w http.ResponseWriter, r *http.Request) {
 // valuation applies (holdings.MergeSeries) -- calling that here would need
 // an import cycle, since holdings imports this package.
 func mergeDesc(fetched, manual []Price, limit int) []Price {
-	out := make([]Price, 0, limit)
+	out := make([]Price, 0, min(limit, len(fetched)+len(manual)))
 	i, j := 0, 0
 	for i < len(fetched) && j < len(manual) && len(out) < limit {
 		switch {
