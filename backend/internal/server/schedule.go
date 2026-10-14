@@ -99,7 +99,10 @@ func registerScheduleRoutes(mux *http.ServeMux, cfg *settings.Repo, runs *schedu
 			Enabled *bool  `json:"enabled"`
 			At      string `json:"at"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Enabled == nil {
+		if !auth.DecodeJSON(w, r, &req) {
+			return
+		}
+		if req.Enabled == nil {
 			auth.WriteError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
@@ -213,7 +216,10 @@ func registerScheduleRoutes(mux *http.ServeMux, cfg *settings.Repo, runs *schedu
 	//	@Router		/admin/schedule [put]
 	mux.HandleFunc("PUT /api/admin/schedule", func(w http.ResponseWriter, r *http.Request) {
 		var req scheduleSettings
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.CatchUpEnabled == nil || req.BackfillEnabled == nil {
+		if !auth.DecodeJSON(w, r, &req) {
+			return
+		}
+		if req.CatchUpEnabled == nil || req.BackfillEnabled == nil {
 			auth.WriteError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}

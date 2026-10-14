@@ -70,3 +70,13 @@ func WriteJSON(w http.ResponseWriter, status int, v any) {
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(v)
 }
+
+// DecodeJSON decodes the request body into v. On failure it answers 400
+// "invalid request body" and returns false, so the handler just returns.
+func DecodeJSON(w http.ResponseWriter, r *http.Request, v any) bool {
+	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return false
+	}
+	return true
+}

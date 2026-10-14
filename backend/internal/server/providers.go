@@ -88,7 +88,7 @@ func registerProviderRoutes(mux *http.ServeMux, secrets *settings.Repo, fetcher 
 	//	@Param		name	path	string					true	"provider name"	Enums(finnhub, tiingo, evds)
 	//	@Param		body	body	object{api_key=string}	true	"API key; empty clears it"
 	//	@Success	204
-	//	@Failure	400	{object}	object{error=string}	"invalid JSON body"
+	//	@Failure	400	{object}	object{error=string}	"invalid request body"
 	//	@Failure	404	{object}	object{error=string}	"unknown provider"
 	//	@Failure	500	{object}	object{error=string}	"internal error"
 	//	@Router		/admin/providers/{name} [put]
@@ -101,8 +101,7 @@ func registerProviderRoutes(mux *http.ServeMux, secrets *settings.Repo, fetcher 
 		var body struct {
 			APIKey string `json:"api_key"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			auth.WriteError(w, http.StatusBadRequest, "invalid JSON body")
+		if !auth.DecodeJSON(w, r, &body) {
 			return
 		}
 		// An empty key clears the setting.
@@ -125,7 +124,7 @@ func registerProviderRoutes(mux *http.ServeMux, secrets *settings.Repo, fetcher 
 	//	@Param		name	path	string					true	"provider name"	Enums(finnhub, tiingo, evds)
 	//	@Param		body	body	object{api_key=string}	false	"key to test; empty tests the stored key"
 	//	@Success	200	{object}	object{ok=bool,error=string}
-	//	@Failure	400	{object}	object{error=string}	"invalid JSON body; stored key unreadable; not configured"
+	//	@Failure	400	{object}	object{error=string}	"invalid request body; stored key unreadable; not configured"
 	//	@Failure	404	{object}	object{error=string}	"unknown provider"
 	//	@Failure	500	{object}	object{error=string}	"internal error"
 	//	@Router		/admin/providers/{name}/test [post]
@@ -139,7 +138,7 @@ func registerProviderRoutes(mux *http.ServeMux, secrets *settings.Repo, fetcher 
 			APIKey string `json:"api_key"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
-			auth.WriteError(w, http.StatusBadRequest, "invalid JSON body")
+			auth.WriteError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
 		key := strings.TrimSpace(body.APIKey)

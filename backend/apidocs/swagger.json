@@ -272,7 +272,7 @@
                         "description": "No Content"
                     },
                     "400": {
-                        "description": "invalid JSON body",
+                        "description": "invalid request body",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -363,7 +363,7 @@
                         }
                     },
                     "400": {
-                        "description": "invalid JSON body; stored key unreadable; not configured",
+                        "description": "invalid request body; stored key unreadable; not configured",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -2482,7 +2482,7 @@
                         "description": "No Content"
                     },
                     "400": {
-                        "description": "invalid JSON body; date must be YYYY-MM-DD; date must not be in the future; date must be on or after 1990-01-01; instrument not found",
+                        "description": "invalid request body; date must be YYYY-MM-DD; date must not be in the future; date must be on or after 1990-01-01; instrument not found",
                         "schema": {
                             "type": "object",
                             "properties": {

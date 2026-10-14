@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -74,8 +73,7 @@ func (h *handler) listUsers(w http.ResponseWriter, r *http.Request) {
 //	@Router		/admin/users [post]
 func (h *handler) adminCreateUser(w http.ResponseWriter, r *http.Request) {
 	var creds credentials
-	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !DecodeJSON(w, r, &creds) {
 		return
 	}
 	email, locale, msg := validateRegistration(creds)
@@ -144,8 +142,7 @@ func (h *handler) adminSetPassword(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Password string `json:"password"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !DecodeJSON(w, r, &req) {
 		return
 	}
 	// SetPassword validates too, but its error does not tell a bad password
@@ -190,7 +187,10 @@ func (h *handler) adminSetAdmin(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		IsAdmin *bool `json:"is_admin"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.IsAdmin == nil {
+	if !DecodeJSON(w, r, &req) {
+		return
+	}
+	if req.IsAdmin == nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}

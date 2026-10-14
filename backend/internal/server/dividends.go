@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"maps"
 	"net/http"
@@ -151,7 +150,7 @@ func (h *dividendHandler) expected(w http.ResponseWriter, r *http.Request) {
 //	@Param		id		path	int									true	"portfolio id"
 //	@Param		body	body	object{instrument_id=int,date=string}	true	"instrument and ex-date, YYYY-MM-DD"
 //	@Success	204
-//	@Failure	400	{object}	object{error=string}	"invalid JSON body; date must be YYYY-MM-DD; date must not be in the future; date must be on or after 1990-01-01; instrument not found"
+//	@Failure	400	{object}	object{error=string}	"invalid request body; date must be YYYY-MM-DD; date must not be in the future; date must be on or after 1990-01-01; instrument not found"
 //	@Failure	404	{object}	object{error=string}	"portfolio not found"
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/dividends/expected/dismiss [post]
@@ -164,8 +163,7 @@ func (h *dividendHandler) dismiss(w http.ResponseWriter, r *http.Request) {
 		InstrumentID int64  `json:"instrument_id"`
 		Date         string `json:"date"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid JSON body")
+	if !auth.DecodeJSON(w, r, &req) {
 		return
 	}
 	// Expected dividends are ex-dates from MinDate to today, so nothing

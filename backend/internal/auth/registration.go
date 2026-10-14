@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -57,7 +56,10 @@ func SetRegistrationHandler(s *settings.Repo) http.Handler {
 		var req struct {
 			Open *bool `json:"open"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Open == nil {
+		if !DecodeJSON(w, r, &req) {
+			return
+		}
+		if req.Open == nil {
 			WriteError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}

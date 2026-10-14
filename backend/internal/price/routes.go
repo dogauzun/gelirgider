@@ -1,7 +1,6 @@
 package price
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -96,8 +95,7 @@ func (h *handler) put(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req closeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !auth.DecodeJSON(w, r, &req) {
 		return
 	}
 	if TooManyDigits(req.Close) {

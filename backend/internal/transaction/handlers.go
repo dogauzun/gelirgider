@@ -3,7 +3,6 @@ package transaction
 import (
 	"context"
 	"encoding/csv"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -728,8 +727,7 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req Request
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !auth.DecodeJSON(w, r, &req) {
 		return
 	}
 	t, in, err := FromRequest(r.Context(), h.instruments, req)
@@ -774,8 +772,7 @@ func (h *handler) update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req Request
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !auth.DecodeJSON(w, r, &req) {
 		return
 	}
 	t, in, err := FromRequest(r.Context(), h.instruments, req)

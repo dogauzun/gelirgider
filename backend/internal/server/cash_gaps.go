@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -102,8 +101,7 @@ func (h *cashGapHandler) list(w http.ResponseWriter, r *http.Request) {
 func (h *cashGapHandler) fill(w http.ResponseWriter, r *http.Request) {
 	userID := auth.MustUserID(r.Context())
 	var req cashGapsRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !auth.DecodeJSON(w, r, &req) {
 		return
 	}
 	gaps, err := h.gaps(r, userID)

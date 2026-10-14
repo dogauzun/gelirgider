@@ -1,7 +1,6 @@
 package portfolio
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -124,8 +123,7 @@ func collapseSpace(s string) string {
 func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 	userID := auth.MustUserID(r.Context())
 	var req nameRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !auth.DecodeJSON(w, r, &req) {
 		return
 	}
 	name, ok := checkName(w, req.Name)
@@ -167,8 +165,7 @@ func (h *handler) rename(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req nameRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !auth.DecodeJSON(w, r, &req) {
 		return
 	}
 	name, ok := checkName(w, req.Name)
