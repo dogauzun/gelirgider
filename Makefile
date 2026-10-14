@@ -70,7 +70,7 @@ lint: swagger-check ## Run the swag spec check, gofmt, go vet, golangci-lint, de
 	cd frontend && npm run lint:dupl
 	cd frontend && npm run knip
 	cd frontend && npx prettier --check .
-	cd frontend && npx prettier --config .prettierrc.json --ignore-path ../.gitignore --check ../docs ../deploy ../.claude ../*.md
+	cd frontend && npx prettier --config .prettierrc.json --ignore-path ../.gitignore --check ../docs ../deploy ../.claude ../.github ../*.md
 
 # go-licenses and license-checker run pinned like swag, so they stay out of
 # go.mod and package.json; their first run needs network access. Needs
