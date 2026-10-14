@@ -72,8 +72,8 @@ these paths (checked 2026-09-23).
   covers dividends entered by hand and Midas imports, which use the payment
   date. Each recorded dividend hides one ex-date only: the latest one on or
   before its date, else the earliest one after it.
-- The user can dismiss a suggestion. Dismissals are per user. There is no
-  undo.
+- The user can dismiss a suggestion. Dismissals are per user and portfolio.
+  There is no undo.
 
 ### Timeline
 

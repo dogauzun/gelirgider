@@ -64,6 +64,10 @@ spec declares no `securityDefinitions` and no route carries `@Security`.
 A route's error description lists the exact error strings it writes for that
 status, because `translateError` in `frontend/src/api.ts` keys off them.
 
+Two swag pitfalls `swagger-check` cannot catch: a repeated `@Failure` code
+keeps only the last line, and a type declared inside a method resolves to the
+receiver type, an empty object.
+
 ### Drift
 
 `TestEveryRouteDocumented` in `backend/internal/server/apidocs_test.go`

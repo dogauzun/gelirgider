@@ -21,11 +21,12 @@ For the selected range the app shows one of three returns:
   timing and size of deposits and withdrawals taken out.
 - **money-weighted (MWR)**: the true internal rate of return of the range.
 
-The user picks the method with a selector on the chart header only, and the
-choice is remembered in `localStorage`, like the theme and the locale. The
-header also compares the return against one benchmark (ADR 0012). The home
-portfolio cards and the KPI card do not show these returns, and there are no
-per-position returns.
+The user picks the method with a selector on the chart header or on the
+Performans tab, and the one choice is remembered in `localStorage`, like the
+theme and the locale. It drives the chart header, the Performans tab and the
+Portföyler table of the all-portfolios view (ADR 0014). The header also
+compares the return against one benchmark (ADR 0012). The KPI card does not
+show these returns, and there are no per-position returns.
 
 The API returns period returns. The chart header annualizes the period return
 in the frontend, `(1 + r)^(365 / days) − 1`, only for ranges a year or more
