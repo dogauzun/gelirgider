@@ -183,10 +183,9 @@ on every heat step.
 - Number and percent formatting follows the locale through
   `Intl.NumberFormat`.
 - The cash-flow sign on transaction amounts.
-- Native `<dialog>` with `showModal()` for dialogs and for the drawer. Below
-  `md` a dialog renders as a bottom sheet, from `md` as a centred card; every
-  modal panel goes through `ui/sheetPanel`, and ESLint rejects a hand-built
-  panel.
+- Native `<dialog>` with `showModal()` for dialogs and for the drawer. A
+  dialog that centres from `md` is a bottom sheet below it, takes its panel
+  from `ui/sheetPanel`, and ESLint rejects a hand-built one.
 - The page never scrolls sideways; a table wider than its card scrolls inside
   the card, and a table that cannot is replaced by a list on a phone.
 - The theme choice lives in `localStorage` and is applied by
