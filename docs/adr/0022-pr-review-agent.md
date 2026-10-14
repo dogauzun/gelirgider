@@ -36,6 +36,8 @@ checks are green, and a fresh one runs after every push that changes
 the PR's diff. The agent that wrote the code never reviews it, and the
 reviewer starts without the author's context.
 
+> Superseded 2026-10-14 (GLG-1373): the reviewer runs once the PR is open and its required GitHub Actions checks are green on the PR head, not the local checks.
+
 The reviewer's instructions live in the repository, in
 `.claude/agents/pr-reviewer.md`, so the cloud worker and a local session
 use the same text. A session whose harness does not load that file as an

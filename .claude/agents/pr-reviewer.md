@@ -30,7 +30,7 @@ Every finding names a concrete failure: this input or state leads to this wrong 
 ## What is not a finding
 
 - Anything in code the PR does not change. Old code is out of scope even when it is wrong. Mention a serious old problem in your report to the merger, never on the PR.
-- Anything a linter, a formatter or the test run reports. The merger runs `make lint`, the tests and the build; you do not.
+- Anything a linter, a formatter or the test run reports. GitHub Actions runs `make lint`, the tests and the build as required checks; you do not.
 - Style, naming, import order, comment wording, structure you would have chosen differently, and any difference that leaves runtime behavior identical.
 - Missing tests, missing documentation, PR template, commit message hygiene and attribution. The merger checks those.
 - Suggestions ("consider", "might be nicer"), questions, praise, a summary of what the diff does, and a concern with no concrete failure behind it.
