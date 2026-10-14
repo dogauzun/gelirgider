@@ -1,6 +1,7 @@
 import type { Position } from '../api/summary'
 import { marketLabel, t } from '../i18n/strings'
-import { decimalUnits, unitsToDecimal } from './decimal'
+import { compareUnits, decimalUnits, unitsToDecimal } from './decimal'
+import { currencyTotals, holdingsTotal, shareOf, shareUnits } from './positions'
 
 // The three groupings of the allocation card's toggle: one row per
 // position, per market, or per currency.
@@ -60,28 +61,26 @@ export function allocationRows(input: {
   // as USD exposure. A group that nets to zero or less is dropped like a
   // position is.
   const groups = new Map<string, { label: string; units: bigint }>()
-  const addTo = (key: string, label: string, units: bigint) => {
-    const group = groups.get(key)
-    if (group) group.units += units
-    else groups.set(key, { label, units })
-  }
-  for (const position of positions) {
-    if (position.market_value_reporting === null) continue
-    const units = decimalUnits(position.market_value_reporting)
-    if (units <= 0n) continue
-    if (view === 'symbol') addTo(`position-${position.instrument_id}`, position.symbol, units)
-    else if (view === 'market') addTo(position.market, marketLabel(position.market), units)
-    else addTo(position.currency, position.currency, units)
-  }
   if (view === 'currency') {
-    for (const [currency, amount] of Object.entries(cashByCurrencyReporting)) {
-      addTo(currency, currency, decimalUnits(amount))
+    for (const [currency, units] of currencyTotals(positions, cashByCurrencyReporting)) {
+      groups.set(currency, { label: currency, units })
+    }
+  } else {
+    for (const position of positions) {
+      const units = shareUnits(position)
+      if (units === null) continue
+      const [key, label] =
+        view === 'symbol'
+          ? [`position-${position.instrument_id}`, position.symbol]
+          : [position.market, marketLabel(position.market)]
+      const group = groups.get(key)
+      if (group) group.units += units
+      else groups.set(key, { label, units })
     }
   }
   const sorted = [...groups]
     .map(([key, group]) => ({ key, ...group }))
-    .filter((row) => row.units > 0n)
-    .sort((a, b) => (b.units > a.units ? 1 : b.units < a.units ? -1 : 0))
+    .sort((a, b) => compareUnits(b.units, a.units))
 
   let other: string[] = []
   if (sorted.length > COLORS.length) {
@@ -101,12 +100,14 @@ export function allocationRows(input: {
     grouped.push({ key: 'cash', label: t('summary.cash'), units: cashUnits, color: CASH_COLOR })
   }
 
-  const totalUnits = grouped.reduce((sum, row) => sum + row.units, 0n)
+  const totalUnits =
+    view === 'currency'
+      ? grouped.reduce((sum, row) => sum + row.units, 0n)
+      : holdingsTotal({ positions, cash })
   const total = Number(unitsToDecimal(totalUnits))
   const rows = grouped.map(({ units, ...row }) => {
     const amount = unitsToDecimal(units)
-    const value = Number(amount)
-    return { ...row, value, amount, share: value / total }
+    return { ...row, value: Number(amount), amount, share: shareOf(units, totalUnits) }
   })
   return { rows, total, other }
 }
