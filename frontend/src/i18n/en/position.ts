@@ -1,0 +1,33 @@
+import type { trPosition } from '../tr/position'
+import type { AreaStrings } from '../types'
+
+export const enPosition: AreaStrings<typeof trPosition> = {
+  'position.title': 'Position',
+  'position.back': 'Summary',
+  'position.avgCost': 'Avg. cost',
+  'position.total': 'Total result',
+  'position.totalHint': 'P/L + dividends, all time',
+  'position.marketValue': 'Market value',
+  'position.units': '{quantity} units',
+  'position.units.one': '{quantity} unit',
+  'position.unrealized': 'Unrealized',
+  'position.realized': 'Realized',
+  'position.realizedHint': 'Includes dividends',
+  'position.dividends': 'Dividends',
+  'position.dividendsHint': 'inside Realized',
+  'position.today': '{change} today',
+  'position.chart': 'Chart',
+  'position.closed': 'Closed',
+  'position.notFound': 'Position not found.',
+  'position.notFoundExplanation': 'This portfolio has no such position.',
+  'position.backToSummary': 'Back to summary',
+  'position.valueVsCost': 'Value vs cost',
+  'position.priceChart': 'Price',
+  'position.price': 'Price',
+  'position.transactions': 'Transactions',
+  'position.allTransactions': 'All transactions',
+  'position.dialog.close': 'Close',
+  'position.dialog.previous': 'Previous position',
+  'position.dialog.next': 'Next position',
+  'position.dialog.recent': 'Recent transactions',
+}

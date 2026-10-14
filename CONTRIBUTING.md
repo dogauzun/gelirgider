@@ -62,8 +62,9 @@ titles since the last tag, the notes are GitHub's generated notes.
 - Non-trivial logic ships with one test. Trivial code ships with none.
 - New or changed API route: update its swag annotations, run `make swagger` and
   commit `backend/apidocs/`. `make lint` fails on a stale spec.
-- UI strings go through i18n keys in `frontend/src/i18n/strings.ts`, with a `tr`
-  (default) and an `en` entry in the same change.
+- UI strings go through i18n keys. A new key goes into the area file of its
+  prefix, `frontend/src/i18n/tr/<area>.ts` and `frontend/src/i18n/en/<area>.ts`,
+  with a `tr` (default) and an `en` entry in the same change.
 - Money and quantities are `decimal`, never `float`. Every query on user data
   filters by `user_id`.
 - Code, comments, commits and pull requests are in English.
