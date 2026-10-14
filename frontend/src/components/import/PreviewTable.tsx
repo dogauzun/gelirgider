@@ -37,19 +37,7 @@ const reasonKey: Record<string, StringKey> = {
 // the server's English message, like an unknown reason above.
 const errorKey: Record<string, StringKey> = {
   cell_count: 'import.error.cellCount',
-  unreadable_quantity: 'import.error.unreadableQuantity',
-  unreadable_avg_cost: 'import.error.unreadableAvgCost',
-  unreadable_date: 'import.error.unreadableDate',
-  unreadable_price: 'import.error.unreadablePrice',
-  unreadable_fee: 'import.error.unreadableFee',
-  unreadable_amount: 'import.error.unreadableAmount',
-  unreadable_gross: 'import.error.unreadableGross',
-  unreadable_tax: 'import.error.unreadableTax',
-  unreadable_net: 'import.error.unreadableNet',
   net_mismatch: 'import.error.netMismatch',
-  unknown_trade_type: 'import.error.unknownTradeType',
-  unknown_cash_type: 'import.error.unknownCashType',
-  // The CSV parser's codes.
   bad_date: 'import.error.unreadableDate',
   bad_number: 'import.error.badNumber',
   ambiguous_number: 'import.error.ambiguousNumber',
@@ -57,9 +45,8 @@ const errorKey: Record<string, StringKey> = {
   unknown_market: 'import.error.unknownMarket',
   missing_field: 'import.error.missingField',
   fee_on_fee: 'import.error.feeOnFee',
-  // The Garanti parsers' codes. Both Garanti fund and
-  // Garanti Yatırım statements emit them, ledger and trade-list rows alike,
-  // so the text names neither. A bad_row shows no value.
+  // Both Garanti fund and Garanti Yatırım statements emit these, ledger and
+  // trade-list rows alike, so the text names neither. A bad_row shows no value.
   unknown_row: 'import.error.unknownRow',
   bad_row: 'import.error.badRow',
   // A transfer in without a cost; the edit dialog takes one.
@@ -70,10 +57,10 @@ const errorKey: Record<string, StringKey> = {
   closing_price: 'import.error.closingPrice',
 }
 
-// A CSV row error with one of these codes names its column by field key;
-// the column is shown by its name in the UI locale. Any other
-// value, such as a Midas cell or an unknown CSV type cell, is shown as the
-// parser wrote it, even when it reads like a column name.
+// A row error with one of these codes names its field by key; the field is
+// shown by its name in the UI locale. Any other value, such as an unknown
+// type cell, is shown as the parser wrote it, even when it reads like a
+// field name.
 const columnCodes = new Set(['bad_number', 'ambiguous_number', 'missing_field'])
 
 const fieldKey: Record<string, StringKey> = {
@@ -82,6 +69,10 @@ const fieldKey: Record<string, StringKey> = {
   price: 'import.field.price',
   amount: 'import.field.amount',
   fee: 'import.field.fee',
+  avg_cost: 'import.field.avgCost',
+  gross: 'import.field.gross',
+  tax: 'import.field.tax',
+  net: 'import.field.net',
 }
 
 function fieldName(code: string, value: string): string {
