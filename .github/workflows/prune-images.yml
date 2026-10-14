@@ -1,17 +1,15 @@
 # Weekly retention for the images publish.yml pushes to ghcr.io (GLG-1384).
 # GHCR has no retention setting, so the version list would grow forever.
 #
-# Keeps the 30 newest versions of each package. Every push to main makes one
-# version tagged `sha-<7>`, and `latest` always sits on the newest one, so
-# that is the 30 newest `sha-` tags plus `latest`. The rollback step pins
-# `IMAGE_TAG=sha-<7>` (deploy/RUNBOOK.md section 8), which is why recent
-# `sha-` versions stay.
+# Keeps every version tagged `latest` or `v*`, and the 30 newest versions
+# carrying a `sha-` tag; deletes the older `sha-` versions. The rollback step
+# pins `IMAGE_TAG=sha-<7>` (deploy/RUNBOOK.md section 8), which is why recent
+# `sha-` versions stay. Versions without a `sha-` tag, untagged ones included,
+# are left alone: publish.yml never makes a version that way, and a deleted
+# untagged version could be a layer of a kept one.
 #
-# Known gap: actions/delete-package-versions matches `ignore-versions`
-# against the version name, which for a container is the sha256 digest and
-# not a tag, so no regex can protect `v*` release tags. A `v*` version older
-# than the 30 newest is pruned. Replace this job with a `gh api` script
-# before the first release tag is cut.
+# actions/delete-package-versions is not used: it matches its ignore regex
+# against the digest, not the tags, so it cannot protect `v*`.
 name: prune-images
 
 on:
@@ -31,10 +29,20 @@ jobs:
       fail-fast: false
       matrix:
         package: [gelirgider-backend, gelirgider-frontend]
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/delete-package-versions@v5
-        with:
-          package-name: ${{ matrix.package }}
-          package-type: container
-          min-versions-to-keep: 30
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prune old sha- versions
+        run: |
+          path="/users/${GITHUB_REPOSITORY_OWNER}/packages/container/${{ matrix.package }}/versions"
+          gh api --paginate "$path" --jq '.[] | {id, created_at, tags: (.metadata.container.tags // [])}' |
+            jq -rs '
+              map(select(any(.tags[]; startswith("sha-"))))
+              | sort_by(.created_at) | reverse | to_entries[]
+              | (.value.tags | join(",")) as $tags
+              | if .key < 30 or any(.value.tags[]; . == "latest" or startswith("v"))
+                then "keep \(.value.id) \($tags)" else "delete \(.value.id) \($tags)" end' |
+            while read -r action id tags; do
+              echo "$action $id $tags"
+              if [ "$action" = delete ]; then gh api -X DELETE "$path/$id"; fi
+            done
