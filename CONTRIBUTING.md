@@ -20,17 +20,16 @@ Prerequisites, provider API keys and first-run notes are in the
 ```
 (cd frontend && npm ci)  # install frontend dependencies
 make dev                 # backend on :8080 and frontend on :5173, Ctrl+C stops both
-make test                # go vet and go test in backend/, npm run lint and npm test in frontend/
-make lint                # swag spec check, gofmt, go vet, golangci-lint, deadcode, frontend lint, jscpd, knip, prettier
-make build-frontend      # npm run build in frontend/ (type-check and production build)
+make test                # backend and frontend tests
+make lint                # linters and format checks
+make build-frontend      # type-check and production build of the frontend
 ```
 
-GitHub Actions runs the same targets on every pull request, `make test` as its
-two halves `test-backend` and `test-frontend`, as the checks `Lint (Go + web)`,
-`Go tests`, `Web tests` and `Web build` plus `Title` for the pull request
-title, and a pull request merges only when they pass. Still run `make lint`, `make test` and
-`make build-frontend` before you push. [docs/PRINCIPLES.md](docs/PRINCIPLES.md)
-#6 lists exactly what each one runs.
+GitHub Actions runs the same targets on every pull request as the checks
+`Lint (Go + web)`, `Go tests`, `Web tests` and `Web build`, plus `Title` for the
+pull request title, and a pull request merges only when they pass. Still run
+`make lint`, `make test` and `make build-frontend` before you push.
+[docs/PRINCIPLES.md](docs/PRINCIPLES.md) #6 lists exactly what each one runs.
 
 ## Pull requests
 
@@ -58,10 +57,8 @@ titles since the last tag, the notes are GitHub's generated notes.
 
 ## Rules the review checks
 
-- Bug fix: write the test first. Turn the bug report into a test that fails for
-  the reported reason, run it and see it fail, then fix until it passes. The
-  Testing section names the test and says it failed before the fix. If no test
-  can express the bug (pure layout, a docs fix), say why.
+- Bug fix: write the test first and see it fail, and name it in the Testing
+  section ([docs/PRINCIPLES.md](docs/PRINCIPLES.md) #6).
 - Non-trivial logic ships with one test. Trivial code ships with none.
 - New or changed API route: update its swag annotations, run `make swagger` and
   commit `backend/apidocs/`. `make lint` fails on a stale spec.

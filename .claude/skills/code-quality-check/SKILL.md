@@ -10,7 +10,7 @@ Two independent read-only audits, one for the backend and one for the frontend, 
 ## Steps
 
 1. Spawn two agents in a single message so they run in parallel. Both: `subagent_type: "general-purpose"`, `model: "opus"` (Opus 5.5). Do not audit inline and do not merge the two into one agent.
-   - Backend agent: scope `backend/` (Go, including `cmd/symbols`). Linters today: `gofmt`, `go vet`, `golangci-lint` with `dupl`, `forbidigo`, `funlen` with `lines` 150 (comments ignored, tests exempt), `gocognit` with `min-complexity` 45, `nestif` with `min-complexity` 10, `noctx`, `revive` with `argument-limit` 6 and `usestdlibvars` with `time-layout` (configured in `backend/.golangci.yml`) and `deadcode` (without `-test`), all run by `make lint`.
+   - Backend agent: scope `backend/` (Go, including `cmd/symbols`). Linters today: the ones `docs/PRINCIPLES.md` #6 lists for `make lint` (golangci-lint is configured in `backend/.golangci.yml`).
    - Frontend agent: scope `frontend/src/` (React + TypeScript). Linters today: `frontend/eslint.config.js`, `jscpd` (copied blocks of 6 lines or more, configured in `frontend/.jscpd.json`) and `knip` (unused exports and types, configured in `frontend/knip.json`), all run by `make lint`.
 2. Give each agent the brief below with its scope and linter line filled in. If the user passed an argument (a path or a topic), add it to both briefs as a narrower scope.
 3. Wait for both reports. Do not start the summary with one report missing.
