@@ -89,7 +89,7 @@ A PR merges when all of these hold (CLAUDE.md rules 6 and 7):
    auto-merge (`gh pr merge --auto --squash --subject "<PR title> (#<n>)" --body "<the PR's Description text>"`) and GitHub merges as soon as
    they pass; the branch does not have to be up to date with `main`, so no
    rebase is needed first. A push run on `main` that fails after a merge is
-   a bug ticket for the merger that landed it.
+   a bug ticket for the merger that landed it. Auto-merge is turned on only as the last step, after the reviewer has reviewed the current head and every thread is resolved; before any push that changes the diff after that, the merger runs `gh pr merge --disable-auto` and turns auto-merge on again only after the new review.
 
 A push that changes the PR's own diff gets a new review. A push that only
 rebases the branch onto `main` does not, and neither does a finding that
