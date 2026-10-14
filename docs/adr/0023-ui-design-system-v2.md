@@ -68,8 +68,8 @@ white cards that float on layered shadows, pill chips, a filled chart.
 ### Components
 
 - `frontend/src/components/ui/` holds the primitives. `Button` has primary
-  (`accent` fill, `on-ink` text), secondary and danger-quiet (`raised` fill,
-  `raised-hover` on hover), ghost and danger (`loss` fill); a link styled as a
+  (`accent` fill, `on-ink` text), secondary and danger-quiet (`raised` fill; secondary hovers with
+  `raised-hover`, danger-quiet with `loss-soft`), ghost and danger (`loss` fill); a link styled as a
   button takes `buttonClass()`. `inputClass({ size, width })` styles inputs and
   the `Select` trigger. Tabs are styled `NavLink`s with a 2 px `accent`
   underline on the active tab; the router owns the state.
@@ -79,8 +79,7 @@ white cards that float on layered shadows, pill chips, a filled chart.
   `shadow-ctl`. ESLint rejects any other `role="radiogroup"`.
 - Base UI (`@base-ui/react`, stable 1.x) provides the headless primitives:
   `Menu`, `Select`, `Popover` (the KPI hints and the date range panel),
-  `Checkbox` and `Autocomplete` (the instrument search). Thin wrappers ship
-  without tests. A native `<select>`, `type="checkbox"` and a hand-rolled
+  `Checkbox` and `Autocomplete` (the instrument search). A native `<select>`, `type="checkbox"` and a hand-rolled
   `role="combobox"` are banned in components.
 - `Select` inside a native modal `<dialog>` portals into that dialog, because a
   popup portaled to `<body>` sits under the dialog's top layer and is inert.
@@ -184,7 +183,10 @@ on every heat step.
 - Number and percent formatting follows the locale through
   `Intl.NumberFormat`.
 - The cash-flow sign on transaction amounts.
-- Native `<dialog>` with `showModal()` for dialogs and for the drawer.
+- Native `<dialog>` with `showModal()` for dialogs and for the drawer. Below
+  `md` a dialog renders as a bottom sheet, from `md` as a centred card; every
+  modal panel goes through `ui/sheetPanel`, and ESLint rejects a hand-built
+  panel.
 - The page never scrolls sideways; a table wider than its card scrolls inside
   the card, and a table that cannot is replaced by a list on a phone.
 - The theme choice lives in `localStorage` and is applied by
