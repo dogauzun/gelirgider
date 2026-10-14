@@ -1,5 +1,5 @@
 import { useState, type Dispatch, type MouseEvent, type ReactNode } from 'react'
-import { ApiError, translateError } from '../../api'
+import { ApiError, rowError, translateError } from '../../api'
 import {
   brokerLabel,
   type Import,
@@ -53,9 +53,6 @@ function warningText(warning: PreviewWarning): string {
     end: formatMarketDate(warning.period_end),
   })
 }
-
-// A commit error about one row: `rows[i].<field>: <message>`.
-const ROW_ERROR = /^rows\[(\d+)\]\.(.*)$/
 
 // The review's heading: the statement named by its file, then broker, period
 // and currency, and the filter of its rows.
@@ -299,7 +296,7 @@ export function StatementReview({
         // The refused row is a checked ok row, which Sorunlu never shows:
         // Tümü puts it on screen at the number the error names.
         onError: (error) => {
-          if (error instanceof ApiError && ROW_ERROR.test(String(error.body.error))) {
+          if (error instanceof ApiError && rowError(String(error.body.error))) {
             dispatch({ type: 'filter', filter: 'all' })
           }
         },
@@ -344,19 +341,18 @@ export function StatementReview({
 
   // A commit row error counts the rows sent, which skip the unchecked ones,
   // so `rows[i]` is mapped back to the row's place in the preview.
+  const failedRow =
+    commit.error instanceof ApiError ? rowError(String(commit.error.body.error)) : null
+  // The row a commit error names, marked by the error and scrolled to.
+  const failedKey = failedRow ? sentKeys[failedRow.index] : undefined
   function commitErrorMessage(error: Error): string {
-    const match = error instanceof ApiError && ROW_ERROR.exec(String(error.body.error))
-    const n = match ? ordered.findIndex((row) => row.key === sentKeys[Number(match[1])]) : -1
-    if (!match || n < 0) return error.message
+    const n = failedRow ? ordered.findIndex((row) => row.key === failedKey) : -1
+    if (!failedRow || n < 0) return error.message
     return t('error.row', {
       n: n + 1,
-      message: translateError(match[2], feeLabelKey(ordered[n].type)),
+      message: translateError(failedRow.rest, feeLabelKey(ordered[n].type)),
     })
   }
-  // The row a commit error names, marked by the error and scrolled to.
-  const rowError =
-    commit.error instanceof ApiError && ROW_ERROR.exec(String(commit.error.body.error))
-  const failedKey = rowError ? sentKeys[Number(rowError[1])] : undefined
 
   // The preview proposes no opening rows while a buy or sell is unknown,
   // an error row's unknown symbol included (backend proposeOpenings), so a statement with holdings says they come
