@@ -12,6 +12,7 @@ backend/    Go module (JSON API server); cmd/symbols refreshes internal/instrume
 frontend/   React + TypeScript + Vite
 deploy/     Dockerfiles, compose, Caddyfile, nginx.conf, backup.sh, README, RUNBOOK
 docs/       ROADMAP.md, PRINCIPLES.md, ADRs (adr/)
+.claude/    agents, skills, routines (the full instructions of the four cloud routines)
 Makefile    single entrypoint: make setup / dev / test / lint / build / swagger
 ```
 
