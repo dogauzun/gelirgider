@@ -13,10 +13,12 @@ transactions CSV export promises. UI rules are in
 ### i18n
 
 - **Own module, no library.** All UI strings are one flat key-to-string map per
-  locale in `frontend/src/i18n/strings.ts`. Every UI string goes through a key,
-  in `tr` and `en`.
-- **`tr` is the default and defines the key set.** `en` is typed against it, so
-  `tsc -b`, the first step of `npm run build`, fails on a missing or extra key.
+  locale, composed in `frontend/src/i18n/strings.ts` from one file per area
+  (`tr/<area>.ts`, `en/<area>.ts`). Every UI string goes through a key, in `tr`
+  and `en`.
+- **`tr` is the default and defines the key set.** Each `en` area file is typed
+  against its `tr` counterpart, so `tsc -b`, the first step of `npm run build`,
+  fails on a missing or extra key.
   A `<key>.one` entry is the English singular, picked when `count` is 1;
   Turkish needs none.
 - **The locale is stored in the browser only**, in `localStorage['locale']`,
