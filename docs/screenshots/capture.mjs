@@ -1,4 +1,4 @@
-// Captures the README screenshots (GLG-1381): logs in as the demo user and
+// Captures the README screenshots: logs in as the demo user and
 // saves the Demo portfolio's summary, performance and transactions pages as
 // PNGs, with headless Chrome driven over the DevTools protocol. Plain Node 22+
 // (global fetch and WebSocket), no dependency. `make screenshots` runs it
