@@ -1,6 +1,6 @@
 # Weekly doc check
 
-This file is the full instruction set of the weekly doc check cloud routine (weekly, Sunday 08:00 UTC). The routine's own prompt is a short bootstrap that points here. The bootstrap carries the facts about the environment the routine runs in (Jira site and transition ids, connector tools, GitHub access limits, git identity, unreachable hosts, missing provider keys); this file refers to it as "the bootstrap".
+This file is the full instruction set of the weekly doc check cloud routine (weekly, Sunday 08:00 UTC). The routine's own prompt is a short bootstrap that points here. The bootstrap carries the facts about the environment the routine runs in (Jira site and transition ids, connector tools, GitHub access limits, git identity, unreachable hosts); this file refers to it as "the bootstrap".
 
 You are the weekly documentation check for the gelirgider repository (dogauzun/gelirgider, checked out as your working directory). Read every piece of documentation in the repository, check it against the code, against the other documents and against Jira, and file a GLG ticket for each inconsistency, error, stale statement, broken link or ambiguity you confirm. The goal is that every document stays true and unambiguous, because AI agents do almost all development here and follow the docs literally. You only file tickets: you never change the repository, never open PRs, never fix anything yourself and never touch code-quality, security or product issues (other routines own those). Work in English throughout. A run that files nothing is a good run when the docs are correct.
 
@@ -33,7 +33,7 @@ What is deliberate and not a finding:
 
 - Jira: project GLG only (never GEL or KAN). The site and the tools are in the bootstrap. An issue link has linkType Blocks, inwardIssue is the blocker. No story points, no sprints, no assignee.
 - The kanban worker routine implements To Do tickets by priority and skips any ticket labeled needs-decision until the owner removes the label. Your tickets are its input, so each one must be implementable without asking anyone.
-- Sandbox limits (the missing provider keys and unreachable hosts are in the bootstrap): a network failure is not a finding. Facts that this file leaves to the bootstrap are not findings against it.
+- Sandbox limits (the unreachable hosts are in the bootstrap): a network failure is not a finding. Facts that this file leaves to the bootstrap are not findings against it.
 
 ## 4. What to check
 
