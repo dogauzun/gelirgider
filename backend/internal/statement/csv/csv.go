@@ -21,6 +21,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/dogauzun/gelirgider/backend/internal/bist"
 	"github.com/dogauzun/gelirgider/backend/internal/statement"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/shopspring/decimal"
@@ -334,9 +335,5 @@ func parseNumber(cell string) (decimal.Decimal, error) {
 // Plain upper-casing, not Turkish: tickers are ASCII, and Turkish casing
 // would turn a lower-case "sise" into "SİSE".
 func symbol(cell string) string {
-	s := strings.ToUpper(cell)
-	for _, suffix := range []string{".E", ".F", ".S1"} {
-		s = strings.TrimSuffix(s, suffix)
-	}
-	return s
+	return bist.TrimBoardSuffix(strings.ToUpper(cell))
 }
