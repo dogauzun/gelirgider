@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { shouldRetryQuery } from '../api'
+import { attentionRulesQueryKey } from '../api/auth'
 import { Toaster } from '../components/ui/Toast'
 import { t } from '../i18n/strings'
 import { chooseOption } from '../test/select'
@@ -3014,6 +3015,12 @@ describe('SummaryPage', () => {
       currency: 'TRY',
     }
 
+    // The body GET /api/me/attention-rules answers with.
+    let attentionRules: object = {}
+    afterEach(() => {
+      attentionRules = {}
+    })
+
     // Serves portfolio 1 with `summary` and records every request with its
     // method and body.
     // `created` holds the create call's answer back until it resolves.
@@ -3022,6 +3029,7 @@ describe('SummaryPage', () => {
       vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
         const url = String(input)
         requests.push({ url, method: init?.method ?? 'GET', body: String(init?.body ?? '') })
+        if (url === '/api/me/attention-rules') return Response.json(attentionRules)
         if (url === '/api/portfolios') {
           return new Response(
             JSON.stringify([{ id: 1, name: 'Ana', created_at: '2026-01-01T00:00:00Z' }]),
@@ -3265,6 +3273,21 @@ describe('SummaryPage', () => {
       expect(await screen.findByText('Açık pozisyon yok.')).toBeInTheDocument()
     })
 
+    // AKBNK is 30% of the total: above the default 25%, below an override of 0.5.
+    const concentrated = (card: ReturnType<typeof within>) =>
+      within(card.getByText('Yoğunlaşma').nextElementSibling as HTMLElement)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent)
+
+    it('hides a concentration item that the owner raised the position share above', async () => {
+      attentionRules = { position_share: { value: 0.5 } }
+      mockApi(twoPositions)
+      renderPage()
+      const card = within(await screen.findByRole('region', { name: 'Dikkat' }))
+      // Cash, 50% of the total, stays above its own default of 40%.
+      await vi.waitFor(() => expect(concentrated(card)).toEqual([expect.stringContaining('Nakit')]))
+    })
+
     describe('Tüm portföyler (GLG-935)', () => {
       const listed = (id: number, name: string, total_value: string) => ({
         id,
@@ -3297,6 +3320,7 @@ describe('SummaryPage', () => {
           const url = String(input)
           const method = init?.method ?? 'GET'
           requests.push({ url, method })
+          if (url === '/api/me/attention-rules') return Response.json(attentionRules)
           if (url === '/api/portfolios' && method === 'POST') {
             portfolios.push(listed(2, 'Birikim', '0.00'))
             return Response.json({ id: 2, name: 'Birikim' }, { status: 201 })
@@ -3379,6 +3403,21 @@ describe('SummaryPage', () => {
           ).toBeDefined(),
         )
         expect(await screen.findByText('1 temettü eklendi')).toBeInTheDocument()
+      })
+
+      it('hides a concentration item that the owner raised the position share above', async () => {
+        attentionRules = { position_share: { value: 0.5 } }
+        mockAll()
+        const client = new QueryClient()
+        renderAll(client)
+        // The override is in the cache the account page invalidates.
+        await vi.waitFor(() =>
+          expect(client.getQueryData(attentionRulesQueryKey)).toEqual(attentionRules),
+        )
+        const card = within(await screen.findByRole('region', { name: 'Dikkat' }))
+        await vi.waitFor(() =>
+          expect(concentrated(card)).toEqual([expect.stringContaining('Nakit')]),
+        )
       })
 
       it('shows the statistics above the positions, and Katkı beside Dağılım with plain-text symbols', async () => {

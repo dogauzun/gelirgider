@@ -27,6 +27,11 @@ function threshold(rules: AttentionRules, key: keyof AttentionRules, fallback: n
   return rule?.enabled === false ? null : (rule?.value ?? fallback)
 }
 
+// How many movers the Bugün group shows, 0 when the owner switched it off.
+export function moverCount(rules: AttentionRules = {}): number {
+  return threshold(rules, 'movers', ATTENTION.movers) ?? 0
+}
+
 // `portfolio` names the portfolio on Tüm portföyler, where items of several
 // portfolios share one card. Amounts are exact decimal strings; a share or a
 // ratio is a number, for display only.
@@ -90,7 +95,6 @@ export function attentionItems(input: {
   const positionShare = threshold(rules, 'position_share', ATTENTION.positionShare)
   const cashShare = threshold(rules, 'cash_share', ATTENTION.cashShare)
   const currencyShare = threshold(rules, 'currency_share', ATTENTION.currencyShare)
-  const moverCount = threshold(rules, 'movers', ATTENTION.movers)
   const open = summary.positions.filter((p) => !p.closed)
   const priced = open.filter((p) => p.has_price)
   const items: AttentionItem[] = []
@@ -134,7 +138,7 @@ export function attentionItems(input: {
     .sort(
       (a, b) => Math.abs(Number(b.day_change_reporting)) - Math.abs(Number(a.day_change_reporting)),
     )
-    .slice(0, moverCount ?? 0)
+    .slice(0, moverCount(rules))
   for (const p of movers) {
     items.push({
       kind: 'mover',

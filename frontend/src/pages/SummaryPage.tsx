@@ -6,6 +6,7 @@ import {
   useExpectedDividendsOf,
   type ExpectedDividend,
 } from '../api/dividends'
+import { useAttentionRules } from '../api/auth'
 import { usePortfolioHistory } from '../api/history'
 import { usePortfolios } from '../api/portfolios'
 import { useDeletePrice } from '../api/prices'
@@ -37,7 +38,7 @@ import { LoadError } from '../components/ui/LoadError'
 import { Skeleton } from '../components/ui/Skeleton'
 import { usePositionActions } from '../components/usePositionActions'
 import { t, type StringKey } from '../i18n/strings'
-import { attentionItems, mergeAttention } from '../lib/attention'
+import { attentionItems, mergeAttention, moverCount } from '../lib/attention'
 import { formatMarketDate, formatShortMarketDate, monthsBetween, todayIstanbul } from '../lib/date'
 import { formatMoney, MISSING, plTone, signedMoney } from '../lib/format'
 import { useNavState } from '../lib/navState'
@@ -141,6 +142,8 @@ function Attention({
   const summaries = usePortfolioSummaries(ids)
   const expected = useExpectedDividendsOf(ids)
   const invalidatePortfolios = useInvalidatePortfolios()
+  // Undefined while loading or on a failure: attentionItems then uses the defaults.
+  const rules = useAttentionRules().data
   const [pricing, setPricing] = useState<{ position: Position; portfolioId: number } | null>(null)
   // On Tüm portföyler a saved price refetches the other portfolios after the
   // editor closes; the card keeps its focus target until they have.
@@ -154,9 +157,10 @@ function Attention({
       if (!summary) return []
       const dividends = expected[i].data ?? []
       for (const d of dividends) owners.set(d, p.id)
-      return attentionItems({ summary, expected: dividends, today, portfolioName: p.name })
+      return attentionItems({ summary, expected: dividends, today, portfolioName: p.name, rules })
     }),
     estimatedFrom,
+    moverCount(rules),
   )
 
   // Busy until the expected list has refetched (useAddExpectedDividend).
