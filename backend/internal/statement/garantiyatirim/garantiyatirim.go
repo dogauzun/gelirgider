@@ -480,12 +480,7 @@ type trade struct {
 func parseLedger(st *statement.Statement, ledger [][]string, f numberFormat) {
 	// A Komisyon is split over the trades of its value date, wherever they
 	// sit in the ledger, or else is a fee in ledger order.
-	tradeDates := map[string]bool{}
-	for _, rec := range ledger {
-		if tradeRow.MatchString(rec[1]) {
-			tradeDates[rec[0]] = true
-		}
-	}
+	tradeDates := tradeDateSet(ledger)
 	var trades []trade
 	var commissions []commission
 	for _, rec := range ledger {
@@ -521,17 +516,7 @@ func parseLedger(st *statement.Statement, ledger [][]string, f numberFormat) {
 				Date: valueDate, Kind: transaction.TypeWithdrawal, Amount: amount.Abs(), Currency: "TRY", Description: desc,
 			})
 		case fraction != nil && amount.IsPositive():
-			quantity, err := parseNumber(fraction[1], usFormat)
-			if err != nil || !quantity.IsPositive() {
-				st.BadNumber(ledgerSection, rec, "quantity", valueDate)
-				continue
-			}
-			// The amount is booked as printed; the price is rounded to the
-			// transaction API's 9 fraction digits.
-			st.Trades = append(st.Trades, statement.Trade{
-				Date: valueDate, Symbol: fraction[2], Side: transaction.TypeSell, Quantity: quantity,
-				Price: amount.DivRound(quantity, 9), Amount: amount, Currency: "TRY",
-			})
+			parseFraction(st, rec, fraction, amount, valueDate)
 		case openingRow.MatchString(desc):
 			st.Skipped = append(st.Skipped, statement.Skipped{Section: ledgerSection, Reason: "opening balance", Row: rec})
 		case tradeRow.MatchString(desc):
@@ -556,22 +541,57 @@ func parseLedger(st *statement.Statement, ledger [][]string, f numberFormat) {
 				Date: valueDate, Symbol: div[1], Gross: amount, Tax: decimal.Zero, Currency: "TRY",
 			})
 		case div != nil && div[2] != "", transferRow.MatchString(desc), feeRow.MatchString(desc):
-			kind := transaction.TypeDeposit
-			switch {
-			case amount.IsNegative() && feeRow.MatchString(desc):
-				kind = transaction.TypeFee
-			case amount.IsNegative():
-				kind = transaction.TypeWithdrawal
-			}
-			st.Cash = append(st.Cash, statement.CashMovement{
-				Date: valueDate, Kind: kind, Amount: amount.Abs(), Currency: "TRY", Description: desc,
-			})
+			bookTransfer(st, desc, amount, valueDate)
 		default:
 			st.Errors = append(st.Errors, statement.ParseError{Section: ledgerSection, Row: rec, Code: "unknown_row", Value: desc, Message: "unknown ledger row", Date: valueDate})
 		}
 	}
 	bookCommissions(st, trades, commissions)
 	moveTakasDeposits(st, trades)
+}
+
+// tradeDateSet returns the value dates of the ledger's trade records.
+func tradeDateSet(ledger [][]string) map[string]bool {
+	dates := map[string]bool{}
+	for _, rec := range ledger {
+		if tradeRow.MatchString(rec[1]) {
+			dates[rec[0]] = true
+		}
+	}
+	return dates
+}
+
+// parseFraction books the sale of a fractional share of the ledger record
+// rec, m being its description's fractionRow match, into st.Trades, or
+// records a ParseError.
+func parseFraction(st *statement.Statement, rec, m []string, amount decimal.Decimal, valueDate string) {
+	quantity, err := parseNumber(m[1], usFormat)
+	if err != nil || !quantity.IsPositive() {
+		st.BadNumber(ledgerSection, rec, "quantity", valueDate)
+		return
+	}
+	// The amount is booked as printed; the price is rounded to the
+	// transaction API's 9 fraction digits.
+	st.Trades = append(st.Trades, statement.Trade{
+		Date: valueDate, Symbol: m[2], Side: transaction.TypeSell, Quantity: quantity,
+		Price: amount.DivRound(quantity, 9), Amount: amount, Currency: "TRY",
+	})
+}
+
+// bookTransfer books a transfer, fee or dividend-adjustment ledger record
+// into st.Cash: a deposit when the amount is positive, else a fee or a
+// withdrawal.
+func bookTransfer(st *statement.Statement, desc string, amount decimal.Decimal, valueDate string) {
+	kind := transaction.TypeDeposit
+	switch {
+	case amount.IsNegative() && feeRow.MatchString(desc):
+		kind = transaction.TypeFee
+	case amount.IsNegative():
+		kind = transaction.TypeWithdrawal
+	}
+	st.Cash = append(st.Cash, statement.CashMovement{
+		Date: valueDate, Kind: kind, Amount: amount.Abs(), Currency: "TRY", Description: desc,
+	})
 }
 
 // parseTradeRow books the buy or sell of the ledger record rec, m being its

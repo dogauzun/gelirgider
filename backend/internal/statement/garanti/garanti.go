@@ -97,37 +97,11 @@ func Parse(rows [][]string) (statement.Statement, error) {
 		}
 	}
 	st := statement.Statement{Broker: broker, Currency: "TRY", Market: "TEFAS"}
-	for _, c := range cells {
-		if m := headerRow.FindStringSubmatch(c); m != nil {
-			year, _ := strconv.Atoi(m[2])
-			month := time.Month(slices.Index(months, m[1]) + 1)
-			st.PeriodStart = time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).Format(time.DateOnly)
-			st.PeriodEnd = time.Date(year, month+1, 0, 0, 0, 0, 0, time.UTC).Format(time.DateOnly)
-			break
-		}
-	}
+	st.PeriodStart, st.PeriodEnd = period(cells)
 	if st.PeriodStart == "" {
 		return statement.Statement{}, errors.New("not a garanti fund statement")
 	}
-	// Drop the legal text, so a record split by a page break still reads.
-	var kept []string
-	for i := 0; i < len(cells); i++ {
-		if strings.HasPrefix(cells[i], boilerplate) {
-			i += 4
-			continue
-		}
-		kept = append(kept, cells[i])
-	}
-	cells = kept
-	at := func(i int) string {
-		if i < len(cells) {
-			return cells[i]
-		}
-		return ""
-	}
-	isTitle := func(c string) bool { return c == secAccount || c == secBalances || c == secMoves }
-	isAnchor := func(i int) bool { return dateShape.MatchString(at(i)) && timeShape.MatchString(at(i+1)) }
-
+	cells = dropBoilerplate(cells)
 	fundCodes := map[string]string{} // a balance record's name to its code
 	holding := map[string]int{}      // a code to its index in st.Holdings
 	var moves []movement
@@ -144,7 +118,7 @@ func Parse(rows [][]string) (statement.Statement, error) {
 			switch {
 			case c == "TOPLAM":
 				section = ""
-			case fundCode.MatchString(c) && currencies[at(i+1)] != "":
+			case fundCode.MatchString(c) && currencies[cellAt(cells, i+1)] != "":
 				i = parseBalance(&st, cells, i, pending, fundCodes, holding) - 1
 				pending = nil
 			case balanceHeader[c] || accountNo.MatchString(c):
@@ -152,27 +126,78 @@ func Parse(rows [][]string) (statement.Statement, error) {
 				pending = append(pending, c)
 			}
 		case secMoves:
-			if !isAnchor(i) {
+			if !isAnchor(cells, i) {
 				continue
 			}
-			j := i + 2
-			var lead, nums []string
-			for j < len(cells) && len(lead) < 4 && !numberShape.MatchString(cells[j]) && !isAnchor(j) && !isTitle(cells[j]) {
-				lead = append(lead, cells[j])
-				j++
-			}
-			for j < len(cells) && len(nums) < 4 && numberShape.MatchString(cells[j]) && !isAnchor(j) {
-				nums = append(nums, cells[j])
-				j++
-			}
-			if m, ok := parseMovement(&st, cells[i:j], lead, nums); ok {
+			var m movement
+			var ok bool
+			m, ok, i = readMovement(&st, cells, i)
+			if ok {
 				moves = append(moves, m)
 			}
-			i = j - 1
 		}
 	}
 	net(&st, moves, index(fundCodes))
 	return st, nil
+}
+
+// period returns the first and last day of the month in the statement's
+// header cell, or two empty strings when no cell is one.
+func period(cells []string) (start, end string) {
+	for _, c := range cells {
+		if m := headerRow.FindStringSubmatch(c); m != nil {
+			year, _ := strconv.Atoi(m[2])
+			month := time.Month(slices.Index(months, m[1]) + 1)
+			return time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).Format(time.DateOnly),
+				time.Date(year, month+1, 0, 0, 0, 0, 0, time.UTC).Format(time.DateOnly)
+		}
+	}
+	return "", ""
+}
+
+// dropBoilerplate drops the legal text, so a record split by a page break
+// still reads.
+func dropBoilerplate(cells []string) []string {
+	var kept []string
+	for i := 0; i < len(cells); i++ {
+		if strings.HasPrefix(cells[i], boilerplate) {
+			i += 4
+			continue
+		}
+		kept = append(kept, cells[i])
+	}
+	return kept
+}
+
+func cellAt(cells []string, i int) string {
+	if i < len(cells) {
+		return cells[i]
+	}
+	return ""
+}
+
+func isTitle(c string) bool { return c == secAccount || c == secBalances || c == secMoves }
+
+func isAnchor(cells []string, i int) bool {
+	return dateShape.MatchString(cellAt(cells, i)) && timeShape.MatchString(cellAt(cells, i+1))
+}
+
+// readMovement reads the movement record anchored at cells[i] into st. It
+// returns the movement, whether it read, and the index of the record's last
+// cell.
+func readMovement(st *statement.Statement, cells []string, i int) (movement, bool, int) {
+	j := i + 2
+	var lead, nums []string
+	for j < len(cells) && len(lead) < 4 && !numberShape.MatchString(cells[j]) && !isAnchor(cells, j) && !isTitle(cells[j]) {
+		lead = append(lead, cells[j])
+		j++
+	}
+	for j < len(cells) && len(nums) < 4 && numberShape.MatchString(cells[j]) && !isAnchor(cells, j) {
+		nums = append(nums, cells[j])
+		j++
+	}
+	m, ok := parseMovement(st, cells[i:j], lead, nums)
+	return m, ok, j - 1
 }
 
 // parseBalance reads the balance record whose code is cells[i] and whose
