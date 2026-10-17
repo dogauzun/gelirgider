@@ -72,6 +72,11 @@ var seedSources = []struct {
 	{goldCSV, "GOLD", "TRY"},
 }
 
+// MarketDeposit is the market of a term deposit's instrument. A deposit is
+// owned by one user through term_deposits, so the generic routes (search,
+// transactions, import aliases) answer for it as for an unknown instrument.
+const MarketDeposit = "DEPOSIT"
+
 // ErrNotFound is returned when no instrument matches the lookup.
 var ErrNotFound = errors.New("instrument not found")
 
@@ -139,7 +144,8 @@ const maxSearchRunes = 1000
 // SQLite still evaluates once per word.
 var searchQuery = fmt.Sprintf(
 	`SELECT id, symbol, market, name, currency FROM
-	   (SELECT id, symbol, market, name, currency, %s AS folded FROM instruments) AS i
+	   (SELECT id, symbol, market, name, currency, %s AS folded FROM instruments
+	    WHERE market <> '`+MarketDeposit+`') AS i
 	 WHERE symbol LIKE ? ESCAPE '\' OR (%%s)
 	 ORDER BY
 	   CASE WHEN symbol = ? THEN 0
@@ -195,6 +201,7 @@ const minGoldWordRunes = 3
 // are ordered by name, with no market tie-break: with ~1000 TEFAS funds
 // and 31 BIST ETFs sharing the word PORTFOY, a BIST-first tie-break there
 // filled the whole limit with one market and hid every other.
+// Deposit instruments (MarketDeposit) are never returned.
 // Surrounding whitespace is ignored, so a blank q matches nothing.
 // A q longer than maxSearchRunes also matches nothing, and so
 // does one holding a control character: no instrument has one, and SQLite

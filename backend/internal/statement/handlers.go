@@ -695,10 +695,17 @@ func (h *handler) instrumentLookup(ctx context.Context, ids []int64) (func(int64
 		return nil, err
 	}
 	return func(id int64) (instrument.Instrument, error) {
-		if in, ok := known[id]; ok {
-			return in, nil
+		in, ok := known[id]
+		if !ok {
+			var err error
+			if in, err = h.instruments.Get(ctx, id); err != nil {
+				return in, err
+			}
 		}
-		return h.instruments.Get(ctx, id)
+		if in.Market == instrument.MarketDeposit {
+			return instrument.Instrument{}, instrument.ErrNotFound
+		}
+		return in, nil
 	}, nil
 }
 
