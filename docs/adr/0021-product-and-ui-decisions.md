@@ -46,3 +46,9 @@ transactions CSV export promises. UI rules are in
   leading `'`, so a spreadsheet does not run it as a formula.
 - It takes the transaction list's filters (`type`, `instrument_id`, `import_id`,
   `from`, `to`), with `from` and `to` an inclusive `YYYY-MM-DD` range.
+- `GET /api/export.zip`, from the account menu, is one zip with one such CSV
+  per portfolio of the user, named `<portfolio name>-transactions.csv` (the
+  portfolio id when the name is empty or clashes), each written with no filter.
+  It holds transactions only, so it is not a backup: the database snapshot is
+  ([deploy/RUNBOOK.md](../../deploy/RUNBOOK.md)). To get a portfolio back, the
+  user imports its CSV through the import page ([ADR 0006](0006-broker-statement-import.md)).

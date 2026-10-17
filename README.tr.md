@@ -20,6 +20,14 @@ English: [README.md](README.md)
 - Temettüler ve hisse bölünmeleri.
 - Midas, Garanti BBVA ve Garanti BBVA Yatırım ekstrelerinden ve genel bir CSV
   dosyasından içe aktarma.
+- Hesap menüsünden işlemleri dışa aktarma: portföy başına bir CSV içeren tek bir
+  zip. Her CSV'yi içe aktarma sayfasında CSV biçimiyle kendi portföyüne aktar;
+  portföyde zaten bulunan satırlar yinelenen olarak işaretlenir ve seçili
+  gelmez. 5000 satırı aşan dosya reddedilir; büyük bir portföyü, portföy başına
+  CSV dışa aktarımının `from` ve `to` filtreleriyle böl
+  (`/api/portfolios/{id}/transactions.csv?from=YYYY-MM-DD&to=YYYY-MM-DD`). Dışa
+  aktarım yalnızca işlemleri içerir ve yedek değildir; veritabanı yedeği için
+  bkz. [deploy/RUNBOOK.md](deploy/RUNBOOK.md).
 - Sağlayıcı API anahtarları, fiyat çekme takvimi, kayıt ve kullanıcılar için bir
   yönetim alanı.
 

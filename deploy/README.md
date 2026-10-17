@@ -142,4 +142,5 @@ admin (`deploy/RUNBOOK.md`, First deploy).
 
 For running this in an actual deployment — first deploy, updating, backups
 and the backup cron, a restore drill, reading logs, and rolling back — see
-[`deploy/RUNBOOK.md`](./RUNBOOK.md).
+[`deploy/RUNBOOK.md`](./RUNBOOK.md). The transactions export in the account
+menu is not a backup; the database snapshot of `backup.sh` is (RUNBOOK §4).

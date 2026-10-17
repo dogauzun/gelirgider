@@ -28,7 +28,9 @@ and one line; there is no provider interface and no per-broker mapping config
   [ADR 0018](0018-garanti-statements.md).
 - `csv`: gelirgider's own column layout, the file the app exports and any
   hand-made file in that shape. It has no holdings section, so there is no
-  reconciliation for it.
+  reconciliation for it. A CSV is never refused for its period, which it does
+  not print; the file hash and the per-row duplicate flags keep it from
+  booking a row twice.
 
 Parsers are pure: rows in, a broker-neutral `Statement` out, with no database,
 no HTTP, no user and no clock. `backend/cmd/statement_dump` prints a PDF's
