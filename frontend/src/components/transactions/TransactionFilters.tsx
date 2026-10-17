@@ -3,6 +3,7 @@ import { importLabel, type Import } from '../../api/imports'
 import type { Instrument } from '../../api/instruments'
 import type { ImportFilter } from '../../api/transactions'
 import { t } from '../../i18n/strings'
+import { useIsDesktop } from '../../lib/useIsDesktop'
 import { DateRangeFilter } from '../DateRangeFilter'
 import { InstrumentSearchInput } from '../InstrumentSearchInput'
 import { Button } from '../ui/Button'
@@ -66,7 +67,6 @@ type ListFilter = (typeof LIST_FILTERS)[number]
 // The toolbar's filters, shown in the row on the desktop and in FilterSheet
 // below md. Each control writes its query parameter through the page.
 export function FilterControls({
-  desktop,
   filter,
   from,
   to,
@@ -79,7 +79,6 @@ export function FilterControls({
   setParam,
   clearDates,
 }: {
-  desktop: boolean
   filter: ListFilter
   from: string | undefined
   to: string | undefined
@@ -92,6 +91,7 @@ export function FilterControls({
   setParam: (name: string, value: string | undefined) => void
   clearDates: () => void
 }) {
+  const desktop = useIsDesktop()
   // Tümü, Elle, then this portfolio's imports, newest first as the API lists
   // them. An import id the list does not hold (still loading, or undone) is
   // kept as an option, so the select still shows what the URL filters by.

@@ -348,7 +348,6 @@ export function TransactionsPage() {
 
   const filterControls = (
     <FilterControls
-      desktop={desktop}
       filter={filter}
       from={from}
       to={to}
@@ -464,7 +463,6 @@ export function TransactionsPage() {
                   <TransactionList
                     rows={rows}
                     imports={importById}
-                    desktop={desktop}
                     editingId={editing?.id}
                     cardRef={tableCardRef}
                     onEdit={startEdit}
