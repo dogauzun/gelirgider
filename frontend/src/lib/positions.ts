@@ -74,6 +74,7 @@ export function currencyTotals(
 ): Map<string, bigint> {
   const totals = new Map<string, bigint>()
   const add = (currency: string, units: bigint) =>
+    // eslint-disable-next-line no-restricted-syntax -- sums bigint units, not strings
     totals.set(currency, (totals.get(currency) ?? 0n) + units)
   for (const p of positions) add(p.currency, shareUnits(p) ?? 0n)
   for (const [currency, amount] of Object.entries(cashByCurrencyReporting)) {

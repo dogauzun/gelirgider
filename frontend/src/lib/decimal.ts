@@ -1,5 +1,5 @@
 import { getLocale } from '../i18n/strings'
-import { formatNumber } from './format'
+import { formatMoney, formatNumber } from './format'
 
 // parseDecimalInput accepts user-typed decimals with either a comma or a dot
 // as the decimal separator ("1,5" or "1.5"), and returns the dot form the
@@ -91,6 +91,17 @@ export function unitsToDecimal(units: bigint): string {
     .padStart(9, '0')
     .replace(/0+$/, '')
   return `${sign}${abs / 1_000_000_000n}${fraction ? `.${fraction}` : ''}`
+}
+
+// The items' amounts added exactly per currency, each sum formatted, in the
+// order the currencies first appear: ["₺1.264,79", "$12,34"].
+export function moneyByCurrency(items: { currency: string; amount: string }[]): string[] {
+  const sums = new Map<string, bigint>()
+  for (const { currency, amount } of items) {
+    // eslint-disable-next-line no-restricted-syntax -- the one shared copy
+    sums.set(currency, (sums.get(currency) ?? 0n) + decimalUnits(amount))
+  }
+  return [...sums].map(([currency, units]) => formatMoney(unitsToDecimal(units), currency))
 }
 
 // a + b and a - b of two API decimal strings, exact: Number() would round a

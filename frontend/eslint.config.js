@@ -205,6 +205,12 @@ export default tseslint.config(
             "BinaryExpression[operator=/^[-+]$/][left.callee.name='decimalUnits'][right.callee.name='decimalUnits']",
           message: 'use addDecimal / subDecimal from lib/decimal',
         },
+        // One exact per-currency money sum.
+        {
+          selector:
+            "LogicalExpression[operator='??'][right.bigint='0'][left.callee.property.name='get']",
+          message: 'sum money with moneyByCurrency or currencyTotals',
+        },
         // One sheet panel inside it. `.` stands for the slash,
         // which an esquery regex cannot hold.
         {

@@ -23,6 +23,7 @@ function effects(rows: Booked[], periodEnd: string, currency: string | undefined
     if (!row.type || !row.date || row.date > periodEnd) continue
     const quantity = decimalUnits(row.quantity ?? '0')
     if (row.instrument_id !== undefined && (row.type === 'buy' || row.type === 'sell')) {
+      // eslint-disable-next-line no-restricted-syntax -- share counts, not money
       const held = quantities.get(row.instrument_id) ?? 0n
       quantities.set(row.instrument_id, held + (row.type === 'buy' ? quantity : -quantity))
     }
@@ -62,6 +63,7 @@ export function liveReconciliation(
   const reconciliation = preview.reconciliation.flatMap((entry): Reconciliation[] => {
     const id = entry.instrument_id
     const delta =
+      // eslint-disable-next-line no-restricted-syntax -- share counts, not money
       id === undefined ? 0n : (after.quantities.get(id) ?? 0n) - (before.quantities.get(id) ?? 0n)
     if (delta === 0n) return [entry]
     const held = decimalUnits(entry.portfolio_quantity) + delta
