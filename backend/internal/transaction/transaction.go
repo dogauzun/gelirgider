@@ -348,7 +348,9 @@ const bonusWindow = bonusWindowDays * 24 * time.Hour
 // a buy of the same instrument at price 0 dated within bonusWindowDays of the
 // ex-date already books (ADR 0008). That buy is the broker's own
 // record of the bonus shares the account received, fractions included, so
-// applying the split on top would scale the position twice. Price scaling by
+// applying the split on top would scale the position twice. Only a buy whose
+// quantity matches the shares the split would add books it (bookedSplits):
+// shares gifted by hand next to a split do not. Price scaling by
 // the instrument's splits is market data and is not affected, so each such
 // buy is moved to the ex-date of the split it books (the first one listed,
 // if it books more than one): the shares are held from the day the price is
@@ -358,12 +360,8 @@ const bonusWindow = bonusWindowDays * 24 * time.Hour
 // split would be: a sell on the ex-date realizes against the post-split
 // average cost. Order is kept, so a moved buy may be out of date
 // order; List sorts the result afterwards.
-//
-// shortcut: any zero-price buy in the window suppresses the split, a gift of
-// shares entered by hand next to a split included; the upgrade path is an
-// explicit marker on imported bonus rows.
 func DropBookedSplits(txs []Transaction) ([]Transaction, error) {
-	bonus := map[int64][]time.Time{}
+	bonus := map[int64][]bonusBuy{}
 	for _, t := range txs {
 		if !isBonusBuy(t) {
 			continue
@@ -372,24 +370,26 @@ func DropBookedSplits(txs []Transaction) ([]Transaction, error) {
 		if err != nil {
 			return nil, fmt.Errorf("parse transaction date %q: %w", t.Date, err)
 		}
-		bonus[*t.InstrumentID] = append(bonus[*t.InstrumentID], d)
+		bonus[*t.InstrumentID] = append(bonus[*t.InstrumentID], bonusBuy{d, t.Quantity})
 	}
 	if len(bonus) == 0 {
 		return txs, nil
+	}
+	booked, err := bookedSplits(txs, bonus)
+	if err != nil {
+		return nil, err
 	}
 	// exDates holds, per instrument, the ex-dates of the splits dropped.
 	exDates := map[int64][]time.Time{}
 	out := make([]Transaction, 0, len(txs))
 	for _, t := range txs {
-		if t.Type == TypeSplit && t.InstrumentID != nil {
+		if t.Type == TypeSplit && t.InstrumentID != nil && booked[splitKey{*t.InstrumentID, t.Date}] {
 			ex, err := time.Parse(time.DateOnly, t.Date)
 			if err != nil {
 				return nil, fmt.Errorf("parse split date %q: %w", t.Date, err)
 			}
-			if slices.ContainsFunc(bonus[*t.InstrumentID], func(d time.Time) bool { return within(d, ex) }) {
-				exDates[*t.InstrumentID] = append(exDates[*t.InstrumentID], ex)
-				continue
-			}
+			exDates[*t.InstrumentID] = append(exDates[*t.InstrumentID], ex)
+			continue
 		}
 		out = append(out, t)
 	}
@@ -411,6 +411,77 @@ func DropBookedSplits(txs []Transaction) ([]Transaction, error) {
 		}
 	}
 	return out, nil
+}
+
+// bonusBuy is a zero-price buy, by its date and quantity.
+type bonusBuy struct {
+	date time.Time
+	qty  decimal.Decimal
+}
+
+// splitKey names a split row: splits are unique per instrument and ex-date.
+type splitKey struct {
+	instrumentID int64
+	date         string
+}
+
+// bonusTolerance is how far, in shares, the zero-price buys in a split's
+// window may be from the shares the split would add and still book it: a
+// broker pays the fraction in cash, so the credit is a whole number.
+var bonusTolerance = decimal.NewFromInt(1)
+
+// bookedSplits returns the splits of txs that the zero-price buys in bonus
+// book. It walks txs in apply order, tracking the held quantity per
+// instrument. A split is booked when the zero-price buys within its window
+// add up to held x (ratio - 1), the shares it would add, give or take
+// bonusTolerance; held leaves out those buys, so a bonus dated before the
+// ex-date is not counted twice. A split whose window buys do not match is
+// kept and scales the position as usual, so a hand-entered gift next to it
+// does not lose it.
+//
+// shortcut: with no position held before the ex-date (a history that starts
+// at the bonus row) there is nothing to match against and the buy books the
+// split; the upgrade path is an explicit marker on imported bonus rows.
+func bookedSplits(txs []Transaction, bonus map[int64][]bonusBuy) (map[splitKey]bool, error) {
+	sorted := slices.Clone(txs)
+	SortForApply(sorted)
+	booked := map[splitKey]bool{}
+	qty := map[int64]decimal.Decimal{}
+	for _, t := range sorted {
+		if t.InstrumentID == nil {
+			continue
+		}
+		id := *t.InstrumentID
+		switch t.Type {
+		case TypeBuy:
+			qty[id] = qty[id].Add(t.Quantity)
+		case TypeSell:
+			qty[id] = qty[id].Sub(t.Quantity)
+		case TypeSplit:
+			ex, err := time.Parse(time.DateOnly, t.Date)
+			if err != nil {
+				return nil, fmt.Errorf("parse split date %q: %w", t.Date, err)
+			}
+			held, got, found := qty[id], decimal.Zero, false
+			for _, b := range bonus[id] {
+				if !within(b.date, ex) {
+					continue
+				}
+				found = true
+				got = got.Add(b.qty)
+				if b.date.Before(ex) {
+					held = held.Sub(b.qty)
+				}
+			}
+			adds := held.Mul(t.Quantity.Sub(decimal.NewFromInt(1)))
+			if found && (!held.IsPositive() || got.Sub(adds).Abs().LessThanOrEqual(bonusTolerance)) {
+				booked[splitKey{id, t.Date}] = true
+			} else {
+				qty[id] = qty[id].Mul(t.Quantity)
+			}
+		}
+	}
+	return booked, nil
 }
 
 // isBonusBuy reports whether t is a buy of an instrument at price 0, the

@@ -84,9 +84,14 @@ a moved bonus buy on the date it is stored on (`Transaction.StoredDate`), so a
 re-imported bonus row still pairs with the booked one. The CSV export reads
 `transaction.Repo.ListStored` for the same reason.
 
-Ceiling: any zero-price buy in the window suppresses the split, so shares
-gifted by hand next to a split lose it. The upgrade path is an explicit marker
-on imported bonus rows.
+Only a buy whose quantity matches what the split would add books it: the
+zero-price buys in the window must add up to the quantity held before the
+ex-date times (ratio - 1), give or take one share for the fraction paid in
+cash. Shares gifted by hand next to a split do not match, so the split stays.
+
+Ceiling: with no position held before the ex-date there is nothing to match
+against, so the zero-price buy books the split. The upgrade path is an explicit
+marker on imported bonus rows.
 
 ### Not modelled
 
