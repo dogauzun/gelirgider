@@ -43,8 +43,11 @@ position and for the portfolio as `total`.
 Over a range, the buckets sum to `V_last − V_first − flows`, where `flows` are
 the ones `net_flow` counts (ADR 0011): converted deposits less withdrawals,
 plus the first-price jump pseudo-flows. The sum is exact on unrounded
-decimals. Each bucket is rounded to 2 decimals in the response, so the rounded
-buckets are within 0.02 of the rounded change in value less `net_flow`.
+decimals. Each bucket is rounded to 2 decimals in the response, so the sum of
+the rounded buckets is within 0.02 of the exact `V_last − V_first − flows`.
+`net_flow` itself adds each flow day as a difference of rounded values, so it
+can differ from the exact flows by up to one cent per flow day; against the
+rounded change in value less `net_flow` the bound widens by that much.
 
 ### Owner decisions
 
