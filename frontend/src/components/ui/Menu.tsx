@@ -88,3 +88,17 @@ export function MenuLink({ to, children }: { to: string; children: ReactNode }) 
     </Base.LinkItem>
   )
 }
+
+// A file download: a plain <a download>, so the browser saves the server's
+// file with the session cookie and the page stays where it is.
+export function MenuDownload({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Base.LinkItem
+      closeOnClick
+      render={<a href={href} download />}
+      className={`${menuItemClass} text-ink`}
+    >
+      {children}
+    </Base.LinkItem>
+  )
+}

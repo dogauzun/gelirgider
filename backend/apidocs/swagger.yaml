@@ -1852,6 +1852,32 @@ paths:
       summary: Register a user
       tags:
       - auth
+  /export.zip:
+    get:
+      produces:
+      - application/zip
+      responses:
+        "200":
+          description: one <portfolio name>-transactions.csv per portfolio, as GET
+            /portfolios/{id}/transactions.csv writes it; the id (then id-n) stands
+            in for a name that is empty once cleaned for a file name or that another
+            entry already has, compared ignoring case
+          headers:
+            Content-Disposition:
+              description: attachment; filename=gelirgider-export-<yyyyMMddTHHmm>.csv.zip
+              type: string
+          schema:
+            type: file
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Export every portfolio's transactions as a zip of CSV files
+      tags:
+      - transactions
   /health:
     get:
       description: Reports ok and the build version when the database answers. Needs

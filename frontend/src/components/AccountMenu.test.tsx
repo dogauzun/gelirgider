@@ -47,6 +47,9 @@ describe('AccountMenu', () => {
 
     const menu = await screen.findByRole('menu')
     expect(screen.getByRole('menuitem', { name: 'Hesap' })).toHaveAttribute('href', '/account')
+    const exportItem = screen.getByRole('menuitem', { name: 'İşlemleri dışa aktar' })
+    expect(exportItem).toHaveAttribute('href', '/api/export.zip')
+    expect(exportItem).toHaveAttribute('download')
 
     fireEvent.keyDown(menu, { key: 'Escape' })
 

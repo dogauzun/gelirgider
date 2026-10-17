@@ -1,6 +1,7 @@
 package server
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"database/sql"
@@ -13,6 +14,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -605,6 +607,93 @@ func TestTransactionsExportCSV(t *testing.T) {
 	bob := env.login("bob@example.com")
 	if rec := env.do(bob, http.MethodGet, path, nil); rec.Code != http.StatusNotFound {
 		t.Errorf("other user's export status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+}
+
+// TestExportZip checks that the zip holds one entry per portfolio of the
+// caller, each byte for byte the portfolio's own CSV export; a portfolio name
+// that is not a file name falls back to its id; and a user with no portfolio
+// gets an empty zip.
+func TestExportZip(t *testing.T) {
+	env := newTransactionTestEnv(t)
+	alice := env.login("alice@example.com")
+	first := env.createPortfolio(alice, "Main")
+	second := env.createPortfolio(alice, "a/b")
+	third := env.createPortfolio(alice, "a?b")
+	// "A:b" cleans to "A_b", which is "a_b" up to case. x*y collides with x:y, so it
+	// falls back to its id, which the portfolio between them already has as a
+	// name, so it needs the next free name.
+	fourth := env.createPortfolio(alice, "A:b")
+	xy := env.createPortfolio(alice, "x:y")
+	env.createPortfolio(alice, fmt.Sprint(xy+2))
+	env.createPortfolio(alice, "x*y")
+	env.createTransaction(alice, first, map[string]any{
+		"type": "buy", "date": "2024-01-02", "instrument_id": env.instrumentID, "quantity": "10", "price": "12.5",
+	})
+	env.createTransaction(alice, second, map[string]any{
+		"type": "deposit", "date": "2024-01-01", "amount": "1000",
+	})
+	bob := env.login("bob@example.com")
+	env.createTransaction(bob, env.createPortfolio(bob, "Bob"), map[string]any{
+		"type": "deposit", "date": "2024-01-01", "amount": "5",
+	})
+
+	unzip := func(who string) map[string]string {
+		rec := env.do(who, http.MethodGet, "/api/export.zip", nil)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("GET /api/export.zip status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
+		}
+		if got := rec.Header().Get("Content-Type"); got != "application/zip" {
+			t.Errorf("Content-Type = %q", got)
+		}
+		if got := rec.Header().Get("Content-Disposition"); !regexp.MustCompile(`^attachment; filename=gelirgider-export-\d{8}T\d{4}\.csv\.zip$`).MatchString(got) {
+			t.Errorf("Content-Disposition = %q", got)
+		}
+		zr, err := zip.NewReader(bytes.NewReader(rec.Body.Bytes()), int64(rec.Body.Len()))
+		if err != nil {
+			t.Fatalf("open zip: %v", err)
+		}
+		out := map[string]string{}
+		for _, f := range zr.File {
+			rc, err := f.Open()
+			if err != nil {
+				t.Fatalf("open %s: %v", f.Name, err)
+			}
+			b, err := io.ReadAll(rc)
+			rc.Close()
+			if err != nil {
+				t.Fatalf("read %s: %v", f.Name, err)
+			}
+			out[f.Name] = string(b)
+		}
+		return out
+	}
+
+	got := unzip(alice)
+	csvOf := func(id int64) string {
+		return env.do(alice, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/transactions.csv", id), nil).Body.String()
+	}
+	want := map[string]string{
+		"Main-transactions.csv":                    csvOf(first),
+		"a_b-transactions.csv":                     csvOf(second),
+		fmt.Sprintf("%d-transactions.csv", third):  csvOf(third),
+		fmt.Sprintf("%d-transactions.csv", fourth): csvOf(fourth),
+		"x_y-transactions.csv":                     csvOf(xy),
+		fmt.Sprintf("%d-transactions.csv", xy+2):   csvOf(xy + 1),
+		fmt.Sprintf("%d-2-transactions.csv", xy+2): csvOf(xy + 2),
+	}
+	// Every portfolio has an entry: none overwrites another.
+	if len(got) != len(want) || len(got) != 7 {
+		t.Errorf("zip has %d entries, want %d (7 portfolios): %v", len(got), len(want), got)
+	}
+	for name, body := range want {
+		if got[name] != body {
+			t.Errorf("entry %s =\n%q\nwant\n%q", name, got[name], body)
+		}
+	}
+
+	if got := unzip(env.login("carol@example.com")); len(got) != 0 {
+		t.Errorf("user without portfolios got entries: %v", got)
 	}
 }
 

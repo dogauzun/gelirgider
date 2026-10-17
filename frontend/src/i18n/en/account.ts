@@ -3,6 +3,7 @@ import type { AreaStrings } from '../types'
 
 export const enAccount: AreaStrings<typeof trAccount> = {
   'account.link': 'Account',
+  'account.export': 'Export transactions',
   'account.menu': 'Account menu',
   'account.heading': 'Account',
   'account.section.preferences': 'Preferences',

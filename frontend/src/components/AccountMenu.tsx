@@ -2,10 +2,10 @@ import { useNavigate } from 'react-router'
 import { useLogout, useMe } from '../api/auth'
 import { t } from '../i18n/strings'
 import { Icon } from './ui/Icon'
-import { Menu, MenuItem, MenuLink } from './ui/Menu'
+import { Menu, MenuDownload, MenuItem, MenuLink } from './ui/Menu'
 
 // The signed-in user's menu, at the foot of the sidebar and in the small-screen
-// top bar: the account page and the logout. Yönetim is the
+// top bar: the account page, the export of every portfolio's transactions and the logout. Yönetim is the
 // sidebar's own row, in the drawer below `lg`. `wide` is the
 // sidebar's: the trigger fills its row and always shows the email, truncated,
 // the drawer included; the top bar has room for the initial only below `sm`,
@@ -37,6 +37,7 @@ export function AccountMenu({ wide = false }: { wide?: boolean }) {
       }
     >
       <MenuLink to="/account">{t('account.link')}</MenuLink>
+      <MenuDownload href="/api/export.zip">{t('account.export')}</MenuDownload>
       <MenuItem onSelect={() => mutation.mutate()}>{t('auth.logout')}</MenuItem>
     </Menu>
   )

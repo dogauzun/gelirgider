@@ -1245,6 +1245,42 @@
                 }
             }
         },
+        "/export.zip": {
+            "get": {
+                "produces": [
+                    "application/zip"
+                ],
+                "tags": [
+                    "transactions"
+                ],
+                "summary": "Export every portfolio's transactions as a zip of CSV files",
+                "responses": {
+                    "200": {
+                        "description": "one \u003cportfolio name\u003e-transactions.csv per portfolio, as GET /portfolios/{id}/transactions.csv writes it; the id (then id-n) stands in for a name that is empty once cleaned for a file name or that another entry already has, compared ignoring case",
+                        "schema": {
+                            "type": "file"
+                        },
+                        "headers": {
+                            "Content-Disposition": {
+                                "type": "string",
+                                "description": "attachment; filename=gelirgider-export-\u003cyyyyMMddTHHmm\u003e.csv.zip"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Reports ok and the build version when the database answers. Needs no session.",
