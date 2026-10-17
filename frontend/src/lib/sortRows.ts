@@ -16,7 +16,10 @@ export function sortRows<T>(
   return [...rows].sort((a, b) => {
     const x = pick(a)
     const y = pick(b)
-    if (x === null || y === null) return x === y ? 0 : x === null ? 1 : -1
+    if (x === null || y === null) {
+      if (x === y) return 0
+      return x === null ? 1 : -1
+    }
     if (typeof x === 'number' || typeof y === 'number') return sign * (Number(x) - Number(y))
     return sign * (sort.key === 'symbol' ? x.localeCompare(y, getLocale()) : compareDecimal(x, y))
   })

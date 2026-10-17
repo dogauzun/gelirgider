@@ -16,6 +16,7 @@ export function problemRows<T extends PreviewRow>(rows: T[]): T[] {
 export function inDateOrder<T extends PreviewRow>(rows: T[]): T[] {
   return rows.toSorted((a, b) => {
     if (!a.date || !b.date) return Number(!a.date) - Number(!b.date)
-    return a.date < b.date ? -1 : a.date > b.date ? 1 : 0
+    if (a.date < b.date) return -1
+    return a.date > b.date ? 1 : 0
   })
 }

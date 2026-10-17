@@ -27,8 +27,8 @@ function history(
     ].map((p, i) => ({
       ...p,
       ...(values && { benchmark_value: i === 0 ? '1000.00' : '1050.00' }),
-      twr: twr ? (i === 0 ? '0.000000' : '0.200000') : null,
-      benchmark_twr: values && twr ? (i === 0 ? '0.000000' : '0.050000') : null,
+      twr: twr ? ['0.000000', '0.200000'][i] : null,
+      benchmark_twr: values && twr ? ['0.000000', '0.050000'][i] : null,
     })),
     missing_rates: [],
     missing_prices: [],

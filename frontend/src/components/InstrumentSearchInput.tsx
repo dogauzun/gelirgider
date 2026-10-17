@@ -75,25 +75,19 @@ export function InstrumentSearchInput({
   // nothing" and not "still loading". While it is in flight the
   // popup says so instead of showing nothing.
   const settledEmpty = debounced.length > 0 && results?.length === 0
-  const statusText =
-    !open || stale
-      ? null
-      : debounced.length > 0 && isPending
-        ? t('search.loading')
-        : settledEmpty
-          ? t('search.noResults')
-          : null
+  let statusText: string | null = null
+  if (open && !stale) {
+    if (debounced.length > 0 && isPending) statusText = t('search.loading')
+    else if (settledEmpty) statusText = t('search.noResults')
+  }
   // Screen readers hear the outcome of each settled search through a polite
   // live region; it stays mounted so changes to it are announced.
-  const announcement = !open
-    ? ''
-    : capped
-      ? t('search.resultsCapped', { count: results.length })
-      : listOpen
-        ? t('search.resultCount', { count: results.length })
-        : settledEmpty
-          ? t('search.noResults')
-          : ''
+  let announcement = ''
+  if (open) {
+    if (capped) announcement = t('search.resultsCapped', { count: results.length })
+    else if (listOpen) announcement = t('search.resultCount', { count: results.length })
+    else if (settledEmpty) announcement = t('search.noResults')
+  }
 
   return (
     <Autocomplete.Root

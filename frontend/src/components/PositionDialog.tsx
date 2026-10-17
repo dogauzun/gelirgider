@@ -91,7 +91,8 @@ export function PositionDialog({
 
   function handleKeyDown(event: KeyboardEvent<HTMLDialogElement>) {
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
-    const target = event.key === 'ArrowLeft' ? prev : event.key === 'ArrowRight' ? next : null
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+    const target = event.key === 'ArrowLeft' ? prev : next
     if (!target) return
     event.preventDefault()
     onChange(target)

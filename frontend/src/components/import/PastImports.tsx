@@ -95,13 +95,15 @@ export function PastImports({
           <Notice role="alert">{remove.error.message}</Notice>
         </div>
       )}
-      {isError ? (
+      {isError && (
         <div className="mt-3">
           <Notice role="alert">{t('import.pastError')}</Notice>
         </div>
-      ) : imports.length === 0 ? (
+      )}
+      {!isError && imports.length === 0 && (
         <p className="mt-2 text-[13px] text-muted">{t('import.pastEmpty')}</p>
-      ) : (
+      )}
+      {!isError && imports.length > 0 && (
         <ul className="mt-2">
           {imports.map((item) => (
             <li

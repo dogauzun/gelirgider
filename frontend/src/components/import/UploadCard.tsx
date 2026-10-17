@@ -17,6 +17,13 @@ function recognised(): string {
   )
 }
 
+// What the card says about the files the chosen broker takes.
+function fileHint(broker: string): string {
+  if (broker === 'garanti') return t('import.garanti.fileHint')
+  if (broker === 'garanti_yatirim') return t('import.garantiYatirim.fileHint')
+  return t('import.recognised', { brokers: recognised() })
+}
+
 // Step 1 of the import page: the broker and the drop zone, with what the
 // upfront parse says while it runs or once it failed.
 export function UploadCard({
@@ -74,11 +81,7 @@ export function UploadCard({
       {/* Both Garanti PDFs are titled the same, so each says which
         one it takes. */}
       <p id="import-brokers" className="mt-3 text-[12px] text-muted">
-        {broker === 'garanti'
-          ? t('import.garanti.fileHint')
-          : broker === 'garanti_yatirim'
-            ? t('import.garantiYatirim.fileHint')
-            : t('import.recognised', { brokers: recognised() })}
+        {fileHint(broker)}
       </p>
       <details className="mt-2 text-[12px] text-muted">
         <summary className="cursor-pointer text-accent">{t('import.csvFormat')}</summary>

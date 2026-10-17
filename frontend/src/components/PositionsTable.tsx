@@ -718,7 +718,16 @@ export function PositionsTable({
         // Room under the last row for the floating add button.
         <div className="pb-14">
           <ul>
-            {showClosed && closedRows.length > 0 ? (
+            {shownRows.length === 0 && (
+              <li className="px-4 py-3 text-[13px] text-muted">
+                {t(
+                  !showClosed && open.length === 0
+                    ? 'summary.noOpenPositions'
+                    : 'summary.noMatchingPositions',
+                )}
+              </li>
+            )}
+            {showClosed &&
               closedRows.map((position) => (
                 <ClosedListItem
                   key={position.instrument_id}
@@ -727,16 +736,8 @@ export function PositionsTable({
                   reporting={reporting}
                   onOpen={onOpen}
                 />
-              ))
-            ) : showClosed || openRows.length === 0 ? (
-              <li className="px-4 py-3 text-[13px] text-muted">
-                {t(
-                  !showClosed && open.length === 0
-                    ? 'summary.noOpenPositions'
-                    : 'summary.noMatchingPositions',
-                )}
-              </li>
-            ) : (
+              ))}
+            {!showClosed &&
               openRows.map((position) => (
                 <PositionListItem
                   key={position.instrument_id}
@@ -745,8 +746,7 @@ export function PositionsTable({
                   reporting={reporting}
                   onOpen={onOpen}
                 />
-              ))
-            )}
+              ))}
           </ul>
           {!showClosed && showTotal && (
             <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3">

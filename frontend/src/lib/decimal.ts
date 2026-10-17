@@ -125,5 +125,6 @@ export function compareDecimal(a: string, b: string): number {
 
 // compareDecimal for amounts already in units.
 export function compareUnits(x: bigint, y: bigint): number {
-  return x < y ? -1 : x > y ? 1 : 0
+  if (x < y) return -1
+  return x > y ? 1 : 0
 }

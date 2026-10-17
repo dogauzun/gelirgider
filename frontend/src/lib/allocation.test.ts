@@ -133,7 +133,7 @@ describe('allocationRows', () => {
   it('folds rows past the fifth into "Diğer", names its members and sums exactly', () => {
     const { rows, other } = allocationRows({
       positions: ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map((symbol, i) =>
-        position(i + 1, symbol, i < 5 ? String(70 - i * 10) : i === 5 ? '0.1' : '0.2'),
+        position(i + 1, symbol, ['70', '60', '50', '40', '30', '0.1', '0.2'][i]),
       ),
       cash: '20.00',
       cashByCurrencyReporting: { TRY: '20.00' },

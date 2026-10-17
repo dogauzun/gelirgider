@@ -168,12 +168,9 @@ const rawClass = 'text-[11px] wrap-anywhere text-muted'
 function StatusText({ row }: { row: PreviewRow }) {
   const text = statusText(row)
   if (!text) return null
-  const tone =
-    row.status === 'error'
-      ? 'text-loss'
-      : row.duplicate_of || row.approximate_price
-        ? 'text-warn'
-        : 'text-muted'
+  let tone = 'text-muted'
+  if (row.status === 'error') tone = 'text-loss'
+  else if (row.duplicate_of || row.approximate_price) tone = 'text-warn'
   return <span className={tone}>{text}</span>
 }
 
@@ -619,14 +616,13 @@ export function PreviewRows({
   const openingBuys = shown.filter(
     (row) => row.opening && row.type === 'buy' && row.status === 'ok' && !row.manual,
   )
-  const openingHint =
-    openingBuys.length === 0
-      ? t('import.openingHintMixed')
-      : openingBuys.every((row) => row.cost_price)
-        ? t('import.openingHintCost')
-        : openingBuys.every((row) => !row.cost_price && !row.approximate_price)
-          ? t('import.openingHint')
-          : t('import.openingHintMixed')
+  let openingHint = t('import.openingHintMixed')
+  if (openingBuys.length > 0) {
+    if (openingBuys.every((row) => row.cost_price)) openingHint = t('import.openingHintCost')
+    else if (openingBuys.every((row) => !row.cost_price && !row.approximate_price)) {
+      openingHint = t('import.openingHint')
+    }
+  }
   // What a row needs in both layouts, the table row and the list item.
   const rowProps = (row: Row) => ({
     failed: row.key === failedKey ? failed : null,

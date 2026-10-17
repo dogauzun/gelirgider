@@ -18,10 +18,12 @@ export function SortHeader<K extends string>({
   children: ReactNode
 }) {
   const active = sort.key === column
+  let ariaSort: 'none' | 'ascending' | 'descending' = 'none'
+  if (active) ariaSort = sort.dir === 'asc' ? 'ascending' : 'descending'
   return (
     <th
       // eslint-disable-next-line no-restricted-syntax -- the one aria-sort
-      aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+      aria-sort={ariaSort}
       className={`${TH} ${className}`}
     >
       <button

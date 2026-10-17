@@ -35,6 +35,9 @@ export function Checkbox({
   'aria-label'?: string
 }) {
   const id = useId()
+  let labelledBy: string | undefined
+  if (ariaLabel) labelledBy = ''
+  else if (label) labelledBy = `${id}-label`
   const box = (
     <Base.Root
       checked={checked}
@@ -47,7 +50,7 @@ export function Checkbox({
       // The label's text, not the whole <label>, so the description is not
       // read twice. With an aria-label the empty list stops Base UI from
       // naming the box by the <label> around it, so the aria-label wins.
-      aria-labelledby={ariaLabel ? '' : label ? `${id}-label` : undefined}
+      aria-labelledby={labelledBy}
       aria-describedby={description ? `${id}-description` : undefined}
       // eslint-disable-next-line no-restricted-syntax -- the pending prop itself
       aria-disabled={disabled || pending}

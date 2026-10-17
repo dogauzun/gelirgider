@@ -172,14 +172,9 @@ function Markers({
 function DateAxis({ dates, multiYear }: { dates: string[]; multiYear: boolean }) {
   const ticks = dateTicks(dates, usePlotArea()?.width ?? 0, multiYear)
   function tick({ x, y, index }: XAxisTickContentProps) {
-    const anchor =
-      ticks.length === 1
-        ? 'middle'
-        : index === 0
-          ? 'start'
-          : index === ticks.length - 1
-            ? 'end'
-            : 'middle'
+    let anchor: 'start' | 'middle' | 'end' = 'middle'
+    if (ticks.length > 1 && index === 0) anchor = 'start'
+    else if (ticks.length > 1 && index === ticks.length - 1) anchor = 'end'
     return (
       <text x={x} y={y} dy="0.71em" fontSize={11} textAnchor={anchor} style={AXIS_TICK.style}>
         {formatDateLabel(ticks[index], multiYear)}
@@ -404,7 +399,8 @@ function derive({
       change = formatValue(diff)
     } else {
       change = formatValue(negative ? diff.slice(1) : diff)
-      change = (!/[1-9]/.test(change) ? '' : negative ? '-' : '+') + change
+      const sign = negative ? '-' : '+'
+      change = (/[1-9]/.test(change) ? sign : '') + change
     }
     summary = t('chart.line.summary', {
       from,

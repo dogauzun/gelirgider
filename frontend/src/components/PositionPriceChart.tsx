@@ -37,16 +37,16 @@ export function PositionPriceChart({
   const last = points.findLastIndex(isHeld)
   const priceDays = first < 0 ? [] : points.slice(first, last + 2)
   const pricePoints = priceDays
-    .map((p, i) => ({
-      date: p.date,
-      total_value: p.close,
-      cost_basis: isHeld(p)
-        ? p.avg_cost
-        : i > 0 && isHeld(priceDays[i - 1])
-          ? priceDays[i - 1].avg_cost
-          : null,
-      cash: '0',
-    }))
+    .map((p, i) => {
+      const before = i > 0 ? priceDays[i - 1] : null
+      const carried = before && isHeld(before) ? before.avg_cost : null
+      return {
+        date: p.date,
+        total_value: p.close,
+        cost_basis: isHeld(p) ? p.avg_cost : carried,
+        cash: '0',
+      }
+    })
     .filter((p): p is typeof p & { total_value: string } => p.total_value !== null)
 
   // ponytail: markers only cover the transactions the caller has loaded

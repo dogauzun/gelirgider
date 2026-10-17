@@ -275,6 +275,33 @@ export function PortfolioHeader({
     )
   }
 
+  let nameSlot: ReactNode = null
+  if (renaming) {
+    nameSlot = (
+      <input
+        autoFocus
+        aria-label={t('portfolios.name')}
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+        onBlur={save}
+        onKeyDown={handleKeyDown}
+        className={`mt-0.5 max-w-xl ${inputClass()}`}
+      />
+    )
+  } else if (!named && isError) {
+    // The list failed to load, so there is no name or switcher;
+    // say why instead of leaving the slot blank.
+    nameSlot = (
+      <p role="alert" className="mt-1 text-[13px] text-loss">
+        {t('portfolios.error')}
+      </p>
+    )
+  } else if (!named && !data) {
+    // Loading; once the list is in and the portfolio is not in it
+    // (a 404, or a delete just done) the name is simply gone.
+    nameSlot = <Skeleton className="mt-1 h-7 w-44" />
+  }
+
   return (
     // Room below the last row for the floating add button.
     <main id="main" className={floatAdd ? 'max-md:pb-24' : undefined}>
@@ -304,27 +331,7 @@ export function PortfolioHeader({
                 {heading}
               </Title>
             )}
-            {renaming ? (
-              <input
-                autoFocus
-                aria-label={t('portfolios.name')}
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                onBlur={save}
-                onKeyDown={handleKeyDown}
-                className={`mt-0.5 max-w-xl ${inputClass()}`}
-              />
-            ) : named ? null : isError ? (
-              // The list failed to load, so there is no name or switcher;
-              // say why instead of leaving the slot blank.
-              <p role="alert" className="mt-1 text-[13px] text-loss">
-                {t('portfolios.error')}
-              </p>
-            ) : (
-              // Loading; once the list is in and the portfolio is not in it
-              // (a 404, or a delete just done) the name is simply gone.
-              !data && <Skeleton className="mt-1 h-7 w-44" />
-            )}
+            {nameSlot}
           </div>
 
           {isAll && (
