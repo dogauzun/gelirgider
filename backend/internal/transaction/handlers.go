@@ -1,10 +1,12 @@
 package transaction
 
 import (
+	"archive/zip"
 	"context"
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -60,6 +62,7 @@ func RegisterRoutes(mux *http.ServeMux, repo *Repo, portfolios *portfolio.Repo, 
 	// ?before=, ?type= and ?instrument_id=.
 	mux.HandleFunc("GET /api/portfolios/{id}/transactions", h.list)
 	mux.HandleFunc("GET /api/portfolios/{id}/transactions.csv", h.exportCSV)
+	mux.HandleFunc("GET /api/export.zip", h.exportZip)
 	mux.HandleFunc("POST /api/portfolios/{id}/transactions", h.create)
 	mux.HandleFunc("PUT /api/transactions/{id}", h.update)
 	mux.HandleFunc("DELETE /api/transactions/{id}", h.delete)
@@ -665,6 +668,14 @@ func (h *handler) exportCSV(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=portfolio-%d-transactions.csv", portfolioID))
+	// Headers are gone by now, so a write error can only be logged.
+	if err := writeCSV(w, txs); err != nil {
+		slog.ErrorContext(r.Context(), "write transactions csv", "err", err)
+	}
+}
+
+// writeCSV writes txs, the stored rows of one portfolio, as the export's CSV.
+func writeCSV(w io.Writer, txs []Transaction) error {
 	cw := csv.NewWriter(w)
 	cw.Write(csvHeader)
 	for _, t := range txs {
@@ -677,11 +688,72 @@ func (h *handler) exportCSV(w http.ResponseWriter, r *http.Request) {
 		}
 		cw.Write([]string{t.Date, t.Type, csvSafe(symbol), quantity, price, csvNumber(t.Amount), csvNumber(t.Fee), t.Currency, csvSafe(t.Note), csvSafe(market)})
 	}
-	// Headers are gone by now, so a write error can only be logged.
 	cw.Flush()
-	if err := cw.Error(); err != nil {
-		slog.ErrorContext(r.Context(), "write transactions csv", "err", err)
+	return cw.Error()
+}
+
+// exportZip streams one zip of the caller's portfolios, an entry each named
+// <portfolio name>-transactions.csv, holding what exportCSV writes with no
+// filter. A caller with no portfolio gets an empty zip.
+//
+//	@Summary	Export every portfolio's transactions as a zip of CSV files
+//	@Tags		transactions
+//	@Produce	application/zip
+//	@Success	200	{file}		binary					"one <portfolio name>-transactions.csv per portfolio, as GET /portfolios/{id}/transactions.csv writes it; the id (then id-n) stands in for a name that is empty once cleaned for a file name or that another entry already has, compared ignoring case"
+//	@Header		200	{string}	Content-Disposition		"attachment; filename=gelirgider-export-<yyyyMMddTHHmm>.csv.zip"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/export.zip [get]
+func (h *handler) exportZip(w http.ResponseWriter, r *http.Request) {
+	userID := auth.MustUserID(r.Context())
+	ps, err := h.portfolios.List(r.Context(), userID)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
 	}
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=gelirgider-export-"+time.Now().UTC().Format("20060102T1504")+".csv.zip")
+	zw := zip.NewWriter(w)
+	used := map[string]bool{}
+	for _, p := range ps {
+		// Keyed lowercase: "Main" and "main" are one file on Windows and macOS.
+		name := fileSafe(p.Name)
+		if name == "" || used[strings.ToLower(name)] {
+			name = strconv.FormatInt(p.ID, 10)
+		}
+		for n := 2; used[strings.ToLower(name)]; n++ {
+			name = fmt.Sprintf("%d-%d", p.ID, n)
+		}
+		used[strings.ToLower(name)] = true
+		// Headers are gone by now, so a failure can only be logged and the
+		// connection dropped, which the browser shows as a failed download.
+		txs, err := h.repo.ListStored(r.Context(), userID, p.ID, Filter{})
+		if err == nil {
+			var f io.Writer
+			if f, err = zw.Create(name + "-transactions.csv"); err == nil {
+				err = writeCSV(f, txs)
+			}
+		}
+		if err != nil {
+			slog.ErrorContext(r.Context(), "write export zip", "err", err)
+			panic(http.ErrAbortHandler)
+		}
+	}
+	if err := zw.Close(); err != nil {
+		slog.ErrorContext(r.Context(), "write export zip", "err", err)
+	}
+}
+
+// fileSafe turns a portfolio name into a file name: path separators, the
+// characters Windows refuses, and control characters become _, and a
+// leading or trailing space or dot goes.
+func fileSafe(s string) string {
+	s = strings.Map(func(r rune) rune {
+		if r < ' ' || r == 0x7f || strings.ContainsRune(`/\:*?"<>|`, r) {
+			return '_'
+		}
+		return r
+	}, s)
+	return strings.Trim(s, " .")
 }
 
 // csvThousandsShape is a written number the CSV import refuses as an

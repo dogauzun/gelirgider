@@ -1,5 +1,6 @@
 export const trAccount = {
   'account.link': 'Hesap',
+  'account.export': 'İşlemleri dışa aktar',
   'account.menu': 'Hesap menüsü',
   'account.heading': 'Hesap',
   'account.section.preferences': 'Tercihler',
