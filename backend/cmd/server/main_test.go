@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/dogauzun/gelirgider/backend/internal/db"
+	"github.com/dogauzun/gelirgider/backend/internal/scheduler"
 )
 
 // A malformed date sorts after today as a string, so it must be rejected
@@ -45,12 +46,12 @@ func TestFindSource(t *testing.T) {
 		t.Errorf("schedulerSources has %d sources, fetchSourceNames lists %d", len(sources), len(fetchSourceNames))
 	}
 	for _, name := range fetchSourceNames {
-		if src, ok := findSource(sources, name); !ok || src.Name != name || src.Sync == nil {
-			t.Errorf("findSource(%q) = %+v, %v", name, src, ok)
+		if src, ok := scheduler.Find(sources, name); !ok || src.Name != name || src.Sync == nil {
+			t.Errorf("scheduler.Find(%q) = %+v, %v", name, src, ok)
 		}
 	}
-	if _, ok := findSource(sources, "nope"); ok {
-		t.Error("findSource(\"nope\") resolved")
+	if _, ok := scheduler.Find(sources, "nope"); ok {
+		t.Error("scheduler.Find(\"nope\") resolved")
 	}
 }
 

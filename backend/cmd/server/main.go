@@ -231,7 +231,7 @@ func runFetch(conn *sql.DB, cfg config.Config, logger *slog.Logger, source, date
 	if len(cfg.SecretKey) == 32 {
 		settingsRepo = settings.NewRepo(conn, cfg.SecretKey)
 	}
-	src, ok := findSource(schedulerSources(conn, logger, newSourceFetchers(settingsRepo)), source)
+	src, ok := scheduler.Find(schedulerSources(conn, logger, newSourceFetchers(settingsRepo)), source)
 	if !ok {
 		fmt.Fprintf(os.Stderr, "unknown -fetch source %q, want one of %s\n", source, strings.Join(fetchSourceNames, ", "))
 		return 2
@@ -425,16 +425,6 @@ func runAddSplit(ctx context.Context, conn *sql.DB, arg string) error {
 // fetchSourceNames is the -fetch help list; TestFindSource keeps it equal
 // to the schedulerSources names.
 var fetchSourceNames = []string{scheduler.NameBIST, scheduler.NameBISTSplits, scheduler.NameTCMB, scheduler.NameUS, scheduler.NameCrypto, scheduler.NameTEFAS, scheduler.NameTUFE, scheduler.NameXU100, scheduler.NameGold}
-
-// findSource returns the scheduler source called name.
-func findSource(sources []scheduler.Source, name string) (scheduler.Source, bool) {
-	for _, s := range sources {
-		if s.Name == name {
-			return s, true
-		}
-	}
-	return scheduler.Source{}, false
-}
 
 // sourceFetchers holds the fetchers the scheduler sources fetch with, and
 // now, the clock their Backfill walks end at (the day before now()), so a

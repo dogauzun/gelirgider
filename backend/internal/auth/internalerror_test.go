@@ -77,3 +77,38 @@ func TestDecodeJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeOptionalJSON(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+		ok   bool
+		want string
+	}{
+		{"empty", ``, true, ""},
+		{"valid", `{"name":"x"}`, true, "x"},
+		{"malformed", `{"name":`, false, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tc.body))
+			rec := httptest.NewRecorder()
+			var v struct{ Name string }
+			if got := DecodeOptionalJSON(rec, r, &v); got != tc.ok {
+				t.Fatalf("DecodeOptionalJSON = %v, want %v", got, tc.ok)
+			}
+			if v.Name != tc.want {
+				t.Fatalf("Name = %q, want %q", v.Name, tc.want)
+			}
+			if tc.ok {
+				if rec.Code != http.StatusOK {
+					t.Fatalf("code = %d", rec.Code)
+				}
+				return
+			}
+			if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), `"invalid request body"`) {
+				t.Fatalf("code = %d, body = %s", rec.Code, rec.Body)
+			}
+		})
+	}
+}
