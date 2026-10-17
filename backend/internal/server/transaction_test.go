@@ -771,6 +771,87 @@ func TestTransactionsExportCSVReimports(t *testing.T) {
 	}
 }
 
+// TestTransactionsExportCSVRoundTrip checks that the export of a portfolio
+// holding every type it writes, on two markets and in two currencies, parses
+// back through the csv import into an empty portfolio as only ok rows with
+// the stored values, and into the original portfolio as duplicates only.
+func TestTransactionsExportCSVRoundTrip(t *testing.T) {
+	env := newTransactionTestEnv(t)
+	alice := env.login("alice@example.com")
+	source := env.createPortfolio(alice, "Source")
+	target := env.createPortfolio(alice, "Target")
+	res, err := env.db.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES ('USX', 'US', 'Us Inc.', 'USD')`)
+	if err != nil {
+		t.Fatalf("insert instrument: %v", err)
+	}
+	usx, err := res.LastInsertId()
+	if err != nil {
+		t.Fatalf("instrument id: %v", err)
+	}
+
+	// Seeded values by date; the date is unique per row.
+	type want struct{ typ, symbol, market, quantity, price, amount, fee, currency string }
+	seeds := []struct {
+		body map[string]any
+		want want
+	}{
+		{map[string]any{"type": "deposit", "date": "2024-01-02", "amount": "1000", "fee": "5", "note": "wire"},
+			want{"deposit", "", "", "", "", "1000", "5", "TRY"}},
+		{map[string]any{"type": "buy", "date": "2024-01-03", "instrument_id": env.instrumentID, "quantity": "10", "price": "12.5", "fee": "1.25"},
+			want{"buy", "TEST", "BIST", "10", "12.5", "125", "1.25", "TRY"}},
+		{map[string]any{"type": "buy", "date": "2024-01-04", "instrument_id": usx, "quantity": "2", "price": "100", "note": "first US lot"},
+			want{"buy", "USX", "US", "2", "100", "200", "0", "USD"}},
+		{map[string]any{"type": "sell", "date": "2024-01-05", "instrument_id": env.instrumentID, "quantity": "4", "price": "15", "fee": "0.5"},
+			want{"sell", "TEST", "BIST", "4", "15", "60", "0.5", "TRY"}},
+		{map[string]any{"type": "dividend", "date": "2024-01-06", "instrument_id": env.instrumentID, "amount": "20", "fee": "2"},
+			want{"dividend", "TEST", "BIST", "", "", "20", "2", "TRY"}},
+		{map[string]any{"type": "dividend", "date": "2024-01-07", "instrument_id": usx, "amount": "4"},
+			want{"dividend", "USX", "US", "", "", "4", "0", "USD"}},
+		{map[string]any{"type": "dividend", "date": "2024-01-08", "amount": "30", "note": "interest"},
+			want{"dividend", "", "", "", "", "30", "0", "TRY"}},
+		{map[string]any{"type": "withdrawal", "date": "2024-01-09", "amount": "100", "fee": "2"},
+			want{"withdrawal", "", "", "", "", "100", "2", "TRY"}},
+		{map[string]any{"type": "fee", "date": "2024-01-10", "amount": "3.5"},
+			want{"fee", "", "", "", "", "3.5", "0", "TRY"}},
+	}
+	wants := map[string]want{}
+	for _, s := range seeds {
+		env.createTransaction(alice, source, s.body)
+		wants[s.body["date"].(string)] = s.want
+	}
+
+	rec := env.do(alice, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/transactions.csv", source), nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("export status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	file := rec.Body.Bytes()
+
+	for _, c := range []struct {
+		name      string
+		portfolio int64
+		duplicate bool
+	}{{"empty portfolio", target, false}, {"source portfolio", source, true}} {
+		p := parsePreview(t, upload(env, alice, "csv", c.portfolio, file))
+		if len(p.Rows) != len(seeds) {
+			t.Fatalf("%s: %d rows, want %d: %+v", c.name, len(p.Rows), len(seeds), p.Rows)
+		}
+		for _, row := range p.Rows {
+			w, ok := wants[row.Date]
+			if !ok {
+				t.Errorf("%s: row %s on unexpected date %s", c.name, row.Key, row.Date)
+				continue
+			}
+			if row.Status != "ok" || (row.DuplicateOf != "") != c.duplicate {
+				t.Errorf("%s: %s %s status = %q, duplicate_of = %q; want ok, duplicate %v (message %q)", c.name, row.Date, row.Type, row.Status, row.DuplicateOf, c.duplicate, row.Message)
+			}
+			got := want{row.Type, row.Symbol, row.Market, row.Quantity, row.Price, row.Amount, row.Fee, row.Currency}
+			if got != w {
+				t.Errorf("%s: %s row = %+v, want %+v", c.name, row.Date, got, w)
+			}
+		}
+	}
+}
+
 // TestTransactionsDateRange checks that ?from= and ?to= are an inclusive
 // date range on both the paged list and the CSV export, a range bound that
 // is not YYYY-MM-DD or from after to is a 400, and paging walks inside the
