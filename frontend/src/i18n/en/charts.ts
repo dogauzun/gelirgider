@@ -100,6 +100,8 @@ export const enCharts: AreaStrings<typeof trCharts> = {
   'chart.return.mwr.hint':
     'Internal rate of return; includes the timing of deposits and withdrawals',
   'chart.return.undefined': 'Not defined for this range',
+  'chart.return.real': 'Real return',
+  'chart.return.realHint': 'After TÜFE, TWR',
   'chart.return.unit': 'Chart unit',
   'chart.return.portfolio': 'Portfolio',
   'chart.return.portfolioTwr': 'Portfolio (time-weighted)',

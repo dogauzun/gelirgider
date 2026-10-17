@@ -53,6 +53,13 @@ export interface HistoryResponse {
     returns: Record<ReturnMethod, string | null>
     estimated_from: string | null
   } | null
+  // The TÜFE change over the range, a fraction string with 6 decimals,
+  // whatever the benchmark; null for a USD or EUR reporting currency or when
+  // TÜFE has no level at the first point. inflation_estimated_from is the
+  // first extrapolated day (YYYY-MM-DD) of it, null when none is. Optional
+  // like twr.
+  inflation?: string | null
+  inflation_estimated_from?: string | null
 }
 
 export type ReturnMethod = 'simple' | 'twr' | 'mwr'

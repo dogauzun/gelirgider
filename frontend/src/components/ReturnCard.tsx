@@ -126,6 +126,16 @@ export function ReturnCard({
     !!historyBenchmark?.estimated_from &&
     !!lastDate &&
     historyBenchmark.estimated_from <= lastDate
+  // The real return after TÜFE inflation, from the portfolio's twr. The pill
+  // already shows it when TÜFE is the benchmark.
+  const real =
+    history?.inflation != null && history.returns.twr !== null && historyBenchmark?.code !== 'TUFE'
+      ? excessReturn(Number(history.returns.twr), Number(history.inflation))
+      : null
+  const realEstimated =
+    !!history?.inflation_estimated_from &&
+    !!lastDate &&
+    history.inflation_estimated_from <= lastDate
   // A position reads as its symbol.
   const benchmarkLabel = historyBenchmark
     ? (benchmarks.find((b) => b.value === historyBenchmark.code)?.label ?? historyBenchmark.code)
@@ -240,6 +250,18 @@ export function ReturnCard({
                 ` · ${benchmarkLabel} ${t('chart.annualized', {
                   value: signedPercent(benchmarkAnnualized),
                 })}`}
+            </p>
+          )}
+          {!stale && real !== null && (
+            <p
+              data-testid="real-return"
+              className="mt-0.5 text-[12px] text-muted"
+              title={t('chart.return.realHint')}
+            >
+              <span className={plTone(real)}>
+                {`${t('chart.return.real')} ${signedPercent(real)}`}
+              </span>
+              {realEstimated && ` (${t('chart.benchmark.estimated')})`}
             </p>
           )}
         </div>
