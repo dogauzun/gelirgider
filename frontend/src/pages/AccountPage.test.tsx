@@ -21,7 +21,7 @@ describe('AccountPage', () => {
 
       if (url === '/api/me' && method === 'GET') {
         return new Response(
-          JSON.stringify({ id: '1', email: 'a@b.com', reporting_currency: reportingCurrency }),
+          JSON.stringify({ id: 1, email: 'a@b.com', reporting_currency: reportingCurrency }),
           { status: 200 },
         )
       }
@@ -32,7 +32,7 @@ describe('AccountPage', () => {
         }
         return new Response(
           JSON.stringify({
-            id: '1',
+            id: 1,
             email: 'a@b.com',
             reporting_currency: body.reporting_currency,
           }),

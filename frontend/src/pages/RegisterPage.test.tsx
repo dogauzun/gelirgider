@@ -26,7 +26,7 @@ function renderAndSubmit() {
   fireEvent.click(screen.getByRole('button', { name: /kayıt ol/i }))
 }
 
-const me = () => new Response(JSON.stringify({ id: '1', email: 'a@b.com' }), { status: 200 })
+const me = () => new Response(JSON.stringify({ id: 1, email: 'a@b.com' }), { status: 200 })
 
 describe('RegisterPage', () => {
   afterEach(() => {

@@ -19,7 +19,7 @@ function mockMe() {
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     if (String(input) === '/api/me') {
       return Response.json({
-        id: '1',
+        id: 1,
         email: 'ada@example.com',
         reporting_currency: 'TRY',
         is_admin: false,

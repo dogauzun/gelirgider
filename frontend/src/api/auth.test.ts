@@ -9,8 +9,8 @@ describe('dropDataOnUserChange', () => {
   it('keeps a request sent while signed out from answering the next user', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     dropDataOnUserChange(queryClient)
-    const user = (id: string) => ({ id, email: '', reporting_currency: 'TRY', is_admin: false })
-    queryClient.setQueryData(meQueryKey, user('1'))
+    const user = (id: number) => ({ id, email: '', reporting_currency: 'TRY', is_admin: false })
+    queryClient.setQueryData(meQueryKey, user(1))
     queryClient.setQueryData(meQueryKey, null)
 
     let deny = () => {}
@@ -18,7 +18,7 @@ describe('dropDataOnUserChange', () => {
       queryKey: ['portfolios'],
       queryFn: () => new Promise((_, reject) => (deny = () => reject(new Error('unauthorized')))),
     })
-    queryClient.setQueryData(meQueryKey, user('2'))
+    queryClient.setQueryData(meQueryKey, user(2))
     const list = queryClient.fetchQuery({ queryKey: ['portfolios'], queryFn: async () => ['Bora'] })
     deny()
 
@@ -33,7 +33,7 @@ describe('dropDataOnUserChange', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     dropDataOnUserChange(queryClient)
     queryClient.setQueryData(meQueryKey, {
-      id: '1',
+      id: 1,
       email: '',
       reporting_currency: 'TRY',
       is_admin: false,
@@ -77,7 +77,7 @@ describe('dropDataOnUserChange', () => {
     })
 
     queryClient.setQueryData(meQueryKey, {
-      id: '1',
+      id: 1,
       email: '',
       reporting_currency: 'TRY',
       is_admin: true,

@@ -48,7 +48,7 @@ export function UsersSection() {
   const desktop = useIsDesktop()
 
   function isMe(user: AdminUser): boolean {
-    return String(user.id) === String(me?.id)
+    return user.id === me?.id
   }
 
   // Without the admin role /admin renders NotFound, so leave for home before

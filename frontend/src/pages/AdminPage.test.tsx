@@ -19,7 +19,7 @@ function mockMe(isAdmin: boolean) {
     if (String(input) === '/api/me') {
       return new Response(
         JSON.stringify({
-          id: '1',
+          id: 1,
           email: 'ada@example.com',
           reporting_currency: 'TRY',
           is_admin: isAdmin,

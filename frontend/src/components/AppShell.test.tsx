@@ -49,7 +49,7 @@ function mockApi(portfolios: unknown[] = []) {
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const url = String(input)
     if (url === '/api/me') {
-      return Response.json({ id: '1', email: 'a@b.co', reporting_currency: 'TRY', is_admin: false })
+      return Response.json({ id: 1, email: 'a@b.co', reporting_currency: 'TRY', is_admin: false })
     }
     if (url === '/api/portfolios') return Response.json(portfolios)
     throw new Error(`unexpected request: ${url}`)

@@ -38,7 +38,7 @@ import { usePortfolioTitle } from '../lib/useTitle'
 const doneByEntry = new Map<
   string,
   {
-    user: string | undefined
+    user: number | undefined
     portfolioId: number
     items: QueueItem[]
     listed: ReadonlySet<number>

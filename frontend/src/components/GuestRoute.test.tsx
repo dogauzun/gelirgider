@@ -42,7 +42,7 @@ describe('GuestRoute', () => {
 
   it.each(['/login', '/register'])('sends a logged-in user from %s to home', async (path) => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ id: '1', email: 'a@b.com' }), { status: 200 }),
+      new Response(JSON.stringify({ id: 1, email: 'a@b.com' }), { status: 200 }),
     )
 
     renderAt(path)
