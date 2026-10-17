@@ -35,6 +35,8 @@ linters:
       rules:
         - name: argument-limit
           arguments: [6]
+        - name: file-length-limit
+          arguments: [{max: 1000, skipComments: true}]
     usestdlibvars:
       time-layout: true
   exclusions:
@@ -48,6 +50,10 @@ linters:
       - path: (_test\.go|internal/db/db\.go)$
         linters: [forbidigo]
         text: use db\.InList
+      # A test file groups the tests of a whole route, which no split shortens.
+      - path: _test\.go$
+        linters: [revive]
+        text: file-length-limit
       # Tests use MinDate as the boundary value they probe.
       - path: _test\.go$
         linters: [forbidigo]

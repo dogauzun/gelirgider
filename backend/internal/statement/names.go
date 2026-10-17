@@ -2,6 +2,8 @@ package statement
 
 import (
 	"context"
+	"slices"
+	"sort"
 	"strings"
 	"unicode"
 
@@ -124,6 +126,99 @@ func fundWords(name string, expand bool) []string {
 			}
 			out = append(out, w)
 		}
+	}
+	return out
+}
+
+// nameIndex is a set of learned fund names, searchable by prefix. sorted
+// holds the names in byte order, so those that start with a symbol are one
+// run, and sortedIDs their instrument ids; sameUntil[i] is the first index
+// after i whose id differs from sortedIDs[i], so a run is of one instrument
+// when sameUntil[start] reaches its end. ids maps each name to its
+// instrument; maxLen is the longest name.
+type nameIndex struct {
+	sorted    []string
+	sortedIDs []int64
+	sameUntil []int
+	ids       map[string]int64
+	maxLen    int
+}
+
+// newNameIndex indexes the names of ids, each with its instrument id.
+func newNameIndex(ids map[string]int64) *nameIndex {
+	x := &nameIndex{sorted: make([]string, 0, len(ids)), ids: ids}
+	for name := range ids {
+		x.sorted = append(x.sorted, name)
+		x.maxLen = max(x.maxLen, len(name))
+	}
+	slices.Sort(x.sorted)
+	x.sortedIDs = make([]int64, len(x.sorted))
+	x.sameUntil = make([]int, len(x.sorted))
+	for i := len(x.sorted) - 1; i >= 0; i-- {
+		x.sortedIDs[i] = ids[x.sorted[i]]
+		x.sameUntil[i] = i + 1
+		if i+1 < len(x.sorted) && x.sortedIDs[i+1] == x.sortedIDs[i] {
+			x.sameUntil[i] = x.sameUntil[i+1]
+		}
+	}
+	return x
+}
+
+// learnedName returns the instrument id of the learned names that equal
+// symbol, start with it or that it starts with: the rule the garanti parser
+// maps a movement to a balance by inside one statement, as statement names
+// are cut to a fixed width. It returns 0 for no match, or when the matches
+// name more than one instrument. A nil learned has no names. The cost
+// depends on symbol, not on how many names are stored: the names it starts
+// with are its shorter prefixes, each one map lookup, and the names that
+// start with it are one run of the sorted names, found by two binary
+// searches and checked for one instrument in constant time.
+func learnedName(symbol string, learned *nameIndex) int64 {
+	if symbol == "" || learned == nil {
+		return 0
+	}
+	var match int64
+	found := false
+	add := func(id int64) bool {
+		if found && match != id {
+			return false
+		}
+		match, found = id, true
+		return true
+	}
+	for n := 0; n < len(symbol) && n <= learned.maxLen; n++ {
+		if id, ok := learned.ids[symbol[:n]]; ok && !add(id) {
+			return 0
+		}
+	}
+	lo, _ := slices.BinarySearch(learned.sorted, symbol)
+	hi := lo + sort.Search(len(learned.sorted)-lo, func(i int) bool {
+		return !strings.HasPrefix(learned.sorted[lo+i], symbol)
+	})
+	if lo < hi {
+		if learned.sameUntil[lo] < hi || !add(learned.sortedIDs[lo]) {
+			return 0
+		}
+	}
+	return match
+}
+
+// statementNames is what st's balances say of each fund name they print:
+// the instrument of its code, or 0 when they print it for two codes (a
+// holding is one per code), like the parser's code() leaves such a name
+// unresolved, or when its code resolves to no instrument. holdIns are st's
+// holdings' instruments.
+func statementNames(st Statement, holdIns []instrument.Instrument) map[string]int64 {
+	out := map[string]int64{}
+	for i, hold := range st.Holdings {
+		if hold.Name == "" {
+			continue
+		}
+		if _, seen := out[hold.Name]; seen {
+			out[hold.Name] = 0
+			continue
+		}
+		out[hold.Name] = holdIns[i].ID
 	}
 	return out
 }
