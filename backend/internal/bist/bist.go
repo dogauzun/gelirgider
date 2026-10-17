@@ -67,6 +67,19 @@ var wantedGroups = map[string]string{
 	"EMS": ".S1",
 }
 
+// TrimBoardSuffix drops the one board suffix of wantedGroups from the end of
+// a symbol, so a statement symbol matches instruments.symbol. A symbol
+// without a suffix comes back unchanged. No suffix ends with another, so map
+// order cannot change the result.
+func TrimBoardSuffix(symbol string) string {
+	for _, suffix := range wantedGroups {
+		if t := strings.TrimSuffix(symbol, suffix); t != symbol {
+			return t
+		}
+	}
+	return symbol
+}
+
 // Close is one instrument's closing price for a trading date. Close is zero
 // when the bulletin prints an empty or zero close (a suspended instrument);
 // only FetchBulletin returns such rows.

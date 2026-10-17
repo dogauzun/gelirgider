@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dogauzun/gelirgider/backend/internal/bist"
 	"github.com/dogauzun/gelirgider/backend/internal/statement"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/shopspring/decimal"
@@ -387,11 +388,7 @@ func symbol(cell string) string {
 	if i := strings.Index(s, "-"); i >= 0 {
 		s = s[:i]
 	}
-	s = strings.TrimSpace(s)
-	for _, suffix := range []string{".E", ".F", ".S1"} {
-		s = strings.TrimSuffix(s, suffix)
-	}
-	return s
+	return bist.TrimBoardSuffix(strings.TrimSpace(s))
 }
 
 // parseMoney reads "8.237,46 USD" into an amount and its currency. A cell

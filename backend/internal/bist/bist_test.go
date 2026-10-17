@@ -314,3 +314,20 @@ func TestSyncStoresDayMonthYearBulletinDateAsISO(t *testing.T) {
 		})
 	}
 }
+
+func TestTrimBoardSuffix(t *testing.T) {
+	for in, want := range map[string]string{
+		"THYAO.E":  "THYAO",
+		"OPT25.F":  "OPT25",
+		"ALTIN.S1": "ALTIN",
+		"VTI":      "VTI",
+		"":         "",
+		"A.E.E":    "A.E",
+		"A.E.F":    "A.E",
+		"A.F.E":    "A.F",
+	} {
+		if got := bist.TrimBoardSuffix(in); got != want {
+			t.Errorf("TrimBoardSuffix(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
