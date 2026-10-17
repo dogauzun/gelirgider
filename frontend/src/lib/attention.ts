@@ -6,7 +6,7 @@ import { currencyTotals, dayRatio, holdingsTotal, shareOf } from './positions'
 
 // The thresholds of the "Dikkat" card (spec: UI v2 core pages). A share is
 // flagged only above its threshold, never at it.
-const ATTENTION = {
+export const ATTENTION = {
   staleManualDays: 7,
   positionShare: 0.25,
   cashShare: 0.4,

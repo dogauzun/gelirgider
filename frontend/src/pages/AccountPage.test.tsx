@@ -14,7 +14,7 @@ describe('AccountPage', () => {
     vi.restoreAllMocks()
   })
 
-  function mockMe(reportingCurrency: string) {
+  function mockMe(reportingCurrency: string, rules: object = {}) {
     return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const url = String(input)
       const method = init?.method ?? 'GET'
@@ -38,6 +38,19 @@ describe('AccountPage', () => {
           }),
           { status: 200 },
         )
+      }
+      if (url === '/api/me/attention-rules' && method === 'GET') {
+        return new Response(JSON.stringify(rules), { status: 200 })
+      }
+      if (url === '/api/me/attention-rules' && method === 'PUT') {
+        const body = JSON.parse(init?.body as string) as { cash_share?: { value?: number } }
+        if ((body.cash_share?.value ?? 0) > 1) {
+          return new Response(
+            JSON.stringify({ error: 'cash_share: value must be between 0 and 1' }),
+            { status: 400 },
+          )
+        }
+        return new Response(init?.body as string, { status: 200 })
       }
       throw new Error(`unexpected request: ${method} ${url}`)
     })
@@ -80,13 +93,13 @@ describe('AccountPage', () => {
 
   // One Tercihler card with three rows and one Şifre card, side by
   // side from lg, with the shared 14 px card title.
-  it('groups the settings into a Tercihler card and a Şifre card', async () => {
+  it('groups the settings into a Tercihler card, a Şifre card and a Dikkat kuralları card', async () => {
     mockMe('TRY')
     renderPage()
 
     const preferencesTitle = await screen.findByRole('heading', { level: 2, name: 'Tercihler' })
     const passwordTitle = screen.getByRole('heading', { level: 2, name: 'Şifre' })
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(2)
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(3)
     for (const title of [preferencesTitle, passwordTitle]) {
       expect(title).toHaveClass('text-[14px]', 'font-semibold', 'text-ink')
     }
@@ -104,6 +117,57 @@ describe('AccountPage', () => {
 
     expect(within(password).getByLabelText('Mevcut şifre')).toBeInTheDocument()
     expect(within(password).getByRole('button', { name: 'Şifreyi değiştir' })).toBeInTheDocument()
+  })
+
+  function attentionPut(fetchMock: ReturnType<typeof mockMe>) {
+    return fetchMock.mock.calls.filter(
+      ([url, init]) => url === '/api/me/attention-rules' && init?.method === 'PUT',
+    )
+  }
+
+  it('sends only the changed attention rule on save', async () => {
+    const fetchMock = mockMe('TRY')
+    renderPage()
+
+    const cash = await screen.findByRole('spinbutton', { name: 'Nakit payı' })
+    expect(cash).toHaveValue(40)
+    fireEvent.change(cash, { target: { value: '55' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Kaydet' }))
+
+    await waitFor(() => expect(attentionPut(fetchMock)).toHaveLength(1))
+    expect(JSON.parse(attentionPut(fetchMock)[0][1]?.body as string)).toEqual({
+      cash_share: { value: 0.55 },
+    })
+    await waitFor(() =>
+      expect(within(screen.getByRole('status')).getByText('Kaydedildi')).toBeInTheDocument(),
+    )
+  })
+
+  it('drops an override set back to its default and sends a switched-off rule', async () => {
+    const fetchMock = mockMe('TRY', { cash_share: { value: 0.55 } })
+    renderPage()
+
+    const cash = await screen.findByRole('spinbutton', { name: 'Nakit payı' })
+    expect(cash).toHaveValue(55)
+    fireEvent.change(cash, { target: { value: '40' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Günün hareketlileri' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Kaydet' }))
+
+    await waitFor(() => expect(attentionPut(fetchMock)).toHaveLength(1))
+    expect(JSON.parse(attentionPut(fetchMock)[0][1]?.body as string)).toEqual({
+      movers: { enabled: false },
+    })
+  })
+
+  it('shows a rejected attention rule under the card', async () => {
+    mockMe('TRY')
+    renderPage()
+
+    const cash = await screen.findByRole('spinbutton', { name: 'Nakit payı' })
+    fireEvent.change(cash, { target: { value: '150' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Kaydet' }))
+
+    expect(await screen.findByText(/Paylar % 0-100/)).toHaveAttribute('role', 'alert')
   })
 
   it('toasts on a successful currency change', async () => {

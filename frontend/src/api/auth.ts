@@ -249,6 +249,23 @@ export function useAttentionRules() {
   })
 }
 
+// Replaces the whole override object, so the body holds overrides only.
+// `onSaved` runs after the rules query is invalidated.
+export function useUpdateAttentionRules(onSaved: () => void) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (rules: AttentionRules) =>
+      apiFetch<AttentionRules>('/api/me/attention-rules', {
+        method: 'PUT',
+        body: JSON.stringify(rules),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: attentionRulesQueryKey })
+      onSaved()
+    },
+  })
+}
+
 // GET /api/me returns 401 when logged out. That's a normal, expected
 // response here, not a query error: report it as `null` instead of throwing.
 async function fetchMe(): Promise<Me | null> {
