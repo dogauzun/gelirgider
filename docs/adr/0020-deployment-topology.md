@@ -50,7 +50,9 @@ inline script: the theme is applied before first paint by the file
 
 ### Images come from GHCR
 
-Both images are built on a GitHub Actions runner, `linux/amd64` only, and
+Both images are built on a GitHub Actions runner for `linux/amd64` and
+`linux/arm64` (one `docker buildx build`, no emulation: the Go binary
+cross-compiles and the frontend bundle is architecture-independent) and
 published to `ghcr.io/dogauzun/gelirgider-backend` and `-frontend`. Compose
 pulls them with the tag `${IMAGE_TAG:-latest}`; `build:` stays for a modified
 checkout. `IMAGE_TAG` pins a `sha-<7>` or `vX.Y.Z` tag for a rollback.
