@@ -297,14 +297,24 @@ const maxLoggedAdded = 20
 
 // Sync fetches closes for date and upserts them into priceRepo with
 // source = "bist_bulletin", overwriting any existing prices row for the
-// same instrument and date. It never touches manual_prices: a user's
-// manual price lives there and wins over the fetched close when the two
-// are merged. A bulletin symbol with no BIST instrument row gets
-// one inserted (name from the bulletin, currency TRY) so a company listed
-// after bist_symbols.csv was generated is searchable and priceable the day
-// it first trades; the added symbols are named in the log line. Returns the
-// number of prices written.
+// same instrument and date, all in one transaction. It never touches
+// manual_prices: a user's manual price lives there and wins over the
+// fetched close when the two are merged. A bulletin symbol with no BIST
+// instrument row gets one inserted (name from the bulletin, currency TRY) so
+// a company listed after bist_symbols.csv was generated is searchable and
+// priceable the day it first trades; the added symbols are named in the log
+// line. Returns the number of prices written.
 func Sync(ctx context.Context, fetcher *Fetcher, instrumentRepo *instrument.Repo, priceRepo *price.Repo, date time.Time) (int, error) {
+	var idBySymbol map[string]int64
+	return syncDate(ctx, fetcher, instrumentRepo, priceRepo, &idBySymbol, date)
+}
+
+// syncDate is Sync with the symbol-to-id map kept by the caller: a walk over
+// many dates passes the same map every time, so the BIST instruments are
+// listed once, on the first date that has data, not once per date. An
+// instrument added to the table by something else mid-walk is no problem,
+// because Insert returns the existing id for a known symbol.
+func syncDate(ctx context.Context, fetcher *Fetcher, instrumentRepo *instrument.Repo, priceRepo *price.Repo, idBySymbol *map[string]int64, date time.Time) (int, error) {
 	closes, err := fetcher.FetchCloses(ctx, date)
 	if err != nil {
 		return 0, err
@@ -313,32 +323,35 @@ func Sync(ctx context.Context, fetcher *Fetcher, instrumentRepo *instrument.Repo
 		return 0, nil
 	}
 
-	instruments, err := instrumentRepo.All(ctx, "BIST")
-	if err != nil {
-		return 0, fmt.Errorf("list instruments: %w", err)
-	}
-	idBySymbol := make(map[string]int64, len(instruments))
-	for _, in := range instruments {
-		idBySymbol[in.Symbol] = in.ID
+	if *idBySymbol == nil {
+		instruments, err := instrumentRepo.All(ctx, "BIST")
+		if err != nil {
+			return 0, fmt.Errorf("list instruments: %w", err)
+		}
+		*idBySymbol = make(map[string]int64, len(instruments))
+		for _, in := range instruments {
+			(*idBySymbol)[in.Symbol] = in.ID
+		}
 	}
 
-	written := 0
+	rows := make([]price.Row, 0, len(closes))
 	var added []string
 	for _, c := range closes {
-		id, ok := idBySymbol[c.Symbol]
+		id, ok := (*idBySymbol)[c.Symbol]
 		if !ok {
 			id, err = instrumentRepo.Insert(ctx, "BIST", c.Symbol, c.Name, "TRY")
 			if err != nil {
-				return written, err
+				return 0, err
 			}
-			idBySymbol[c.Symbol] = id
+			(*idBySymbol)[c.Symbol] = id
 			added = append(added, c.Symbol)
 		}
-		if err := priceRepo.Upsert(ctx, id, c.Date, c.Close.String(), SourceBistBulletin); err != nil {
-			return written, fmt.Errorf("upsert price for %s: %w", c.Symbol, err)
-		}
-		written++
+		rows = append(rows, price.Row{InstrumentID: id, Date: c.Date, Close: c.Close.String(), Source: SourceBistBulletin})
 	}
+	if err := priceRepo.UpsertMany(ctx, rows); err != nil {
+		return 0, fmt.Errorf("upsert prices for %s: %w", date.Format(time.DateOnly), err)
+	}
+	written := len(rows)
 	logged := added
 	if len(logged) > maxLoggedAdded {
 		logged = logged[:maxLoggedAdded]

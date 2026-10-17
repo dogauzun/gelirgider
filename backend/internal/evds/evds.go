@@ -272,10 +272,12 @@ func syncRange(ctx context.Context, f *Fetcher, repo *benchmark.Repo, from, to t
 	if err != nil {
 		return 0, err
 	}
+	rows := make([]benchmark.Row, len(closes))
 	for i, c := range closes {
-		if err := repo.Upsert(ctx, benchmark.CodeXU100, c.Date, c.Value.String(), sourceEVDS); err != nil {
-			return i, fmt.Errorf("upsert xu100 %s: %w", c.Date, err)
-		}
+		rows[i] = benchmark.Row{Code: benchmark.CodeXU100, Date: c.Date, Value: c.Value.String(), Source: sourceEVDS}
+	}
+	if err := repo.UpsertMany(ctx, rows); err != nil {
+		return 0, fmt.Errorf("upsert xu100 %s to %s: %w", from.Format(time.DateOnly), to.Format(time.DateOnly), err)
 	}
 	return len(closes), nil
 }

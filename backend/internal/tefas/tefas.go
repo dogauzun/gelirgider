@@ -163,8 +163,8 @@ type Syncer struct {
 	Prices      *price.Repo
 }
 
-// SyncFund fetches in's NAVs over a periyod-month window and upserts each
-// one. Then, when the newest row's fonUnvan is non-empty and differs from
+// SyncFund fetches in's NAVs over a periyod-month window and upserts them
+// in one transaction. Then, when the newest row's fonUnvan is non-empty and differs from
 // in.Name, it renames the instrument: TEFAS names change while the code
 // stays. Returns rows written.
 func (s *Syncer) SyncFund(ctx context.Context, in instrument.Instrument, periyod int) (int, error) {
@@ -172,10 +172,12 @@ func (s *Syncer) SyncFund(ctx context.Context, in instrument.Instrument, periyod
 	if err != nil {
 		return 0, err
 	}
+	rows := make([]price.Row, len(navs))
 	for i, n := range navs {
-		if err := s.Prices.Upsert(ctx, in.ID, n.Date, n.Close.String(), SourceTEFAS); err != nil {
-			return i, fmt.Errorf("upsert price for %s: %w", in.Symbol, err)
-		}
+		rows[i] = price.Row{InstrumentID: in.ID, Date: n.Date, Close: n.Close.String(), Source: SourceTEFAS}
+	}
+	if err := s.Prices.UpsertMany(ctx, rows); err != nil {
+		return 0, fmt.Errorf("upsert prices for %s: %w", in.Symbol, err)
 	}
 	var newest NAV
 	for _, n := range navs {

@@ -250,8 +250,8 @@ func TestPeriodReturnsMatchHistory(t *testing.T) {
 	}
 	benchmarks := benchmark.NewRepo(e.conn)
 	for date, level := range map[string]string{"2025-03-10": "10000", "2025-05-05": "11000", "2025-09-01": "12500", "2026-02-01": "13000"} {
-		if err := benchmarks.Upsert(ctx, benchmark.CodeXU100, date, level, "test"); err != nil {
-			t.Fatalf("benchmarks.Upsert: %v", err)
+		if err := benchmarks.UpsertMany(ctx, []benchmark.Row{{Code: benchmark.CodeXU100, Date: date, Value: level, Source: "test"}}); err != nil {
+			t.Fatalf("benchmarks.UpsertMany: %v", err)
 		}
 	}
 

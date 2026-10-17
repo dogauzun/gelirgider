@@ -177,10 +177,12 @@ func SyncRange(ctx context.Context, f *Fetcher, prices *price.Repo, in instrumen
 	if err != nil {
 		return 0, err
 	}
+	rows := make([]price.Row, len(candles))
 	for i, c := range candles {
-		if err := prices.Upsert(ctx, in.ID, c.Date, c.Close.String(), SourceBtcTurk); err != nil {
-			return i, fmt.Errorf("upsert price for %s: %w", in.Symbol, err)
-		}
+		rows[i] = price.Row{InstrumentID: in.ID, Date: c.Date, Close: c.Close.String(), Source: SourceBtcTurk}
+	}
+	if err := prices.UpsertMany(ctx, rows); err != nil {
+		return 0, fmt.Errorf("upsert prices for %s: %w", in.Symbol, err)
 	}
 	return len(candles), nil
 }
@@ -237,14 +239,18 @@ func (s *GoldSyncer) SyncGold(ctx context.Context, from, to time.Time) (int, err
 	if err != nil {
 		return 0, err
 	}
+	priceRows := make([]price.Row, len(candles))
+	benchRows := make([]benchmark.Row, len(candles))
 	for i, c := range candles {
 		g := c.Close.DivRound(gramsPerTroyOunce, 4).StringFixed(4)
-		if err := s.Prices.Upsert(ctx, gram.ID, c.Date, g, SourcePAXG); err != nil {
-			return i, fmt.Errorf("upsert GOLD/GRAM price: %w", err)
-		}
-		if err := s.Benchmarks.Upsert(ctx, benchmark.CodeGOLD, c.Date, g, SourcePAXG); err != nil {
-			return i, fmt.Errorf("upsert GOLD benchmark: %w", err)
-		}
+		priceRows[i] = price.Row{InstrumentID: gram.ID, Date: c.Date, Close: g, Source: SourcePAXG}
+		benchRows[i] = benchmark.Row{Code: benchmark.CodeGOLD, Date: c.Date, Value: g, Source: SourcePAXG}
+	}
+	if err := s.Prices.UpsertMany(ctx, priceRows); err != nil {
+		return 0, fmt.Errorf("upsert GOLD/GRAM prices: %w", err)
+	}
+	if err := s.Benchmarks.UpsertMany(ctx, benchRows); err != nil {
+		return 0, fmt.Errorf("upsert GOLD benchmark: %w", err)
 	}
 	return len(candles), nil
 }

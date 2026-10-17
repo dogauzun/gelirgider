@@ -3,6 +3,7 @@ package price_test
 import (
 	"context"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -316,7 +317,9 @@ func TestFetchUpsertConcurrentNewKey(t *testing.T) {
 		{"fx_rates", func(d string) error { return rates.Upsert(ctx, "USD", d, "40", "test") }},
 		{"splits", func(d string) error { return splits.Upsert(ctx, 1, d, one, "test") }},
 		{"dividends", func(d string) error { return dividends.Upsert(ctx, 1, d, one, "TRY", "test") }},
-		{"benchmark_values", func(d string) error { return benchmarks.Upsert(ctx, benchmark.CodeXU100, d, "10", "test") }},
+		{"benchmark_values", func(d string) error {
+			return benchmarks.UpsertMany(ctx, []benchmark.Row{{Code: benchmark.CodeXU100, Date: d, Value: "10", Source: "test"}})
+		}},
 	}
 	for _, w := range writers {
 		t.Run(w.table, func(t *testing.T) {
@@ -351,4 +354,99 @@ func TestFetchUpsertConcurrentNewKey(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestUpsertMany covers a batch of new rows, existing rows updated, and a
+// mix of both in one call, and that a batch with a row that fails (an
+// instrument that does not exist, caught by the foreign key inside the
+// transaction) or a bad date stores none of its rows.
+func TestUpsertMany(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	if _, err := conn.Exec(`INSERT INTO instruments (id, symbol, market, name, currency)
+		VALUES (1, 'THYAO', 'BIST', 'Turk Hava Yollari', 'TRY'),
+		       (2, 'GARAN', 'BIST', 'Garanti Bankasi', 'TRY')`); err != nil {
+		t.Fatalf("seed instruments: %v", err)
+	}
+	ctx := context.Background()
+	repo := price.NewRepo(conn)
+	got := func() map[string]string {
+		t.Helper()
+		rows, err := conn.Query("SELECT instrument_id, date, close, source FROM prices")
+		if err != nil {
+			t.Fatalf("query prices: %v", err)
+		}
+		defer rows.Close()
+		out := map[string]string{}
+		for rows.Next() {
+			var id, date, closePrice, source string
+			if err := rows.Scan(&id, &date, &closePrice, &source); err != nil {
+				t.Fatalf("scan: %v", err)
+			}
+			out[id+" "+date] = closePrice + " " + source
+		}
+		return out
+	}
+	check := func(step string, want map[string]string) {
+		t.Helper()
+		if g := got(); !maps.Equal(g, want) {
+			t.Fatalf("%s: prices = %v, want %v", step, g, want)
+		}
+	}
+
+	if err := repo.UpsertMany(ctx, nil); err != nil {
+		t.Fatalf("empty UpsertMany: %v", err)
+	}
+	check("empty", map[string]string{})
+
+	if err := repo.UpsertMany(ctx, []price.Row{
+		{InstrumentID: 1, Date: "2024-01-01", Close: "100.00", Source: "a"},
+		{InstrumentID: 2, Date: "2024-01-01", Close: "50.00", Source: "a"},
+	}); err != nil {
+		t.Fatalf("new rows: %v", err)
+	}
+	check("new rows", map[string]string{"1 2024-01-01": "100.00 a", "2 2024-01-01": "50.00 a"})
+
+	if err := repo.UpsertMany(ctx, []price.Row{
+		{InstrumentID: 1, Date: "2024-01-01", Close: "101.50", Source: "b"},
+		{InstrumentID: 2, Date: "2024-01-01", Close: "51.50", Source: "b"},
+	}); err != nil {
+		t.Fatalf("updated rows: %v", err)
+	}
+	check("updated rows", map[string]string{"1 2024-01-01": "101.50 b", "2 2024-01-01": "51.50 b"})
+
+	if err := repo.UpsertMany(ctx, []price.Row{
+		{InstrumentID: 1, Date: "2024-01-01", Close: "102.00", Source: "c"},
+		{InstrumentID: 1, Date: "2024-01-02", Close: "103.00", Source: "c"},
+		{InstrumentID: 2, Date: "2024-01-02", Close: "52.00", Source: "c"},
+	}); err != nil {
+		t.Fatalf("mixed rows: %v", err)
+	}
+	want := map[string]string{
+		"1 2024-01-01": "102.00 c", "1 2024-01-02": "103.00 c",
+		"2 2024-01-01": "51.50 b", "2 2024-01-02": "52.00 c",
+	}
+	check("mixed rows", want)
+
+	// The failing row is last: the rows before it must roll back too.
+	if err := repo.UpsertMany(ctx, []price.Row{
+		{InstrumentID: 1, Date: "2024-01-03", Close: "104.00", Source: "d"},
+		{InstrumentID: 1, Date: "2024-01-01", Close: "999.00", Source: "d"},
+		{InstrumentID: 99, Date: "2024-01-03", Close: "1.00", Source: "d"},
+	}); err == nil || !db.IsForeignKeyViolation(err) {
+		t.Fatalf("batch with unknown instrument error = %v, want a foreign key violation", err)
+	}
+	check("foreign key failure", want)
+
+	if err := repo.UpsertMany(ctx, []price.Row{
+		{InstrumentID: 1, Date: "2024-01-03", Close: "104.00", Source: "d"},
+		{InstrumentID: 1, Date: "2024-13-01", Close: "1.00", Source: "d"},
+	}); err == nil {
+		t.Fatal("batch with a bad date = nil, want error")
+	}
+	check("bad date", want)
 }

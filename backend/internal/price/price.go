@@ -140,17 +140,37 @@ func NewRepo(db *sql.DB) *Repo {
 	return &Repo{db: db}
 }
 
-// Upsert stores close as the price for instrumentID on date, from source.
-// If a row for (instrumentID, date) already exists, its close and source
-// are overwritten. Implemented as UPDATE-then-INSERT rather than a
-// dialect-specific upsert, per project convention of portable SQL, run in
-// one transaction: BeginTx takes the write lock up front (_txlock=immediate),
-// so two overlapping fetches of a new key cannot both miss on UPDATE and
-// both INSERT. A date that is not YYYY-MM-DD is an error: no
-// query would ever find it.
+// Row is one price to store: the arguments of Upsert.
+type Row struct {
+	InstrumentID int64
+	Date         string // YYYY-MM-DD
+	Close        string
+	Source       string
+}
+
+// Upsert stores close as the price for instrumentID on date, from source,
+// as UpsertMany does for one row.
 func (r *Repo) Upsert(ctx context.Context, instrumentID int64, date, close, source string) error {
-	if !ValidDate(date) {
-		return fmt.Errorf("upsert price: date %q is not YYYY-MM-DD", date)
+	return r.UpsertMany(ctx, []Row{{instrumentID, date, close, source}})
+}
+
+// UpsertMany stores every row in one transaction: a sync writes a batch
+// with one commit instead of one per row, and a failed row rolls back the
+// whole batch. If a row for (InstrumentID, Date) already exists, its close
+// and source are overwritten. Implemented as UPDATE-then-INSERT rather than
+// a dialect-specific upsert, per project convention of portable SQL:
+// BeginTx takes the write lock up front (_txlock=immediate), so two
+// overlapping fetches of a new key cannot both miss on UPDATE and both
+// INSERT. A date that is not YYYY-MM-DD is an error, checked for every row
+// before the transaction opens: no query would ever find it.
+func (r *Repo) UpsertMany(ctx context.Context, rows []Row) error {
+	for _, row := range rows {
+		if !ValidDate(row.Date) {
+			return fmt.Errorf("upsert price: date %q is not YYYY-MM-DD", row.Date)
+		}
+	}
+	if len(rows) == 0 {
+		return nil
 	}
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -158,13 +178,15 @@ func (r *Repo) Upsert(ctx context.Context, instrumentID int64, date, close, sour
 	}
 	defer tx.Rollback()
 
-	if err := db.Upsert(ctx, tx,
-		"UPDATE prices SET close = ?, source = ? WHERE instrument_id = ? AND date = ?",
-		[]any{close, source, instrumentID, date},
-		"INSERT INTO prices (instrument_id, date, close, source) VALUES (?, ?, ?, ?)",
-		[]any{instrumentID, date, close, source},
-	); err != nil {
-		return fmt.Errorf("upsert price: %w", err)
+	for _, row := range rows {
+		if err := db.Upsert(ctx, tx,
+			"UPDATE prices SET close = ?, source = ? WHERE instrument_id = ? AND date = ?",
+			[]any{row.Close, row.Source, row.InstrumentID, row.Date},
+			"INSERT INTO prices (instrument_id, date, close, source) VALUES (?, ?, ?, ?)",
+			[]any{row.InstrumentID, row.Date, row.Close, row.Source},
+		); err != nil {
+			return fmt.Errorf("upsert price: %w", err)
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit price: %w", err)

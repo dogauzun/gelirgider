@@ -46,15 +46,17 @@ type BackfillSource struct {
 // weekday at a time, for the startup backfill and the on-demand one alike.
 // Its Name is scheduler.NameBIST, the scheduler source name, since the
 // on-demand backfill queue logs the walk in source_runs under it; the price
-// rows it checks and marks are SourceBistBulletin's.
+// rows it checks and marks are SourceBistBulletin's. Build one per walk: it
+// lists the BIST instruments once and reuses the list for every date.
 func BulletinBackfillSource(f *Fetcher, instruments *instrument.Repo, prices *price.Repo) BackfillSource {
+	var idBySymbol map[string]int64 // listed on the walk's first date with data
 	return BackfillSource{
 		Name: scheduler.NameBIST,
 		HasSource: func(ctx context.Context, date string) (bool, error) {
 			return prices.HasSource(ctx, date, SourceBistBulletin)
 		},
 		Sync: func(ctx context.Context, d time.Time) (int, error) {
-			return Sync(ctx, f, instruments, prices, d)
+			return syncDate(ctx, f, instruments, prices, &idBySymbol, d)
 		},
 		MarkEmpty: func(ctx context.Context, date string) error {
 			return prices.MarkEmpty(ctx, date, SourceBistBulletin)

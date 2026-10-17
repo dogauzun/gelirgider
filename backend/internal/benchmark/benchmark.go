@@ -39,19 +39,34 @@ func NewRepo(db *sql.DB) *Repo {
 	return &Repo{db: db}
 }
 
-// Upsert stores value for code on date, from source. An existing row for
-// (code, date) is overwritten (last writer wins). value must be a decimal
-// greater than zero. Implemented as UPDATE-then-INSERT rather than a
-// dialect-specific upsert, per project convention of portable SQL, in one
-// transaction so overlapping fetches of a new key cannot both INSERT
-// (see price.Repo.Upsert).
-func (r *Repo) Upsert(ctx context.Context, code, date, value, source string) error {
-	d, err := decimal.NewFromString(value)
-	if err != nil {
-		return fmt.Errorf("benchmark value %q: %w", value, err)
+// Row is one benchmark value to store.
+type Row struct {
+	Code   string
+	Date   string // YYYY-MM-DD; for TUFE the first day of the month
+	Value  string
+	Source string
+}
+
+// UpsertMany stores every row in one transaction: a sync writes a batch
+// with one commit instead of one per row, and a failed row rolls back the
+// whole batch. An existing row for (Code, Date) is overwritten (last writer
+// wins). Every Value must be a decimal greater than zero, checked for every
+// row before the transaction opens. Implemented as UPDATE-then-INSERT
+// rather than a dialect-specific upsert, per project convention of portable
+// SQL, in one transaction so overlapping fetches of a new key cannot both
+// INSERT (see price.Repo.UpsertMany).
+func (r *Repo) UpsertMany(ctx context.Context, rows []Row) error {
+	for _, row := range rows {
+		d, err := decimal.NewFromString(row.Value)
+		if err != nil {
+			return fmt.Errorf("benchmark value %q: %w", row.Value, err)
+		}
+		if !d.IsPositive() {
+			return fmt.Errorf("benchmark value %q: must be > 0", row.Value)
+		}
 	}
-	if !d.IsPositive() {
-		return fmt.Errorf("benchmark value %q: must be > 0", value)
+	if len(rows) == 0 {
+		return nil
 	}
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -59,13 +74,15 @@ func (r *Repo) Upsert(ctx context.Context, code, date, value, source string) err
 	}
 	defer tx.Rollback()
 
-	if err := db.Upsert(ctx, tx,
-		"UPDATE benchmark_values SET value = ?, source = ? WHERE code = ? AND date = ?",
-		[]any{value, source, code, date},
-		"INSERT INTO benchmark_values (code, date, value, source) VALUES (?, ?, ?, ?)",
-		[]any{code, date, value, source},
-	); err != nil {
-		return fmt.Errorf("upsert benchmark value: %w", err)
+	for _, row := range rows {
+		if err := db.Upsert(ctx, tx,
+			"UPDATE benchmark_values SET value = ?, source = ? WHERE code = ? AND date = ?",
+			[]any{row.Value, row.Source, row.Code, row.Date},
+			"INSERT INTO benchmark_values (code, date, value, source) VALUES (?, ?, ?, ?)",
+			[]any{row.Code, row.Date, row.Value, row.Source},
+		); err != nil {
+			return fmt.Errorf("upsert benchmark value: %w", err)
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit benchmark value: %w", err)

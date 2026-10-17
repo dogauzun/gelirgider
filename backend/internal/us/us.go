@@ -484,14 +484,18 @@ func (s *Syncer) SyncHistory(ctx context.Context, in instrument.Instrument, from
 	return s.storeHistory(ctx, in, closes)
 }
 
-// storeHistory upserts closes into Prices, every splitFactor that is
+// storeHistory upserts closes into Prices in one transaction, every splitFactor that is
 // present and not 1 into Splits, and every divCash > 0 into Dividends in
 // USD, all source = "tiingo". Returns the number of closes written.
 func (s *Syncer) storeHistory(ctx context.Context, in instrument.Instrument, closes []DailyClose) (int, error) {
+	rows := make([]price.Row, len(closes))
 	for i, c := range closes {
-		if err := s.Prices.Upsert(ctx, in.ID, c.Date, c.Close.String(), sourceTiingo); err != nil {
-			return i, fmt.Errorf("upsert price for %s: %w", in.Symbol, err)
-		}
+		rows[i] = price.Row{InstrumentID: in.ID, Date: c.Date, Close: c.Close.String(), Source: sourceTiingo}
+	}
+	if err := s.Prices.UpsertMany(ctx, rows); err != nil {
+		return 0, fmt.Errorf("upsert prices for %s: %w", in.Symbol, err)
+	}
+	for i, c := range closes {
 		if !c.SplitFactor.IsZero() && !c.SplitFactor.Equal(decimal.NewFromInt(1)) {
 			if err := s.Splits.Upsert(ctx, in.ID, c.Date, c.SplitFactor, sourceTiingo); err != nil {
 				return i + 1, fmt.Errorf("upsert split for %s: %w", in.Symbol, err)

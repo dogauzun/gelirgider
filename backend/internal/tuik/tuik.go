@@ -136,13 +136,14 @@ func SyncTUFE(ctx context.Context, f *Fetcher, repo *benchmark.Repo) (int, error
 	if err != nil {
 		return 0, err
 	}
-	written := 0
-	for _, l := range levels {
-		if err := repo.Upsert(ctx, benchmark.CodeTUFE, l.Month, l.Value, sourceTUIK); err != nil {
-			return written, fmt.Errorf("upsert tufe %s: %w", l.Month, err)
-		}
-		written++
+	rows := make([]benchmark.Row, len(levels))
+	for i, l := range levels {
+		rows[i] = benchmark.Row{Code: benchmark.CodeTUFE, Date: l.Month, Value: l.Value, Source: sourceTUIK}
 	}
+	if err := repo.UpsertMany(ctx, rows); err != nil {
+		return 0, fmt.Errorf("upsert tufe: %w", err)
+	}
+	written := len(rows)
 	slog.Default().Info("tuik tufe sync complete", "written", written)
 	return written, nil
 }
