@@ -503,7 +503,8 @@ definitions:
           The latest close dated before price_date (manual winning on a date,
           like last_price), scaled by any split after its date up to today. It,
           prev_price_date, day_change and day_change_reporting are null when
-          either price is missing or the position is closed.
+          either price is missing or the position is closed (a closed
+          position's move still counts in the summary's day_change).
         type: string
       prev_price_date:
         description: The date of prev_close.
@@ -671,8 +672,9 @@ definitions:
         type: string
       day_change:
         description: |-
-          The open positions' day_change_reporting summed unrounded and rounded
-          once, so it can differ from the rounded rows' sum by a cent.
+          The open positions' day_change_reporting, plus the move on price_date
+          of closed positions sold out on or after it, summed unrounded and
+          rounded once, so it can differ from the rounded rows' sum by a cent.
           A position with no previous close or no rate is left out; null when
           none is left, so the page shows "-" rather than a zero.
         type: string
@@ -3200,14 +3202,15 @@ paths:
   /portfolios/{id}/summary:
     get:
       description: Open and closed positions with cash and totals as of today (Europe/Istanbul),
-        converted into the reporting currency. positions_value, cost_basis and day_change
-        total the open positions, each rounded once; day_change is null when no open
-        position has a previous close and a rate. unrealized_pl, realized_pl and fx_pl
-        are null when they cannot be converted; missing_rates names the excluded currencies.
-        stats totals deposits, withdrawals, fees, dividends and interest per currency
-        and, when every currency converts, in the reporting currency. net_contribution,
-        dividends_net and each position's total_pl_reporting are worked out unrounded
-        and rounded once.
+        converted into the reporting currency. positions_value and cost_basis total
+        the open positions, each rounded once; day_change totals the open positions'
+        day move plus the move on the price date of closed positions sold out on or
+        after it, and is null when no such position has a previous close and a rate.
+        unrealized_pl, realized_pl and fx_pl are null when they cannot be converted;
+        missing_rates names the excluded currencies. stats totals deposits, withdrawals,
+        fees, dividends and interest per currency and, when every currency converts,
+        in the reporting currency. net_contribution, dividends_net and each position's
+        total_pl_reporting are worked out unrounded and rounded once.
       parameters:
       - description: numeric id or `all`
         in: path

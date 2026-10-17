@@ -86,7 +86,8 @@ export interface Summary {
   // which neither P/L figure above holds. Null when the portfolio
   // has no currency besides the reporting one: the page then hides it.
   fx_pl: string | null
-  // The open positions' day_change_reporting summed unrounded and rounded
+  // The open positions' day_change_reporting plus the price-date move of
+  // closed positions sold out on or after it, summed unrounded and rounded
   // once on the server, so it can be a cent off the rows' sum. A
   // position with no previous close or no rate is left out; null when none
   // is left, so render MISSING, not a zero. Optional until the backend sends
