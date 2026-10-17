@@ -53,14 +53,17 @@ func RegisterRoutes(mux *http.ServeMux, users *user.Repo, sessions *Repo, cfg *s
 // RegisterProtectedRoutes wires endpoints that require an authenticated
 // user into mux. The caller must wrap mux with (*Repo).RequireUser.
 // The password change is rate-limited per client IP like login: it checks
-// the current password, so a stolen session could otherwise guess it.
-func RegisterProtectedRoutes(mux *http.ServeMux, users *user.Repo, sessions *Repo) {
-	h := &handler{users: users, sessions: sessions}
+// the current password, so a stolen session could otherwise guess it. The
+// two-factor enrolment routes are limited the same way; cfg seals the secret.
+func RegisterProtectedRoutes(mux *http.ServeMux, users *user.Repo, sessions *Repo, cfg *settings.Repo) {
+	h := &handler{users: users, sessions: sessions, settings: cfg}
 	mux.HandleFunc("GET /api/me", h.me)
 	mux.HandleFunc("PUT /api/me/reporting-currency", h.updateReportingCurrency)
 	mux.HandleFunc("GET /api/me/attention-rules", h.getAttentionRules)
 	mux.HandleFunc("PUT /api/me/attention-rules", h.updateAttentionRules)
 	mux.Handle("POST /api/account/password", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.changePassword)))
+	mux.Handle("POST /api/account/totp/setup", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.totpSetup)))
+	mux.Handle("POST /api/account/totp/confirm", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.totpConfirm)))
 }
 
 type handler struct {
@@ -396,22 +399,27 @@ func (h *handler) changePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// RequireUser guarantees the cookie, so keep is the session making this
-	// request. If it ever went missing, an empty keep signs out every session
-	// of this user instead of leaving them all valid: the password has
-	// already changed, so failing closed is the only safe direction.
-	keep := ""
-	if c, err := r.Cookie(cookieName); err == nil {
-		keep = c.Value
-	}
 	// The new hash is already committed: a client disconnect must not skip
 	// signing out the other sessions, so the delete ignores cancellation.
-	if err := h.sessions.DeleteOtherSessions(context.WithoutCancel(r.Context()), userID, keep); err != nil {
+	if err := h.deleteOtherSessions(context.WithoutCancel(r.Context()), r, userID); err != nil {
 		WriteInternalError(w, r, err)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// deleteOtherSessions deletes every session of userID except the one making
+// r. RequireUser guarantees the cookie; if it ever went missing, an empty
+// keep signs out every session of this user instead of leaving them all
+// valid: the caller has already changed a credential, so failing closed is
+// the only safe direction.
+func (h *handler) deleteOtherSessions(ctx context.Context, r *http.Request, userID int64) error {
+	keep := ""
+	if c, err := r.Cookie(cookieName); err == nil {
+		keep = c.Value
+	}
+	return h.sessions.DeleteOtherSessions(ctx, userID, keep)
 }
 
 func (h *handler) cookie(value string, expires time.Time) *http.Cookie {
