@@ -469,3 +469,30 @@ func TestLearnedNameManyNames(t *testing.T) {
 		t.Errorf("5000 lookups in %v, want under 1s", d)
 	}
 }
+
+// TestLearnedNameSharedPrefix checks the worst case for the names a symbol is
+// a prefix of: 100k names of one instrument that share a long prefix, and a
+// file whose symbols are that prefix cut at every length. Each symbol matches
+// every name, so a lookup that visits the matches costs the stored names.
+func TestLearnedNameSharedPrefix(t *testing.T) {
+	prefix := strings.Repeat("A", 190)
+	learned := make(map[string]int64, 100000)
+	for i := 0; i < 100000; i++ {
+		learned[fmt.Sprintf("%s%d", prefix, i)] = 1
+	}
+	start := time.Now()
+	names := newNameIndex(learned)
+	for n := 1; n < len(prefix); n++ {
+		if got := learnedName(prefix[:n], names); got != 1 {
+			t.Fatalf("learnedName(%d As) = %d, want 1", n, got)
+		}
+	}
+	learned[prefix+"x"] = 2
+	names = newNameIndex(learned)
+	if got := learnedName(prefix[:50], names); got != 0 {
+		t.Errorf("learnedName with two instruments = %d, want 0", got)
+	}
+	if d := time.Since(start); d > time.Second {
+		t.Errorf("lookups in %v, want under 1s", d)
+	}
+}

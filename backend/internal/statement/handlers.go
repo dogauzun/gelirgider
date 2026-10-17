@@ -1819,11 +1819,16 @@ func (h *handler) aliasInstrument(ctx context.Context, userID int64, broker stri
 
 // nameIndex is a set of learned fund names, searchable by prefix. sorted
 // holds the names in byte order, so those that start with a symbol are one
-// run; ids maps each name to its instrument; maxLen is the longest name.
+// run, and sortedIDs their instrument ids; sameUntil[i] is the first index
+// after i whose id differs from sortedIDs[i], so a run is of one instrument
+// when sameUntil[start] reaches its end. ids maps each name to its
+// instrument; maxLen is the longest name.
 type nameIndex struct {
-	sorted []string
-	ids    map[string]int64
-	maxLen int
+	sorted    []string
+	sortedIDs []int64
+	sameUntil []int
+	ids       map[string]int64
+	maxLen    int
 }
 
 // newNameIndex indexes the names of ids, each with its instrument id.
@@ -1834,6 +1839,15 @@ func newNameIndex(ids map[string]int64) *nameIndex {
 		x.maxLen = max(x.maxLen, len(name))
 	}
 	slices.Sort(x.sorted)
+	x.sortedIDs = make([]int64, len(x.sorted))
+	x.sameUntil = make([]int, len(x.sorted))
+	for i := len(x.sorted) - 1; i >= 0; i-- {
+		x.sortedIDs[i] = ids[x.sorted[i]]
+		x.sameUntil[i] = i + 1
+		if i+1 < len(x.sorted) && x.sortedIDs[i+1] == x.sortedIDs[i] {
+			x.sameUntil[i] = x.sameUntil[i+1]
+		}
+	}
 	return x
 }
 
@@ -1842,10 +1856,10 @@ func newNameIndex(ids map[string]int64) *nameIndex {
 // maps a movement to a balance by inside one statement, as statement names
 // are cut to a fixed width. It returns 0 for no match, or when the matches
 // name more than one instrument. A nil learned has no names. The cost
-// depends on symbol and the names it matches, not on how many names there
-// are: the names it starts with are the shorter prefixes of it, each one
-// map lookup, and the names that start with it are one run of the sorted
-// names, found by binary search.
+// depends on symbol, not on how many names are stored: the names it starts
+// with are its shorter prefixes, each one map lookup, and the names that
+// start with it are one run of the sorted names, found by two binary
+// searches and checked for one instrument in constant time.
 func learnedName(symbol string, learned *nameIndex) int64 {
 	if symbol == "" || learned == nil {
 		return 0
@@ -1864,9 +1878,12 @@ func learnedName(symbol string, learned *nameIndex) int64 {
 			return 0
 		}
 	}
-	i, _ := slices.BinarySearch(learned.sorted, symbol)
-	for ; i < len(learned.sorted) && strings.HasPrefix(learned.sorted[i], symbol); i++ {
-		if !add(learned.ids[learned.sorted[i]]) {
+	lo, _ := slices.BinarySearch(learned.sorted, symbol)
+	hi := lo + sort.Search(len(learned.sorted)-lo, func(i int) bool {
+		return !strings.HasPrefix(learned.sorted[lo+i], symbol)
+	})
+	if lo < hi {
+		if learned.sameUntil[lo] < hi || !add(learned.sortedIDs[lo]) {
 			return 0
 		}
 	}
