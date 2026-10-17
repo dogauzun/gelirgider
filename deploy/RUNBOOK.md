@@ -67,9 +67,8 @@ provider keys again.
    docker compose -f deploy/compose.yml pull
    docker compose -f deploy/compose.yml up -d
    ```
-   The published images are `linux/amd64` only: an arm64 host, or a
-   checkout with local code changes, builds both images from the checkout
-   instead:
+   The published images cover `linux/amd64` and `linux/arm64`. A checkout
+   with local code changes builds both images from the checkout instead:
    ```
    docker compose -f deploy/compose.yml up -d --build
    ```
@@ -125,9 +124,8 @@ not in env vars or cron:
    ```
    The images for a commit on `main` are published a few minutes after it
    merges (`.github/workflows/publish.yml`); a `pull` before that run
-   finishes gets the previous `latest`. The published images are
-   `linux/amd64` only, so an arm64 host, like a checkout with local code
-   changes, rebuilds instead, with
+   finishes gets the previous `latest`. A checkout with local code changes
+   rebuilds instead, with
    `docker compose -f deploy/compose.yml up -d --build`.
 
 Since GLG-1118 the backend runs as uid 65532 instead of root. On a host
@@ -434,10 +432,13 @@ copy of the current state, and step 2 picks the older file instead.
 3. Once a fixed version is published, empty the `IMAGE_TAG=` line to follow
    `latest` again, and pull and restart as in step 2.
 
-An arm64 host (the published images are `linux/amd64` only) and a checkout
-with local code changes skip the steps above and roll back by checking out
-the previous commit (`git checkout <previous-sha>`) and rebuilding with
+A checkout with local code changes skips the steps above and rolls back by
+checking out the previous commit (`git checkout <previous-sha>`) and rebuilding with
 `docker compose -f deploy/compose.yml up -d --build`.
+
+Tags published before multi-arch support are `linux/amd64` only, so an arm64
+host rolls back to one of them the same way, by rebuilding from the checkout at
+that commit with `up --build`, not by pinning `IMAGE_TAG`.
 
 Schema files are forward-only and are never edited or removed once merged
 (see Update, above). Rolling back the code does not undo a schema file that

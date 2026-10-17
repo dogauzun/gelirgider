@@ -1,5 +1,6 @@
-# Build stage: produce the static frontend/dist bundle.
-FROM node:22.23-alpine AS build
+# Build stage: produce the static frontend/dist bundle, which is the same for
+# every architecture, so it runs once on the builder's own platform.
+FROM --platform=$BUILDPLATFORM node:22.23-alpine AS build
 WORKDIR /src
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci

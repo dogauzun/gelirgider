@@ -4,7 +4,10 @@
 # created with GITHUB_TOKEN fires no push event, so the call is explicit). The
 # version, or `sha-<7>` on main, goes into the build as `--build-arg VERSION`.
 # Plain docker commands in `run:` steps, because the Actions policy allows
-# GitHub-owned actions only. linux/amd64 only, no buildx.
+# GitHub-owned actions only. One `docker buildx build` publishes each image for
+# linux/amd64 and linux/arm64 (the Go binary cross-compiles and the frontend
+# bundle is architecture-independent, so no emulation). Attestations are off, so
+# the index holds only the two platforms.
 name: publish
 
 on:
@@ -39,6 +42,7 @@ jobs:
         with:
           ref: ${{ inputs.version || github.ref }}
       - run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - run: docker buildx create --use
       - name: Build and push
         env:
           INPUT_VERSION: ${{ inputs.version }}
@@ -56,10 +60,11 @@ jobs:
           fi
           args=()
           for t in $tags; do args+=(-t "$name:$t"); done
-          docker build -f deploy/${{ matrix.image }}.Dockerfile \
+          docker buildx build --platform linux/amd64,linux/arm64 --push \
+            --provenance=false \
+            -f deploy/${{ matrix.image }}.Dockerfile \
             --build-arg VERSION="$version" \
             --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
             --label org.opencontainers.image.revision=${{ github.sha }} \
             --label org.opencontainers.image.licenses=AGPL-3.0-only \
             "${args[@]}" .
-          for t in $tags; do docker push "$name:$t"; done

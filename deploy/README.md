@@ -26,8 +26,8 @@ tagged images for another runtime.
 
 ## Published images
 
-`.github/workflows/publish.yml` publishes both images, `linux/amd64` only, to
-the GitHub Container Registry:
+`.github/workflows/publish.yml` publishes both images, for `linux/amd64` and
+`linux/arm64`, to the GitHub Container Registry:
 
 - `ghcr.io/dogauzun/gelirgider-backend`
 - `ghcr.io/dogauzun/gelirgider-frontend`
@@ -38,9 +38,9 @@ version tag `vX.Y.Z`, for example `v1.2.0`, and moves the floating major tag
 `vX` (`v1`) to it. Compose pulls `latest` unless `IMAGE_TAG` in `deploy/.env`
 pins another tag (`deploy/RUNBOOK.md`, Rollback). `.github/workflows/prune-images.yml` prunes all but the newest 30
 versions of each image weekly, so a `sha-` pin older than that must be rebuilt
-from the checkout. An arm64 host without amd64 emulation cannot run them (the
-backend exits with `exec format error`) and builds from the checkout with
-`up --build` instead.
+from the checkout with `up --build`. Tags published before multi-arch support
+are `linux/amd64` only, so an arm64 host rolls back to one of them by
+rebuilding from the checkout at that commit (`up --build`).
 
 ## Run locally (production-like)
 
