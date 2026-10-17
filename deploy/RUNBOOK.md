@@ -442,10 +442,13 @@ that commit with `up --build`, not by pinning `IMAGE_TAG`.
 
 Schema files are forward-only and are never edited or removed once merged
 (see Update, above). Rolling back the code does not undo a schema file that
-already ran against the live database — an older backend binary querying a
-newer schema may fail or behave unexpectedly. If the rollback needs to
-cross a schema file, restore the backup taken before that schema file was
-applied instead (Restore drill, above), then pin the matching images.
+already ran against the live database. An older backend binary refuses to
+start against it: it exits at startup with `schema file <name> was applied
+by a newer version of gelirgider; run that version or restore an older
+backup`, instead of running against a schema it does not know. If the
+rollback needs to cross a schema file, restore the backup taken before that
+schema file was applied instead (Restore drill, above), then pin the
+matching images.
 
 ## 9. Reset a forgotten password
 

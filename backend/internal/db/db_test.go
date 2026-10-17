@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -234,5 +235,29 @@ func TestInList(t *testing.T) {
 	}
 	if len(args) != 3 || args[0] != "USD" || args[2] != "TRY" {
 		t.Errorf("args = %v, want [USD EUR TRY]", args)
+	}
+}
+
+// TestOpen_RejectsSchemaFromNewerVersion verifies that a database holding a
+// schema file this binary does not embed (a rollback, or a backup restored
+// from a newer image) is refused, naming the file.
+func TestOpen_RejectsSchemaFromNewerVersion(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.db")
+	conn, err := db.Open(path)
+	if err != nil {
+		t.Fatalf("first Open: %v", err)
+	}
+	if _, err := conn.Exec("INSERT INTO schema_version (filename, applied_at, checksum) VALUES ('999_future.sql', '2030-01-01T00:00:00Z', 'x')"); err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+	conn.Close()
+
+	conn, err = db.Open(path)
+	if err == nil {
+		conn.Close()
+		t.Fatal("expected error for unknown schema file, got nil")
+	}
+	if !strings.Contains(err.Error(), "999_future.sql") {
+		t.Fatalf("expected error to name 999_future.sql, got: %v", err)
 	}
 }

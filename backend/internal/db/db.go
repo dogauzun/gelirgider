@@ -138,6 +138,10 @@ func applySchema(db *sql.DB, schemaFiles fs.FS, dir string) error {
 	}
 	sort.Strings(names)
 
+	if err := rejectUnknownSchema(ctx, db, names); err != nil {
+		return err
+	}
+
 	for _, name := range names {
 		content, err := fs.ReadFile(schemaFiles, dir+"/"+name)
 		if err != nil {
@@ -187,6 +191,35 @@ func applySchema(db *sql.DB, schemaFiles fs.FS, dir string) error {
 		}
 	}
 
+	return nil
+}
+
+// rejectUnknownSchema fails when schema_version records a file that is not in
+// known: the database was written by a newer version, through a rollback to
+// an older image or a restore of a backup taken under a newer one.
+func rejectUnknownSchema(ctx context.Context, db *sql.DB, known []string) error {
+	rows, err := db.QueryContext(ctx, "SELECT filename FROM schema_version ORDER BY filename")
+	if err != nil {
+		return fmt.Errorf("list applied schema files: %w", err)
+	}
+	defer rows.Close()
+
+	have := make(map[string]bool, len(known))
+	for _, n := range known {
+		have[n] = true
+	}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return fmt.Errorf("list applied schema files: %w", err)
+		}
+		if !have[name] {
+			return fmt.Errorf("schema file %s was applied by a newer version of gelirgider; run that version or restore an older backup", name)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("list applied schema files: %w", err)
+	}
 	return nil
 }
 
