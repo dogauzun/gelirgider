@@ -1,7 +1,7 @@
 // Command symbols refreshes one of the symbol lists embedded by
 // backend/internal/instrument: it downloads a market's instrument list and
 // writes internal/instrument/<market>_symbols.csv with a "symbol,name"
-// header, sorted by symbol and deduplicated. Each market's source and
+// header ("symbol,name,asset_class" for bist), sorted by symbol and deduplicated. Each market's source and
 // parsing rules are documented at the top of its file (bist.go, crypto.go,
 // tefas.go, us.go).
 //
@@ -65,8 +65,10 @@ func main() {
 	}
 }
 
-// writeCSV writes bySymbol to path, sorted by symbol.
-func writeCSV(path string, bySymbol map[string]string) error {
+// writeCSV writes bySymbol to path, sorted by symbol. A non-nil classBySymbol
+// adds a third asset_class column (empty for a symbol it lacks); nil keeps
+// the two-column layout.
+func writeCSV(path string, bySymbol, classBySymbol map[string]string) error {
 	symbols := make([]string, 0, len(bySymbol))
 	for symbol := range bySymbol {
 		symbols = append(symbols, symbol)
@@ -80,11 +82,19 @@ func writeCSV(path string, bySymbol map[string]string) error {
 	defer f.Close()
 
 	w := csv.NewWriter(f)
-	if err := w.Write([]string{"symbol", "name"}); err != nil {
+	header := []string{"symbol", "name"}
+	if classBySymbol != nil {
+		header = append(header, "asset_class")
+	}
+	if err := w.Write(header); err != nil {
 		return fmt.Errorf("write header: %w", err)
 	}
 	for _, symbol := range symbols {
-		if err := w.Write([]string{symbol, bySymbol[symbol]}); err != nil {
+		record := []string{symbol, bySymbol[symbol]}
+		if classBySymbol != nil {
+			record = append(record, classBySymbol[symbol])
+		}
+		if err := w.Write(record); err != nil {
 			return fmt.Errorf("write row %s: %w", symbol, err)
 		}
 	}

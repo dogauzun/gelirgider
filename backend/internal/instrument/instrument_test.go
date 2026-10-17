@@ -831,3 +831,28 @@ func TestSeedFileAssetClass(t *testing.T) {
 		t.Fatalf("2-column row class = %q, want unset", got)
 	}
 }
+
+// TestSeedCarriesBISTAssetClass checks the committed bist_symbols.csv: the
+// seed gives a BIST stock equity, a BIST ETF fund and the gold certificate
+// commodity.
+func TestSeedCarriesBISTAssetClass(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	ctx := context.Background()
+	if err := instrument.Seed(ctx, conn); err != nil {
+		t.Fatalf("Seed: %v", err)
+	}
+	for symbol, want := range map[string]string{"THYAO": "equity", "OPT25": "fund", "ALTIN": "commodity"} {
+		in, err := instrument.NewRepo(conn).BySymbol(ctx, "BIST", symbol)
+		if err != nil {
+			t.Fatalf("BySymbol %s: %v", symbol, err)
+		}
+		if in.AssetClass.String != want {
+			t.Fatalf("%s asset class = %q, want %q", symbol, in.AssetClass.String, want)
+		}
+	}
+}

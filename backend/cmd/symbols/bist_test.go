@@ -2,6 +2,9 @@ package main
 
 import (
 	"bytes"
+	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -18,10 +21,10 @@ import (
 // overwriting the winner's name.
 func TestDedupeKeepsFirstSymbolAndWarns(t *testing.T) {
 	var warn bytes.Buffer
-	got := dedupe([]bist.Close{
-		{Symbol: "OPT25", Name: "EQUITY NAME"},
-		{Symbol: "OPT25", Name: "FUND NAME"},
-		{Symbol: "THYAO", Name: "TURK HAVA YOLLARI"},
+	got, classes := dedupe([]bist.Close{
+		{Symbol: "OPT25", Name: "EQUITY NAME", Group: "EQT"},
+		{Symbol: "OPT25", Name: "FUND NAME", Group: "ETF"},
+		{Symbol: "THYAO", Name: "TURK HAVA YOLLARI", Group: "EQT"},
 	}, &warn)
 
 	if len(got) != 2 {
@@ -30,7 +33,39 @@ func TestDedupeKeepsFirstSymbolAndWarns(t *testing.T) {
 	if got["OPT25"] != "EQUITY NAME" {
 		t.Fatalf("OPT25 = %q, want the first-seen %q", got["OPT25"], "EQUITY NAME")
 	}
+	if classes["OPT25"] != "equity" {
+		t.Fatalf("OPT25 class = %q, want the first-seen %q", classes["OPT25"], "equity")
+	}
 	if !strings.Contains(warn.String(), "duplicate symbol OPT25") {
 		t.Fatalf("warn output = %q, want it to report the duplicate", warn.String())
+	}
+}
+
+// TestWriteCSVWritesAssetClassFromBulletinGroup runs one EQT, one ETF and the
+// ALTIN.S1 EMS row through dedupe and writeCSV, plus a row of an unmapped
+// group, which keeps an empty class.
+func TestWriteCSVWritesAssetClassFromBulletinGroup(t *testing.T) {
+	names, classes := dedupe([]bist.Close{
+		{Symbol: "THYAO", Name: "TURK HAVA YOLLARI", Group: "EQT"},
+		{Symbol: "OPT25", Name: "OPTIMA PORTFOY", Group: "ETF"},
+		{Symbol: "ALTIN", Name: "DARPHANE ALTIN SERTIFIKASI", Group: "EMS"},
+		{Symbol: "XXX", Name: "OTHER", Group: "WNT"},
+	}, io.Discard)
+
+	path := filepath.Join(t.TempDir(), "bist_symbols.csv")
+	if err := writeCSV(path, names, classes); err != nil {
+		t.Fatalf("writeCSV: %v", err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read csv: %v", err)
+	}
+	want := "symbol,name,asset_class\n" +
+		"ALTIN,DARPHANE ALTIN SERTIFIKASI,commodity\n" +
+		"OPT25,OPTIMA PORTFOY,fund\n" +
+		"THYAO,TURK HAVA YOLLARI,equity\n" +
+		"XXX,OTHER,\n"
+	if string(got) != want {
+		t.Fatalf("csv = %q, want %q", got, want)
 	}
 }

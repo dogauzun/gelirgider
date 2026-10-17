@@ -11,9 +11,9 @@ export type AllocationView = (typeof ALLOCATION_VIEWS)[number]
 type AssetClass = 'equity' | 'fund' | 'commodity' | 'crypto' | 'cash' | 'deposit' | 'unknown'
 
 // A position's asset class when its instrument stores none, read from its
-// market. shortcut: BIST and US ETFs and ALTIN.S1 count as equity because
-// their instruments carry no asset_class yet, upgrade when they do. A market
-// missing here falls into the 'unknown' row.
+// market. shortcut: US ETFs count as equity because their instruments carry
+// no asset_class yet, upgrade when they do. A market missing here falls into
+// the 'unknown' row.
 const ASSET_CLASS_BY_MARKET: Record<string, AssetClass> = {
   US: 'equity',
   BIST: 'equity',

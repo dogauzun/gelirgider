@@ -1,6 +1,6 @@
 // -market bist downloads one Borsa Istanbul daily equity bulletin zip and
 // writes internal/instrument/bist_symbols.csv: BIST equity, ETF and gold
-// certificate instruments. Bulletin URL pattern and CSV layout are documented in
+// certificate instruments, with each one's asset_class from its bulletin group. Bulletin URL pattern and CSV layout are documented in
 // docs/adr/0001-bist-price-source.md; the fetch and parse, group filter and
 // suffix map are internal/bist's FetchBulletin, the same code that reads the
 // bulletin for daily closing prices.
@@ -50,22 +50,33 @@ func runBIST(date time.Time) error {
 		fmt.Fprintf(os.Stderr, "symbols: skipped %d row(s) whose series code did not end in its group's suffix\n", skipped)
 	}
 
-	return writeCSV(bistPath, dedupe(rows, os.Stderr))
+	names, classes := dedupe(rows, os.Stderr)
+	return writeCSV(bistPath, names, classes)
 }
 
-// dedupe collapses rows to one name per bare symbol. A bare symbol could
+// assetClassByGroup maps a bulletin ENSTRUMAN GRUBU to the instrument's
+// asset class; a group missing here gets an empty class.
+var assetClassByGroup = map[string]string{
+	"EQT": "equity",
+	"ETF": "fund",
+	"EMS": "commodity", // only ALTIN.S1, the gold certificate
+}
+
+// dedupe collapses rows to one name and one asset class per bare symbol. A bare symbol could
 // in principle appear in two groups (X.E and X.F); first seen wins and the
 // collision is reported to warn. Not expected in practice, so there is no
 // tie-break rule beyond bulletin order.
-func dedupe(rows []bist.Close, warn io.Writer) map[string]string {
-	byNameSymbol := make(map[string]string, len(rows))
+func dedupe(rows []bist.Close, warn io.Writer) (names, classes map[string]string) {
+	names = make(map[string]string, len(rows))
+	classes = make(map[string]string, len(rows))
 	for _, row := range rows {
-		if kept, dup := byNameSymbol[row.Symbol]; dup {
+		if kept, dup := names[row.Symbol]; dup {
 			fmt.Fprintf(warn, "symbols: duplicate symbol %s, keeping %q, ignoring %q\n",
 				row.Symbol, kept, row.Name)
 			continue
 		}
-		byNameSymbol[row.Symbol] = row.Name
+		names[row.Symbol] = row.Name
+		classes[row.Symbol] = assetClassByGroup[row.Group]
 	}
-	return byNameSymbol
+	return names, classes
 }

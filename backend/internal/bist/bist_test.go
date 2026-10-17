@@ -93,6 +93,13 @@ func TestFetchClosesParsesEquityAndETFRowsOnly(t *testing.T) {
 		if c.Date != "2026-09-11" {
 			t.Fatalf("date for %s = %s, want 2026-09-11", c.Symbol, c.Date)
 		}
+		wantGroup := "EQT"
+		if c.Symbol == "OPT25" {
+			wantGroup = "ETF"
+		}
+		if c.Group != wantGroup {
+			t.Fatalf("group for %s = %q, want %q", c.Symbol, c.Group, wantGroup)
+		}
 		delete(want, c.Symbol)
 	}
 	if len(want) != 0 {
@@ -116,8 +123,8 @@ func TestFetchClosesKeepsGoldCertificate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FetchCloses: %v", err)
 	}
-	if len(closes) != 1 || closes[0].Symbol != "ALTIN" || !closes[0].Close.Equal(decimal.RequireFromString("70.49")) {
-		t.Fatalf("closes = %+v, want one ALTIN close of 70.49", closes)
+	if len(closes) != 1 || closes[0].Symbol != "ALTIN" || closes[0].Group != "EMS" || !closes[0].Close.Equal(decimal.RequireFromString("70.49")) {
+		t.Fatalf("closes = %+v, want one EMS ALTIN close of 70.49", closes)
 	}
 }
 
