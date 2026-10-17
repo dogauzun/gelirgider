@@ -3,10 +3,24 @@ import { marketLabel, t } from '../i18n/strings'
 import { compareUnits, decimalUnits, unitsToDecimal } from './decimal'
 import { currencyTotals, holdingsTotal, shareOf, shareUnits } from './positions'
 
-// The three groupings of the allocation card's toggle: one row per
-// position, per market, or per currency.
-export const ALLOCATION_VIEWS = ['symbol', 'market', 'currency'] as const
+// The groupings of the allocation card's toggle: one row per position, per
+// market, per asset class, or per currency.
+export const ALLOCATION_VIEWS = ['symbol', 'market', 'assetClass', 'currency'] as const
 export type AllocationView = (typeof ALLOCATION_VIEWS)[number]
+
+type AssetClass = 'equity' | 'fund' | 'commodity' | 'crypto' | 'deposit' | 'unknown'
+
+// A position's asset class, read from its market. shortcut: BIST and US ETFs
+// and ALTIN.S1 count as equity because positions carry no asset_class yet,
+// upgrade when they do. A market missing here falls into the 'unknown' row.
+const ASSET_CLASS_BY_MARKET: Record<string, AssetClass> = {
+  US: 'equity',
+  BIST: 'equity',
+  TEFAS: 'fund',
+  CRYPTO: 'crypto',
+  GOLD: 'commodity',
+  DEPOSIT: 'deposit',
+}
 
 // The allocation donut's width and height in px, shared with its placeholder
 // in LazyChart.tsx.
@@ -31,6 +45,16 @@ export interface AllocationRow {
   color: string
 }
 
+// The group key and legend label of a position in the non-currency views.
+function groupOf(position: Position, view: AllocationView): [string, string] {
+  if (view === 'symbol') return [`position-${position.instrument_id}`, position.symbol]
+  if (view === 'assetClass') {
+    const assetClass = ASSET_CLASS_BY_MARKET[position.market] ?? 'unknown'
+    return [`class-${assetClass}`, t(`allocation.assetClass.${assetClass}`)]
+  }
+  return [position.market, marketLabel(position.market)]
+}
+
 // One colour per row, never reused: past six rows the largest five keep
 // cat-1..5 and the rest fold into one "Diğer" row on cat-6, the palette's
 // neutral slate. Cash keeps its own token, the same slate a 3:1
@@ -39,7 +63,7 @@ const COLORS = [1, 2, 3, 4, 5, 6].map((n) => `var(--color-cat-${n})`)
 const CASH_COLOR = 'var(--color-cash)'
 
 // allocationRows groups the portfolio for the allocation card: one row per
-// position (or per market, or per currency, see AllocationView) and one for
+// position (or per market, asset class, or currency, see AllocationView) and one for
 // cash, largest first, cash last. Values are the reporting-currency
 // equivalents (market_value_reporting), so positions in different currencies
 // compare correctly. A position with a zero or negative reporting value, or
@@ -69,10 +93,7 @@ export function allocationRows(input: {
     for (const position of positions) {
       const units = shareUnits(position)
       if (units === null) continue
-      const [key, label] =
-        view === 'symbol'
-          ? [`position-${position.instrument_id}`, position.symbol]
-          : [position.market, marketLabel(position.market)]
+      const [key, label] = groupOf(position, view)
       const group = groups.get(key)
       if (group) group.units += units
       else groups.set(key, { label, units })
