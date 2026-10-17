@@ -61,10 +61,6 @@ Format: `<file>:<line>, <what was simplified>. ceiling: <the limit>. upgrade: <t
 
 - server.go:413, one backfill worker and one pending entry per source name. ceiling: serial walk per source. upgrade: parallel workers per source if a single walk is ever too slow.
 
-## backend/internal/server/summary.go
-
-- summary.go:444, day change = current quantity × (last − prev). ceiling: a same-day buy shows the whole day's move. upgrade: replay that day's trades against prev_close if it matters.
-
 ## backend/internal/split/split.go
 
 - split.go:92, one IN list, no chunking. ceiling: SQLITE_MAX_VARIABLE_NUMBER 32766. upgrade: chunk when a portfolio nears it.
@@ -134,6 +130,6 @@ Format: `<file>:<line>, <what was simplified>. ceiling: <the limit>. upgrade: <t
 
 ## Totals
 
-36 markers, 14 with no trigger.
+35 markers, 14 with no trigger.
 
-35 of 36 still use the old `ponytail:` prefix. A grep for `shortcut:` alone misses them.
+34 of 35 still use the old `ponytail:` prefix. A grep for `shortcut:` alone misses them.
