@@ -6,6 +6,10 @@ coverage.*
 go.work
 go.work.sum
 backend/bin/
+# Binaries a plain go build leaves next to the source
+/backend/cmd/server/server
+/backend/cmd/symbols/symbols
+/backend/cmd/statement_dump/statement_dump
 vendor/
 
 # Node
