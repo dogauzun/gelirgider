@@ -47,13 +47,14 @@ type positionResponse struct {
 	InstrumentID int64   `json:"instrument_id"`
 	Symbol       string  `json:"symbol"`
 	Name         string  `json:"name"`
-	Market       string  `json:"market"` // BIST, US, TEFAS or CRYPTO
+	Market       string  `json:"market"` // BIST, US, TEFAS, CRYPTO or GOLD
 	Currency     string  `json:"currency"`
 	Quantity     string  `json:"quantity"`
 	AvgCost      string  `json:"avg_cost"`
 	CostBasis    string  `json:"cost_basis"`
 	LastPrice    *string `json:"last_price"`
 	HasPrice     bool    `json:"has_price"`
+	AssetClass   *string `json:"asset_class"` // the instrument's stored class (equity, fund, ...), null when it has none
 	// The latest close dated before price_date (manual winning on a date,
 	// like last_price), scaled by any split after its date up to today. It,
 	// prev_price_date, day_change and day_change_reporting are null when
@@ -482,6 +483,9 @@ func positionRow(p holdings.Position, closed bool, v valuation, prev map[int64]p
 		RealizedCost: p.RealizedCost.StringFixed(2),
 		Splits:       []splitResponse{},
 		Closed:       closed,
+	}
+	if instr.AssetClass.Valid {
+		pr.AssetClass = &instr.AssetClass.String
 	}
 	for _, s := range p.Splits {
 		pr.Splits = append(pr.Splits, splitResponse{Date: s.Date, Ratio: s.Ratio.String()})

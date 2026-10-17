@@ -485,6 +485,71 @@ func TestPortfolioSummaryQuantityKeepsScale(t *testing.T) {
 	}
 }
 
+// TestPortfolioSummaryAssetClass checks that a position carries its
+// instrument's stored asset class, and null when the instrument has none.
+func TestPortfolioSummaryAssetClass(t *testing.T) {
+	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	ctx := context.Background()
+	handler := New(logger, conn, false, settings.NewRepo(conn, nil), nil)
+	usr, err := user.NewRepo(conn).Create(ctx, "class@example.com", "hash")
+	if err != nil {
+		t.Fatalf("users.Create: %v", err)
+	}
+	session, err := auth.NewRepo(conn).CreateSession(ctx, usr.ID)
+	if err != nil {
+		t.Fatalf("sessions.CreateSession: %v", err)
+	}
+	pf, err := portfolio.NewRepo(conn).Create(ctx, usr.ID, "Test")
+	if err != nil {
+		t.Fatalf("portfolios.Create: %v", err)
+	}
+	for _, in := range []struct {
+		symbol string
+		class  any
+	}{{"GLD", "commodity"}, {"PLAIN", nil}} {
+		res, err := conn.Exec(`INSERT INTO instruments (symbol, market, name, currency, asset_class) VALUES (?, 'BIST', ?, 'TRY', ?)`, in.symbol, in.symbol, in.class)
+		if err != nil {
+			t.Fatalf("insert instrument: %v", err)
+		}
+		id, err := res.LastInsertId()
+		if err != nil {
+			t.Fatalf("instrument id: %v", err)
+		}
+		tx := transaction.Transaction{PortfolioID: pf.ID, InstrumentID: &id, Type: transaction.TypeBuy, Date: "2024-01-01", Quantity: decimal.RequireFromString("1"), Price: decimal.RequireFromString("10"), Amount: decimal.RequireFromString("10"), Fee: decimal.Zero, Currency: "TRY"}
+		if _, err := transaction.NewRepo(conn).Create(ctx, usr.ID, tx); err != nil {
+			t.Fatalf("transactions.Create: %v", err)
+		}
+	}
+
+	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/portfolios/%d/summary", pf.ID), nil)
+	r.AddCookie(&http.Cookie{Name: "session", Value: session.ID})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, r)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	var got summaryResponse
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	bySymbol := map[string]positionResponse{}
+	for _, p := range got.Positions {
+		bySymbol[p.Symbol] = p
+	}
+	if c := bySymbol["GLD"].AssetClass; c == nil || *c != "commodity" {
+		t.Errorf("GLD asset_class = %v, want commodity", c)
+	}
+	if c := bySymbol["PLAIN"].AssetClass; c != nil {
+		t.Errorf("PLAIN asset_class = %q, want null", *c)
+	}
+}
+
 // TestPortfolioSummaryUnitPricesKeepScale checks that a TEFAS NAV with 6
 // decimals comes back exact instead of rounded to 2, and an avg cost that
 // divides into a repeating decimal (10 / 3) is capped at 9 fraction digits.

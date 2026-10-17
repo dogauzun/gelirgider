@@ -11,6 +11,7 @@ function position(id: number, symbol: string, value: string, extra: Partial<Posi
     symbol,
     name: symbol,
     market: 'BIST',
+    asset_class: null,
     currency: 'TRY',
     quantity: '1',
     avg_cost: value,

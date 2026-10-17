@@ -47,6 +47,7 @@ function position(id: number, symbol: string, fields: Partial<Position> = {}): P
     symbol,
     name: `${symbol} Holding`,
     market: 'BIST',
+    asset_class: null,
     currency: 'TRY',
     quantity: '10',
     avg_cost: '50.00',

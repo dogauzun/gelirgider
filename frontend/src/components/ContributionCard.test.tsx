@@ -13,6 +13,7 @@ function position(instrumentId: number, symbol: string, pl: string | null, day: 
     symbol,
     name: symbol,
     market: 'BIST',
+    asset_class: null,
     currency: 'TRY',
     quantity: '1',
     avg_cost: '0',

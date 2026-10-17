@@ -5,8 +5,11 @@ export interface Position {
   instrument_id: number
   symbol: string
   name: string
-  // BIST, US, TEFAS or CRYPTO.
+  // BIST, US, TEFAS, CRYPTO or GOLD.
   market: string
+  // The instrument's stored class (equity, fund, commodity, crypto, cash or
+  // deposit); null when it has none.
+  asset_class: string | null
   currency: string
   quantity: string
   avg_cost: string

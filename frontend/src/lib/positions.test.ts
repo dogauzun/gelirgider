@@ -10,6 +10,7 @@ function position(id: number, symbol: string, value: string): Position {
     symbol,
     name: symbol,
     market: 'US',
+    asset_class: null,
     currency: 'USD',
     quantity: '1',
     avg_cost: value,
