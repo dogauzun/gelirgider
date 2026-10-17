@@ -709,9 +709,14 @@ describe('cashEffect', () => {
   // A fee above the proceeds showed "Added to cash +-$4.00".
   it('flips to cash out when the fee exceeds the incoming amount', () => {
     const sell = { ...emptyForm('sell'), quantity: '1', price: '1', fee: '5' }
-    expect(cashEffect(sell)).toEqual({ out: true, amount: 4 })
+    expect(cashEffect(sell)).toEqual({ out: true, amount: '4' })
     const dividend = { ...emptyForm('dividend'), amount: '10', fee: '12,5' }
-    expect(cashEffect(dividend)).toEqual({ out: true, amount: 2.5 })
-    expect(cashEffect({ ...sell, fee: '0,5' })).toEqual({ out: false, amount: 0.5 })
+    expect(cashEffect(dividend)).toEqual({ out: true, amount: '2.5' })
+    expect(cashEffect({ ...sell, fee: '0,5' })).toEqual({ out: false, amount: '0.5' })
+  })
+
+  it('multiplies quantity and price exactly', () => {
+    const buy = { ...emptyForm('buy'), quantity: '0,1', price: '3' }
+    expect(cashEffect(buy)).toEqual({ out: true, amount: '0.3' })
   })
 })

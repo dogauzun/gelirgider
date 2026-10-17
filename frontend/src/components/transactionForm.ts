@@ -3,7 +3,10 @@ import type { Transaction, TransactionInput, TransactionType } from '../api/tran
 import { t, type StringKey } from '../i18n/strings'
 import { formatMarketDate, todayIstanbul } from '../lib/date'
 import {
+  addDecimal,
   compareDecimal,
+  mulDecimal,
+  subDecimal,
   formatDecimalInput,
   formatQuantity,
   isAmbiguousThousands,
@@ -337,31 +340,29 @@ export function toInput(form: FormState, original?: Transaction | null): Transac
 
 // The live cash strip under the form. Display only -- the request still
 // carries the exact decimal strings the user typed.
-// shortcut: Number arithmetic is enough for a preview; a decimal library only
-// if this figure ever becomes something other than a hint.
-export function cashEffect(form: FormState): { out: boolean; amount: number } | null {
+// `amount` is a decimal string, never negative.
+export function cashEffect(form: FormState): { out: boolean; amount: string } | null {
   const feeText = feeInput(form)
-  const fee = feeText.trim() === '' ? 0 : Number(parseDecimalInput(feeText) ?? NaN)
-  if (Number.isNaN(fee)) return null
+  const fee = feeText.trim() === '' ? '0' : parseDecimalInput(feeText)
+  if (fee === null) return null
 
-  let gross: number
+  let gross: string | null
   if (TYPES_WITH_QUANTITY_PRICE.has(form.type)) {
-    const quantity = Number(parseDecimalInput(form.quantity) ?? NaN)
-    const price = Number(parseDecimalInput(form.price) ?? NaN)
-    if (Number.isNaN(quantity) || Number.isNaN(price)) return null
-    gross = quantity * price
+    const quantity = parseDecimalInput(form.quantity)
+    const price = parseDecimalInput(form.price)
+    gross = quantity !== null && price !== null ? mulDecimal(quantity, price) : null
   } else {
-    gross = Number(parseDecimalInput(form.amount) ?? NaN)
-    if (Number.isNaN(gross)) return null
+    gross = parseDecimalInput(form.amount)
   }
+  if (gross === null) return null
   // The engine nets the fee out of an incoming movement and adds it to an
   // outgoing one, so the preview does the same.
   // Interest is stored as a dividend, so it moves cash the same way.
   const out = !isCashIn(form.type === 'interest' ? 'dividend' : form.type)
-  const net = out ? gross + fee : gross - fee
+  const net = out ? addDecimal(gross, fee) : subDecimal(gross, fee)
   // A fee above the proceeds turns an incoming movement into an outgoing one:
   // a sell of 1 at 1 with fee 5 takes 4 out of cash.
-  return net < 0 ? { out: !out, amount: -net } : { out, amount: net }
+  return net.startsWith('-') ? { out: !out, amount: net.slice(1) } : { out, amount: net }
 }
 
 // sellExceedsHeld returns the quantity held when a sell asks for more than

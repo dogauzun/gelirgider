@@ -2,7 +2,7 @@ import { currencyMismatch } from '../../api'
 import type { ImportAlias, ImportRow, PreviewRow } from '../../api/imports'
 import type { Transaction, TransactionInput } from '../../api/transactions'
 import { todayIstanbul } from '../../lib/date'
-import { decimalUnits, unitsToDecimal } from '../../lib/decimal'
+import { decimalUnits, mulDecimal, unitsToDecimal } from '../../lib/decimal'
 import type { Row } from './shared'
 
 // Only `ok` rows are ever checked, and those always carry a type and a date.
@@ -96,8 +96,6 @@ export function asTransaction(
 // changed: the server derives it from quantity × price (see
 // backend/internal/transaction/handlers.go fromRequest). It is filled in here
 // for the preview table only, and not sent.
-// shortcut: Number arithmetic for that preview amount, like the dialog's cash
-// strip -- the figure that is stored is the server's.
 export function rowFromInput(
   key: string,
   input: TransactionInput,
@@ -105,7 +103,7 @@ export function rowFromInput(
 ): Row {
   const gross =
     input.quantity !== undefined && input.price !== undefined
-      ? String(Number(input.quantity) * Number(input.price))
+      ? mulDecimal(input.quantity, input.price)
       : '0'
   return {
     key,

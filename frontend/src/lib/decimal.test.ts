@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { setLocale } from '../i18n/strings'
 import {
   addDecimal,
+  mulDecimal,
   compareDecimal,
   formatDecimalInput,
   formatQuantity,
@@ -137,5 +138,17 @@ describe('addDecimal, subDecimal, compareDecimal', () => {
     expect(compareDecimal('2.50', '2.5')).toBe(0)
     expect(compareDecimal('10', '9.999999999')).toBe(1)
     expect(compareDecimal('-0.1', '0.05')).toBe(-1)
+  })
+})
+
+describe('mulDecimal', () => {
+  it('multiplies exactly at any scale and sign', () => {
+    expect(mulDecimal('0.1', '3')).toBe('0.3')
+    expect(mulDecimal('1234567.89', '1234.5678')).toBe('1524157763.907942')
+    expect(mulDecimal('123.456789', '0.000123')).toBe('0.015185185047')
+    expect(mulDecimal('2.50', '4')).toBe('10')
+    expect(mulDecimal('0.000000001', '0.000000001')).toBe('0.000000000000000001')
+    expect(mulDecimal('-1.5', '2')).toBe('-3')
+    expect(mulDecimal('-1.5', '0')).toBe('0')
   })
 })
