@@ -130,6 +130,31 @@ describe('allocationRows', () => {
     ])
   })
 
+  it('groups by asset class derived from the market and puts an unmapped market in its own row', () => {
+    const { rows } = allocationRows({
+      positions: [
+        position(1, 'AFT', '200.00', 'TEFAS'),
+        position(2, 'GRAM', '100.00', 'GOLD'),
+        position(3, 'THYAO', '300.00'),
+        position(4, 'MEV', '150.00', 'DEPOSIT'),
+        position(5, 'AAPL', '50.00', 'US', 'USD'),
+        position(6, 'WHAT', '100.00', 'MARS'),
+      ],
+      cash: '100.00',
+      cashByCurrencyReporting: { TRY: '100.00' },
+      view: 'assetClass',
+    })
+
+    expect(brief(rows)).toEqual([
+      ['Hisse senedi', '350', 0.35],
+      ['Fon', '200', 0.2],
+      ['Mevduat', '150', 0.15],
+      ['Emtia', '100', 0.1],
+      ['Bilinmiyor', '100', 0.1],
+      ['Nakit', '100', 0.1],
+    ])
+  })
+
   it('folds rows past the fifth into "Diğer", names its members and sums exactly', () => {
     const { rows, other } = allocationRows({
       positions: ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map((symbol, i) =>
