@@ -3,6 +3,7 @@ import type { Transaction, TransactionInput, TransactionType } from '../api/tran
 import { t, type StringKey } from '../i18n/strings'
 import { todayIstanbul } from '../lib/date'
 import {
+  compareDecimal,
   formatDecimalInput,
   formatQuantity,
   isAmbiguousThousands,
@@ -274,12 +275,6 @@ export function validate(form: FormState): FormError | null {
   return null
 }
 
-// Equal as decimals, so a retyped "331.820" still matches the stored "331.82".
-function sameDecimal(a: string, b: string): boolean {
-  const norm = (text: string) => text.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '')
-  return norm(a) === norm(b)
-}
-
 // `original` is the transaction being edited. A trade whose quantity and price
 // are unchanged sends its stored amount back: an imported one holds the
 // statement's rounded İşlem Tutarı, which the server would otherwise replace
@@ -300,8 +295,8 @@ export function toInput(form: FormState, original?: Transaction | null): Transac
     if (
       original?.quantity != null &&
       original.price != null &&
-      sameDecimal(input.quantity, original.quantity) &&
-      sameDecimal(input.price, original.price)
+      compareDecimal(input.quantity, original.quantity) === 0 &&
+      compareDecimal(input.price, original.price) === 0
     ) {
       input.amount = original.amount
     }

@@ -143,6 +143,7 @@ export default tseslint.config(
       'src/api/portfolios.ts',
       'src/api/auth.ts',
       'src/lib/useRange.ts',
+      'src/lib/decimal.ts',
     ],
     rules: {
       'no-restricted-syntax': [
@@ -264,6 +265,11 @@ export default tseslint.config(
           selector:
             "BinaryExpression[operator='/'][left.operator='+'][left.left.value=1][right.operator='+'][right.left.value=1]",
           message: 'use excessReturn from lib/returns',
+        },
+        // One decimal comparison; trailing zeros differ, the value does not.
+        {
+          selector: 'Literal[regex.pattern=/0\\+\\$/]',
+          message: 'use compareDecimal or unitsToDecimal from lib/decimal',
         },
         // One day count between two market dates.
         {

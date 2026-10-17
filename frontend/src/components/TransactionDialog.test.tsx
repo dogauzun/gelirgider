@@ -269,6 +269,13 @@ describe('TransactionDialog', () => {
     await waitFor(() => expect(putBodies()).toHaveLength(2))
     expect(putBodies()[1]).toMatchObject({ quantity: '0.005' })
     expect(putBodies()[1]).not.toHaveProperty('amount')
+
+    // Retyped with trailing zeros, they equal the stored values again.
+    fireEvent.change(screen.getByLabelText('Adet'), { target: { value: '0,006218342' } })
+    fireEvent.change(screen.getByLabelText('Fiyat'), { target: { value: '331,820' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Kaydet' }))
+    await waitFor(() => expect(putBodies()).toHaveLength(3))
+    expect(putBodies()[2]).toMatchObject({ amount: '2.06' })
   })
 
   // A sell over the quantity held was saved without a word. The
