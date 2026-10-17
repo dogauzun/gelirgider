@@ -404,17 +404,17 @@ describe('ImportPage', () => {
     // Each box names its row -- date, symbol if any, and type.
     expect(
       table().getByRole('checkbox', {
-        name: '26.12.2025 VTI Alış 2 × $331,82 $663,64 satırını seç',
+        name: 'VTI 26.12.2025 Alış 2 × $331,82 −$663,64 satırını seç',
       }),
     ).toBe(boxes[2])
     expect(
-      table().getByRole('checkbox', { name: '09.12.2025 Para yatırma $8.237,46 satırını seç' }),
+      table().getByRole('checkbox', { name: '09.12.2025 Para yatırma +$8.237,46 satırını seç' }),
     ).toBe(boxes[0])
     // The edit buttons name their row the same way; the skipped row
     // has no date, symbol or type and keeps the plain name.
     expect(
       table().getByRole('button', {
-        name: '26.12.2025 VTI Alış 2 × $331,82 $663,64 satırını düzenle',
+        name: 'VTI 26.12.2025 Alış 2 × $331,82 −$663,64 satırını düzenle',
       }),
     ).toBeInTheDocument()
     expect(table().getByRole('button', { name: 'Satırı düzenle' })).toBeInTheDocument()
@@ -1131,7 +1131,7 @@ describe('ImportPage', () => {
 
     fireEvent.click(
       table().getByRole('button', {
-        name: '30.11.2025 QQQ Alış 1 satırını düzenle',
+        name: 'QQQ 30.11.2025 Alış 1 satırını düzenle',
       }),
     )
     fireEvent.change(screen.getByLabelText('Fiyat'), { target: { value: '500' } })
@@ -1348,7 +1348,7 @@ describe('ImportPage', () => {
     await screen.findAllByRole('table')
     fireEvent.click(
       table().getByRole('checkbox', {
-        name: '26.12.2025 VTI Alış 2 × $331,82 $663,64 satırını seç',
+        name: 'VTI 26.12.2025 Alış 2 × $331,82 −$663,64 satırını seç',
       }),
     )
 
@@ -2756,7 +2756,7 @@ describe('ImportPage', () => {
 
     upload()
     await screen.findAllByRole('table')
-    fireEvent.click(table().getByRole('button', { name: '30.11.2025 VTI Alış 3 satırını düzenle' }))
+    fireEvent.click(table().getByRole('button', { name: 'VTI 30.11.2025 Alış 3 satırını düzenle' }))
     fireEvent.change(screen.getByLabelText('Fiyat'), { target: { value: '100,005' } })
     fireEvent.click(screen.getByRole('button', { name: 'Kaydet' }))
 
@@ -2830,7 +2830,7 @@ describe('ImportPage', () => {
 
     upload()
     await showAll()
-    fireEvent.click(table().getByRole('button', { name: '30.11.2025 VTI Alış 3 satırını düzenle' }))
+    fireEvent.click(table().getByRole('button', { name: 'VTI 30.11.2025 Alış 3 satırını düzenle' }))
     fireEvent.change(screen.getByLabelText('Fiyat'), { target: { value: '100' } })
     fireEvent.click(screen.getByRole('button', { name: 'Kaydet' }))
     fireEvent.click(body().getAllByRole('checkbox')[0])
@@ -3203,7 +3203,7 @@ describe('ImportPage', () => {
 
     fireEvent.click(
       table().getByRole('button', {
-        name: '20.12.2025 XYZ Alış 1 × ₺2,00 ₺2,00 satırını düzenle',
+        name: 'XYZ 20.12.2025 Alış 1 × ₺2,00 −₺2,00 satırını düzenle',
       }),
     )
     fireEvent.change(screen.getByLabelText('Enstrüman'), { target: { value: 'xyz' } })
@@ -3240,7 +3240,7 @@ describe('ImportPage', () => {
 
     fireEvent.click(
       table().getByRole('button', {
-        name: '26.12.2025 VTI Alış 2 × $331,82 $663,64 satırını düzenle',
+        name: 'VTI 26.12.2025 Alış 2 × $331,82 −$663,64 satırını düzenle',
       }),
     )
     fireEvent.change(screen.getByLabelText('Enstrüman'), { target: { value: 'xyz' } })
@@ -3249,7 +3249,7 @@ describe('ImportPage', () => {
 
     expect(
       table().getByRole('button', {
-        name: '26.12.2025 XYZ Alış 2 × $331,82 $663,64 satırını düzenle',
+        name: 'XYZ 26.12.2025 Alış 2 × $331,82 −$663,64 satırını düzenle',
       }),
     ).toBeInTheDocument()
   })
@@ -3312,7 +3312,7 @@ describe('ImportPage', () => {
     await screen.findAllByRole('table')
     expect(body().queryAllByText('Yatırma')).toHaveLength(0)
 
-    fireEvent.click(table().getByRole('button', { name: '30.11.2025 VTI Alış 3 satırını düzenle' }))
+    fireEvent.click(table().getByRole('button', { name: 'VTI 30.11.2025 Alış 3 satırını düzenle' }))
     fireEvent.change(screen.getByLabelText('Fiyat'), { target: { value: '100,005' } })
     fireEvent.click(screen.getByRole('button', { name: 'Kaydet' }))
 
@@ -3365,7 +3365,7 @@ describe('ImportPage', () => {
 
     fireEvent.click(
       table().getByRole('button', {
-        name: '30.11.2025 VTI Alış 5 × $100,00 $500,00 satırını düzenle',
+        name: 'VTI 30.11.2025 Alış 5 × $100,00 −$500,00 satırını düzenle',
       }),
     )
     fireEvent.change(screen.getByLabelText('Fiyat'), { target: { value: '120' } })
@@ -3434,7 +3434,7 @@ describe('ImportPage', () => {
 
     fireEvent.click(
       table().getByRole('button', {
-        name: '26.12.2025 VTI Alış 2 × $331,82 $663,64 satırını düzenle',
+        name: 'VTI 26.12.2025 Alış 2 × $331,82 −$663,64 satırını düzenle',
       }),
     )
     expect(screen.getByLabelText('Adet')).toBeInTheDocument()
@@ -3457,7 +3457,7 @@ describe('ImportPage', () => {
 
     fireEvent.click(
       table().getByRole('button', {
-        name: '26.12.2025 VTI Alış 2 × $331,82 $663,64 satırını düzenle',
+        name: 'VTI 26.12.2025 Alış 2 × $331,82 −$663,64 satırını düzenle',
       }),
     )
     fireEvent.change(screen.getByLabelText('Adet'), { target: { value: '3' } })
@@ -3466,7 +3466,7 @@ describe('ImportPage', () => {
     // amount; it still must not be sent.
     fireEvent.click(
       table().getByRole('button', {
-        name: '26.12.2025 VTI Alış 3 × $331,82 $995,46 satırını düzenle',
+        name: 'VTI 26.12.2025 Alış 3 × $331,82 −$995,46 satırını düzenle',
       }),
     )
     fireEvent.click(screen.getByRole('button', { name: 'Kaydet' }))
@@ -3536,7 +3536,7 @@ describe('ImportPage', () => {
     expect(table().getByText('Temettü')).toBeInTheDocument()
 
     fireEvent.click(
-      table().getByRole('button', { name: '31.12.2025 Faiz/Nema ₺47,93 satırını düzenle' }),
+      table().getByRole('button', { name: '31.12.2025 Faiz/Nema +₺47,93 satırını düzenle' }),
     )
     expect(screen.getByRole('radio', { name: 'Faiz/Nema' })).toBeChecked()
     expect(screen.queryByLabelText('Enstrüman')).not.toBeInTheDocument()
@@ -3890,7 +3890,7 @@ describe('ImportPage', () => {
 
     expect(screen.getByRole('radio', { name: 'Tümü 6' })).toHaveAttribute('aria-checked', 'true')
     expect(
-      table().getByRole('checkbox', { name: '31.12.2025 Para çekme $100,00 satırını seç' }),
+      table().getByRole('checkbox', { name: '31.12.2025 Para çekme −$100,00 satırını seç' }),
     ).toBeInTheDocument()
   })
 

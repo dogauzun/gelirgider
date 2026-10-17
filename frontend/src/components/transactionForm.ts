@@ -1,7 +1,7 @@
 import type { Position } from '../api/summary'
 import type { Transaction, TransactionInput, TransactionType } from '../api/transactions'
 import { t, type StringKey } from '../i18n/strings'
-import { todayIstanbul } from '../lib/date'
+import { formatMarketDate, todayIstanbul } from '../lib/date'
 import {
   compareDecimal,
   formatDecimalInput,
@@ -12,7 +12,8 @@ import {
   tooManyDigits,
   unitsToDecimal,
 } from '../lib/decimal'
-import { isCashIn } from '../lib/transactionCells'
+import { formatMoney } from '../lib/format'
+import { isCashIn, quantityTimesPrice, signedAmount, type Cells } from '../lib/transactionCells'
 import type { TradeType } from './PositionsTable'
 
 // The form's types: the API's, plus 'interest', which the API stores as a
@@ -75,6 +76,30 @@ export function typeLabelKeyFor(
   instrument: number | string | null | undefined,
 ): StringKey {
   return typeLabelKey[formType(type, instrument)]
+}
+
+function amountText(cells: Cells): string {
+  if (!cells.amount || !cells.currency) return ''
+  return cells.type
+    ? signedAmount({ type: cells.type, amount: cells.amount, currency: cells.currency })
+    : formatMoney(cells.amount, cells.currency)
+}
+
+// What a row's controls act on, so a screen reader can tell twenty "Sil"
+// buttons apart: symbol, date and type, then quantity × price and the signed
+// amount, which tell a TRY and a USD deposit or two buys of one day apart.
+// Whichever parts the row has; the transactions list and the import preview
+// announce a row the same way.
+export function rowLabel(cells: Cells): string {
+  return [
+    cells.symbol,
+    cells.date && formatMarketDate(cells.date),
+    cells.type && t(typeLabelKeyFor(cells.type, cells.instrument_id ?? cells.symbol)),
+    quantityTimesPrice(cells),
+    amountText(cells),
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 // A dividend's fee is the withholding tax (stopaj), not a commission: the

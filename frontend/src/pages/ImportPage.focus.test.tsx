@@ -149,7 +149,7 @@ it('moves focus to the next row to fix when an edited row leaves Sorunlu', async
 
   expect(screen.getByRole('radio', { name: 'Sorunlu 1', checked: true })).toBeInTheDocument()
   expect(
-    screen.getByRole('button', { name: '20.12.2025 XYZ Alış 1 × $10,00 $10,00 satırını düzenle' }),
+    screen.getByRole('button', { name: 'XYZ 20.12.2025 Alış 1 × $10,00 −$10,00 satırını düzenle' }),
   ).toHaveFocus()
 })
 
