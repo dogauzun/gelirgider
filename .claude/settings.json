@@ -1,0 +1,5 @@
+{
+  "env": {
+    "PONYTAIL_SUBAGENT_MATCHER": "ticket-implementer|general-purpose|cavecrew-builder|^claude$"
+  }
+}
