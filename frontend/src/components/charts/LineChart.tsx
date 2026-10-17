@@ -269,6 +269,9 @@ export interface LineChartProps {
   unit?: 'money' | 'percent'
 }
 
+// A stable default, so the derived-values memo is not keyed on a fresh array.
+const NO_MARKERS: ChartMarker[] = []
+
 const percent = (v: string) => signedPercent(Number(v))
 
 // useDragZoom is LineChart's drag to zoom, from Recharts' mouse events, which
@@ -326,73 +329,30 @@ function useDragZoom(onZoom: LineChartProps['onZoom']) {
   return { zoomHandlers, span, onPointerDown }
 }
 
-export function LineChart({
+// derive is everything the plot takes from the points that is not a row: the
+// y axis, the date labels' year, the plotted markers and the screen reader
+// summary. The series must not be empty.
+function derive({
   points,
-  benchmarkLabel,
-  estimatedFrom,
-  markers = [],
-  labels,
-  formatValue: moneyValue = formatChartValue,
-  height,
-  onZoom,
-  unit = 'money',
-}: LineChartProps) {
-  const gradientId = useId()
-  const inPercent = unit === 'percent'
-  const formatValue = inPercent ? percent : moneyValue
-  // Re-render when privacy flips, so ticks and tooltip mask at once.
-  usePrivacy()
-  // Hidden series live in this chart only, not saved. A new range keeps them
-  // hidden. The benchmark is hidden by its label, and another benchmark, or
-  // none, clears it: a newly chosen benchmark is always shown.
-  const [costHidden, setCostHidden] = useState(false)
-  const [hiddenBenchmark, setHiddenBenchmark] = useState<string | null>(null)
-  const benchmarkKey = benchmarkLabel ?? ''
-  if (hiddenBenchmark !== null && hiddenBenchmark !== benchmarkKey) setHiddenBenchmark(null)
-
-  const { zoomHandlers, span, onPointerDown } = useDragZoom(onZoom)
-
-  // Memoised: a drag-to-zoom re-renders on every pointer move, and the rows
-  // only change with the points.
-  const rows = useMemo(
-    () =>
-      points.map((p) => ({
-        date: p.date,
-        value: toNumber(p.total_value),
-        cost: toNumber(p.cost_basis),
-        benchmark: toNumber(p.benchmark_value),
-      })),
-    [points],
-  )
-  const values = rows.flatMap((r) =>
-    [r.value, r.cost, r.benchmark].filter((v): v is number => v !== null),
-  )
-  // An all-zero money series is a portfolio with nothing in it; a 0%
-  // return all the way (cash only) is still a line.
-  const empty = inPercent ? values.length === 0 : !values.some((v) => v !== 0)
-  const hasCost = rows.some((r) => r.cost !== null)
-  const hasBenchmark = rows.some((r) => r.benchmark !== null)
-  const costShown = hasCost && !costHidden
-  const benchmarkShown = hasBenchmark && hiddenBenchmark === null
-  // The tooltip anchor per date: the value, else the first shown series.
-  const anchors = useMemo(
-    () =>
-      new Map(
-        rows.map((r) => [
-          r.date,
-          r.value ?? (costShown ? r.cost : null) ?? (benchmarkShown ? r.benchmark : null),
-        ]),
-      ),
-    [rows, costShown, benchmarkShown],
-  )
-  if (empty) {
-    return <p className="text-sm text-muted">{t('chart.empty')}</p>
-  }
-
-  const hasValue = rows.some((r) => r.value !== null)
-  const valueLabel = labels?.value ?? t('chart.totalValue')
-  const costLabel = labels?.cost ?? t('chart.costBasis')
-
+  rows,
+  values,
+  markers,
+  costShown,
+  benchmarkShown,
+  inPercent,
+  formatValue,
+  valueLabel,
+}: {
+  points: ChartPoint[]
+  rows: { date: string; value: number | null; cost: number | null; benchmark: number | null }[]
+  values: number[]
+  markers: ChartMarker[]
+  costShown: boolean
+  benchmarkShown: boolean
+  inPercent: boolean
+  formatValue: (value: string) => string
+  valueLabel: string
+}) {
   // The y axis fits the visible series; with the value line all null and the
   // rest hidden there is nothing visible, and it keeps fitting every series.
   const visible = rows.flatMap((r) =>
@@ -416,6 +376,11 @@ export function LineChart({
     return i !== undefined && rows[i].value !== null
   })
   const markerKinds = MARKER_KINDS.filter((k) => plotted.some((m) => m.kind === k))
+  const markerShapes = plotted.map((m) => ({
+    date: m.date,
+    kind: m.kind,
+    value: rows[indexByDate.get(m.date)!].value!,
+  }))
 
   // The screen reader summary: the date range and the value line's first and
   // last value with the change between them, subtracted exactly:
@@ -450,6 +415,123 @@ export function LineChart({
       change,
     })
   }
+  return {
+    yTicks,
+    tickLabels,
+    multiYear,
+    dates: points.map((p) => p.date),
+    plotted,
+    markerKinds,
+    markerShapes,
+    summary,
+  }
+}
+
+export function LineChart({
+  points,
+  benchmarkLabel,
+  estimatedFrom,
+  markers = NO_MARKERS,
+  labels,
+  formatValue: moneyValue = formatChartValue,
+  height,
+  onZoom,
+  unit = 'money',
+}: LineChartProps) {
+  const gradientId = useId()
+  const inPercent = unit === 'percent'
+  const formatValue = inPercent ? percent : moneyValue
+  // Re-render when privacy flips, so ticks and tooltip mask at once.
+  const privacy = usePrivacy()
+  // Hidden series live in this chart only, not saved. A new range keeps them
+  // hidden. The benchmark is hidden by its label, and another benchmark, or
+  // none, clears it: a newly chosen benchmark is always shown.
+  const [costHidden, setCostHidden] = useState(false)
+  const [hiddenBenchmark, setHiddenBenchmark] = useState<string | null>(null)
+  const benchmarkKey = benchmarkLabel ?? ''
+  if (hiddenBenchmark !== null && hiddenBenchmark !== benchmarkKey) setHiddenBenchmark(null)
+
+  const { zoomHandlers, span, onPointerDown } = useDragZoom(onZoom)
+
+  // Memoised: a drag-to-zoom re-renders on every pointer move, and the rows
+  // only change with the points.
+  const rows = useMemo(
+    () =>
+      points.map((p) => ({
+        date: p.date,
+        value: toNumber(p.total_value),
+        cost: toNumber(p.cost_basis),
+        benchmark: toNumber(p.benchmark_value),
+      })),
+    [points],
+  )
+  // Memoised with the rows: they only change with the points, not on a drag move.
+  const { values, empty, hasCost, hasBenchmark, hasValue } = useMemo(() => {
+    const values = rows.flatMap((r) =>
+      [r.value, r.cost, r.benchmark].filter((v): v is number => v !== null),
+    )
+    return {
+      values,
+      // An all-zero money series is a portfolio with nothing in it; a 0%
+      // return all the way (cash only) is still a line.
+      empty: inPercent ? values.length === 0 : !values.some((v) => v !== 0),
+      hasCost: rows.some((r) => r.cost !== null),
+      hasBenchmark: rows.some((r) => r.benchmark !== null),
+      hasValue: rows.some((r) => r.value !== null),
+    }
+  }, [rows, inPercent])
+  const costShown = hasCost && !costHidden
+  const benchmarkShown = hasBenchmark && hiddenBenchmark === null
+  // The tooltip anchor per date: the value, else the first shown series.
+  const anchors = useMemo(
+    () =>
+      new Map(
+        rows.map((r) => [
+          r.date,
+          r.value ?? (costShown ? r.cost : null) ?? (benchmarkShown ? r.benchmark : null),
+        ]),
+      ),
+    [rows, costShown, benchmarkShown],
+  )
+  const valueLabel = labels?.value ?? t('chart.totalValue')
+  const costLabel = labels?.cost ?? t('chart.costBasis')
+  // privacy is not read here but by formatValue at call time, so it keys the
+  // memo; a locale switch remounts the app (App.tsx) and needs no key.
+  const derived = useMemo(
+    () =>
+      empty
+        ? null
+        : derive({
+            points,
+            rows,
+            values,
+            markers,
+            costShown,
+            benchmarkShown,
+            inPercent,
+            formatValue,
+            valueLabel,
+          }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      empty,
+      points,
+      rows,
+      values,
+      markers,
+      costShown,
+      benchmarkShown,
+      inPercent,
+      formatValue,
+      valueLabel,
+      privacy,
+    ],
+  )
+  if (!derived) {
+    return <p className="text-sm text-muted">{t('chart.empty')}</p>
+  }
+  const { yTicks, tickLabels, multiYear, dates, plotted, markerKinds, markerShapes, summary } =
+    derived
 
   // The tooltip reads the active point's exact strings, never Recharts'
   // numeric payload.
@@ -532,7 +614,7 @@ export function LineChart({
             </linearGradient>
           </defs>
           <CartesianGrid {...GRID} />
-          <DateAxis dates={points.map((p) => p.date)} multiYear={multiYear} />
+          <DateAxis dates={dates} multiYear={multiYear} />
           <YAxis
             {...Y_AXIS}
             ticks={yTicks}
@@ -600,13 +682,7 @@ export function LineChart({
             />
           )}
           {span && <ReferenceArea x1={span[0]} x2={span[1]} shape={zoomSpan} />}
-          <Markers
-            markers={plotted.map((m) => ({
-              date: m.date,
-              kind: m.kind,
-              value: rows[indexByDate.get(m.date)!].value!,
-            }))}
-          />
+          <Markers markers={markerShapes} />
           <AnchoredTooltip
             content={tooltipContent}
             cursor={{ strokeDasharray: '2 3', style: { stroke: 'var(--color-faint)' } }}

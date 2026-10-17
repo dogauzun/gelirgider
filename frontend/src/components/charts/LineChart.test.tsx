@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as chartLib from '../../lib/chart'
 import { formatChartValue, type ChartPoint } from '../../lib/chart'
 import { formatUnitPrice, MASK } from '../../lib/format'
 import { setPrivacy } from '../../lib/privacy'
@@ -584,6 +585,22 @@ describe('LineChart', () => {
       expect(span(container)).toBeNull()
       chartRelease(wrapper(container), 580)
       expect(onZoom).not.toHaveBeenCalled()
+    })
+
+    // Each drag move re-renders the chart; the y axis and the rest derived
+    // from the points must not be recomputed for it.
+    it('does not recompute the y axis on a drag move', async () => {
+      const start = Date.UTC(2016, 0, 1)
+      const decade = Array.from({ length: 3600 }, (_, i) =>
+        point(new Date(start + i * 86400000).toISOString().slice(0, 10), String(1000 + i), null),
+      )
+      const ticks = vi.spyOn(chartLib, 'axisTicks')
+      const { container } = render(<LineChart points={decade} onZoom={vi.fn()} />)
+
+      await chartPress(wrapper(container), 60)
+      for (let i = 0; i < 50; i++) await chartMove(wrapper(container), 70 + i * 10)
+      expect(span(container)).not.toBeNull()
+      expect(ticks).toHaveBeenCalledTimes(1)
     })
 
     it('draws no span without onZoom', async () => {

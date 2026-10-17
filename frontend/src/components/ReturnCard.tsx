@@ -1,5 +1,5 @@
 import type { UseQueryResult } from '@tanstack/react-query'
-import { useId } from 'react'
+import { useId, useMemo } from 'react'
 import {
   RETURN_METHODS,
   type Benchmark,
@@ -73,6 +73,19 @@ export function ReturnCard({
   const undefinedHint = useId()
   const twrUndefined = !!history && !history.points.some((p) => p.twr != null)
   const chartMode = twrUndefined ? 'money' : storedMode
+  // Memoised: LineChart derives its rows from the array's identity.
+  const points = useMemo(
+    () =>
+      chartMode === 'percent'
+        ? (history?.points ?? []).map((p) => ({
+            ...p,
+            total_value: p.twr ?? null,
+            cost_basis: null,
+            benchmark_value: p.benchmark_twr ?? undefined,
+          }))
+        : (history?.points ?? []),
+    [history, chartMode],
+  )
   // The money mode's label is the reporting currency's symbol, ₺ or $.
   const symbol = currencySymbol(currency)
   const zoom = useZoom(range, onRange)
@@ -251,16 +264,7 @@ export function ReturnCard({
         <ChartFrame query={query} height={220}>
           <LineChart
             unit={chartMode}
-            points={
-              chartMode === 'percent'
-                ? (history?.points ?? []).map((p) => ({
-                    ...p,
-                    total_value: p.twr ?? null,
-                    cost_basis: null,
-                    benchmark_value: p.benchmark_twr ?? undefined,
-                  }))
-                : (history?.points ?? [])
-            }
+            points={points}
             height={220}
             benchmarkLabel={benchmarkLabel}
             estimatedFrom={historyBenchmark?.estimated_from}
