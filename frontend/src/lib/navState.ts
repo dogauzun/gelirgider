@@ -23,6 +23,5 @@ export function useNavState() {
   const clear = useCallback(() => {
     void navigate(pathname + search, { replace: true, state: null })
   }, [navigate, pathname, search])
-  // eslint-disable-next-line no-restricted-syntax -- the one read of router state
   return { state: state as NavState, clear }
 }

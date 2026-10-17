@@ -1,6 +1,8 @@
 import { useId, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router'
 import { useCreatePortfolio } from '../api/portfolios'
 import { t } from '../i18n/strings'
+import type { NavState } from '../lib/navState'
 import { toast } from '../lib/toast'
 import { useOneAtATime } from '../lib/useOneAtATime'
 import { Button } from './ui/Button'
@@ -10,7 +12,9 @@ import { useModal } from './ui/useModal'
 import { Modal } from './ui/Modal'
 import { sheetPanel } from './ui/sheetPanel'
 
-// Tüm portföyler and the sidebar both open it. Mounted only while
+// Tüm portföyler, the portfolio header and the sidebar open it; it opens
+// the new portfolio, onCreated is for a caller's own step.
+// Mounted only while
 // open, so the name and the server error reset themselves on every reopen
 // instead of needing an effect to clear them.
 export function CreatePortfolioDialog({
@@ -18,8 +22,9 @@ export function CreatePortfolioDialog({
   onCreated,
 }: {
   onClose: () => void
-  onCreated: (id: number) => void
+  onCreated?: (id: number) => void
 }) {
+  const navigate = useNavigate()
   const dialogRef = useModal()
   const titleId = useId()
   const [name, setName] = useState('')
@@ -41,7 +46,12 @@ export function CreatePortfolioDialog({
     once(async () => {
       const created = await createMutation.mutateAsync(trimmed)
       toast(t('portfolios.created'))
-      onCreated(created.id)
+      onCreated?.(created.id)
+      // The list's opener may be gone by now: the new page takes focus
+      // unless it moved on, as from the header.
+      void navigate(`/portfolios/${created.id}`, {
+        state: { focusAfterCreate: true } satisfies NavState,
+      })
       onClose()
     })
   }

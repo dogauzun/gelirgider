@@ -457,14 +457,7 @@ export function PortfolioHeader({
         </div>
       </nav>
       {dialog}
-      {creating && (
-        <CreatePortfolioDialog
-          onClose={() => setCreating(false)}
-          onCreated={(id) =>
-            navigate(`/portfolios/${id}`, { state: { focusAfterCreate: true } satisfies NavState })
-          }
-        />
-      )}
+      {creating && <CreatePortfolioDialog onClose={() => setCreating(false)} />}
       {children}
     </main>
   )

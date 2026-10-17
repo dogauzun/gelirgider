@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MemoryRouter } from 'react-router'
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { t } from '../i18n/strings'
 import { CreatePortfolioDialog } from './CreatePortfolioDialog'
@@ -23,7 +24,9 @@ it('shows the name error for a blank name without a request', () => {
   const fetchSpy = vi.spyOn(globalThis, 'fetch')
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <CreatePortfolioDialog onClose={() => {}} onCreated={() => {}} />
+      <MemoryRouter>
+        <CreatePortfolioDialog onClose={() => {}} />
+      </MemoryRouter>
     </QueryClientProvider>,
   )
   const input = screen.getByRole('textbox', { name: t('portfolios.name') })
@@ -43,7 +46,9 @@ it('clears the server error once the name is edited', async () => {
   )
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <CreatePortfolioDialog onClose={() => {}} onCreated={() => {}} />
+      <MemoryRouter>
+        <CreatePortfolioDialog onClose={() => {}} />
+      </MemoryRouter>
     </QueryClientProvider>,
   )
   const input = screen.getByRole('textbox', { name: t('portfolios.name') })
@@ -68,7 +73,9 @@ it('creates the portfolio once on a double click', async () => {
     .mockImplementation(() => new Promise<Response>(() => {}))
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <CreatePortfolioDialog onClose={() => {}} onCreated={() => {}} />
+      <MemoryRouter>
+        <CreatePortfolioDialog onClose={() => {}} />
+      </MemoryRouter>
     </QueryClientProvider>,
   )
   fireEvent.change(screen.getByRole('textbox', { name: t('portfolios.name') }), {

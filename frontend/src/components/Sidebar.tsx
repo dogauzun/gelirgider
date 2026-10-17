@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router'
+import { Link, NavLink, useLocation } from 'react-router'
 import { useMe } from '../api/auth'
 import { sumPortfolios, usePortfolios } from '../api/portfolios'
 import { t } from '../i18n/strings'
 import { formatCompactMoney } from '../lib/format'
-import { type NavState } from '../lib/navState'
 import { rangeSearch } from '../lib/useRange'
 import { setPrivacy, usePrivacy } from '../lib/privacy'
 import { AccountMenu } from './AccountMenu'
@@ -70,7 +69,6 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { data: me } = useMe()
   const { data, isLoading } = usePortfolios()
   const { pathname, search } = useLocation()
-  const navigate = useNavigate()
   const [creating, setCreating] = useState(false)
 
   const onPosition = /^\/portfolios\/[^/]+\/positions\//.test(pathname)
@@ -202,14 +200,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       {creating && (
         <CreatePortfolioDialog
           onClose={() => setCreating(false)}
-          onCreated={(id) => {
-            onNavigate?.()
-            // The empty list's opener is gone by now: the new page takes
-            // focus unless it moved on, as from the header.
-            void navigate(`/portfolios/${id}`, {
-              state: { focusAfterCreate: true } satisfies NavState,
-            })
-          }}
+          onCreated={() => onNavigate?.()}
         />
       )}
     </nav>
