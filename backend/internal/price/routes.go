@@ -40,6 +40,18 @@ type handler struct {
 	instruments *instrument.Repo
 }
 
+// instrumentFromPath is instrument.FromPath that answers 404 for a DEPOSIT
+// instrument too, for every caller: a deposit is valued by its computed price
+// source, so it has no prices to set, list or delete here.
+func (h *handler) instrumentFromPath(w http.ResponseWriter, r *http.Request) (instrument.Instrument, bool) {
+	in, ok := instrument.FromPath(w, r, h.instruments, "id")
+	if ok && in.Market == instrument.MarketDeposit {
+		auth.WriteError(w, http.StatusNotFound, "instrument not found")
+		return instrument.Instrument{}, false
+	}
+	return in, ok
+}
+
 type closeRequest struct {
 	Close string `json:"close"`
 }
@@ -82,7 +94,7 @@ func storedText(d decimal.Decimal) string {
 //	@Router		/instruments/{id}/prices/{date} [put]
 func (h *handler) put(w http.ResponseWriter, r *http.Request) {
 	userID := auth.MustUserID(r.Context())
-	in, ok := instrument.FromPath(w, r, h.instruments, "id")
+	in, ok := h.instrumentFromPath(w, r)
 	if !ok {
 		return
 	}
@@ -148,7 +160,7 @@ func (h *handler) put(w http.ResponseWriter, r *http.Request) {
 //	@Router		/instruments/{id}/prices [get]
 func (h *handler) history(w http.ResponseWriter, r *http.Request) {
 	userID := auth.MustUserID(r.Context())
-	in, ok := instrument.FromPath(w, r, h.instruments, "id")
+	in, ok := h.instrumentFromPath(w, r)
 	if !ok {
 		return
 	}
@@ -232,7 +244,7 @@ func mergeDesc(fetched, manual []Price, limit int) []Price {
 //	@Router		/instruments/{id}/prices/{date} [delete]
 func (h *handler) delete(w http.ResponseWriter, r *http.Request) {
 	userID := auth.MustUserID(r.Context())
-	in, ok := instrument.FromPath(w, r, h.instruments, "id")
+	in, ok := h.instrumentFromPath(w, r)
 	if !ok {
 		return
 	}

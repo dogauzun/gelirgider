@@ -17,7 +17,7 @@ import (
 
 // TestAdminAddInstrument covers POST /api/admin/instruments: an
 // admin adds NVDA with the symbol upper-cased, a second identical POST gives
-// the same id, a pair no seed list uses, an empty name and a name or symbol
+// the same id, a pair no seed list uses (market DEPOSIT included), an empty name and a name or symbol
 // made only of combining marks are 400, a symbol over 32 or a
 // name over 300 characters is 400 and stored nothing, a
 // non-admin gets 403, and the new row is found by GET /api/instruments.
@@ -76,6 +76,8 @@ func TestAdminAddInstrument(t *testing.T) {
 
 	for _, body := range []map[string]string{
 		{"market": "US", "symbol": "NVDA", "name": "NVIDIA", "currency": "TRY"},
+		// A deposit instrument is created by the deposit routes, never here.
+		{"market": "DEPOSIT", "symbol": "DEP-ZZ1", "name": "Deposit", "currency": "TRY"},
 		{"market": "US", "symbol": "NVDA", "name": "  ", "currency": "USD"},
 		{"market": "US", "symbol": "NVDA", "name": "NVI\nDIA", "currency": "USD"},
 		{"market": "US", "symbol": "", "name": "NVIDIA", "currency": "USD"},
