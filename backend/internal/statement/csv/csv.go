@@ -140,9 +140,53 @@ func parseRow(st *statement.Statement, col map[string]int, row []string, currenc
 		return
 	}
 
+	p := &rowParse{st: st, row: row, date: date, nums: map[string]decimal.Decimal{}}
 	trade := kind == transaction.TypeBuy || kind == transaction.TypeSell
-	nums := map[string]decimal.Decimal{}
-	longAmount := false
+	if !p.readNumbers(cell, trade) {
+		return
+	}
+
+	// An empty currency cell stays empty on a trade or a dividend: the parse
+	// handler takes the currency of the instrument the row resolves to.
+	// A cash row has no instrument, so it is TRY.
+	p.currency = strings.ToUpper(cell("currency"))
+	sym := symbol(cell("symbol"))
+	market, known := marketHint(cell("market"))
+
+	switch {
+	case !known:
+		st.Errors = append(st.Errors, statement.ParseError{Section: "CSV", Row: row, Code: "unknown_market", Value: cell("market"), Message: "unknown market", Date: date})
+		return
+	case trade:
+		ok = p.addTrade(kind, sym, market)
+	case kind == transaction.TypeDividend && sym != "":
+		ok = p.addDividend(sym, market)
+	default:
+		ok = p.addCash(kind)
+	}
+	if !ok {
+		return
+	}
+	// A row without a currency does not vote: its instrument decides it.
+	if p.currency != "" {
+		currencies[p.currency]++
+	}
+}
+
+// rowParse is one CSV row being read into the statement: the number columns
+// found so far and the row's currency.
+type rowParse struct {
+	st         *statement.Statement
+	row        []string
+	date       string
+	nums       map[string]decimal.Decimal
+	currency   string
+	longAmount bool
+}
+
+// readNumbers fills nums from the quantity, price, amount and fee cells. It
+// records the row's error and returns false when a cell does not parse.
+func (p *rowParse) readNumbers(cell func(string) string, trade bool) bool {
 	for _, f := range []string{"quantity", "price", "amount", "fee"} {
 		if cell(f) == "" {
 			continue
@@ -152,90 +196,89 @@ func parseRow(st *statement.Statement, col map[string]int, row []string, currenc
 		// if it is quantity × price, like the transaction API:
 		// the export writes that product as stored.
 		if err == errTooLong && f == "amount" && trade {
-			longAmount, err = true, nil
+			p.longAmount, err = true, nil
 		}
 		if err != nil {
 			if err == errAmbiguous {
-				st.Errors = append(st.Errors, statement.ParseError{Section: "CSV", Row: row, Code: "ambiguous_number", Value: f, Message: "ambiguous thousands separator", Date: date})
-				return
+				p.st.Errors = append(p.st.Errors, statement.ParseError{Section: "CSV", Row: p.row, Code: "ambiguous_number", Value: f, Message: "ambiguous thousands separator", Date: p.date})
+				return false
 			}
-			st.BadNumber("CSV", row, f, date)
-			return
+			p.st.BadNumber("CSV", p.row, f, p.date)
+			return false
 		}
-		nums[f] = n
+		p.nums[f] = n
 	}
-	missing := func(fields ...string) bool {
-		for _, f := range fields {
-			if _, ok := nums[f]; !ok {
-				st.Errors = append(st.Errors, statement.ParseError{Section: "CSV", Row: row, Code: "missing_field", Value: f, Message: "missing field", Date: date})
-				return true
-			}
+	return true
+}
+
+// missing records a missing_field error for the first of fields that has no
+// number, and reports whether there was one.
+func (p *rowParse) missing(fields ...string) bool {
+	for _, f := range fields {
+		if _, ok := p.nums[f]; !ok {
+			p.st.Errors = append(p.st.Errors, statement.ParseError{Section: "CSV", Row: p.row, Code: "missing_field", Value: f, Message: "missing field", Date: p.date})
+			return true
 		}
+	}
+	return false
+}
+
+// addTrade adds the row as a trade; false means it recorded an error instead.
+func (p *rowParse) addTrade(side, sym, market string) bool {
+	if sym == "" {
+		p.st.Errors = append(p.st.Errors, statement.ParseError{Section: "CSV", Row: p.row, Code: "missing_field", Value: "symbol", Message: "missing field", Date: p.date})
 		return false
 	}
-
-	// An empty currency cell stays empty on a trade or a dividend: the parse
-	// handler takes the currency of the instrument the row resolves to.
-	// A cash row has no instrument, so it is TRY.
-	currency := strings.ToUpper(cell("currency"))
-	sym := symbol(cell("symbol"))
-	market, known := marketHint(cell("market"))
-
-	switch {
-	case !known:
-		st.Errors = append(st.Errors, statement.ParseError{Section: "CSV", Row: row, Code: "unknown_market", Value: cell("market"), Message: "unknown market", Date: date})
-		return
-	case trade:
-		if sym == "" {
-			st.Errors = append(st.Errors, statement.ParseError{Section: "CSV", Row: row, Code: "missing_field", Value: "symbol", Message: "missing field", Date: date})
-			return
-		}
-		if missing("quantity", "price") {
-			return
-		}
-		amount, ok := nums["amount"]
-		if !ok {
-			amount = nums["quantity"].Mul(nums["price"])
-		}
-		if longAmount && !amount.Equal(nums["quantity"].Mul(nums["price"])) {
-			st.BadNumber("CSV", row, "amount", date)
-			return
-		}
-		st.Trades = append(st.Trades, statement.Trade{
-			Date: date, Symbol: sym, Side: kind, Quantity: nums["quantity"], Price: nums["price"],
-			Amount: amount, Fee: nums["fee"], Currency: currency, Market: market,
-		})
-	case kind == transaction.TypeDividend && sym != "":
-		if missing("amount") {
-			return
-		}
-		st.Dividends = append(st.Dividends, statement.Dividend{
-			Date: date, Symbol: sym, Gross: nums["amount"], Tax: nums["fee"], Currency: currency, Market: market,
-		})
-	default:
-		if missing("amount") {
-			return
-		}
-		// A fee row's amount is the fee; the commit refuses a second fee on
-		// top of it, so the row is flagged here instead of failing there.
-		if kind == transaction.TypeFee && !nums["fee"].IsZero() {
-			st.Errors = append(st.Errors, statement.ParseError{Section: "CSV", Row: row, Code: "fee_on_fee", Message: "a fee row cannot carry a fee", Date: date})
-			return
-		}
-		if kind == "interest" {
-			kind = transaction.TypeDividend
-		}
-		if currency == "" {
-			currency = "TRY"
-		}
-		st.Cash = append(st.Cash, statement.CashMovement{
-			Date: date, Kind: kind, Amount: nums["amount"], Fee: nums["fee"], Currency: currency,
-		})
+	if p.missing("quantity", "price") {
+		return false
 	}
-	// A row without a currency does not vote: its instrument decides it.
-	if currency != "" {
-		currencies[currency]++
+	amount, ok := p.nums["amount"]
+	if !ok {
+		amount = p.nums["quantity"].Mul(p.nums["price"])
 	}
+	if p.longAmount && !amount.Equal(p.nums["quantity"].Mul(p.nums["price"])) {
+		p.st.BadNumber("CSV", p.row, "amount", p.date)
+		return false
+	}
+	p.st.Trades = append(p.st.Trades, statement.Trade{
+		Date: p.date, Symbol: sym, Side: side, Quantity: p.nums["quantity"], Price: p.nums["price"],
+		Amount: amount, Fee: p.nums["fee"], Currency: p.currency, Market: market,
+	})
+	return true
+}
+
+// addDividend adds the row as a dividend; false means it recorded an error instead.
+func (p *rowParse) addDividend(sym, market string) bool {
+	if p.missing("amount") {
+		return false
+	}
+	p.st.Dividends = append(p.st.Dividends, statement.Dividend{
+		Date: p.date, Symbol: sym, Gross: p.nums["amount"], Tax: p.nums["fee"], Currency: p.currency, Market: market,
+	})
+	return true
+}
+
+// addCash adds the row as a cash movement; false means it recorded an error instead.
+func (p *rowParse) addCash(kind string) bool {
+	if p.missing("amount") {
+		return false
+	}
+	// A fee row's amount is the fee; the commit refuses a second fee on
+	// top of it, so the row is flagged here instead of failing there.
+	if kind == transaction.TypeFee && !p.nums["fee"].IsZero() {
+		p.st.Errors = append(p.st.Errors, statement.ParseError{Section: "CSV", Row: p.row, Code: "fee_on_fee", Message: "a fee row cannot carry a fee", Date: p.date})
+		return false
+	}
+	if kind == "interest" {
+		kind = transaction.TypeDividend
+	}
+	if p.currency == "" {
+		p.currency = "TRY"
+	}
+	p.st.Cash = append(p.st.Cash, statement.CashMovement{
+		Date: p.date, Kind: kind, Amount: p.nums["amount"], Fee: p.nums["fee"], Currency: p.currency,
+	})
+	return true
 }
 
 // marketHint reads a market cell through marketAliases. An empty cell is no
