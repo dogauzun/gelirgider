@@ -122,7 +122,7 @@ func FromRequestWith(req Request, get func(id int64) (instrument.Instrument, err
 		return t, instrument.Instrument{}, nil
 	}
 	in, err := get(*t.InstrumentID)
-	if errors.Is(err, instrument.ErrNotFound) {
+	if errors.Is(err, instrument.ErrNotFound) || (err == nil && in.Market == instrument.MarketDeposit) {
 		return Transaction{}, instrument.Instrument{}, fmt.Errorf("instrument_id: unknown instrument")
 	}
 	if err != nil {
