@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ExpectedDividend } from '../api/dividends'
 import type { Position, Summary } from '../api/summary'
-import { attentionItems } from './attention'
+import { attentionItems, type AttentionRules } from './attention'
 
 const TODAY = '2026-10-05'
 
@@ -144,8 +144,31 @@ describe('attentionItems', () => {
       ]),
     )
     expect(items).toEqual([
-      { kind: 'stale-manual-prices', count: 3, instrument_id: 2, symbol: 'M2' },
+      { kind: 'stale-manual-prices', count: 3, days: 7, instrument_id: 2, symbol: 'M2' },
     ])
+  })
+
+  it('takes the stale day limit and the on/off flags from the rules', () => {
+    const manual = position(1, 'M1', '100', { price_source: 'manual', price_date: '2026-10-01' })
+    const stale = (rules: AttentionRules) =>
+      run(summary([manual, ...spread(8)]), { rules }).filter(
+        (i) => i.kind === 'stale-manual-prices',
+      )
+    // 4 days old: stale only once the limit is below that.
+    expect(stale({})).toEqual([])
+    expect(stale({ stale_manual_days: { value: 3 } })).toEqual([
+      { kind: 'stale-manual-prices', count: 1, days: 3, instrument_id: 1, symbol: 'M1' },
+    ])
+    expect(stale({ stale_manual_days: { enabled: false, value: 3 } })).toEqual([])
+  })
+
+  it('emits no concentration item for a disabled position share rule', () => {
+    // A is 30% of 100; the other seven are 10% each.
+    const rest = Array.from({ length: 7 }, (_, i) => position(2 + i, `S${i}`, '10'))
+    const big = summary([position(1, 'A', '30'), ...rest])
+    const rules: AttentionRules = { position_share: { enabled: false } }
+    expect(run(big).some((i) => i.kind === 'concentration')).toBe(true)
+    expect(run(big, { rules })).toEqual([])
   })
 
   it('says from when the benchmark values are estimates', () => {

@@ -33,7 +33,7 @@ const items: AttentionItem[] = [
   { kind: 'dividend', dividend },
   { kind: 'missing-rate', currency: 'EUR', positions: 1 },
   { kind: 'missing-price', instrument_id: 4, symbol: 'XYZ' },
-  { kind: 'stale-manual-prices', count: 3, instrument_id: 5, symbol: 'ABC' },
+  { kind: 'stale-manual-prices', count: 3, days: 7, instrument_id: 5, symbol: 'ABC' },
 ]
 
 function renderCard(list: AttentionItem[]) {
@@ -123,7 +123,14 @@ describe('AttentionCard', () => {
     const merged = (portfolio: string): AttentionItem[] => [
       { kind: 'dividend', dividend, portfolio },
       { kind: 'missing-price', instrument_id: 4, symbol: 'XYZ', portfolio },
-      { kind: 'stale-manual-prices', count: 3, instrument_id: 5, symbol: 'ABC', portfolio },
+      {
+        kind: 'stale-manual-prices',
+        count: 3,
+        days: 7,
+        instrument_id: 5,
+        symbol: 'ABC',
+        portfolio,
+      },
     ]
     renderCard([...merged('Ana'), ...merged('Yan')])
     const names = screen.getAllByRole('button').map((b) => b.getAttribute('aria-label'))

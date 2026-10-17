@@ -6,7 +6,7 @@ import { currencyTotals, dayRatio, holdingsTotal, shareOf } from './positions'
 
 // The thresholds of the "Dikkat" card (spec: UI v2 core pages). A share is
 // flagged only above its threshold, never at it.
-export const ATTENTION = {
+const ATTENTION = {
   staleManualDays: 7,
   positionShare: 0.25,
   cashShare: 0.4,
@@ -14,14 +14,33 @@ export const ATTENTION = {
   movers: 2,
 } as const
 
+// The JSON shape of GET /api/me/attention-rules: per rule an optional on/off
+// flag and an optional threshold, each falling back to ATTENTION.
+type Rule = { enabled?: boolean; value?: number }
+export type AttentionRules = Partial<
+  Record<'stale_manual_days' | 'position_share' | 'cash_share' | 'currency_share' | 'movers', Rule>
+>
+
+// The threshold of a rule, or null when the owner switched it off.
+function threshold(rules: AttentionRules, key: keyof AttentionRules, fallback: number) {
+  const rule = rules[key]
+  return rule?.enabled === false ? null : (rule?.value ?? fallback)
+}
+
 // `portfolio` names the portfolio on Tüm portföyler, where items of several
 // portfolios share one card. Amounts are exact decimal strings; a share or a
 // ratio is a number, for display only.
 export type AttentionItem = { portfolio?: string } & (
   | { kind: 'missing-rate'; currency: string; positions: number }
   | { kind: 'missing-price'; instrument_id: number; symbol: string }
-  // The count and the oldest of them, which "Güncelle" opens.
-  | { kind: 'stale-manual-prices'; count: number; instrument_id: number; symbol: string }
+  // The count, the day limit it was counted against and the oldest of them, which "Güncelle" opens.
+  | {
+      kind: 'stale-manual-prices'
+      count: number
+      days: number
+      instrument_id: number
+      symbol: string
+    }
   | { kind: 'estimated-benchmark'; from: string }
   | { kind: 'dividend'; dividend: ExpectedDividend }
   // amount is day_change_reporting in `currency`; ratio is dayRatio, the
@@ -64,8 +83,14 @@ export function attentionItems(input: {
   estimatedFrom?: string | null
   today: string
   portfolioName?: string
+  rules?: AttentionRules
 }): AttentionItem[] {
-  const { summary, expected, estimatedFrom, today, portfolioName } = input
+  const { summary, expected, estimatedFrom, today, portfolioName, rules = {} } = input
+  const staleDays = threshold(rules, 'stale_manual_days', ATTENTION.staleManualDays)
+  const positionShare = threshold(rules, 'position_share', ATTENTION.positionShare)
+  const cashShare = threshold(rules, 'cash_share', ATTENTION.cashShare)
+  const currencyShare = threshold(rules, 'currency_share', ATTENTION.currencyShare)
+  const moverCount = threshold(rules, 'movers', ATTENTION.movers)
   const open = summary.positions.filter((p) => !p.closed)
   const priced = open.filter((p) => p.has_price)
   const items: AttentionItem[] = []
@@ -83,15 +108,17 @@ export function attentionItems(input: {
   const staleManual = priced
     .filter(
       (p) =>
+        staleDays !== null &&
         p.price_source === 'manual' &&
         p.price_date !== null &&
-        daysBetween(p.price_date, today) > ATTENTION.staleManualDays,
+        daysBetween(p.price_date, today) > staleDays,
     )
     .sort((a, b) => (a.price_date! < b.price_date! ? -1 : 1))
   if (staleManual.length > 0) {
     items.push({
       kind: 'stale-manual-prices',
       count: staleManual.length,
+      days: staleDays!,
       instrument_id: staleManual[0].instrument_id,
       symbol: staleManual[0].symbol,
     })
@@ -107,7 +134,7 @@ export function attentionItems(input: {
     .sort(
       (a, b) => Math.abs(Number(b.day_change_reporting)) - Math.abs(Number(a.day_change_reporting)),
     )
-    .slice(0, ATTENTION.movers)
+    .slice(0, moverCount ?? 0)
   for (const p of movers) {
     items.push({
       kind: 'mover',
@@ -128,7 +155,7 @@ export function attentionItems(input: {
   if (total > 0n) {
     for (const p of valued) {
       const units = decimalUnits(p.market_value_reporting!)
-      if (!p.has_price || !above(units, total, ATTENTION.positionShare)) continue
+      if (positionShare === null || !p.has_price || !above(units, total, positionShare)) continue
       items.push({
         kind: 'concentration',
         subject: 'position',
@@ -137,7 +164,7 @@ export function attentionItems(input: {
         share: shareOf(units, total),
       })
     }
-    if (above(cash, total, ATTENTION.cashShare)) {
+    if (cashShare !== null && above(cash, total, cashShare)) {
       items.push({
         kind: 'concentration',
         subject: 'cash',
@@ -155,7 +182,7 @@ export function attentionItems(input: {
   const currencyTotal = [...byCurrency.values()].reduce((sum, units) => sum + units, 0n)
   for (const [currency, units] of byCurrency) {
     if (currency === summary.currency) continue
-    if (!above(units, currencyTotal, ATTENTION.currencyShare)) continue
+    if (currencyShare === null || !above(units, currencyTotal, currencyShare)) continue
     items.push({
       kind: 'concentration',
       subject: 'currency',
@@ -174,15 +201,16 @@ export function attentionItems(input: {
 export function mergeAttention(
   lists: AttentionItem[][],
   estimatedFrom?: string | null,
+  movers: number = ATTENTION.movers,
 ): AttentionItem[] {
   const items = lists.flat()
-  const movers = items
+  const topMovers = items
     .filter((item): item is Extract<AttentionItem, { kind: 'mover' }> => item.kind === 'mover')
     .sort((a, b) => Math.abs(Number(b.amount)) - Math.abs(Number(a.amount)))
-    .slice(0, ATTENTION.movers)
+    .slice(0, movers)
   return [
     ...items.filter((item) => item.kind !== 'mover'),
-    ...movers,
+    ...topMovers,
     ...(estimatedFrom ? [{ kind: 'estimated-benchmark' as const, from: estimatedFrom }] : []),
   ]
 }
