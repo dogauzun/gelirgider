@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/db"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
@@ -442,8 +444,28 @@ func TestLearnedName(t *testing.T) {
 		"GAMA PORTFÖY":                           0,
 		"":                                       0,
 	} {
-		if got := learnedName(symbol, learned); got != want {
+		if got := learnedName(symbol, newNameIndex(learned)); got != want {
 			t.Errorf("learnedName(%q) = %d, want %d", symbol, got, want)
 		}
+	}
+}
+
+// TestLearnedNameManyNames checks that matching a symbol costs the file, not
+// the user's stored names: 5000 unknown symbols against 100k learned names
+// must finish in well under the second the linear scan took tens of.
+func TestLearnedNameManyNames(t *testing.T) {
+	learned := make(map[string]int64, 100000)
+	for i := 0; i < 100000; i++ {
+		learned[fmt.Sprintf("ZQ%d%s", i, strings.Repeat("X", 150))] = 1
+	}
+	start := time.Now()
+	names := newNameIndex(learned)
+	for i := 0; i < 5000; i++ {
+		if got := learnedName(fmt.Sprintf("QQ%d", i), names); got != 0 {
+			t.Fatalf("learnedName matched %d", got)
+		}
+	}
+	if d := time.Since(start); d > time.Second {
+		t.Errorf("5000 lookups in %v, want under 1s", d)
 	}
 }
