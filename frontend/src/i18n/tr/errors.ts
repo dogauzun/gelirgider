@@ -31,6 +31,7 @@ export const trErrors = {
   'error.backfillFromFuture': 'Başlangıç tarihi gelecekte olamaz.',
   'error.tooManyRequests': 'Çok fazla istek. Bir dakika bekleyip tekrar dene.',
   'error.currentPasswordIncorrect': 'Mevcut şifre hatalı.',
+  'error.invalidCode': 'Kod hatalı.',
   'error.portfolioNotFound': 'Portföy bulunamadı.',
   'error.portfolioHasTransactions': 'İşlemi olan portföy silinemez. Önce işlemleri sil.',
   'error.portfolioName': 'Portföy adı 1-100 karakter olmalı.',

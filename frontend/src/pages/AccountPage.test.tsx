@@ -93,13 +93,15 @@ describe('AccountPage', () => {
 
   // One Tercihler card with three rows and one Şifre card, side by
   // side from lg, with the shared 14 px card title.
-  it('groups the settings into a Tercihler card, a Şifre card and a Dikkat kuralları card', async () => {
+  it('groups the settings into a Tercihler card, a Şifre card, a two-step card and a Dikkat kuralları card', async () => {
     mockMe('TRY')
     renderPage()
 
     const preferencesTitle = await screen.findByRole('heading', { level: 2, name: 'Tercihler' })
     const passwordTitle = screen.getByRole('heading', { level: 2, name: 'Şifre' })
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(3)
+    // The two-step card waits for /api/me.
+    await screen.findByRole('heading', { level: 2, name: 'İki adımlı doğrulama' })
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(4)
     for (const title of [preferencesTitle, passwordTitle]) {
       expect(title).toHaveClass('text-[14px]', 'font-semibold', 'text-ink')
     }
@@ -432,6 +434,136 @@ describe('AccountPage', () => {
 
     expect(screen.queryByText('Mevcut şifre hatalı.')).not.toBeInTheDocument()
     expect(current).not.toHaveAttribute('aria-invalid')
+  })
+
+  // /api/me answers with the current totp_enabled; the totp endpoints reply
+  // as `reply` says and are recorded.
+  function mockTotp(reply: (url: string, body: Record<string, string>) => Response) {
+    let enabled = false
+    const calls: { method: string; url: string; body: Record<string, string> }[] = []
+    const fetchMock = mockMe('TRY')
+    const me = fetchMock.getMockImplementation()!
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input)
+      if (url === '/api/me') {
+        return new Response(
+          JSON.stringify({
+            id: 1,
+            email: 'a@b.com',
+            reporting_currency: 'TRY',
+            totp_enabled: enabled,
+          }),
+        )
+      }
+      if (!url.startsWith('/api/account/totp')) return me(input, init)
+      const body = JSON.parse(init?.body as string) as Record<string, string>
+      calls.push({ method: init?.method ?? 'GET', url, body })
+      const response = reply(url, body)
+      if (response.ok && url === '/api/account/totp/confirm') enabled = true
+      if (response.ok && init?.method === 'DELETE') enabled = false
+      return response
+    })
+    return calls
+  }
+
+  const secret = 'JBSWY3DPEHPK3PXP'
+  const uri = `otpauth://totp/Gelirgider:a%40b.com?secret=${secret}&issuer=Gelirgider`
+  const setupOk = () => new Response(JSON.stringify({ secret, uri }))
+
+  // The password card has a field of the same label.
+  async function twoStepCard() {
+    const title = await screen.findByRole('heading', { level: 2, name: 'İki adımlı doğrulama' })
+    return title.closest('section')!
+  }
+
+  async function startEnrolment(password: string) {
+    fireEvent.click(await screen.findByRole('button', { name: 'Etkinleştir' }))
+    fireEvent.change(within(await twoStepCard()).getByLabelText('Mevcut şifre'), {
+      target: { value: password },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Devam' }))
+  }
+
+  it('shows the QR code and secret after setup, and the state as on after a confirmed code', async () => {
+    const calls = mockTotp((url) =>
+      url === '/api/account/totp/setup' ? setupOk() : new Response(null, { status: 204 }),
+    )
+    renderPage()
+    await startEnrolment('password123')
+
+    expect(await screen.findByDisplayValue(secret)).toHaveAttribute('readonly')
+    expect(screen.getByDisplayValue(uri)).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'İki adımlı doğrulama QR kodu' })).toBeInTheDocument()
+    expect(calls[0]).toMatchObject({
+      url: '/api/account/totp/setup',
+      body: { password: 'password123' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Uygulamadaki 6 haneli kod'), {
+      target: { value: '123456' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Doğrula ve aç' }))
+
+    // Açık is also a theme name: look in the card.
+    const card = await twoStepCard()
+    expect(await within(card).findByText('Açık')).toBeInTheDocument()
+    expect(calls[1]).toMatchObject({ url: '/api/account/totp/confirm', body: { code: '123456' } })
+    expect(screen.queryByDisplayValue(secret)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Kapat' })).toBeInTheDocument()
+  })
+
+  it('shows a wrong password inline during enrolment', async () => {
+    mockTotp(
+      () =>
+        new Response(JSON.stringify({ error: 'current password is incorrect' }), { status: 401 }),
+    )
+    renderPage()
+    await startEnrolment('wrongpass1')
+    expect(await screen.findByText('Mevcut şifre hatalı.')).toBeInTheDocument()
+  })
+
+  it('shows a wrong confirm code inline and keeps the secret', async () => {
+    mockTotp((url) =>
+      url === '/api/account/totp/setup'
+        ? setupOk()
+        : new Response(JSON.stringify({ error: 'invalid code' }), { status: 400 }),
+    )
+    renderPage()
+    await startEnrolment('password123')
+    fireEvent.change(await screen.findByLabelText('Uygulamadaki 6 haneli kod'), {
+      target: { value: '000000' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Doğrula ve aç' }))
+
+    expect(await screen.findByText('Kod hatalı.')).toBeInTheDocument()
+    expect(screen.getByDisplayValue(secret)).toBeInTheDocument()
+  })
+
+  it('turns two-step off with the password and a code', async () => {
+    const calls = mockTotp((url) =>
+      url === '/api/account/totp/setup' ? setupOk() : new Response(null, { status: 204 }),
+    )
+    renderPage()
+    await startEnrolment('password123')
+    fireEvent.change(await screen.findByLabelText('Uygulamadaki 6 haneli kod'), {
+      target: { value: '123456' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Doğrula ve aç' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Kapat' }))
+    fireEvent.change(within(await twoStepCard()).getByLabelText('Mevcut şifre'), {
+      target: { value: 'password123' },
+    })
+    fireEvent.change(screen.getByLabelText('Uygulamadaki 6 haneli kod'), {
+      target: { value: '654321' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'İki adımlı doğrulamayı kapat' }))
+
+    expect(await within(await twoStepCard()).findByText('Kapalı')).toBeInTheDocument()
+    expect(calls[2]).toMatchObject({
+      method: 'DELETE',
+      url: '/api/account/totp',
+      body: { password: 'password123', code: '654321' },
+    })
   })
 
   it('switches the interface language from the segmented control', async () => {

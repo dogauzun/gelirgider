@@ -28,6 +28,12 @@ path ([ADR 0010](0010-setup-and-admin.md)).
   code cannot both succeed.
 - **TOTP stays optional.** No setting makes it mandatory, for any user or for
   admins.
+- **The QR code is drawn in the browser by `uqr`**, the one frontend
+  dependency this ADR adds (MIT, no dependencies of its own, about 8 kB
+  gzipped before tree shaking, maintained under the unjs organisation). Only its
+  `encode` is used, and the account page draws the module matrix as inline
+  SVG, so the secret never goes to an image service. The otpauth address and
+  the key are shown as text next to it.
 - **There is no "remember this device".** A session already lasts 30 days, so
   a device cookie would save almost nothing and add a way around the code
   step.

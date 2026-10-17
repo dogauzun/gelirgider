@@ -223,6 +223,55 @@ export function useChangePassword(
   })
 }
 
+export interface TotpSetup {
+  secret: string
+  uri: string
+}
+
+// Starts two-step enrolment (ADR 0025); two-step stays off until confirm. The
+// password and code are hook arguments, not mutate() variables, so they never
+// land in the mutation cache.
+export function useTotpSetup(password: string) {
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<TotpSetup>('/api/account/totp/setup', {
+        method: 'POST',
+        body: JSON.stringify({ password }),
+      }),
+  })
+}
+
+// Confirm and disable change `totp_enabled`: `onDone` runs once me has refetched.
+export function useTotpConfirm(code: string, onDone: () => void) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<void>('/api/account/totp/confirm', {
+        method: 'POST',
+        body: JSON.stringify({ code }),
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: meQueryKey })
+      onDone()
+    },
+  })
+}
+
+export function useTotpDisable(password: string, code: string, onDone: () => void) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<void>('/api/account/totp', {
+        method: 'DELETE',
+        body: JSON.stringify({ password, code }),
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: meQueryKey })
+      onDone()
+    },
+  })
+}
+
 // The portfolio list's values are in the reporting currency, and the sidebar
 // showing them stays mounted. Exact: the per-portfolio keys share
 // the prefix and refetch on their own pages' mount. `onSaved` runs last.
