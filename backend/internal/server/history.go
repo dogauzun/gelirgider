@@ -182,7 +182,7 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, err := h.sweep(r.Context(), userID, txs, from, to, sweepOpts{benchmarkRef{benchmarkCode, benchmarkInstrument}})
+	s, err := h.sweep(r.Context(), userID, txs, from, to, sweepOpts{benchmark: benchmarkRef{benchmarkCode, benchmarkInstrument}})
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
@@ -387,7 +387,11 @@ type historySweep struct {
 	// negativeCash is set on a day whose cash, as the point reports it (2
 	// decimals), is below zero: no base to measure a return on.
 	// A sub-cent residual shown as 0.00 doesn't count.
-	negativeCash  []bool
+	negativeCash []bool
+	// attribution is, per day, how its return splits into price, income and
+	// currency (attributeDay); day 0 has no previous day, so its entry is
+	// empty. nil unless sweepOpts.attribution is set.
+	attribution   []dayReturn
 	missingRates  []string
 	missingPrices []string
 	// benchmarkPrices is P_i, the benchmark level in the reporting currency
@@ -561,6 +565,9 @@ func (h *historyHandler) loadSweepInputs(ctx context.Context, userID int64, txs 
 // sweepOpts are the optional parts of a sweep.
 type sweepOpts struct {
 	benchmark benchmarkRef
+	// attribution fills historySweep.attribution. Off for the history and
+	// periods routes, which do not read it.
+	attribution bool
 }
 
 // sweepWalk is the state sweep carries from one day to the next.
@@ -585,6 +592,12 @@ type sweepWalk struct {
 	carriedFlow     map[string]decimal.Decimal
 	missingSet      map[string]bool
 	missingPriceSet map[string]bool
+	// prev is the end of the previous day, for attribution: native market
+	// value per instrument, native cash per currency and a copy of the fx
+	// rates (fxWalk.advance changes its map in place).
+	prevValue map[int64]decimal.Decimal
+	prevCash  map[string]decimal.Decimal
+	prevRates map[string]decimal.Decimal
 }
 
 // sweep walks txs (every portfolio's rows, flatByDate) day by day from
@@ -645,7 +658,7 @@ func (s *historySweep) addDay(w *sweepWalk, dayStr string) {
 	// the same rate the same day's totals do.
 	firstApplied := w.txIdx
 	var activity dayActivity
-	w.txIdx, activity = applyThrough(w.txs, w.txIdx, dayStr, w.states, in.currencyOf)
+	w.txIdx, activity = applyThrough(w.txs, w.txIdx, dayStr, w.states, in.currencyOf, w.opts.attribution)
 	s.noteUnpricedBuys(w.txs[firstApplied:w.txIdx], dayIdx, w.latest)
 
 	// firstPriced is the instruments whose first price lands today.
@@ -704,6 +717,29 @@ func (s *historySweep) addDay(w *sweepWalk, dayStr string) {
 		CostBasis:    costBasis.StringFixed(2),
 		PriceUnknown: len(unpriced) > 0,
 	})
+	if w.opts.attribution {
+		s.attribute(w, dayIdx, activity, summary, currentRates)
+	}
+}
+
+// attribute appends the day's return split (attributeDay) to s.attribution,
+// an empty one on day 0, and keeps the day's end state in w for the next.
+func (s *historySweep) attribute(w *sweepWalk, dayIdx int, act dayActivity, summary holdings.Summary, rates map[string]decimal.Decimal) {
+	value := make(map[int64]decimal.Decimal, len(summary.Positions))
+	for _, p := range summary.Positions {
+		value[p.InstrumentID] = p.MarketValue
+	}
+	var day dayReturn
+	if dayIdx > 0 {
+		day = attributeDay(dayInput{
+			prevValue: w.prevValue, value: value, currencyOf: w.in.currencyOf,
+			tradeCash: act.tradeCash, dividend: act.dividend,
+			interest: act.interest, costs: act.costs, prevCash: w.prevCash,
+			prevRates: w.prevRates, rates: rates, reporting: w.in.reporting,
+		})
+	}
+	s.attribution = append(s.attribution, day)
+	w.prevValue, w.prevCash, w.prevRates = value, summary.Cash, maps.Clone(rates)
 }
 
 // benchmarkPrice is P_i for day dayIdx: the benchmark's level in the
@@ -792,8 +828,15 @@ func (s *historySweep) noteUnpricedBuys(applied []transaction.Transaction, dayId
 // before day, each to its portfolio's state in states (created on first
 // use). It returns the index of the first row left and what the applied
 // rows did that day.
-func applyThrough(txs []transaction.Transaction, i int, day string, states map[int64]*holdings.State, currencyOf map[int64]string) (int, dayActivity) {
+//
+// attribution also fills the activity's tradeCash, dividend, interest and
+// costs, which only attributeDay reads.
+func applyThrough(txs []transaction.Transaction, i int, day string, states map[int64]*holdings.State, currencyOf map[int64]string, attribution bool) (int, dayActivity) {
 	act := dayActivity{external: map[string]decimal.Decimal{}}
+	if attribution {
+		act.tradeCash, act.dividend = map[int64]decimal.Decimal{}, map[int64]decimal.Decimal{}
+		act.interest, act.costs = map[string]decimal.Decimal{}, map[string]decimal.Decimal{}
+	}
 	for i < len(txs) && txs[i].Date <= day {
 		tx := txs[i]
 		state, ok := states[tx.PortfolioID]
@@ -808,6 +851,9 @@ func applyThrough(txs []transaction.Transaction, i int, day string, states map[i
 		case transaction.TypeWithdrawal:
 			act.external[tx.Currency] = act.external[tx.Currency].Sub(tx.Amount)
 		}
+		if attribution {
+			act.note(tx)
+		}
 		i++
 	}
 	return i, act
@@ -817,6 +863,34 @@ func applyThrough(txs []transaction.Transaction, i int, day string, states map[i
 type dayActivity struct {
 	// external is the deposits less withdrawals per currency.
 	external map[string]decimal.Decimal
+	// The rest is filled only for attribution, in native amounts: the cash
+	// spent on each instrument by buys and sells, the dividend net of stopaj
+	// per instrument, the interest net per currency, and the other cash costs
+	// per currency (see dayInput).
+	tradeCash, dividend map[int64]decimal.Decimal
+	interest, costs     map[string]decimal.Decimal
+}
+
+// note adds tx, one of the day's rows, to the attribution fields. A split
+// row books nothing: its day's price return is 0.
+func (a *dayActivity) note(tx transaction.Transaction) {
+	switch tx.Type {
+	case transaction.TypeBuy:
+		a.tradeCash[*tx.InstrumentID] = a.tradeCash[*tx.InstrumentID].Add(tx.Amount).Add(tx.Fee)
+	case transaction.TypeSell:
+		a.tradeCash[*tx.InstrumentID] = a.tradeCash[*tx.InstrumentID].Sub(tx.Amount).Add(tx.Fee)
+	case transaction.TypeDividend:
+		net := tx.Amount.Sub(tx.Fee)
+		if tx.InstrumentID == nil {
+			a.interest[tx.Currency] = a.interest[tx.Currency].Add(net)
+		} else {
+			a.dividend[*tx.InstrumentID] = a.dividend[*tx.InstrumentID].Add(net)
+		}
+	case transaction.TypeFee:
+		a.costs[tx.Currency] = a.costs[tx.Currency].Add(tx.Amount).Add(tx.Fee)
+	case transaction.TypeDeposit, transaction.TypeWithdrawal:
+		a.costs[tx.Currency] = a.costs[tx.Currency].Add(tx.Fee)
+	}
 }
 
 // advancePrices moves each instrument's series in prices on to day:
