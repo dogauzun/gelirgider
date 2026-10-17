@@ -163,13 +163,14 @@ func Sync(ctx context.Context, fetcher *Fetcher, fxRepo *fx.Repo, date time.Time
 	}
 
 	dateStr := date.Format(time.DateOnly)
-	written := 0
-	for _, r := range rates {
-		if err := fxRepo.Upsert(ctx, r.Currency, dateStr, r.Rate.String(), SourceTCMB); err != nil {
-			return written, fmt.Errorf("upsert fx rate for %s: %w", r.Currency, err)
-		}
-		written++
+	rows := make([]fx.Row, len(rates))
+	for i, r := range rates {
+		rows[i] = fx.Row{Currency: r.Currency, Date: dateStr, Rate: r.Rate.String(), Source: SourceTCMB}
 	}
+	if err := fxRepo.UpsertMany(ctx, rows); err != nil {
+		return 0, fmt.Errorf("upsert fx rates for %s: %w", dateStr, err)
+	}
+	written := len(rows)
 	slog.Default().Info("tcmb fx sync complete", "date", dateStr, "written", written)
 	return written, nil
 }

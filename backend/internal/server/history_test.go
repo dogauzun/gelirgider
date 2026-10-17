@@ -1585,8 +1585,8 @@ func decodeBenchmark(t *testing.T, got map[string]json.RawMessage) benchmarkResp
 func (f *historyBenchmarkFixture) upsertBenchmark(t *testing.T, code string, levels map[string]string) {
 	t.Helper()
 	for date, level := range levels {
-		if err := f.benchmarks.Upsert(context.Background(), code, date, level, "test"); err != nil {
-			t.Fatalf("benchmarks.Upsert: %v", err)
+		if err := f.benchmarks.UpsertMany(context.Background(), []benchmark.Row{{Code: code, Date: date, Value: level, Source: "test"}}); err != nil {
+			t.Fatalf("benchmarks.UpsertMany: %v", err)
 		}
 	}
 }

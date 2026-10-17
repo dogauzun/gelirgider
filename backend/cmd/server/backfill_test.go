@@ -723,7 +723,7 @@ func TestBackfillHistorySkipsStoredXU100(t *testing.T) {
 		if d.Weekday() == time.Saturday || d.Weekday() == time.Sunday || (d.Month() == time.June && (d.Day() == 1 || d.Day() >= 27)) {
 			continue
 		}
-		if err := repo.Upsert(ctx, benchmark.CodeXU100, d.Format(time.DateOnly), "7000", "evds"); err != nil {
+		if err := repo.UpsertMany(ctx, []benchmark.Row{{Code: benchmark.CodeXU100, Date: d.Format(time.DateOnly), Value: "7000", Source: "evds"}}); err != nil {
 			t.Fatalf("seed xu100: %v", err)
 		}
 	}

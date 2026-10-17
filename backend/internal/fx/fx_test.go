@@ -3,6 +3,7 @@ package fx_test
 import (
 	"context"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"testing"
 
@@ -154,4 +155,67 @@ func TestHasSource(t *testing.T) {
 	if has {
 		t.Fatal("HasSource = true for unseeded date, want false")
 	}
+}
+
+// TestUpsertMany covers a batch of new rows, existing rows updated, and a
+// mix of both in one call.
+func TestUpsertMany(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	ctx := context.Background()
+	repo := fx.NewRepo(conn)
+	check := func(step string, want map[string]string) {
+		t.Helper()
+		rows, err := conn.Query("SELECT currency, date, rate, source FROM fx_rates")
+		if err != nil {
+			t.Fatalf("query fx_rates: %v", err)
+		}
+		defer rows.Close()
+		got := map[string]string{}
+		for rows.Next() {
+			var cur, date, rate, source string
+			if err := rows.Scan(&cur, &date, &rate, &source); err != nil {
+				t.Fatalf("scan: %v", err)
+			}
+			got[cur+" "+date] = rate + " " + source
+		}
+		if !maps.Equal(got, want) {
+			t.Fatalf("%s: fx_rates = %v, want %v", step, got, want)
+		}
+	}
+
+	if err := repo.UpsertMany(ctx, nil); err != nil {
+		t.Fatalf("empty UpsertMany: %v", err)
+	}
+	check("empty", map[string]string{})
+
+	if err := repo.UpsertMany(ctx, []fx.Row{
+		{Currency: "USD", Date: "2024-01-01", Rate: "32.00", Source: "a"},
+		{Currency: "EUR", Date: "2024-01-01", Rate: "35.00", Source: "a"},
+	}); err != nil {
+		t.Fatalf("new rows: %v", err)
+	}
+	check("new rows", map[string]string{"USD 2024-01-01": "32.00 a", "EUR 2024-01-01": "35.00 a"})
+
+	if err := repo.UpsertMany(ctx, []fx.Row{
+		{Currency: "USD", Date: "2024-01-01", Rate: "32.10", Source: "b"},
+		{Currency: "EUR", Date: "2024-01-01", Rate: "35.10", Source: "b"},
+	}); err != nil {
+		t.Fatalf("updated rows: %v", err)
+	}
+	check("updated rows", map[string]string{"USD 2024-01-01": "32.10 b", "EUR 2024-01-01": "35.10 b"})
+
+	if err := repo.UpsertMany(ctx, []fx.Row{
+		{Currency: "USD", Date: "2024-01-01", Rate: "32.20", Source: "c"},
+		{Currency: "USD", Date: "2024-01-02", Rate: "32.30", Source: "c"},
+	}); err != nil {
+		t.Fatalf("mixed rows: %v", err)
+	}
+	check("mixed rows", map[string]string{
+		"USD 2024-01-01": "32.20 c", "USD 2024-01-02": "32.30 c", "EUR 2024-01-01": "35.10 b",
+	})
 }

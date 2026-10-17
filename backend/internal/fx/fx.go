@@ -35,26 +35,46 @@ func NewRepo(db *sql.DB) *Repo {
 	return &Repo{db: db}
 }
 
+// Row is one rate to store: the arguments of Upsert.
+type Row struct {
+	Currency string
+	Date     string // YYYY-MM-DD
+	Rate     string
+	Source   string
+}
+
 // Upsert stores rate as the exchange rate for currency on date, from
-// source. If a row for (currency, date) already exists, its rate and
+// source, as UpsertMany does for one row.
+func (r *Repo) Upsert(ctx context.Context, currency, date, rate, source string) error {
+	return r.UpsertMany(ctx, []Row{{currency, date, rate, source}})
+}
+
+// UpsertMany stores every row in one transaction: a sync writes a batch
+// with one commit instead of one per row, and a failed row rolls back the
+// whole batch. If a row for (Currency, Date) already exists, its rate and
 // source are overwritten. Implemented as UPDATE-then-INSERT rather than a
 // dialect-specific upsert, per project convention of portable SQL, in one
 // transaction so overlapping fetches of a new key cannot both INSERT
-// (see price.Repo.Upsert).
-func (r *Repo) Upsert(ctx context.Context, currency, date, rate, source string) error {
+// (see price.Repo.UpsertMany).
+func (r *Repo) UpsertMany(ctx context.Context, rows []Row) error {
+	if len(rows) == 0 {
+		return nil
+	}
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	if err := db.Upsert(ctx, tx,
-		"UPDATE fx_rates SET rate = ?, source = ? WHERE currency = ? AND date = ?",
-		[]any{rate, source, currency, date},
-		"INSERT INTO fx_rates (currency, date, rate, source) VALUES (?, ?, ?, ?)",
-		[]any{currency, date, rate, source},
-	); err != nil {
-		return fmt.Errorf("upsert fx rate: %w", err)
+	for _, row := range rows {
+		if err := db.Upsert(ctx, tx,
+			"UPDATE fx_rates SET rate = ?, source = ? WHERE currency = ? AND date = ?",
+			[]any{row.Rate, row.Source, row.Currency, row.Date},
+			"INSERT INTO fx_rates (currency, date, rate, source) VALUES (?, ?, ?, ?)",
+			[]any{row.Currency, row.Date, row.Rate, row.Source},
+		); err != nil {
+			return fmt.Errorf("upsert fx rate: %w", err)
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit fx rate: %w", err)
