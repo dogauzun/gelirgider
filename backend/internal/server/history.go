@@ -14,6 +14,7 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/benchmark"
 	"github.com/dogauzun/gelirgider/backend/internal/fx"
 	"github.com/dogauzun/gelirgider/backend/internal/holdings"
+	"github.com/dogauzun/gelirgider/backend/internal/instrument"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/dogauzun/gelirgider/backend/internal/split"
@@ -485,9 +486,12 @@ type sweepInputs struct {
 	splitsOf           map[int64][]split.Split
 	currencyOf         map[int64]string
 	symbolOf           map[int64]string
-	reporting          string
-	benchmarkCurrency  string
-	fxw                *fxWalk
+	// deposit is the term deposits' instrument ids: their price change is
+	// accrued interest, income in the return split.
+	deposit           map[int64]bool
+	reporting         string
+	benchmarkCurrency string
+	fxw               *fxWalk
 	// levels is nil without a benchmark and for the benchmarks whose level
 	// the sweep derives itself (see benchmarkLevels).
 	levels        []float64
@@ -519,9 +523,11 @@ func (h *historyHandler) loadSweepInputs(ctx context.Context, userID int64, txs 
 	}
 	in.currencyOf = make(map[int64]string, len(instrumentIDs))
 	in.symbolOf = make(map[int64]string, len(instrumentIDs))
+	in.deposit = map[int64]bool{}
 	for id, instr := range instruments {
 		in.currencyOf[id] = instr.Currency
 		in.symbolOf[id] = instr.Symbol
+		in.deposit[id] = instr.Market == instrument.MarketDeposit
 	}
 	in.benchmarkCurrency = benchmarkCurrencies[benchmarkCode]
 	if benchmarkInstrument != 0 {
@@ -737,6 +743,12 @@ func (s *historySweep) attribute(w *sweepWalk, dayIdx int, act dayActivity, summ
 			interest: act.interest, costs: act.costs, prevCash: w.prevCash,
 			prevRates: w.prevRates, rates: rates, reporting: w.in.reporting,
 		})
+		for id, r := range day.instruments {
+			if w.in.deposit[id] {
+				r.income, r.price = r.income.Add(r.price), decimal.Zero
+				day.instruments[id] = r
+			}
+		}
 	}
 	s.attribution = append(s.attribution, day)
 	w.prevValue, w.prevCash, w.prevRates = value, summary.Cash, maps.Clone(rates)

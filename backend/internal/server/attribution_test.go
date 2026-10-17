@@ -267,3 +267,75 @@ func testSweepAttribution(t *testing.T, reporting string) {
 		t.Error("split day keeps an all-zero bucket")
 	}
 }
+
+// TestSweepAttributionDepositIsIncome checks that a term deposit's close
+// rising by accrued interest lands in income, not price, and that the
+// currency move on it stays fx.
+func TestSweepAttributionDepositIsIncome(t *testing.T) {
+	for _, tc := range []struct {
+		name               string
+		rate               string // USD/TRY on day 3; days 1 and 2 are 30
+		wantIncome, wantFX string
+	}{
+		{"flat rate", "30", "300", "0"},
+		{"rate up 10 percent", "33", "330", "3000"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			conn, err := db.Open(filepath.Join(t.TempDir(), "deposit.db"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { conn.Close() })
+			d := &deps{
+				users: user.NewRepo(conn), portfolios: portfolio.NewRepo(conn), instruments: instrument.NewRepo(conn),
+				prices: price.NewRepo(conn), manualPrices: price.NewManualRepo(conn), transactions: transaction.NewRepo(conn),
+				fx: fx.NewRepo(conn), splits: split.NewRepo(conn), benchmarks: benchmark.NewRepo(conn),
+			}
+			usr, err := d.users.Create(ctx, "deposit@example.com", "hash")
+			if err != nil {
+				t.Fatal(err)
+			}
+			pf, err := d.portfolios.Create(ctx, usr.ID, "Test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			res, err := conn.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES (?, ?, ?, ?)`, "DEP-T1", instrument.MarketDeposit, "Deposit", "USD")
+			if err != nil {
+				t.Fatal(err)
+			}
+			dep, _ := res.LastInsertId()
+			day := func(n int) string { return time.Date(2024, 1, n, 0, 0, 0, 0, time.UTC).Format(time.DateOnly) }
+			for n, rate := range map[int]string{1: "30", 2: "30", 3: tc.rate} {
+				if err := d.fx.Upsert(ctx, "USD", day(n), rate, "test"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			for n, closing := range map[int]string{1: "1", 3: "1.01"} {
+				if err := d.prices.Upsert(ctx, dep, day(n), closing, "deposit"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			txs := []transaction.Transaction{
+				{PortfolioID: pf.ID, Type: transaction.TypeDeposit, Date: day(1), Amount: dec("1000"), Currency: "USD"},
+				{PortfolioID: pf.ID, InstrumentID: &dep, Type: transaction.TypeBuy, Date: day(1), Quantity: dec("1000"), Price: dec("1"), Amount: dec("1000"), Currency: "USD"},
+			}
+			if _, err := d.transactions.CreateAll(ctx, usr.ID, txs); err != nil {
+				t.Fatal(err)
+			}
+			from, to := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2024, 1, 3, 0, 0, 0, 0, time.UTC)
+			s, err := (&historyHandler{d}).sweep(ctx, usr.ID, txs, from, to, sweepOpts{attribution: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var priceSum, income, fxSum decimal.Decimal
+			for _, a := range s.attribution {
+				r := a.instruments[dep]
+				priceSum, income, fxSum = priceSum.Add(r.price), income.Add(r.income), fxSum.Add(r.fx)
+			}
+			if !priceSum.IsZero() || !income.Equal(dec(tc.wantIncome)) || !fxSum.Equal(dec(tc.wantFX)) {
+				t.Errorf("price %s income %s fx %s, want 0 %s %s", priceSum, income, fxSum, tc.wantIncome, tc.wantFX)
+			}
+		})
+	}
+}
