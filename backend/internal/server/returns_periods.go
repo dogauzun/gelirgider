@@ -72,7 +72,7 @@ func (h *historyHandler) periods(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !from.After(today) {
-			s, err := h.sweep(r.Context(), userID, txs, from, today, sweepOpts{benchmarkRef{benchmarkCode, benchmarkInstrument}})
+			s, err := h.sweep(r.Context(), userID, txs, from, today, sweepOpts{benchmark: benchmarkRef{benchmarkCode, benchmarkInstrument}})
 			if err != nil {
 				auth.WriteInternalError(w, r, err)
 				return
