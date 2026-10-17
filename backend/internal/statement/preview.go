@@ -494,7 +494,7 @@ func (h *handler) previewRows(ctx context.Context, req requester, picks map[stri
 	}
 	for i, d := range st.Dividends {
 		row := previewRow{
-			Key: fmt.Sprintf("div-%d", i), Type: "dividend", Date: d.Date, Symbol: d.Symbol,
+			Key: fmt.Sprintf("div-%d", i), Type: transaction.TypeDividend, Date: d.Date, Symbol: d.Symbol,
 			Amount: &d.Gross, Fee: &d.Tax, Currency: d.Currency, Market: d.Market,
 		}
 		in, err := h.resolveInstrument(ctx, s, learnedFor(d.Symbol), &row)
