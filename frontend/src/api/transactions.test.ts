@@ -1,5 +1,5 @@
 import { createElement, type ReactNode } from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, QueryObserver } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -19,6 +19,34 @@ describe('invalidatePortfolio', () => {
     const spy = vi.spyOn(queryClient, 'invalidateQueries')
     await invalidatePortfolio(queryClient, 1)
     expect(spy).toHaveBeenCalledWith({ queryKey: ['portfolios'], exact: true })
+  })
+
+  // A key added later under the portfolio's prefix must not need its own line
+  // here; another portfolio's and the all scope's keys stay as they are.
+  it('refetches every query under the portfolio prefix and no other', async () => {
+    const queryClient = new QueryClient()
+    const fetched: Record<string, number> = {}
+    const keys = {
+      listed: ['portfolios', 1, 'summary'],
+      unlisted: ['portfolios', 1, 'some-new-key'],
+      other: ['portfolios', 2, 'summary'],
+      all: ['portfolios', 'all', 'summary'],
+    }
+    for (const [name, queryKey] of Object.entries(keys)) {
+      queryClient.setQueryData(queryKey, 'stale')
+      const observer = new QueryObserver(queryClient, {
+        queryKey,
+        queryFn: async () => {
+          fetched[name] = (fetched[name] ?? 0) + 1
+          return 'fresh'
+        },
+        staleTime: Infinity,
+        refetchOnMount: false,
+      })
+      observer.subscribe(() => {})
+    }
+    await invalidatePortfolio(queryClient, 1)
+    expect(fetched).toEqual({ listed: 1, unlisted: 1 })
   })
 
   it('invalidatePortfolios marks every portfolios query stale', async () => {
