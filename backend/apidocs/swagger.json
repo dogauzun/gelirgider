@@ -4149,7 +4149,7 @@
                     "type": "string"
                 },
                 "day_change": {
-                    "description": "quantity × (last_price − prev_close), in the position's currency.",
+                    "description": "The move of the position as held at the end of price_date, in the\nposition's currency: shares bought or sold on price_date move from their\nown trade price, and trades dated after it are ignored.",
                     "type": "string"
                 },
                 "day_change_reporting": {

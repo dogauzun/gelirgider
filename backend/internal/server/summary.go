@@ -61,7 +61,9 @@ type positionResponse struct {
 	PrevClose *string `json:"prev_close"`
 	// The date of prev_close.
 	PrevPriceDate *string `json:"prev_price_date"`
-	// quantity × (last_price − prev_close), in the position's currency.
+	// The move of the position as held at the end of price_date, in the
+	// position's currency: shares bought or sold on price_date move from their
+	// own trade price, and trades dated after it are ignored.
 	DayChange *string `json:"day_change"`
 	// day_change in the reporting currency; also null without a rate.
 	DayChangeReporting *string `json:"day_change_reporting"`

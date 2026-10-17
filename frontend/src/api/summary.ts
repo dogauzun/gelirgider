@@ -19,8 +19,10 @@ export interface Position {
   price_source: string | null
   price_date: string | null
   // The latest close before price_date and its date, and the move between
-  // the two: quantity × (last_price − prev_close) in the position's currency,
-  // then in the reporting currency (null there too without a rate). All null
+  // the two: the move of the position as held at the end of price_date, with
+  // shares bought or sold on price_date moving from their own trade price and
+  // later trades ignored, in the position's currency, then in the reporting
+  // currency (null there too without a rate). All null
   // when either price is missing or the position is closed.
   prev_close: string | null
   prev_price_date: string | null
