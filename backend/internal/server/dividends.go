@@ -28,12 +28,13 @@ var stopajRate = map[string]decimal.Decimal{
 }
 
 // registerDividendRoutes wires GET /api/portfolios/{id}/dividends/expected,
-// POST .../expected/dismiss and GET .../dividends/timeline. It lives in
+// POST .../expected/dismiss, GET .../dividends/upcoming and GET .../dividends/timeline. It lives in
 // server for the same import-cycle reason as the summary route.
 func registerDividendRoutes(mux *http.ServeMux, d *deps) {
 	h := &dividendHandler{d}
 	mux.HandleFunc("GET /api/portfolios/{id}/dividends/expected", h.expected)
 	mux.HandleFunc("POST /api/portfolios/{id}/dividends/expected/dismiss", h.dismiss)
+	mux.HandleFunc("GET /api/portfolios/{id}/dividends/upcoming", h.upcoming)
 	mux.HandleFunc("GET /api/portfolios/{id}/dividends/timeline", h.timeline)
 }
 
@@ -69,7 +70,44 @@ func (h *dividendHandler) expected(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	dismissed, err := h.dividends.Dismissed(r.Context(), userID, portfolioID)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	today := price.Today()
+	h.writeSuggestions(w, r, userID, portfolioID, func(rows []transaction.Transaction, divs []dividend.Dividend) ([]dividend.Suggestion, error) {
+		return dividend.Expected(rows, divs, dismissed, today)
+	})
+}
 
+// upcoming answers the dividends whose ex-date is still ahead, for the
+// quantity held now.
+//
+//	@Summary	List upcoming dividends
+//	@Description	Stored ex-dates after today for the quantity the portfolio holds now, soonest first; none when it holds none. Not matched against recorded dividends and not dismissable: those apply only after the ex-date. Stopaj is pre-filled per market like the expected list. The all scope is not supported.
+//	@Tags		dividends
+//	@Produce	json
+//	@Param		id	path	int	true	"portfolio id"
+//	@Success	200	{array}		server.expectedDividendResponse
+//	@Failure	404	{object}	object{error=string}	"portfolio not found"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/portfolios/{id}/dividends/upcoming [get]
+func (h *dividendHandler) upcoming(w http.ResponseWriter, r *http.Request) {
+	userID, portfolioID, ok := portfolio.Owned(w, r, h.portfolios)
+	if !ok {
+		return
+	}
+	today := price.Today()
+	h.writeSuggestions(w, r, userID, portfolioID, func(rows []transaction.Transaction, divs []dividend.Dividend) ([]dividend.Suggestion, error) {
+		return dividend.Upcoming(rows, divs, today), nil
+	})
+}
+
+// writeSuggestions loads the portfolio's rows and dividends, runs suggest on
+// each instrument and writes the results with stopaj and net, by date then
+// instrument id. expected and upcoming share it so their rows do not drift.
+func (h *dividendHandler) writeSuggestions(w http.ResponseWriter, r *http.Request, userID, portfolioID int64, suggest func([]transaction.Transaction, []dividend.Dividend) ([]dividend.Suggestion, error)) {
 	txs, err := h.transactions.List(r.Context(), userID, portfolioID)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
@@ -87,11 +125,6 @@ func (h *dividendHandler) expected(w http.ResponseWriter, r *http.Request) {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	dismissed, err := h.dividends.Dismissed(r.Context(), userID, portfolioID)
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
-		return
-	}
 
 	var withDividends []int64
 	for id := range byInstrument {
@@ -105,16 +138,15 @@ func (h *dividendHandler) expected(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	today := price.Today()
 	out := []expectedDividendResponse{}
 	for id, rows := range byInstrument {
-		expected, err := dividend.Expected(rows, divs[id], dismissed, today)
+		suggestions, err := suggest(rows, divs[id])
 		if err != nil {
 			auth.WriteInternalError(w, r, err)
 			return
 		}
 		instr := instruments[id]
-		for _, e := range expected {
+		for _, e := range suggestions {
 			stopaj := e.Gross.Mul(stopajRate[instr.Market]).Round(2)
 			out = append(out, expectedDividendResponse{
 				InstrumentID: id,

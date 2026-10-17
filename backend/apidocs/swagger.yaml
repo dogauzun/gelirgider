@@ -2981,6 +2981,44 @@ paths:
       summary: Dividend timeline
       tags:
       - dividends
+  /portfolios/{id}/dividends/upcoming:
+    get:
+      description: 'Stored ex-dates after today for the quantity the portfolio holds
+        now, soonest first; none when it holds none. Not matched against recorded
+        dividends and not dismissable: those apply only after the ex-date. Stopaj
+        is pre-filled per market like the expected list. The all scope is not supported.'
+      parameters:
+      - description: portfolio id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/server.expectedDividendResponse'
+            type: array
+        "404":
+          description: portfolio not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: List upcoming dividends
+      tags:
+      - dividends
   /portfolios/{id}/history:
     get:
       description: One point per day from `from` to `to`, in the reporting currency.
