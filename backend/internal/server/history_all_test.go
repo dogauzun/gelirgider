@@ -178,7 +178,13 @@ func seedHistoryAll(tb testing.TB) (http.Handler, string) {
 
 func getHistoryBody(tb testing.TB, handler http.Handler, session, query string) []byte {
 	tb.Helper()
-	r := httptest.NewRequest(http.MethodGet, "/api/portfolios/all/history?"+query, nil)
+	return getBody(tb, handler, session, "/api/portfolios/all/history?"+query)
+}
+
+// getBody GETs path with the session cookie and returns the body of a 200.
+func getBody(tb testing.TB, handler http.Handler, session, path string) []byte {
+	tb.Helper()
+	r := httptest.NewRequest(http.MethodGet, path, nil)
 	r.AddCookie(&http.Cookie{Name: "session", Value: session})
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, r)
