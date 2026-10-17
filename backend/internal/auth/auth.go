@@ -100,8 +100,15 @@ func (r *Repo) GetSession(ctx context.Context, id string) (int64, error) {
 
 // DeleteSession removes a session. Deleting an unknown id is not an error.
 func (r *Repo) DeleteSession(ctx context.Context, id string) error {
-	if _, err := r.db.ExecContext(ctx, "DELETE FROM sessions WHERE id = ?", hashToken(id)); err != nil {
-		return fmt.Errorf("delete session: %w", err)
+	return r.deleteByToken(ctx, "session", "DELETE FROM sessions WHERE id = ?", id)
+}
+
+// deleteByToken runs query, a DELETE with one placeholder for the hash of
+// token. Deleting an unknown token is not an error; what names the row in the
+// error message.
+func (r *Repo) deleteByToken(ctx context.Context, what, query, token string) error {
+	if _, err := r.db.ExecContext(ctx, query, hashToken(token)); err != nil {
+		return fmt.Errorf("delete %s: %w", what, err)
 	}
 	return nil
 }

@@ -1276,7 +1276,7 @@
         },
         "/auth/login": {
             "post": {
-                "description": "Checks email and password and sets the `session` cookie. The locale field is ignored. Rate-limited per client IP, 10 per minute.",
+                "description": "Checks email and password. Without two-factor it sets the `session` cookie and answers with the user. With two-factor on it sets no cookie and answers 200 with {\"totp_required\": true, \"token\": \"...\"} (the token is valid 5 minutes) instead of the user: send the token and a code to /auth/login/totp. A user whose recent tokens already hold 10 code checks gets 429, even with the right password. The locale field is ignored. Rate-limited per client IP, 10 per minute.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1295,6 +1295,101 @@
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/auth.credentials"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the user; or {totp_required, token} when two-factor is on",
+                        "schema": {
+                            "$ref": "#/definitions/auth.userResponse"
+                        },
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "session=\u003cid\u003e; Path=/; Expires=\u003c30 days\u003e; HttpOnly; SameSite=Lax; Secure when COOKIE_SECURE=true; set only when two-factor is off"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "invalid email or password",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "setup_required",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "too many requests",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login/totp": {
+            "post": {
+                "description": "Trades the token login returned for a session, given the current 6-digit code, and sets the `session` cookie. A token allows 5 code checks and lives 5 minutes; an unknown, expired or used-up token, and one whose user turned two-factor off since, all answer 401 login expired. A code at or below the last accepted step is a replay and answers 401 invalid code. Rate-limited per client IP, 10 per minute.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Sign in, second step",
+                "parameters": [
+                    {
+                        "description": "token from login and 6-digit code from the authenticator",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.loginTOTPRequest"
                         }
                     }
                 ],
@@ -1323,7 +1418,7 @@
                         }
                     },
                     "401": {
-                        "description": "invalid email or password",
+                        "description": "login expired; invalid code",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -3841,6 +3936,17 @@
                     "type": "string"
                 },
                 "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "auth.loginTOTPRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "token": {
                     "type": "string"
                 }
             }
