@@ -33,7 +33,8 @@ touches it from the host runs as root, shown with `sudo`.
    a second `SECRET_KEY` line, and do not generate a new key on a host that
    already has one: a new key works like a lost one, below. Compose and the
    backend refuse to start without it. It encrypts the provider API keys
-   (Finnhub, Tiingo and TCMB EVDS) in the database, and nothing else. Keep a
+   (Finnhub, Tiingo and TCMB EVDS) and the users' two-step login secrets in the
+   database, and nothing else. Keep a
    copy off the host, next to the backups. To keep the key out of the
    environment, store it in a file instead, mount it as a Docker secret and
    set `SECRET_KEY_FILE` to its path; the commented example in
@@ -61,6 +62,14 @@ keys are entered again there. To recover, generate a new key as above, put
 it in the `SECRET_KEY=` line (or the secret file `SECRET_KEY_FILE` names),
 restart the backend, and enter the three
 provider keys again.
+
+The key also seals each user's two-step login (TOTP) secret
+([ADR 0025](../docs/adr/0025-two-step-login.md)). With a different key those
+secrets cannot be read, and every user who turned two-step login on is locked
+out of login, with no fallback to the password alone, until an admin or the
+operator resets that user's password (Yönetim / Administration or
+`-set-password`, §9), which also turns two-step login off. Those users then
+enrol again. Users without two-step login are not affected.
 
 ## 2. First deploy
 
