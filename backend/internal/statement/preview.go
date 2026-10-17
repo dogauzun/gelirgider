@@ -177,96 +177,22 @@ func (h *handler) parse(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.MultipartForm.RemoveAll()
 
-	broker := r.FormValue("broker")
-	// auto: the PDF parser that accepts the file picks the broker.
-	auto := broker == "auto"
-	if _, ok := Parsers[broker]; !ok && !auto {
-		auth.WriteError(w, http.StatusBadRequest, "broker: unknown broker")
-		return
-	}
-	portfolioID, err := strconv.ParseInt(r.FormValue("portfolio_id"), 10, 64)
-	if err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "portfolio_id: must be a number")
-		return
-	}
-	if _, err := h.portfolios.Get(r.Context(), userID, portfolioID); err != nil {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
-		return
-	}
-	// The instruments the user picked in this preview so far, resolved for
-	// this request only; the commit stores them.
-	picks, ok := h.formAliases(w, r, "picks")
+	form, ok := h.readParseForm(w, r, userID)
 	if !ok {
 		return
 	}
-	// The fund names the other statements of the user's batch print, used
-	// like learned names for this request only: a fund renamed on TEFAS is
-	// named in an early statement only by its old name, which a later
-	// statement prints next to its code.
-	batchIns, ok := h.formAliases(w, r, "names")
-	if !ok {
-		return
-	}
-	batch := make(map[string]int64, len(batchIns))
-	for name, in := range batchIns {
-		batch[name] = in.ID
-	}
-
-	isCSV := broker == "csv"
-	data, sha, ok := h.readUpload(w, r, userID, isCSV)
-	if !ok {
-		return
-	}
-	broker, st, ok := parseUpload(w, r, data, broker)
-	if !ok {
-		return
-	}
+	broker := form.broker
 
 	req := requester{client: ratelimit.ClientIP(r), userID: userID, broker: broker}
-	preview, err := h.previewRows(r.Context(), req, picks, batch, st)
+	preview, txs, warnings, err := h.checkedRows(r.Context(), req, form)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	// A CSV prints no period, so it spans its rows' dates, error rows
-	// included since the user may fix one in the preview.
-	onlyErrors := isCSV
-	if isCSV {
-		for _, row := range preview {
-			onlyErrors = onlyErrors && row.Status == statusError
-		}
-		st.PeriodStart, st.PeriodEnd = csvPeriod(func(yield func(string) bool) {
-			for _, row := range preview {
-				if !yield(row.Date) {
-					return
-				}
-			}
-		})
-	}
-	// One scan of the portfolio's transactions per preview, for the
-	// duplicate check, the openings and the reconciliation.
-	txs, err := h.transactions.List(r.Context(), userID, portfolioID)
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
-		return
-	}
-	if err := flagDuplicates(txs, preview); err != nil {
-		auth.WriteInternalError(w, r, err)
-		return
-	}
-	warnings, err := h.overlapWarnings(r.Context(), userID, portfolioID, broker, st)
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
-		return
-	}
-	// A CSV of error rows alone has no period when none of them has a date
-	// the commit accepts. Its rows already say what is wrong, and the
-	// warning would only name the internal field.
-	if err := checkPeriod(broker, st.PeriodStart, st.PeriodEnd); err != nil && !onlyErrors {
-		warnings = append(warnings, warning{Code: "period", Message: err.Error(), PeriodStart: st.PeriodStart, PeriodEnd: st.PeriodEnd})
-	}
+	// checkedRows may have set a CSV's period.
+	st := form.st
 	// After previewRows, which may add a TEFAS fund a trade names.
-	holdIns, err := h.holdingInstruments(r.Context(), userID, broker, picks, st)
+	holdIns, err := h.holdingInstruments(r.Context(), userID, broker, form.picks, st)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
@@ -281,6 +207,133 @@ func (h *handler) parse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logParsed(broker, form.portfolioID, preview)
+	holdings, names := holdingsAndNames(st, holdIns)
+	auth.WriteJSON(w, http.StatusOK, previewResponse{
+		Broker:             broker,
+		SHA256:             form.sha,
+		PeriodStart:        st.PeriodStart,
+		PeriodEnd:          st.PeriodEnd,
+		Currency:           st.Currency,
+		Warnings:           warnings,
+		Rows:               preview,
+		Holdings:           holdings,
+		Reconciliation:     reconciliation,
+		CashReconciliation: cash,
+		Names:              names,
+	})
+}
+
+// parseForm is what parse reads off the upload: the form's fields, the file's
+// SHA-256 and the statement its broker's parser read.
+type parseForm struct {
+	broker      string // the one that parsed the file, also for broker auto
+	isCSV       bool
+	portfolioID int64
+	picks       map[string]instrument.Instrument
+	batch       map[string]int64
+	sha         string
+	st          Statement
+}
+
+// readParseForm reads the parse request's form, checks the portfolio and
+// parses the uploaded file. ok is false once it has written the error.
+func (h *handler) readParseForm(w http.ResponseWriter, r *http.Request, userID int64) (*parseForm, bool) {
+	broker := r.FormValue("broker")
+	// auto: the PDF parser that accepts the file picks the broker.
+	if _, ok := Parsers[broker]; !ok && broker != "auto" {
+		auth.WriteError(w, http.StatusBadRequest, "broker: unknown broker")
+		return nil, false
+	}
+	portfolioID, err := strconv.ParseInt(r.FormValue("portfolio_id"), 10, 64)
+	if err != nil {
+		auth.WriteError(w, http.StatusBadRequest, "portfolio_id: must be a number")
+		return nil, false
+	}
+	if _, err := h.portfolios.Get(r.Context(), userID, portfolioID); err != nil {
+		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
+		return nil, false
+	}
+	// The instruments the user picked in this preview so far, resolved for
+	// this request only; the commit stores them.
+	picks, ok := h.formAliases(w, r, "picks")
+	if !ok {
+		return nil, false
+	}
+	// The fund names the other statements of the user's batch print, used
+	// like learned names for this request only: a fund renamed on TEFAS is
+	// named in an early statement only by its old name, which a later
+	// statement prints next to its code.
+	batchIns, ok := h.formAliases(w, r, "names")
+	if !ok {
+		return nil, false
+	}
+	batch := make(map[string]int64, len(batchIns))
+	for name, in := range batchIns {
+		batch[name] = in.ID
+	}
+
+	isCSV := broker == "csv"
+	data, sha, ok := h.readUpload(w, r, userID, isCSV)
+	if !ok {
+		return nil, false
+	}
+	broker, st, ok := parseUpload(w, r, data, broker)
+	if !ok {
+		return nil, false
+	}
+	return &parseForm{broker: broker, isCSV: isCSV, portfolioID: portfolioID, picks: picks, batch: batch, sha: sha, st: st}, true
+}
+
+// checkedRows builds the preview's rows and checks them against the
+// portfolio: it sets a CSV's period from the rows, flags the duplicates of
+// the portfolio's transactions (also returned, one scan per preview) and
+// collects the period warnings.
+func (h *handler) checkedRows(ctx context.Context, req requester, form *parseForm) (preview []previewRow, txs []transaction.Transaction, warnings []warning, err error) {
+	st := &form.st
+	preview, err = h.previewRows(ctx, req, form.picks, form.batch, *st)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	// A CSV prints no period, so it spans its rows' dates, error rows
+	// included since the user may fix one in the preview.
+	onlyErrors := form.isCSV
+	if form.isCSV {
+		for _, row := range preview {
+			onlyErrors = onlyErrors && row.Status == statusError
+		}
+		st.PeriodStart, st.PeriodEnd = csvPeriod(func(yield func(string) bool) {
+			for _, row := range preview {
+				if !yield(row.Date) {
+					return
+				}
+			}
+		})
+	}
+	// One scan of the portfolio's transactions per preview, for the
+	// duplicate check, the openings and the reconciliation.
+	txs, err = h.transactions.List(ctx, req.userID, form.portfolioID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if err := flagDuplicates(txs, preview); err != nil {
+		return nil, nil, nil, err
+	}
+	warnings, err = h.overlapWarnings(ctx, req.userID, form.portfolioID, form.broker, *st)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	// A CSV of error rows alone has no period when none of them has a date
+	// the commit accepts. Its rows already say what is wrong, and the
+	// warning would only name the internal field.
+	if err := checkPeriod(form.broker, st.PeriodStart, st.PeriodEnd); err != nil && !onlyErrors {
+		warnings = append(warnings, warning{Code: "period", Message: err.Error(), PeriodStart: st.PeriodStart, PeriodEnd: st.PeriodEnd})
+	}
+	return preview, txs, warnings, nil
+}
+
+// logParsed logs the row counts of a parsed statement per status.
+func logParsed(broker string, portfolioID int64, preview []previewRow) {
 	counts := map[string]int{}
 	for _, row := range preview {
 		counts[row.Status]++
@@ -293,7 +346,11 @@ func (h *handler) parse(w http.ResponseWriter, r *http.Request) {
 		statusSkipped, counts[statusSkipped],
 		statusError, counts[statusError],
 	)
+}
 
+// holdingsAndNames is the response's holdings and the fund names the
+// balances printed.
+func holdingsAndNames(st Statement, holdIns []instrument.Instrument) ([]holdingResponse, []aliasRequest) {
 	// Each name once, in the statement's order; 0 tells the commit to forget
 	// a name learned earlier (see statementNames).
 	printed := statementNames(st, holdIns)
@@ -311,19 +368,7 @@ func (h *handler) parse(w http.ResponseWriter, r *http.Request) {
 			Currency: hold.Currency,
 		}
 	}
-	auth.WriteJSON(w, http.StatusOK, previewResponse{
-		Broker:             broker,
-		SHA256:             sha,
-		PeriodStart:        st.PeriodStart,
-		PeriodEnd:          st.PeriodEnd,
-		Currency:           st.Currency,
-		Warnings:           warnings,
-		Rows:               preview,
-		Holdings:           holdings,
-		Reconciliation:     reconciliation,
-		CashReconciliation: cash,
-		Names:              names,
-	})
+	return holdings, names
 }
 
 // readUpload reads the form's file, checks it is a CSV for broker csv and a
@@ -581,27 +626,7 @@ func maskCells(cells []string) []string {
 // moved to its split's ex-date pairs on the date it is stored on.
 func flagDuplicates(txs []transaction.Transaction, preview []previewRow) error {
 	// Both lists are date-ascending: txs by List, preview by sortByDate.
-	// Hand-entered dividends of an instrument, for the window.
-	dividends := map[int64][]string{}
-	// Exact-date candidates, keyed by type, date and instrument (0 for a
-	// cash row); a match is removed so it cannot pair twice.
-	type exactKey struct {
-		typ, date    string
-		instrumentID int64
-	}
-	exact := map[exactKey][]transaction.Transaction{}
-	for _, t := range txs {
-		if t.Type == transaction.TypeDividend && t.InstrumentID != nil && t.ImportID == nil {
-			dividends[*t.InstrumentID] = append(dividends[*t.InstrumentID], t.Date)
-			continue
-		}
-		var id int64
-		if t.InstrumentID != nil {
-			id = *t.InstrumentID
-		}
-		k := exactKey{t.Type, t.StoredDate(), id}
-		exact[k] = append(exact[k], t)
-	}
+	dividends, exact := indexExisting(txs)
 
 	rowsOf := map[int64][]int{}
 	for i, row := range preview {
@@ -617,28 +642,67 @@ func flagDuplicates(txs []transaction.Transaction, preview []previewRow) error {
 			}
 			id = *row.InstrumentID
 		}
-		k := exactKey{row.Type, row.Date, id}
-		candidates := exact[k]
-		for j, t := range candidates {
-			var same bool
-			if trade {
-				same = t.Quantity.Equal(orZero(row.Quantity))
-			} else {
-				// The key's instrument already tells a cash row from an
-				// imported dividend of an instrument.
-				same = t.Currency == row.Currency && t.Amount.Equal(orZero(row.Amount))
-			}
-			if same {
-				preview[i].DuplicateOf = t.StoredDate()
-				exact[k] = append(candidates[:j:j], candidates[j+1:]...)
-				break
-			}
-		}
+		pairExact(exact, exactKey{row.Type, row.Date, id}, trade, &preview[i])
 		if instrumentDividend && preview[i].DuplicateOf == "" {
 			rowsOf[id] = append(rowsOf[id], i)
 		}
 	}
+	return pairWindow(preview, rowsOf, dividends)
+}
 
+// exactKey keys the exact-date candidates by type, date and instrument (0
+// for a cash row).
+type exactKey struct {
+	typ, date    string
+	instrumentID int64
+}
+
+// indexExisting splits txs into the hand-entered dividends of an instrument,
+// for the window, and the exact-date candidates; a match is removed from the
+// latter so it cannot pair twice.
+func indexExisting(txs []transaction.Transaction) (dividends map[int64][]string, exact map[exactKey][]transaction.Transaction) {
+	dividends = map[int64][]string{}
+	exact = map[exactKey][]transaction.Transaction{}
+	for _, t := range txs {
+		if t.Type == transaction.TypeDividend && t.InstrumentID != nil && t.ImportID == nil {
+			dividends[*t.InstrumentID] = append(dividends[*t.InstrumentID], t.Date)
+			continue
+		}
+		var id int64
+		if t.InstrumentID != nil {
+			id = *t.InstrumentID
+		}
+		k := exactKey{t.Type, t.StoredDate(), id}
+		exact[k] = append(exact[k], t)
+	}
+	return dividends, exact
+}
+
+// pairExact sets row's DuplicateOf to the first earlier transaction under k
+// that it matches, and removes that transaction from exact.
+func pairExact(exact map[exactKey][]transaction.Transaction, k exactKey, trade bool, row *previewRow) {
+	candidates := exact[k]
+	for j, t := range candidates {
+		var same bool
+		if trade {
+			same = t.Quantity.Equal(orZero(row.Quantity))
+		} else {
+			// The key's instrument already tells a cash row from an
+			// imported dividend of an instrument.
+			same = t.Currency == row.Currency && t.Amount.Equal(orZero(row.Amount))
+		}
+		if same {
+			row.DuplicateOf = t.StoredDate()
+			exact[k] = append(candidates[:j:j], candidates[j+1:]...)
+			return
+		}
+	}
+}
+
+// pairWindow pairs the dividend rows of each instrument that pairExact found no
+// exact match for (rowsOf: their indexes in preview) with its hand-entered
+// dividends through the window.
+func pairWindow(preview []previewRow, rowsOf map[int64][]int, dividends map[int64][]string) error {
 	for id, idx := range rowsOf {
 		if len(dividends[id]) == 0 {
 			continue
