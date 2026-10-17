@@ -34,7 +34,11 @@ touches it from the host runs as root, shown with `sudo`.
    already has one: a new key works like a lost one, below. Compose and the
    backend refuse to start without it. It encrypts the provider API keys
    (Finnhub, Tiingo and TCMB EVDS) in the database, and nothing else. Keep a
-   copy off the host, next to the backups.
+   copy off the host, next to the backups. To keep the key out of the
+   environment, store it in a file instead, mount it as a Docker secret and
+   set `SECRET_KEY_FILE` to its path; the commented example in
+   `deploy/compose.yml` shows how, including the `SECRET_KEY` guard to
+   remove there. `SECRET_KEY` wins when both are set.
 5. Make the env file and the data directory private. The backend runs as
    the distroless `nonroot` user, uid and gid 65532, and must own
    `deploy/data`; the database and its backups hold password hashes and
@@ -54,7 +58,8 @@ it. Only the stored provider API keys do. With a different key the backend
 starts normally, the provider rows in Yönetim / Administration show that the
 stored key cannot be read, and the US and BIST 100 fetches fail until the
 keys are entered again there. To recover, generate a new key as above, put
-it in the `SECRET_KEY=` line, restart the backend, and enter the three
+it in the `SECRET_KEY=` line (or the secret file `SECRET_KEY_FILE` names),
+restart the backend, and enter the three
 provider keys again.
 
 ## 2. First deploy
@@ -260,7 +265,7 @@ in the background: the HTTP server starts listening immediately.
 within a minute of the first start. The backend binary also has one-shot
 flags that do a single job and exit without starting a server:
 
-| Flag                                        | What it does before it exits                                                                                                                                | Needs `SECRET_KEY`                           |
+| Flag                                        | What it does before it exits                                                                                                                                | Needs `SECRET_KEY` or `SECRET_KEY_FILE`      |
 | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
 | `-fetch SOURCE`                             | Runs one scheduler source for `-date` as if the scheduler fired it: `bist`, `bist-splits`, `tcmb`, `us`, `crypto`, `tefas`, `tufe`, `xu100` or `gold`.      | Only `us` and `xu100`                        |
 | `-date YYYY-MM-DD`                          | The date `-fetch` runs for; default today in Europe/Istanbul. `us` and `tufe` ignore it (Finnhub serves only the latest close, TÜİK one whole history).     | No                                           |
@@ -270,10 +275,13 @@ flags that do a single job and exit without starting a server:
 | `-set-password EMAIL`                       | Sets a user's password, read from stdin, see §9.                                                                                                            | No                                           |
 | `-backup PATH`                              | Writes a consistent copy of the database to `PATH` with `VACUUM INTO` and prints the path and its size in bytes. `deploy/backup.sh` runs it, see §4.        | No                                           |
 
-"Needs `SECRET_KEY`" means the flag exits with an error unless `SECRET_KEY`
-is base64 of 32 bytes; the server itself needs it too. The difference
-matters for a local `go run`: under Docker Compose, every `docker compose`
-command already refuses to run while `SECRET_KEY` is empty in `deploy/.env`.
+"Needs `SECRET_KEY` or `SECRET_KEY_FILE`" means the flag exits with an error
+unless `SECRET_KEY`, or the file `SECRET_KEY_FILE` names, holds base64 of 32
+bytes; the server itself needs it too. A `SECRET_KEY_FILE` that cannot be
+read is reported with its path. The difference matters for a local
+`go run`: under Docker Compose, every `docker compose` command already
+refuses to run while `SECRET_KEY` is empty in `deploy/.env`, unless the
+compose file uses `SECRET_KEY_FILE` instead.
 
 `-fetch` runs the same code as the source's schedule and its Run now button
 in Yönetim / Administration, with the same outcomes: `us` logs a failed
@@ -295,8 +303,8 @@ cd backend && go run ./cmd/server -fetch bist -date 2026-09-14
 cd backend && go run ./cmd/server -backfill-prices
 ```
 
-`-backfill-prices` fetches US prices only with a valid `SECRET_KEY` (the
-provider keys are encrypted with it); without a valid `SECRET_KEY`, it logs
+`-backfill-prices` fetches US prices only with a valid `SECRET_KEY` or
+`SECRET_KEY_FILE` (the provider keys are encrypted with it); without one, it logs
 that it skipped US and XU100 and backfills every other source. It also skips
 XU100 when no EVDS key is set, and TEFAS unless the `tefas` source is turned
 on in Yönetim / Administration (it is off by default). TÜFE is not part of it: the `tufe` source's

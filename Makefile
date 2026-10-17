@@ -2,8 +2,9 @@
 -include .env
 # The backend refuses to start without SECRET_KEY: generate one into .env the
 # first time a dev target runs, and keep it (it encrypts the provider keys).
+# Skipped when SECRET_KEY_FILE is set: the backend reads the key from that file.
 ifneq ($(filter dev dev-backend,$(MAKECMDGOALS)),)
-ifeq ($(SECRET_KEY),)
+ifeq ($(SECRET_KEY)$(SECRET_KEY_FILE),)
 SECRET_KEY := $(shell k=$$(openssl rand -base64 32) && printf '\nSECRET_KEY=%s\n' "$$k" >> .env && chmod 600 .env && echo "$$k")
 endif
 endif

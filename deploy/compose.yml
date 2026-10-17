@@ -18,6 +18,14 @@ services:
       # Caddy then nginx, each appending to X-Forwarded-For (see nginx.conf).
       TRUSTED_PROXY_HOPS: '2'
       SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in deploy/.env}
+      # To keep the key out of the environment, use a Docker secret instead:
+      # remove the SECRET_KEY line above (its :? guard refuses to start
+      # without the variable), uncomment the next line, the `secrets:` list
+      # below and the top-level `secrets:` block at the end of this file.
+      # The file must be readable by uid 65532, the backend's user.
+      # SECRET_KEY_FILE: /run/secrets/secret_key
+    # secrets:
+    #   - secret_key
     volumes:
       # Owned by uid 65532 (the image's nonroot user), mode 700: see README.md.
       - ./data:/data
@@ -97,3 +105,8 @@ networks:
 volumes:
   caddy-data:
   caddy-config:
+
+# For SECRET_KEY_FILE above: a file holding the key (base64 of 32 bytes).
+# secrets:
+#   secret_key:
+#     file: ./secret_key
