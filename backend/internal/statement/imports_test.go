@@ -426,6 +426,72 @@ func TestForgottenNameFollowsPeriod(t *testing.T) {
 	}
 }
 
+// TestCommitEvictsOldestLearnedNames checks that a commit that takes a user's
+// learned names of a broker over maxLearnedNames evicts the oldest, and
+// touches no pick, no other broker and no other user.
+func TestCommitEvictsOldestLearnedNames(t *testing.T) {
+	repo := openTestDB(t)
+	ctx := context.Background()
+	if _, err := repo.db.Exec(`INSERT INTO instruments (id, symbol, market, name, currency) VALUES (1, 'AAA', 'TEFAS', 'A', 'TRY')`); err != nil {
+		t.Fatalf("seed instrument: %v", err)
+	}
+	tx, err := repo.db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	// A pick older than every learned name, the cap's worth of learned names
+	// from 2020 on, and one learned name for another broker and another user.
+	seed := func(userID int64, broker, symbol string, learned int, createdAt string) {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO import_aliases (user_id, broker, symbol, instrument_id, created_at, learned) VALUES (?, ?, ?, 1, ?, ?)`,
+			userID, broker, symbol, createdAt, learned); err != nil {
+			t.Fatalf("seed alias: %v", err)
+		}
+	}
+	seed(1, "garanti", "PICK", 0, "2019-01-01T00:00:00Z")
+	for i := 0; i < maxLearnedNames; i++ {
+		at := time.Date(2020, 1, 1, 0, 0, i, 0, time.UTC).Format(time.RFC3339)
+		seed(1, "garanti", fmt.Sprintf("N%05d", i), 1, at)
+	}
+	seed(1, "midas", "OTHER BROKER", 1, "2019-01-01T00:00:00Z")
+	seed(2, "garanti", "OTHER USER", 1, "2019-01-01T00:00:00Z")
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit seed: %v", err)
+	}
+
+	n := NewImport{UserID: 1, PortfolioID: 1, Broker: "garanti", Currency: "TRY", PeriodStart: "2026-01-01", PeriodEnd: "2026-01-31", SHA256: "abc"}
+	if _, err := repo.Commit(ctx, n, nil, nil, map[string]int64{"NEW A": 1, "NEW B": 1}); err != nil {
+		t.Fatalf("Commit: %v", err)
+	}
+
+	learned, err := repo.LearnedNames(ctx, 1, "garanti")
+	if err != nil {
+		t.Fatalf("LearnedNames: %v", err)
+	}
+	if len(learned) != maxLearnedNames {
+		t.Errorf("learned names = %d, want %d", len(learned), maxLearnedNames)
+	}
+	for _, name := range []string{"N00000", "N00001"} {
+		if _, ok := learned[name]; ok {
+			t.Errorf("oldest %s kept", name)
+		}
+	}
+	for _, name := range []string{"N00002", fmt.Sprintf("N%05d", maxLearnedNames-1), "NEW A", "NEW B"} {
+		if _, ok := learned[name]; !ok {
+			t.Errorf("%s evicted", name)
+		}
+	}
+	if id, err := repo.Alias(ctx, 1, "garanti", "PICK"); err != nil || id != 1 {
+		t.Errorf("Alias(PICK) = %d, %v; want the pick kept", id, err)
+	}
+	if m, err := repo.LearnedNames(ctx, 1, "midas"); err != nil || len(m) != 1 {
+		t.Errorf("other broker's learned names = %v, %v; want 1", m, err)
+	}
+	if m, err := repo.LearnedNames(ctx, 2, "garanti"); err != nil || len(m) != 1 {
+		t.Errorf("other user's learned names = %v, %v; want 1", m, err)
+	}
+}
+
 // TestLearnedName checks the prefix rule: equal, cut shorter or
 // longer resolves; matches of two instruments or none do not.
 func TestLearnedName(t *testing.T) {
