@@ -52,13 +52,13 @@ var headerAliases = map[string]string{
 
 // typeAliases maps a lower-cased type cell to its row kind.
 var typeAliases = map[string]string{
-	"buy": "buy", "alış": "buy", "alis": "buy", "al": "buy",
-	"sell": "sell", "satış": "sell", "satis": "sell", "sat": "sell",
-	"dividend": "dividend", "temettü": "dividend", "temettu": "dividend",
+	"buy": transaction.TypeBuy, "alış": transaction.TypeBuy, "alis": transaction.TypeBuy, "al": transaction.TypeBuy,
+	"sell": transaction.TypeSell, "satış": transaction.TypeSell, "satis": transaction.TypeSell, "sat": transaction.TypeSell,
+	"dividend": transaction.TypeDividend, "temettü": transaction.TypeDividend, "temettu": transaction.TypeDividend,
 	"interest": "interest", "faiz": "interest", "nema": "interest",
-	"deposit": "deposit", "yatırma": "deposit", "para yatırma": "deposit", "yatirma": "deposit",
-	"withdrawal": "withdrawal", "çekme": "withdrawal", "para çekme": "withdrawal", "cekme": "withdrawal",
-	"fee": "fee", "ücret": "fee", "masraf": "fee",
+	"deposit": transaction.TypeDeposit, "yatırma": transaction.TypeDeposit, "para yatırma": transaction.TypeDeposit, "yatirma": transaction.TypeDeposit,
+	"withdrawal": transaction.TypeWithdrawal, "çekme": transaction.TypeWithdrawal, "para çekme": transaction.TypeWithdrawal, "cekme": transaction.TypeWithdrawal,
+	"fee": transaction.TypeFee, "ücret": transaction.TypeFee, "masraf": transaction.TypeFee,
 }
 
 // marketAliases maps a lower-cased market cell to its market code: the codes
@@ -139,7 +139,7 @@ func parseRow(st *statement.Statement, col map[string]int, row []string, currenc
 		return
 	}
 
-	trade := kind == "buy" || kind == "sell"
+	trade := kind == transaction.TypeBuy || kind == transaction.TypeSell
 	nums := map[string]decimal.Decimal{}
 	longAmount := false
 	for _, f := range []string{"quantity", "price", "amount", "fee"} {
@@ -204,7 +204,7 @@ func parseRow(st *statement.Statement, col map[string]int, row []string, currenc
 			Date: date, Symbol: sym, Side: kind, Quantity: nums["quantity"], Price: nums["price"],
 			Amount: amount, Fee: nums["fee"], Currency: currency, Market: market,
 		})
-	case kind == "dividend" && sym != "":
+	case kind == transaction.TypeDividend && sym != "":
 		if missing("amount") {
 			return
 		}
@@ -217,12 +217,12 @@ func parseRow(st *statement.Statement, col map[string]int, row []string, currenc
 		}
 		// A fee row's amount is the fee; the commit refuses a second fee on
 		// top of it, so the row is flagged here instead of failing there.
-		if kind == "fee" && !nums["fee"].IsZero() {
+		if kind == transaction.TypeFee && !nums["fee"].IsZero() {
 			st.Errors = append(st.Errors, statement.ParseError{Section: "CSV", Row: row, Code: "fee_on_fee", Message: "a fee row cannot carry a fee", Date: date})
 			return
 		}
 		if kind == "interest" {
-			kind = "dividend"
+			kind = transaction.TypeDividend
 		}
 		if currency == "" {
 			currency = "TRY"
