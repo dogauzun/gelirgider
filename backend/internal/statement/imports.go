@@ -11,6 +11,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -95,7 +96,8 @@ type NewImport struct {
 // same statement into this portfolio, and ErrDuplicate, together with the
 // existing import when it is known, when they have already imported the same
 // file into any of their portfolios. A name with instrument 0 forgets a
-// learned name (see LearnNameTx).
+// learned name (see LearnNameTx). Learned names beyond maxLearnedNames per
+// user and broker are evicted, oldest first, in the same transaction.
 func (r *ImportRepo) Commit(ctx context.Context, n NewImport, ts []transaction.Transaction, aliases, names map[string]int64) (Import, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -123,10 +125,38 @@ func (r *ImportRepo) Commit(ctx context.Context, n NewImport, ts []transaction.T
 			return Import{}, err
 		}
 	}
+	// A bound on a growing table must never turn a good statement into a
+	// failed import, so a failed eviction is logged and the commit goes on.
+	if len(names) > 0 {
+		if err := evictLearnedNames(ctx, tx, n.UserID, n.Broker); err != nil {
+			slog.Default().Warn("evict learned names failed", "user_id", n.UserID, "broker", n.Broker, "error", err.Error())
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return Import{}, fmt.Errorf("commit transaction: %w", err)
 	}
 	return imp, nil
+}
+
+// maxLearnedNames is how many learned names (import_aliases rows with
+// learned = 1) one user keeps per broker. A commit that goes over it evicts
+// the oldest by created_at; picks are never counted or evicted.
+const maxLearnedNames = 10000
+
+// evictLearnedNames deletes, inside tx, the learned names of userID and
+// broker beyond the newest maxLearnedNames, ordered by created_at and then by
+// id.
+func evictLearnedNames(ctx context.Context, tx *sql.Tx, userID int64, broker string) error {
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM import_aliases
+		 WHERE user_id = ? AND broker = ? AND learned = 1
+		   AND id NOT IN (SELECT id FROM import_aliases WHERE user_id = ? AND broker = ? AND learned = 1
+		                  ORDER BY created_at DESC, id DESC LIMIT ?)`,
+		userID, broker, userID, broker, maxLearnedNames,
+	); err != nil {
+		return fmt.Errorf("evict learned names: %w", err)
+	}
+	return nil
 }
 
 func create(ctx context.Context, q querier, n NewImport) (Import, error) {

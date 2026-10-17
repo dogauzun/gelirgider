@@ -117,7 +117,9 @@ The user's pick for a printed symbol or fund name is stored per user and
 broker and resolves later previews; a real match always wins over a pick.
 Names the user's committed statements printed for a fund are learned too,
 so a renamed fund still resolves, a pick wins over a learned name and a name
-that matches two funds stays unknown.
+that matches two funds stays unknown. A user keeps at most 10,000 learned
+names per broker: a commit that goes over evicts the oldest by creation time
+in its own transaction, never fails because of it, and never touches a pick.
 
 ### Idempotency and undo
 
