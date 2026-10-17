@@ -9,6 +9,7 @@ import { usePortfolioSummary } from '../api/summary'
 import { BarChart } from '../components/LazyChart'
 import { ExpectedDividends } from '../components/ExpectedDividends'
 import { PortfolioHeader } from '../components/PortfolioHeader'
+import { UpcomingDividends } from '../components/UpcomingDividends'
 import { TransactionDialog } from '../components/TransactionDialog'
 import { emptyForm } from '../components/transactionForm'
 import { Button } from '../components/ui/Button'
@@ -288,6 +289,9 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
         )}
         {/* The one thing here that asks for an action leads. */}
         <ExpectedDividends portfolioId={portfolioId} />
+        {/* Outside body, like the card above: a user with nothing received
+            still sees what is ahead. */}
+        <UpcomingDividends portfolioId={portfolioId} />
         {isLoading && <SkeletonRows label={t('dividends.page.loading')} />}
         {isError && (
           <LoadError

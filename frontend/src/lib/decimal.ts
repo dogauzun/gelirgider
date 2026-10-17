@@ -105,6 +105,12 @@ export function moneyByCurrency(items: { currency: string; amount: string }[]): 
   return [...sums].map(([currency, units]) => formatMoney(unitsToDecimal(units), currency))
 }
 
+// The rows' net total, added exactly per currency: "₺1.264,79", or
+// "₺1.264,79 + $12,34" when BIST and US dividends mix, since the panel has no
+// FX rate to put them in one currency.
+export const netTotal = (rows: { currency: string; net: string }[]) =>
+  moneyByCurrency(rows.map((row) => ({ currency: row.currency, amount: row.net }))).join(' + ')
+
 // a + b and a - b of two API decimal strings, exact: Number() would round a
 // large amount's cents. Scales may differ ("1.5" and "0.25").
 export function addDecimal(a: string, b: string): string {
