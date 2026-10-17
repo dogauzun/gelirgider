@@ -86,6 +86,7 @@ func TrimBoardSuffix(symbol string) string {
 type Close struct {
 	Symbol string
 	Name   string // BULTEN ADI, used when Sync inserts a new instrument
+	Group  string // ENSTRUMAN GRUBU: EQT, ETF or EMS
 	Date   string // YYYY-MM-DD
 	Close  decimal.Decimal
 }
@@ -263,7 +264,8 @@ func (c bulletinCols) parseRow(record []string) (cl Close, ok, skip bool, err er
 	if max(c.date, c.symbol, c.name, c.group, c.close) >= len(record) {
 		return Close{}, false, false, nil // short/blank trailing row
 	}
-	suffix, tracked := wantedGroups[strings.TrimSpace(record[c.group])]
+	group := strings.TrimSpace(record[c.group])
+	suffix, tracked := wantedGroups[group]
 	if !tracked {
 		return Close{}, false, false, nil
 	}
@@ -292,6 +294,7 @@ func (c bulletinCols) parseRow(record []string) (cl Close, ok, skip bool, err er
 	return Close{
 		Symbol: symbol,
 		Name:   strings.TrimSpace(record[c.name]),
+		Group:  group,
 		Date:   date,
 		Close:  closePrice,
 	}, true, false, nil

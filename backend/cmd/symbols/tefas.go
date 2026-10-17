@@ -47,7 +47,7 @@ func runTEFAS() error {
 		}
 		byNameSymbol[symbol] = strings.TrimSpace(f.Name)
 	}
-	return writeCSV(tefasPath, byNameSymbol)
+	return writeCSV(tefasPath, byNameSymbol, nil)
 }
 
 // fund is one entry of the fund list response; period returns are ignored.
