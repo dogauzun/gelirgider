@@ -425,19 +425,20 @@ type splitKey struct {
 	date         string
 }
 
-// bonusTolerance is how far, in shares, the zero-price buys in a split's
+// bonusTolerance is how far, in shares, a zero-price buy in a split's
 // window may be from the shares the split would add and still book it: a
 // broker pays the fraction in cash, so the credit is a whole number.
 var bonusTolerance = decimal.NewFromInt(1)
 
 // bookedSplits returns the splits of txs that the zero-price buys in bonus
 // book. It walks txs in apply order, tracking the held quantity per
-// instrument. A split is booked when the zero-price buys within its window
-// add up to held x (ratio - 1), the shares it would add, give or take
-// bonusTolerance; held leaves out those buys, so a bonus dated before the
-// ex-date is not counted twice. A split whose window buys do not match is
-// kept and scales the position as usual, so a hand-entered gift next to it
-// does not lose it.
+// instrument. A split is booked when one zero-price buy within its window
+// equals held x (ratio - 1), the shares it would add, give or take
+// bonusTolerance. Each buy is matched on its own and held leaves out that
+// buy, so a bonus dated before the ex-date is not counted twice and an
+// unrelated zero-price buy does not hide a genuine bonus. A split whose
+// window buys do not match is kept and scales the position as usual, so a
+// hand-entered gift next to it does not lose it.
 //
 // shortcut: with no position held before the ex-date (a history that starts
 // at the bonus row) there is nothing to match against and the buy books the
@@ -462,21 +463,21 @@ func bookedSplits(txs []Transaction, bonus map[int64][]bonusBuy) (map[splitKey]b
 			if err != nil {
 				return nil, fmt.Errorf("parse split date %q: %w", t.Date, err)
 			}
-			held, got, found := qty[id], decimal.Zero, false
 			for _, b := range bonus[id] {
 				if !within(b.date, ex) {
 					continue
 				}
-				found = true
-				got = got.Add(b.qty)
+				held := qty[id]
 				if b.date.Before(ex) {
 					held = held.Sub(b.qty)
 				}
+				adds := held.Mul(t.Quantity.Sub(decimal.NewFromInt(1)))
+				if !held.IsPositive() || b.qty.Sub(adds).Abs().LessThanOrEqual(bonusTolerance) {
+					booked[splitKey{id, t.Date}] = true
+					break
+				}
 			}
-			adds := held.Mul(t.Quantity.Sub(decimal.NewFromInt(1)))
-			if found && (!held.IsPositive() || got.Sub(adds).Abs().LessThanOrEqual(bonusTolerance)) {
-				booked[splitKey{id, t.Date}] = true
-			} else {
+			if !booked[splitKey{id, t.Date}] {
 				qty[id] = qty[id].Mul(t.Quantity)
 			}
 		}

@@ -526,3 +526,37 @@ func TestDropBookedSplitsMatchesBonusQuantity(t *testing.T) {
 		}
 	}
 }
+
+// TestDropBookedSplitsMatchesEachBuyOnItsOwn checks that a genuine bonus books
+// the split even when an unrelated zero-price buy sits in the same window: a
+// gift of 10 shares 4 days before a 2-for-1 split on 1,000 held, then a bonus
+// of 1,010 (the gift is held too) 3 days after. The gift alone keeps the split.
+func TestDropBookedSplitsMatchesEachBuyOnItsOwn(t *testing.T) {
+	id := int64(1)
+	row := func(typ, date, qty, price string) Transaction {
+		return Transaction{InstrumentID: &id, Type: typ, Date: date,
+			Quantity: decimal.RequireFromString(qty), Price: decimal.RequireFromString(price)}
+	}
+	gift := row(TypeBuy, "2026-07-06", "10", "0")
+	bonus := row(TypeBuy, "2026-07-13", "1010", "0")
+	for _, c := range []struct {
+		name      string
+		buys      []Transaction
+		wantSplit bool
+	}{
+		{"gift and bonus", []Transaction{gift, bonus}, false},
+		{"gift alone", []Transaction{gift}, true},
+	} {
+		txs, err := DropBookedSplits(append([]Transaction{
+			row(TypeBuy, "2026-07-01", "1000", "50"),
+			row(TypeSplit, "2026-07-10", "2", "0"),
+		}, c.buys...))
+		if err != nil {
+			t.Fatalf("%s: DropBookedSplits: %v", c.name, err)
+		}
+		hasSplit := slices.ContainsFunc(txs, func(tx Transaction) bool { return tx.Type == TypeSplit })
+		if hasSplit != c.wantSplit {
+			t.Errorf("%s: split kept = %v, want %v", c.name, hasSplit, c.wantSplit)
+		}
+	}
+}
