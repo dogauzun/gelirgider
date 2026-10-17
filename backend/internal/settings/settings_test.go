@@ -3,6 +3,7 @@ package settings_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -59,6 +60,22 @@ func TestRoundTrip(t *testing.T) {
 	}
 	if _, ok, err := repo.GetSecret(ctx, "finnhub_api_key"); err != nil || ok {
 		t.Fatalf("GetSecret after delete = %v, %v; want false, nil", ok, err)
+	}
+}
+
+// TestSealOpen checks that a sealed value opens only under the AAD it was
+// sealed with.
+func TestSealOpen(t *testing.T) {
+	repo := settings.NewRepo(nil, bytes.Repeat([]byte{1}, 32))
+	sealed, err := repo.Seal("totp:1", "JBSWY3DPEHPK3PXP")
+	if err != nil {
+		t.Fatalf("Seal: %v", err)
+	}
+	if v, err := repo.Open("totp:1", sealed); err != nil || v != "JBSWY3DPEHPK3PXP" {
+		t.Fatalf("Open = %q, %v; want the plaintext", v, err)
+	}
+	if _, err := repo.Open("totp:2", sealed); !errors.Is(err, settings.ErrUndecryptable) {
+		t.Fatalf("Open with other aad err = %v, want ErrUndecryptable", err)
 	}
 }
 

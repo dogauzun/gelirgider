@@ -77,18 +77,13 @@ func (r *Repo) SetSecret(ctx context.Context, key, value string) error {
 		}
 		return nil
 	}
-	gcm, err := r.gcm()
+	// The key name is the additional data, so a ciphertext copied to
+	// another key does not decrypt.
+	sealed, err := r.Seal(key, value)
 	if err != nil {
 		return err
 	}
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err := rand.Read(nonce); err != nil {
-		return fmt.Errorf("nonce: %w", err)
-	}
-	// The key name is the additional data, so a ciphertext copied to
-	// another key does not decrypt.
-	sealed := gcm.Seal(nonce, nonce, []byte(value), []byte(key))
-	return r.Set(ctx, key, base64.StdEncoding.EncodeToString(sealed))
+	return r.Set(ctx, key, sealed)
 }
 
 // GetSecret returns the decrypted value stored under key, and false if there
@@ -99,20 +94,45 @@ func (r *Repo) GetSecret(ctx context.Context, key string) (string, bool, error) 
 	if err != nil || !ok {
 		return "", ok, err
 	}
+	plain, err := r.Open(key, v)
+	if err != nil {
+		return "", false, fmt.Errorf("setting %s: %w", key, err)
+	}
+	return plain, true, nil
+}
+
+// Seal encrypts plaintext with SECRET_KEY and a fresh random nonce, binding
+// aad as the additional data, and returns base64(nonce || ciphertext).
+func (r *Repo) Seal(aad, plaintext string) (string, error) {
 	gcm, err := r.gcm()
 	if err != nil {
-		return "", false, err
+		return "", err
 	}
-	sealed, err := base64.StdEncoding.DecodeString(v)
-	if err != nil || len(sealed) < gcm.NonceSize() {
-		return "", false, fmt.Errorf("setting %s: stored secret is malformed", key)
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := rand.Read(nonce); err != nil {
+		return "", fmt.Errorf("nonce: %w", err)
 	}
-	nonce, ciphertext := sealed[:gcm.NonceSize()], sealed[gcm.NonceSize():]
-	plain, err := gcm.Open(nil, nonce, ciphertext, []byte(key))
+	sealed := gcm.Seal(nonce, nonce, []byte(plaintext), []byte(aad))
+	return base64.StdEncoding.EncodeToString(sealed), nil
+}
+
+// Open reverses Seal. A value that does not decrypt under aad (wrong
+// SECRET_KEY or wrong aad) wraps ErrUndecryptable.
+func (r *Repo) Open(aad, sealed string) (string, error) {
+	gcm, err := r.gcm()
 	if err != nil {
-		return "", false, fmt.Errorf("setting %s: %w", key, ErrUndecryptable)
+		return "", err
 	}
-	return string(plain), true, nil
+	raw, err := base64.StdEncoding.DecodeString(sealed)
+	if err != nil || len(raw) < gcm.NonceSize() {
+		return "", errors.New("stored secret is malformed")
+	}
+	nonce, ciphertext := raw[:gcm.NonceSize()], raw[gcm.NonceSize():]
+	plain, err := gcm.Open(nil, nonce, ciphertext, []byte(aad))
+	if err != nil {
+		return "", ErrUndecryptable
+	}
+	return string(plain), nil
 }
 
 func (r *Repo) gcm() (cipher.AEAD, error) {
