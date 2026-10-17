@@ -51,8 +51,10 @@ never shows it.
   `isyatirim`. The user accepted a broker's HTML page as the source because
   no keyless, robots.txt-clean API with ratios exists. The ratio is
   `1 + (bonus from internal resources + bonus from dividend) / 100`, in
-  Turkish number format. Rows with no bonus part and rows dated after today
-  are skipped. The same fetch also feeds dividends (ADR 0009).
+  Turkish number format. Rows with no bonus part are skipped, and so are
+  bonus issues dated after today, because a split must not apply before its
+  ex-date. The same fetch also feeds dividends, planned ones included (ADR
+  0009).
 - **CRYPTO, TEFAS and GOLD:** never split, no source (GOLD per ADR 0017).
 
 The page keeps only the current calendar year. Its year filter lives under

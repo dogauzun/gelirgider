@@ -20,9 +20,10 @@ import (
 // two bonus rows (YEOTK from both columns, HRKET with a thousands
 // separator), a bonus-plus-cash row (BOTHX), a bonus row for a symbol with
 // no instrument (NOSYM) and a bonus-plus-cash row dated after today
-// (FUTRE). Splits land for YEOTK, HRKET and BOTHX; dividends for CASHD and
-// BOTHX.
-func TestSyncCapitalEventsStoresPastSplitsAndDividendsOfKnownSymbols(t *testing.T) {
+// (FUTRE). Splits land for YEOTK, HRKET and BOTHX, none for FUTRE: a planned
+// split must not apply before its ex-date. Dividends land for CASHD, BOTHX and
+// FUTRE, whose planned dividend is stored ahead of its ex-date.
+func TestSyncCapitalEventsStoresPastSplitsAndAllDividendsOfKnownSymbols(t *testing.T) {
 	page, err := os.ReadFile("testdata/sermaye.html")
 	if err != nil {
 		t.Fatal(err)
@@ -52,8 +53,8 @@ func TestSyncCapitalEventsStoresPastSplitsAndDividendsOfKnownSymbols(t *testing.
 	if err != nil {
 		t.Fatalf("SyncCapitalEvents: %v", err)
 	}
-	if n != 5 {
-		t.Fatalf("SyncCapitalEvents wrote %d, want 5 (3 splits + 2 dividends)", n)
+	if n != 6 {
+		t.Fatalf("SyncCapitalEvents wrote %d, want 6 (3 splits + 3 dividends)", n)
 	}
 
 	wantSplits := map[int64]struct{ date, ratio string }{
@@ -85,6 +86,7 @@ func TestSyncCapitalEventsStoresPastSplitsAndDividendsOfKnownSymbols(t *testing.
 	}
 	wantDivs := map[int64]struct{ date, amount string }{
 		1: {"2026-01-05", "0.1698"},
+		5: {"2026-10-05", "0.5"},
 		6: {"2026-05-15", "10.3799"},
 	}
 	if len(gotDivs) != len(wantDivs) {

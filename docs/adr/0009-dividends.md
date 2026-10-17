@@ -56,7 +56,10 @@ labelled Stopaj / Withholding tax instead of Komisyon / Commission.
   that the bonus-issue fetch already reads (ADR 0008). Gross TRY per share is
   `SHHE_NAKIT_TM_ORAN` / 100, source `isyatirim`, no second request. The same
   robots.txt limit applies: nothing under `/_layouts/`, so the current
-  calendar year only.
+  calendar year only. Rows dated after today are stored too: a planned
+  dividend lands in `dividends` ahead of its ex-date (the bonus part of the
+  same row is still skipped until its ex-date, ADR 0008). `dividend.Expected`
+  stops at today, so nothing suggests a planned dividend before its ex-date.
 - **US:** Tiingo `divCash` on the existing daily-history call, source
   `tiingo`, currency `USD`. The backfill and the daily recent pass both go
   through it, so no new HTTP calls.
@@ -95,6 +98,10 @@ temettüler", lists the expected dividends and is always open.
 - **Stopaj rates are fixed per market.** No per-instrument rate for ETFs or
   funds, and a law change is a code change.
 - **BIST history covers the current calendar year only.**
+- **A cancelled planned dividend stays in the table.** The daily sync
+  upserts what the page lists and deletes nothing; a changed announcement
+  (same instrument and ex-date) is overwritten in place, a withdrawn one is
+  not removed.
 - **The quantity counts every row dated before the ex-date**, including
   splits.
 - **Interest is not in the dividend bars.** The timeline reports it in its
