@@ -74,7 +74,7 @@ the scheduler's retry.
   encrypted admin setting (ADR 0010), and an unset key fails the fetch. The
   close is dated by the quote's own timestamp: after 16:00 New York on that
   date it is that session's close, otherwise the previous close is stored under
-  the earlier weekday.
+  the earlier session (weekends and the NYSE holidays are skipped).
 - **History, splits, dividends**: Tiingo daily prices, one request per symbol
   for any range, unadjusted `close` stored with `source = 'tiingo'`. Its
   robots.txt blocks only `/admin`. The key is an admin setting too, and an unset

@@ -367,6 +367,14 @@ func TestFetchCloseDatesByQuoteTime(t *testing.T) {
 			wantDate:  "2026-09-18",
 			wantClose: "337.5",
 		},
+		{
+			// Good Friday 2026-04-03 was closed: pc is Thursday's close.
+			name:      "Monday after Good Friday during the session",
+			quote:     `{"c":340.1,"pc":337.5,"t":1775489400}`, // Mon 2026-04-06 11:30 NY
+			now:       time.Date(2026, 4, 6, 11, 31, 0, 0, newYork),
+			wantDate:  "2026-04-02",
+			wantClose: "337.5",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -382,6 +390,39 @@ func TestFetchCloseDatesByQuoteTime(t *testing.T) {
 			}
 			if c.Date != tc.wantDate || !c.Close.Equal(decimal.RequireFromString(tc.wantClose)) {
 				t.Fatalf("FetchClose = %s %s, want %s %s", c.Date, c.Close, tc.wantDate, tc.wantClose)
+			}
+		})
+	}
+}
+
+// TestLastSessionSkipsMarketHolidays checks that a run after the close on
+// an NYSE holiday, weekend-shifted or not, gets the session before it, and
+// that a Saturday New Year's Day is not observed on the Friday before.
+func TestLastSessionSkipsMarketHolidays(t *testing.T) {
+	newYork, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		t.Fatalf("load America/New_York: %v", err)
+	}
+	tests := []struct {
+		name string
+		now  time.Time
+		want string
+	}{
+		{"ordinary Tuesday", time.Date(2026, 9, 22, 17, 0, 0, 0, newYork), "2026-09-22"},
+		{"Good Friday", time.Date(2026, 4, 3, 17, 0, 0, 0, newYork), "2026-04-02"},
+		{"Good Friday in March", time.Date(2024, 3, 29, 17, 0, 0, 0, newYork), "2024-03-28"},
+		{"Juneteenth", time.Date(2026, 6, 19, 17, 0, 0, 0, newYork), "2026-06-18"},
+		{"Thanksgiving", time.Date(2026, 11, 26, 17, 0, 0, 0, newYork), "2026-11-25"},
+		{"July 4 on Saturday, observed Friday", time.Date(2026, 7, 3, 17, 0, 0, 0, newYork), "2026-07-02"},
+		{"July 4 on Sunday, observed Monday", time.Date(2027, 7, 5, 17, 0, 0, 0, newYork), "2027-07-02"},
+		{"Christmas on Saturday, observed Friday", time.Date(2021, 12, 24, 17, 0, 0, 0, newYork), "2021-12-23"},
+		{"New Year's Day on Saturday is not observed", time.Date(2021, 12, 31, 17, 0, 0, 0, newYork), "2021-12-31"},
+		{"Memorial Day, before the close", time.Date(2026, 5, 26, 10, 0, 0, 0, newYork), "2026-05-22"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := us.LastSession(tc.now); got != tc.want {
+				t.Fatalf("LastSession(%s) = %s, want %s", tc.now, got, tc.want)
 			}
 		})
 	}
