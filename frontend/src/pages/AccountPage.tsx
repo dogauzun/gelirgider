@@ -3,6 +3,7 @@ import { ApiError } from '../api'
 import { useChangePassword, useMe, useUpdateReportingCurrency } from '../api/auth'
 import { AttentionRulesCard } from '../components/AttentionRulesCard'
 import { PageHeader } from '../components/PageHeader'
+import { TwoStepCard } from '../components/TwoStepCard'
 import { Button } from '../components/ui/Button'
 import { Field } from '../components/ui/Field'
 import { inputClass } from '../components/ui/inputClass'
@@ -255,6 +256,7 @@ export function AccountPage() {
             </div>
           </Card>
           <PasswordSection />
+          <TwoStepCard />
           <AttentionRulesCard />
         </div>
       </div>

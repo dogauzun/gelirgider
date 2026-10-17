@@ -34,6 +34,7 @@ export const enErrors: AreaStrings<typeof trErrors> = {
   'error.backfillFromFuture': 'The start date cannot be in the future.',
   'error.tooManyRequests': 'Too many requests. Wait a minute and try again.',
   'error.currentPasswordIncorrect': 'Current password is wrong.',
+  'error.invalidCode': 'Wrong code.',
   'error.portfolioNotFound': 'Portfolio not found.',
   'error.portfolioHasTransactions':
     'A portfolio with transactions cannot be deleted. Delete the transactions first.',

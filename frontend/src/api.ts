@@ -33,6 +33,7 @@ const messageKeys: Record<string, StringKey> = {
   'backfill_from: must be on or after 1990-01-01': 'transactions.error.dateTooEarly',
   'too many requests': 'error.tooManyRequests',
   'current password is incorrect': 'error.currentPasswordIncorrect',
+  'invalid code': 'error.invalidCode',
   'portfolio not found': 'error.portfolioNotFound',
   'portfolio has transactions': 'error.portfolioHasTransactions',
   'name must be 1-100 characters': 'error.portfolioName',
