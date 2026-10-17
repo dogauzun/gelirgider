@@ -56,7 +56,7 @@ var (
 
 // FetchCapitalEvents downloads the capital increase table and returns its
 // bonus issues and cash dividends. Rows with neither (rights issues) are
-// dropped; rows dated in the future are kept for the caller to skip.
+// dropped; rows dated in the future are kept for the caller to handle.
 func (f *Fetcher) FetchCapitalEvents(ctx context.Context) ([]CapitalEvent, error) {
 	url := cmp.Or(f.CapitalURL, defaultCapitalURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -139,12 +139,13 @@ func parseTurkishDecimal(s string) (decimal.Decimal, error) {
 	return d, nil
 }
 
-// SyncCapitalEvents stores every bonus issue and cash dividend dated on or
-// before today's date (the caller passes an Europe/Istanbul time): bonus
-// issues in splitRepo, dividends in dividendRepo in TRY, both with source
-// "isyatirim". Planned rows dated after today are skipped; the page is
-// re-read daily. Symbols with no BIST instrument are skipped, never
-// inserted. Returns the number of splits plus dividends written.
+// SyncCapitalEvents stores every bonus issue dated on or before today's date
+// (the caller passes an Europe/Istanbul time) in splitRepo, and every cash
+// dividend, planned ones dated after today included, in dividendRepo in TRY,
+// both with source "isyatirim". A planned bonus issue is skipped: a split must
+// not apply before its ex-date. The page is re-read daily, so a changed
+// announcement updates its row in place. Symbols with no BIST instrument are
+// skipped, never inserted. Returns the number of splits plus dividends written.
 func SyncCapitalEvents(ctx context.Context, fetcher *Fetcher, instrumentRepo *instrument.Repo, splitRepo *split.Repo, dividendRepo *dividend.Repo, today time.Time) (int, error) {
 	events, err := fetcher.FetchCapitalEvents(ctx)
 	if err != nil {
@@ -160,32 +161,38 @@ func SyncCapitalEvents(ctx context.Context, fetcher *Fetcher, instrumentRepo *in
 	}
 
 	todayStr := today.Format(time.DateOnly)
-	splits, dividends, unknown, planned := 0, 0, 0, 0
+	splits, dividends, unknown, planned, plannedDividends := 0, 0, 0, 0, 0
 	for _, ev := range events {
-		if ev.Date > todayStr {
-			planned++
-			continue
-		}
 		id, ok := idBySymbol[ev.Symbol]
 		if !ok {
 			unknown++
 			continue
 		}
+		future := ev.Date > todayStr
 		if !ev.Ratio.IsZero() {
-			if err := splitRepo.Upsert(ctx, id, ev.Date, ev.Ratio, sourceIsYatirim); err != nil {
-				return splits + dividends, fmt.Errorf("upsert split for %s: %w", ev.Symbol, err)
+			if future {
+				// A split must not apply before its ex-date.
+				planned++
+			} else {
+				if err := splitRepo.Upsert(ctx, id, ev.Date, ev.Ratio, sourceIsYatirim); err != nil {
+					return splits + dividends, fmt.Errorf("upsert split for %s: %w", ev.Symbol, err)
+				}
+				splits++
 			}
-			splits++
 		}
 		if ev.Dividend.IsPositive() {
 			if err := dividendRepo.Upsert(ctx, id, ev.Date, ev.Dividend, "TRY", sourceIsYatirim); err != nil {
-				return splits + dividends, fmt.Errorf("upsert dividend for %s: %w", ev.Symbol, err)
+				return splits + dividends + plannedDividends, fmt.Errorf("upsert dividend for %s: %w", ev.Symbol, err)
 			}
-			dividends++
+			if future {
+				plannedDividends++
+			} else {
+				dividends++
+			}
 		}
 	}
 	slog.Default().Info("bist capital event sync complete",
 		"rows", len(events), "splits", splits, "dividends", dividends,
-		"unknown_symbols", unknown, "planned", planned)
-	return splits + dividends, nil
+		"unknown_symbols", unknown, "planned", planned, "planned_dividends", plannedDividends)
+	return splits + dividends + plannedDividends, nil
 }
