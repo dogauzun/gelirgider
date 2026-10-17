@@ -13,7 +13,7 @@ import { LoadError } from './ui/LoadError'
 const ruleDefs: {
   key: keyof AttentionRules
   label: Parameters<typeof t>[0]
-  unit: 'days' | 'percent' | 'count'
+  unit: 'days' | 'percent' | 'count' | 'toggle'
   fallback: number
 }[] = [
   {
@@ -33,6 +33,19 @@ const ruleDefs: {
     label: 'account.attention.cashShare',
     unit: 'percent',
     fallback: ATTENTION.cashShare,
+  },
+  {
+    key: 'try_cash_share',
+    label: 'account.attention.tryCashShare',
+    unit: 'percent',
+    fallback: ATTENTION.tryCashShare,
+  },
+  {
+    key: 'no_hedge',
+    label: 'account.attention.noHedge',
+    unit: 'toggle',
+    // No value: the draft stays at the fallback, which is never sent.
+    fallback: 0,
   },
   {
     key: 'currency_share',
@@ -104,19 +117,21 @@ function AttentionRulesForm({ rules }: { rules: AttentionRules }) {
               checked={draft[key].enabled}
               onChange={(enabled) => edit(key, { enabled })}
             />
-            <span className="flex shrink-0 items-center gap-1.5 text-[13px] text-muted">
-              <input
-                type="number"
-                step="any"
-                required
-                aria-label={t(label)}
-                value={draft[key].value}
-                disabled={!draft[key].enabled}
-                onChange={(event) => edit(key, { value: event.target.value })}
-                className={inputClass({ size: 'sm', width: 'auto' })}
-              />
-              <span className="w-3">{unit === 'percent' ? '%' : ''}</span>
-            </span>
+            {unit !== 'toggle' && (
+              <span className="flex shrink-0 items-center gap-1.5 text-[13px] text-muted">
+                <input
+                  type="number"
+                  step="any"
+                  required
+                  aria-label={t(label)}
+                  value={draft[key].value}
+                  disabled={!draft[key].enabled}
+                  onChange={(event) => edit(key, { value: event.target.value })}
+                  className={inputClass({ size: 'sm', width: 'auto' })}
+                />
+                <span className="w-3">{unit === 'percent' ? '%' : ''}</span>
+              </span>
+            )}
           </li>
         ))}
       </ul>

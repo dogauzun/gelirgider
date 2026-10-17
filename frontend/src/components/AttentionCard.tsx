@@ -18,7 +18,7 @@ const GROUPS: [StringKey, AttentionItem['kind'][]][] = [
   ],
   ['attention.group.dividends', ['dividend']],
   ['attention.group.today', ['mover']],
-  ['attention.group.concentration', ['concentration']],
+  ['attention.group.concentration', ['concentration', 'try-cash-share', 'no-hedge']],
 ]
 
 function Dot({ tone }: { tone: 'warn' | 'accent' }) {
@@ -67,9 +67,10 @@ function Label({ item, children }: { item: AttentionItem; children: ReactNode })
   const text = <span className="min-w-0 truncate">{children}</span>
   return (
     <span className="flex min-w-0 items-center">
-      {item.kind !== 'mover' && item.kind !== 'concentration' && (
-        <Dot tone={item.kind === 'dividend' ? 'accent' : 'warn'} />
-      )}
+      {item.kind !== 'mover' &&
+        item.kind !== 'concentration' &&
+        item.kind !== 'try-cash-share' &&
+        item.kind !== 'no-hedge' && <Dot tone={item.kind === 'dividend' ? 'accent' : 'warn'} />}
       {item.portfolio ? (
         <span className="flex min-w-0 flex-col">
           <span className="truncate text-[11px] text-muted" title={item.portfolio}>
@@ -303,6 +304,20 @@ export function AttentionCard({
             }
           >
             <Label item={item}>{concentrationLabel(item)}</Label>
+          </Row>
+        )
+      case 'try-cash-share':
+        return (
+          <Row>
+            <Label item={item}>
+              {t('attention.tryCashShare', { share: formatNumber(item.share, SHARE_FORMAT) })}
+            </Label>
+          </Row>
+        )
+      case 'no-hedge':
+        return (
+          <Row>
+            <Label item={item}>{t('attention.noHedge')}</Label>
           </Row>
         )
     }

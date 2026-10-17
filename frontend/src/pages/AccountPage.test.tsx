@@ -174,6 +174,21 @@ describe('AccountPage', () => {
     })
   })
 
+  it('lists the toggle rule without an input and sends only its enabled flag', async () => {
+    const fetchMock = mockMe('TRY')
+    renderPage()
+
+    const hedge = await screen.findByRole('checkbox', { name: 'Döviz veya altın koruması yok' })
+    expect(screen.queryByRole('spinbutton', { name: 'Döviz veya altın koruması yok' })).toBeNull()
+    fireEvent.click(hedge)
+    fireEvent.click(screen.getByRole('button', { name: 'Kaydet' }))
+
+    await waitFor(() => expect(attentionPut(fetchMock)).toHaveLength(1))
+    expect(JSON.parse(attentionPut(fetchMock)[0][1]?.body as string)).toEqual({
+      no_hedge: { enabled: false },
+    })
+  })
+
   it('shows a rejected attention rule under the card', async () => {
     mockMe('TRY')
     renderPage()

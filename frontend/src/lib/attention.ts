@@ -10,6 +10,7 @@ export const ATTENTION = {
   staleManualDays: 7,
   positionShare: 0.25,
   cashShare: 0.4,
+  tryCashShare: 0.4,
   currencyShare: 0.5,
   movers: 2,
 } as const
@@ -18,7 +19,16 @@ export const ATTENTION = {
 // flag and an optional threshold, each falling back to ATTENTION.
 type Rule = { enabled?: boolean; value?: number }
 export type AttentionRules = Partial<
-  Record<'stale_manual_days' | 'position_share' | 'cash_share' | 'currency_share' | 'movers', Rule>
+  Record<
+    | 'stale_manual_days'
+    | 'position_share'
+    | 'cash_share'
+    | 'try_cash_share'
+    | 'no_hedge'
+    | 'currency_share'
+    | 'movers',
+    Rule
+  >
 >
 
 // The threshold of a rule, or null when the owner switched it off.
@@ -67,6 +77,10 @@ export type AttentionItem = { portfolio?: string } & (
       instrument_id?: number
       share: number
     }
+  // The two TRY-reporting rules (Yoğunlaşma): TRY cash over the total, and no
+  // USD, EUR, gold or US stock at all.
+  | { kind: 'try-cash-share'; share: number }
+  | { kind: 'no-hedge' }
 )
 
 // Whether part / whole is above share, exactly: the amounts go in as 1e-9
@@ -94,6 +108,9 @@ export function attentionItems(input: {
   const staleDays = threshold(rules, 'stale_manual_days', ATTENTION.staleManualDays)
   const positionShare = threshold(rules, 'position_share', ATTENTION.positionShare)
   const cashShare = threshold(rules, 'cash_share', ATTENTION.cashShare)
+  const tryCashShare =
+    summary.currency === 'TRY' ? threshold(rules, 'try_cash_share', ATTENTION.tryCashShare) : null
+  const noHedge = summary.currency === 'TRY' && rules.no_hedge?.enabled !== false
   const currencyShare = threshold(rules, 'currency_share', ATTENTION.currencyShare)
   const open = summary.positions.filter((p) => !p.closed)
   const priced = open.filter((p) => p.has_price)
@@ -168,7 +185,11 @@ export function attentionItems(input: {
         share: shareOf(units, total),
       })
     }
-    if (cashShare !== null && above(cash, total, cashShare)) {
+    // The more specific TRY rule replaces the generic one when it fires.
+    const tryCash = decimalUnits(summary.cash_by_currency_reporting.TRY ?? '0')
+    if (tryCashShare !== null && above(tryCash, total, tryCashShare)) {
+      items.push({ kind: 'try-cash-share', share: shareOf(tryCash, total) })
+    } else if (cashShare !== null && above(cash, total, cashShare)) {
       items.push({
         kind: 'concentration',
         subject: 'cash',
@@ -194,6 +215,20 @@ export function attentionItems(input: {
       share: shareOf(units, currencyTotal),
     })
   }
+
+  // Any open USD, EUR, gold or US position, or positive USD or EUR cash, is a
+  // hedge. A term deposit in USD or EUR is such a position. An empty
+  // portfolio has nothing to hedge.
+  const hedged =
+    open.some(
+      (p) =>
+        p.currency === 'USD' || p.currency === 'EUR' || p.market === 'GOLD' || p.market === 'US',
+    ) ||
+    Object.entries(summary.cash_by_currency).some(
+      ([currency, amount]) =>
+        (currency === 'USD' || currency === 'EUR') && decimalUnits(amount) > 0n,
+    )
+  if (noHedge && total > 0n && !hedged) items.push({ kind: 'no-hedge' })
 
   return portfolioName ? items.map((item) => ({ ...item, portfolio: portfolioName })) : items
 }

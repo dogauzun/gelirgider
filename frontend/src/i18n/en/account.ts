@@ -28,6 +28,8 @@ export const enAccount: AreaStrings<typeof trAccount> = {
   'account.attention.staleManualDays': 'Manual price older than (days)',
   'account.attention.positionShare': 'Single position share',
   'account.attention.cashShare': 'Cash share',
+  'account.attention.tryCashShare': 'TRY cash share',
+  'account.attention.noHedge': 'No FX or gold hedge',
   'account.attention.currencyShare': 'Single currency share',
   'account.attention.movers': "Today's movers (count)",
   'account.attention.saved': 'Saved',

@@ -57,6 +57,8 @@ export const enCommon: AreaStrings<typeof trCommon> = {
   'attention.updateLabel': 'Update {symbol} price',
   'attention.estimatedBenchmark': 'Benchmark values are estimates from {date}',
   'attention.currencyAssets': '{currency} assets',
+  'attention.tryCashShare': '{share} of your wealth is TRY cash, which loses value to inflation',
+  'attention.noHedge': 'No USD, EUR, gold or US stock',
   'prices.enter': 'Enter price',
   'prices.enterLabel': 'Enter price for {symbol}',
   'prices.error.invalid': 'Price must be a number greater than 0.',

@@ -100,6 +100,7 @@ const fieldKeys: Record<string, StringKey> = {
   stale_manual_days: 'error.attentionRule',
   position_share: 'error.attentionRule',
   cash_share: 'error.attentionRule',
+  try_cash_share: 'error.attentionRule',
   currency_share: 'error.attentionRule',
   movers: 'error.attentionRule',
   note: 'error.field.note',

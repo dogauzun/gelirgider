@@ -25,6 +25,8 @@ export const trAccount = {
   'account.attention.staleManualDays': 'Elle fiyat kaç günden eski',
   'account.attention.positionShare': 'Tek pozisyon payı',
   'account.attention.cashShare': 'Nakit payı',
+  'account.attention.tryCashShare': 'TL nakit payı',
+  'account.attention.noHedge': 'Döviz veya altın koruması yok',
   'account.attention.currencyShare': 'Tek para birimi payı',
   'account.attention.movers': 'Günün hareketlileri',
   'account.attention.saved': 'Kaydedildi',
