@@ -27,6 +27,9 @@ FX source and US prices, each source passing robots.txt on its real API host.
   valuation-date rate, so their currency effect stays in the portfolio-level
   `fx_pl` residual. That is a known ceiling, upgraded by converting realized
   P/L at the sell-date rate.
+  [ADR 0027](0027-return-attribution.md) adds a daily split of a range's
+  change, with the currency's share as `fx`; `fx_pl` and `fx_pl_reporting`
+  stay and mean "since cost".
 - No provider interface: each market is its own package writing the shared
   `prices` or `fx_rates` table (`docs/PRINCIPLES.md` #9).
 

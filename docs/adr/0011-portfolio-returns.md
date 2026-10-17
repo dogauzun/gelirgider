@@ -175,3 +175,7 @@ is the test in `backend/internal/server/returns_test.go`.
   income-per-currency map on the holdings summary, added to realized P/L,
   with the interest then dropped from the `fx_pl` flows so it is not taken
   out twice.
+
+The return answers how much; [ADR 0027](0027-return-attribution.md) splits the
+same change in value into price, currency, income and cash currency, with the
+same flows.

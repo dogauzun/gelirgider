@@ -34,6 +34,7 @@ of a phase epic, or a workflow rule.
 | 0024 | [Term deposits valued by a computed price source](0024-term-deposits.md)                                           | accepted 2026-10-18                               |
 | 0025 | [Two-step login with TOTP](0025-two-step-login.md)                                                                 | accepted 2026-10-18                               |
 | 0026 | [Instrument classification](0026-instrument-classification.md)                                                     | accepted 2026-10-18                               |
+| 0027 | [Return attribution](0027-return-attribution.md)                                                                   | accepted 2026-10-18                               |
 
 ## Convention
 
