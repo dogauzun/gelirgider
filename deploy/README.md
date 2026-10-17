@@ -72,7 +72,8 @@ docker compose -f deploy/compose.yml up --build
 published names, so they stand in for the pulled ones until the next
 `docker compose -f deploy/compose.yml pull`. Without it, compose runs the
 images it already has and pulls the published ones when it has none.
-Compose refuses to start without `SECRET_KEY`. On first start the backend
+Compose refuses to start without `SECRET_KEY`, unless you use a Docker
+secret and `SECRET_KEY_FILE` instead (see Config). On first start the backend
 logs a `setup_token`; open https://localhost/setup and enter it to create the
 admin (`deploy/RUNBOOK.md`, First deploy).
 
@@ -105,7 +106,11 @@ admin (`deploy/RUNBOOK.md`, First deploy).
 - `deploy/.env` (see `deploy/.env.example`): `DOMAIN`, the hostname Caddy
   requests a certificate for, and `SECRET_KEY`, base64 of 32 random bytes
   that encrypts the provider API keys stored in the database. Generate it
-  once and keep it; see `deploy/RUNBOOK.md`, Prerequisites.
+  once and keep it; see `deploy/RUNBOOK.md`, Prerequisites. To keep the key
+  out of the environment, mount it as a Docker secret and set
+  `SECRET_KEY_FILE` instead, as the commented example in `deploy/compose.yml`
+  shows (remove its `SECRET_KEY` line, which refuses to start without the
+  variable).
 - Backend (`backend/internal/config/config.go`), each with its default when
   unset:
   - `HOST` (default empty, which binds every interface), the address the
@@ -124,6 +129,11 @@ admin (`deploy/RUNBOOK.md`, First deploy).
     integer of at least 1.
   - `SECRET_KEY` (no default; the backend refuses to start without it),
     described above.
+  - `SECRET_KEY_FILE` (no default), the path of a file holding the same
+    value, e.g. `/run/secrets/secret_key` for a Docker secret. Surrounding
+    whitespace, including the trailing newline, is trimmed. `SECRET_KEY`
+    wins when both are set. A file that cannot be read stops the backend
+    with an error naming the variable and the path.
   - `API_DOCS_DIR` (default empty, which turns the API docs off), the
     directory with the generated `swagger.json` that the backend serves at
     `/api/docs/`. Only `make dev` and `make dev-backend` set it; compose

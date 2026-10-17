@@ -61,7 +61,10 @@ with a fresh random nonce per write, stdlib `crypto/aes` and `crypto/cipher`,
 no new dependency.
 
 - The key is the `SECRET_KEY` env var: base64 of 32 random bytes. The server
-  refuses to start without it. `-healthcheck` and `-backup` still work
+  refuses to start without it. Docker secrets mount a file, so
+  `SECRET_KEY_FILE` may name a file holding the same value instead; the env
+  var wins when both are set, and a file that cannot be read is an error
+  naming the variable and the path, not a missing key. `-healthcheck` and `-backup` still work
   without it.
 - `make dev` writes one into `.env` if it is missing.
 - The API never returns a key, only `configured` and the last 4 characters.

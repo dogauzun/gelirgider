@@ -162,13 +162,23 @@ func hasSecretKey(cfg config.Config) bool {
 	return len(cfg.SecretKey) == 32
 }
 
+// secretKeyProblem is what a run that needs the key prints before it exits
+// without one: the file read error when SECRET_KEY_FILE is unreadable, else
+// the generic help.
+func secretKeyProblem(cfg config.Config) string {
+	if cfg.SecretKeyErr != nil {
+		return cfg.SecretKeyErr.Error()
+	}
+	return secretKeyHelp
+}
+
 // secretSettings returns the settings repo, exiting when SECRET_KEY is
 // not valid. Only the server needs it outright (the provider keys are
 // encrypted with it): -backup, -healthcheck and the other flags must
 // work without it, and runFetch checks it for the us and xu100 sources.
 func secretSettings(conn *sql.DB, cfg config.Config) *settings.Repo {
 	if !hasSecretKey(cfg) {
-		fmt.Fprintln(os.Stderr, secretKeyHelp)
+		fmt.Fprintln(os.Stderr, secretKeyProblem(cfg))
 		os.Exit(1)
 	}
 	return settings.NewRepo(conn, cfg.SecretKey)
@@ -242,7 +252,7 @@ func runBackfillPrices(ctx context.Context, conn *sql.DB, cfg config.Config, log
 	fetchers := newSourceFetchers(settingsRepo)
 	if !hasSecret {
 		fetchers.us, fetchers.xu100 = nil, nil
-		logger.Warn("backfill: SECRET_KEY not set or not valid, skipping us and xu100")
+		logger.Warn("backfill: no valid secret key, skipping us and xu100", "reason", secretKeyProblem(cfg))
 	}
 	// TEFAS is opt-in: skipped unless its source is on. The
 	// setting is plain text, so it needs no SECRET_KEY.
@@ -258,7 +268,7 @@ func runBackfillPrices(ctx context.Context, conn *sql.DB, cfg config.Config, log
 
 // secretKeyHelp is what a run that needs SECRET_KEY prints before it exits
 // without one.
-const secretKeyHelp = "SECRET_KEY must be set to base64 of 32 random bytes (generate one with: openssl rand -base64 32)"
+const secretKeyHelp = "SECRET_KEY (or SECRET_KEY_FILE) must be set to base64 of 32 random bytes (generate one with: openssl rand -base64 32)"
 
 // runFetch runs the -fetch scheduler source once for date and returns
 // the exit code: 2 for an unknown source, 1 for a malformed date, a
@@ -282,7 +292,7 @@ func runFetch(conn *sql.DB, cfg config.Config, logger *slog.Logger, source, date
 		return 2
 	}
 	if settingsRepo == nil && (src.Name == scheduler.NameUS || src.Name == scheduler.NameXU100) {
-		fmt.Fprintln(os.Stderr, secretKeyHelp)
+		fmt.Fprintln(os.Stderr, secretKeyProblem(cfg))
 		return 1
 	}
 	written, err := src.Sync(context.Background(), day)

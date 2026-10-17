@@ -117,7 +117,7 @@ Geliştirme backend'i yalnızca `127.0.0.1` adresini dinler (`make dev` `HOST`
 değişkenini ayarlar), bu yüzden yerel ağdaki diğer cihazlar ona doğrudan ulaşamaz.
 
 İlk `make dev` geride iki dosya bırakır: `.env` dosyasına eklenen, üretilmiş bir
-`SECRET_KEY` (sakla, kayıtlı sağlayıcı anahtarlarını o şifreler) ve
+`SECRET_KEY` (sakla, kayıtlı sağlayıcı anahtarlarını o şifreler; anahtarı içeren bir dosyanın yolunu veren `SECRET_KEY_FILE` de olur) ve
 `backend/gelirgider.db` konumundaki geliştirme veritabanı. İkisi de gitignore'dadır.
 
 `backend/apidocs/` içindeki API tanımı depoda hazır bulunur, bu yüzden `make dev`

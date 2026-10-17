@@ -3,8 +3,10 @@ package config
 
 import (
 	"encoding/base64"
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
@@ -25,9 +27,13 @@ type Config struct {
 	// rejects along with any value below 1.
 	TrustedProxyHops int
 	// SecretKey is the AES-256 key for secrets in the settings table,
-	// decoded from SECRET_KEY (base64 of 32 random bytes). Nil when unset
-	// or not valid base64; main checks the length before serving.
+	// decoded from SECRET_KEY, or from the file named by SECRET_KEY_FILE
+	// (base64 of 32 random bytes). Nil when unset, unreadable or not valid
+	// base64; main checks the length before serving.
 	SecretKey []byte
+	// SecretKeyErr is set when SECRET_KEY_FILE names a file that cannot be
+	// read, so main can say so instead of reporting a missing key.
+	SecretKeyErr error
 	// APIDocsDir is the directory holding the generated swagger.json. When
 	// set, the server serves Swagger UI at /api/docs/ (dev only, ADR 0013);
 	// empty, the default, turns it off.
@@ -35,6 +41,7 @@ type Config struct {
 }
 
 func Load() Config {
+	key, keyErr := secretKey()
 	return Config{
 		Host:             os.Getenv("HOST"),
 		Port:             getEnv("PORT", "8080"),
@@ -42,7 +49,8 @@ func Load() Config {
 		CookieSecure:     getEnv("COOKIE_SECURE", "false") == "true",
 		TrustProxy:       getEnv("TRUST_PROXY", "false") == "true",
 		TrustedProxyHops: trustedProxyHops(),
-		SecretKey:        secretKey(),
+		SecretKey:        key,
+		SecretKeyErr:     keyErr,
 		APIDocsDir:       os.Getenv("API_DOCS_DIR"),
 	}
 }
@@ -55,12 +63,35 @@ func trustedProxyHops() int {
 	return n
 }
 
-func secretKey() []byte {
-	k, err := base64.StdEncoding.DecodeString(os.Getenv("SECRET_KEY"))
+func secretKey() ([]byte, error) {
+	v, err := secretEnv("SECRET_KEY")
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return k
+	k, err := base64.StdEncoding.DecodeString(v)
+	if err != nil {
+		return nil, nil
+	}
+	return k, nil
+}
+
+// secretEnv returns the env var key, else the trimmed contents of the file
+// named by key+"_FILE" (Docker secrets mount a file), else "". An
+// unreadable file is an error that names the variable and the path, never
+// the contents.
+func secretEnv(key string) (string, error) {
+	if v := os.Getenv(key); v != "" {
+		return v, nil
+	}
+	path := os.Getenv(key + "_FILE")
+	if path == "" {
+		return "", nil
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("%s_FILE: cannot read %s: %w", key, path, err)
+	}
+	return strings.TrimSpace(string(b)), nil
 }
 
 func getEnv(key, fallback string) string {
