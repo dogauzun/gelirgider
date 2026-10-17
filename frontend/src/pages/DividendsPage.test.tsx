@@ -85,11 +85,13 @@ const expectedRow = {
 function mockApi({
   data = timeline,
   expected = [expectedRow],
+  upcoming = [] as (typeof expectedRow)[],
   // The open positions' reporting cost the yield divides by.
   costBasis = '1000.00',
 }: {
   data?: typeof timeline
   expected?: (typeof expectedRow)[]
+  upcoming?: (typeof expectedRow)[]
   costBasis?: string
 } = {}) {
   const calls = { timeline: 0, posts: [] as string[] }
@@ -107,6 +109,7 @@ function mockApi({
       return Response.json(data)
     }
     if (url === '/api/portfolios/1/dividends/expected') return Response.json(expected)
+    if (url === '/api/portfolios/1/dividends/upcoming') return Response.json(upcoming)
     if (url === '/api/portfolios/1/summary')
       return Response.json({ currency: 'TRY', cost_basis: costBasis, positions: [] })
     throw new Error(`unexpected request: ${url}`)
@@ -160,6 +163,20 @@ it('links an instrument to its position page with the current range', async () =
     'href',
     '/portfolios/1/positions/7?range=1y',
   )
+})
+
+it('shows the upcoming dividends after the confirm card, even with nothing received', async () => {
+  mockApi({
+    data: { ...timeline, months: [], years: [], by_instrument: [] },
+    upcoming: [{ ...expectedRow, date: '2026-10-05' }],
+  })
+  renderPage()
+
+  const upcoming = await screen.findByRole('heading', { name: t('dividends.upcoming.title') })
+  expect(screen.getByText(t('dividends.page.empty'))).toBeInTheDocument()
+  expect(within(upcoming.closest('section')!).getByText('THYAO')).toBeInTheDocument()
+  const confirm = screen.getByRole('heading', { name: t('dividends.expected.title') })
+  expect(confirm.compareDocumentPosition(upcoming) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
 
 it('has no confirm card when nothing is expected', async () => {

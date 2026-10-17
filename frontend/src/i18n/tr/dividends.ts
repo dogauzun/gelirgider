@@ -17,6 +17,10 @@ export const trDividends = {
   'dividends.expected.addAllFailed':
     '{symbol} {date} eklenemedi, {count} temettü eklenmeden kaldı. {error}',
   'dividends.expected.dismissed': 'Temettü yoksayıldı',
+  // Upcoming dividends card: ex-dates still ahead, by month.
+  'dividends.upcoming.title': 'Yaklaşan temettüler',
+  'dividends.upcoming.planned': 'planlanan',
+  'dividends.upcoming.monthNet': 'Ay net',
   // The Temettü tab: what came in, by period and by instrument.
   'dividends.page.title': 'Temettü',
   'dividends.page.last12': 'Son 12 ay net',

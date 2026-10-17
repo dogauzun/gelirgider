@@ -20,6 +20,9 @@ export const enDividends: AreaStrings<typeof trDividends> = {
   'dividends.expected.addAllFailed.one':
     '{symbol} {date} could not be added, {count} dividend left unadded. {error}',
   'dividends.expected.dismissed': 'Dividend dismissed',
+  'dividends.upcoming.title': 'Upcoming dividends',
+  'dividends.upcoming.planned': 'planned',
+  'dividends.upcoming.monthNet': 'Month net',
   'dividends.page.title': 'Dividends',
   'dividends.page.last12': 'Last 12 months net',
   'dividends.page.yieldOnCost': 'Yield on cost',
