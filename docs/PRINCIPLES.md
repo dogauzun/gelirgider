@@ -6,6 +6,15 @@
 - Reuse what is already in the repo. Then stdlib. Then an installed dependency. New dependency last.
 - No interface with one implementation. No config for a value that never changes. No scaffolding "for later".
 - Deletion beats addition. Boring beats clever.
+- Before writing, read the task and the code it touches and list every place the change must reach: callers, tests, fixtures, config, exports. Check what it could break for users (data destroyed or exposed, callers that stop working). That is the scope; extra features are not.
+- Take the first option that fully works: (1) does it need to exist, name what you skip in one line; (2) already in this codebase, used the way the surrounding code uses it; (3) stdlib or platform feature, unless the project has its own (a house component beats a native widget); (4) an installed dependency, never a new one for a few lines; (5) one line a reader gets at a glance; (6) otherwise the minimum code that works.
+- Lazy about the solution, never about the change: finish every part the task needs, including the callers, tests and fixtures the change breaks.
+- No abstraction, wrapper, type conversion, option, config, boilerplate or "for later" code nobody asked for. Keep values in the form the platform gives them. Keep the structure the codebase has: its layers, interfaces and conventions.
+- The shortest working diff wins once everything it must touch is known; a one-liner that needs decoding is not short. Comment only the why the code cannot show, in one line.
+- Bug fix: grep every caller of the function you touch before editing, then fix the root cause once in the shared code. Code you move or merge keeps its error handling and validation. Between options of equal size, take the one that is correct on edge cases.
+- A deliberate shortcut with a known limit gets a code comment `shortcut: <the limit>, <when to upgrade>`; the ponytail command `/ponytail-debt` lists them.
+- Never cut: validation at trust boundaries, error handling that prevents data loss, security, accessibility, anything the ticket asks for.
+- This is the ruleset of the ponytail plugin (DietrichGebert/ponytail, its `AGENTS.md`); it lives here because the cloud routines and their subagents run without plugins.
 
 ## 2. Multi-user from the first migration
 
