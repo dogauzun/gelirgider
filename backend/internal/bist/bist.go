@@ -224,7 +224,7 @@ func parseBulletinCSV(r io.Reader) ([]Close, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	lastNeededIdx := max(dateIdx, symbolIdx, nameIdx, groupIdx, closeIdx)
+	cols := bulletinCols{date: dateIdx, symbol: symbolIdx, name: nameIdx, group: groupIdx, close: closeIdx}
 
 	var closes []Close
 	skipped := 0
@@ -236,44 +236,65 @@ func parseBulletinCSV(r io.Reader) ([]Close, int, error) {
 		if err != nil {
 			return nil, 0, fmt.Errorf("read bulletin data row: %w", err)
 		}
-		if lastNeededIdx >= len(record) {
-			continue // short/blank trailing row
-		}
-		suffix, ok := wantedGroups[strings.TrimSpace(record[groupIdx])]
-		if !ok {
-			continue
-		}
-		code := strings.TrimSpace(record[symbolIdx])
-		if !strings.HasSuffix(code, suffix) {
-			// A series code in a tracked group that does not carry the
-			// group's suffix is a different series of the instrument, e.g.
-			// the default-settlement (temerrut) "OYAKC.TE" line inside EQT.
-			// It is not a tradable symbol of its own, so it is dropped.
-			skipped++
-			continue
-		}
-		symbol := strings.TrimSuffix(code, suffix)
-		if symbol == "" {
-			continue
-		}
-		var c decimal.Decimal // an empty close (suspended instrument) stays zero
-		if closeStr := strings.TrimSpace(record[closeIdx]); closeStr != "" {
-			if c, err = decimal.NewFromString(closeStr); err != nil {
-				return nil, 0, fmt.Errorf("parse close %q: %w", closeStr, err)
-			}
-		}
-		date, err := parseBulletinDate(strings.TrimSpace(record[dateIdx]))
+		c, ok, skip, err := cols.parseRow(record)
 		if err != nil {
 			return nil, 0, err
 		}
-		closes = append(closes, Close{
-			Symbol: symbol,
-			Name:   strings.TrimSpace(record[nameIdx]),
-			Date:   date,
-			Close:  c,
-		})
+		if skip {
+			skipped++
+		}
+		if ok {
+			closes = append(closes, c)
+		}
 	}
 	return closes, skipped, nil
+}
+
+// bulletinCols holds the column index of each field parseBulletinCSV reads.
+type bulletinCols struct {
+	date, symbol, name, group, close int
+}
+
+// parseRow turns one data row into a Close. ok is false when the row is not
+// a tracked instrument (short or blank row, other group, empty symbol); skip
+// is true when the row is a non-tradable series of a tracked group, which
+// the caller counts.
+func (c bulletinCols) parseRow(record []string) (cl Close, ok, skip bool, err error) {
+	if max(c.date, c.symbol, c.name, c.group, c.close) >= len(record) {
+		return Close{}, false, false, nil // short/blank trailing row
+	}
+	suffix, tracked := wantedGroups[strings.TrimSpace(record[c.group])]
+	if !tracked {
+		return Close{}, false, false, nil
+	}
+	code := strings.TrimSpace(record[c.symbol])
+	if !strings.HasSuffix(code, suffix) {
+		// A series code in a tracked group that does not carry the
+		// group's suffix is a different series of the instrument, e.g.
+		// the default-settlement (temerrut) "OYAKC.TE" line inside EQT.
+		// It is not a tradable symbol of its own, so it is dropped.
+		return Close{}, false, true, nil
+	}
+	symbol := strings.TrimSuffix(code, suffix)
+	if symbol == "" {
+		return Close{}, false, false, nil
+	}
+	var closePrice decimal.Decimal // an empty close (suspended instrument) stays zero
+	if closeStr := strings.TrimSpace(record[c.close]); closeStr != "" {
+		if closePrice, err = decimal.NewFromString(closeStr); err != nil {
+			return Close{}, false, false, fmt.Errorf("parse close %q: %w", closeStr, err)
+		}
+	}
+	date, err := parseBulletinDate(strings.TrimSpace(record[c.date]))
+	if err != nil {
+		return Close{}, false, false, err
+	}
+	return Close{
+		Symbol: symbol,
+		Name:   strings.TrimSpace(record[c.name]),
+		Date:   date,
+		Close:  closePrice,
+	}, true, false, nil
 }
 
 // parseBulletinDate returns the bulletin's trade date cell as YYYY-MM-DD.
