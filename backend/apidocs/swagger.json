@@ -72,6 +72,78 @@
                 }
             }
         },
+        "/account/totp": {
+            "delete": {
+                "description": "Needs a session, the current password and a current code, so a stolen session alone cannot drop the second factor. A code at or below the last accepted step is a replay and is rejected. Rate-limited per client IP, 10 per minute.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Turn two-factor authentication off",
+                "parameters": [
+                    {
+                        "description": "current password and 6-digit code from the authenticator",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.totpDisableRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "invalid request body; invalid code",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "current password is incorrect; unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "two-factor authentication is off",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/account/totp/confirm": {
             "post": {
                 "description": "Needs a session. Checks the code against the pending secret and turns two-factor on. Signs out every other session of the user. Rate-limited per client IP, 10 per minute.",
@@ -3807,6 +3879,17 @@
                 }
             }
         },
+        "auth.totpDisableRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
         "auth.totpSetupRequest": {
             "type": "object",
             "properties": {
@@ -3842,6 +3925,9 @@
                 },
                 "reporting_currency": {
                     "type": "string"
+                },
+                "totp_enabled": {
+                    "type": "boolean"
                 }
             }
         },

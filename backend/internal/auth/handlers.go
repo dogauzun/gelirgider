@@ -54,7 +54,7 @@ func RegisterRoutes(mux *http.ServeMux, users *user.Repo, sessions *Repo, cfg *s
 // user into mux. The caller must wrap mux with (*Repo).RequireUser.
 // The password change is rate-limited per client IP like login: it checks
 // the current password, so a stolen session could otherwise guess it. The
-// two-factor enrolment routes are limited the same way; cfg seals the secret.
+// two-factor enrolment and disable routes are limited the same way; cfg seals the secret.
 func RegisterProtectedRoutes(mux *http.ServeMux, users *user.Repo, sessions *Repo, cfg *settings.Repo) {
 	h := &handler{users: users, sessions: sessions, settings: cfg}
 	mux.HandleFunc("GET /api/me", h.me)
@@ -64,6 +64,7 @@ func RegisterProtectedRoutes(mux *http.ServeMux, users *user.Repo, sessions *Rep
 	mux.Handle("POST /api/account/password", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.changePassword)))
 	mux.Handle("POST /api/account/totp/setup", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.totpSetup)))
 	mux.Handle("POST /api/account/totp/confirm", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.totpConfirm)))
+	mux.Handle("DELETE /api/account/totp", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.totpDisable)))
 }
 
 type handler struct {
@@ -96,6 +97,11 @@ type userResponse struct {
 	Email             string `json:"email"`
 	ReportingCurrency string `json:"reporting_currency"`
 	IsAdmin           bool   `json:"is_admin"`
+	TOTPEnabled       bool   `json:"totp_enabled"`
+}
+
+func newUserResponse(u user.User) userResponse {
+	return userResponse{ID: u.ID, Email: u.Email, ReportingCurrency: u.ReportingCurrency, IsAdmin: u.IsAdmin, TOTPEnabled: u.TOTPEnabled}
 }
 
 // setupPending answers 403 setup_required and returns true while no admin
@@ -166,7 +172,7 @@ func (h *handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteJSON(w, http.StatusCreated, userResponse{ID: u.ID, Email: u.Email, ReportingCurrency: u.ReportingCurrency, IsAdmin: u.IsAdmin})
+	WriteJSON(w, http.StatusCreated, newUserResponse(u))
 }
 
 // validateRegistration checks creds the way registration does and returns
@@ -263,7 +269,7 @@ func (h *handler) login(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, h.cookie(session.ID, session.ExpiresAt))
 
-	WriteJSON(w, http.StatusOK, userResponse{ID: u.ID, Email: u.Email, ReportingCurrency: u.ReportingCurrency, IsAdmin: u.IsAdmin})
+	WriteJSON(w, http.StatusOK, newUserResponse(u))
 }
 
 // logout handles POST /api/auth/logout.
@@ -302,7 +308,7 @@ func (h *handler) me(w http.ResponseWriter, r *http.Request) {
 		WriteInternalError(w, r, err)
 		return
 	}
-	WriteJSON(w, http.StatusOK, userResponse{ID: u.ID, Email: u.Email, ReportingCurrency: u.ReportingCurrency, IsAdmin: u.IsAdmin})
+	WriteJSON(w, http.StatusOK, newUserResponse(u))
 }
 
 type reportingCurrencyRequest struct {
@@ -345,7 +351,7 @@ func (h *handler) updateReportingCurrency(w http.ResponseWriter, r *http.Request
 		WriteInternalError(w, r, err)
 		return
 	}
-	WriteJSON(w, http.StatusOK, userResponse{ID: u.ID, Email: u.Email, ReportingCurrency: u.ReportingCurrency, IsAdmin: u.IsAdmin})
+	WriteJSON(w, http.StatusOK, newUserResponse(u))
 }
 
 type changePasswordRequest struct {

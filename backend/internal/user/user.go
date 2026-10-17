@@ -43,6 +43,7 @@ type User struct {
 	PasswordHash      string
 	ReportingCurrency string
 	IsAdmin           bool
+	TOTPEnabled       bool
 	CreatedAt         time.Time
 }
 
@@ -86,9 +87,9 @@ func (r *Repo) GetByID(ctx context.Context, id int64) (User, error) {
 	var u User
 	var createdAt string
 	err := r.db.QueryRowContext(ctx,
-		"SELECT id, email, password_hash, reporting_currency, is_admin, created_at FROM users WHERE id = ?",
+		"SELECT id, email, password_hash, reporting_currency, is_admin, totp_secret IS NOT NULL, created_at FROM users WHERE id = ?",
 		id,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.ReportingCurrency, &u.IsAdmin, &createdAt)
+	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.ReportingCurrency, &u.IsAdmin, &u.TOTPEnabled, &createdAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, MissingError{ID: id}
 	}
@@ -214,6 +215,35 @@ func (r *Repo) ConfirmTOTP(ctx context.Context, id int64, pending string, step i
 		return ErrNoPendingTOTP
 	}
 	return nil
+}
+
+// AdvanceTOTPStep records step as the last accepted step when it is above the
+// stored one and reports whether it did. It is the atomic replay guard: of two
+// requests carrying the same code, only one gets true.
+func (r *Repo) AdvanceTOTPStep(ctx context.Context, id, step int64) (bool, error) {
+	res, err := r.db.ExecContext(ctx,
+		"UPDATE users SET totp_last_step = ? WHERE id = ? AND totp_last_step < ?", step, id, step)
+	if err != nil {
+		return false, fmt.Errorf("advance totp step: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("advance totp step: rows affected: %w", err)
+	}
+	return n > 0, nil
+}
+
+// DisableTOTP wipes the TOTP state of the user with the given id.
+func (r *Repo) DisableTOTP(ctx context.Context, id int64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin disable totp: %w", err)
+	}
+	defer tx.Rollback()
+	if err := clearTOTP(ctx, tx, id); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // AttentionRules returns the stored attention rule overrides of the user
@@ -389,9 +419,9 @@ func (r *Repo) GetByEmail(ctx context.Context, email string) (User, error) {
 	var u User
 	var createdAt string
 	err := r.db.QueryRowContext(ctx,
-		"SELECT id, email, password_hash, reporting_currency, is_admin, created_at FROM users WHERE email = ?",
+		"SELECT id, email, password_hash, reporting_currency, is_admin, totp_secret IS NOT NULL, created_at FROM users WHERE email = ?",
 		email,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.ReportingCurrency, &u.IsAdmin, &createdAt)
+	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.ReportingCurrency, &u.IsAdmin, &u.TOTPEnabled, &createdAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, ErrNotFound
 	}
