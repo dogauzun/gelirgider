@@ -57,7 +57,8 @@ type positionResponse struct {
 	// The latest close dated before price_date (manual winning on a date,
 	// like last_price), scaled by any split after its date up to today. It,
 	// prev_price_date, day_change and day_change_reporting are null when
-	// either price is missing or the position is closed.
+	// either price is missing or the position is closed (a closed
+	// position's move still counts in the summary's day_change).
 	PrevClose *string `json:"prev_close"`
 	// The date of prev_close.
 	PrevPriceDate *string `json:"prev_price_date"`
@@ -140,8 +141,9 @@ type summaryResponse struct {
 	// reporting one, or when every such currency was excluded for lack of a
 	// rate -- the same rule as the P/L fields above.
 	FXPL *string `json:"fx_pl"`
-	// The open positions' day_change_reporting summed unrounded and rounded
-	// once, so it can differ from the rounded rows' sum by a cent.
+	// The open positions' day_change_reporting, plus the move on price_date
+	// of closed positions sold out on or after it, summed unrounded and
+	// rounded once, so it can differ from the rounded rows' sum by a cent.
 	// A position with no previous close or no rate is left out; null when
 	// none is left, so the page shows "-" rather than a zero.
 	DayChange    *string            `json:"day_change"`
@@ -233,7 +235,7 @@ func buildStats(s holdings.Summary, txs []transaction.Transaction, rates map[str
 // the caller.
 //
 //	@Summary	Portfolio summary
-//	@Description	Open and closed positions with cash and totals as of today (Europe/Istanbul), converted into the reporting currency. positions_value, cost_basis and day_change total the open positions, each rounded once; day_change is null when no open position has a previous close and a rate. unrealized_pl, realized_pl and fx_pl are null when they cannot be converted; missing_rates names the excluded currencies. stats totals deposits, withdrawals, fees, dividends and interest per currency and, when every currency converts, in the reporting currency. net_contribution, dividends_net and each position's total_pl_reporting are worked out unrounded and rounded once.
+//	@Description	Open and closed positions with cash and totals as of today (Europe/Istanbul), converted into the reporting currency. positions_value and cost_basis total the open positions, each rounded once; day_change totals the open positions' day move plus the move on the price date of closed positions sold out on or after it, and is null when no such position has a previous close and a rate. unrealized_pl, realized_pl and fx_pl are null when they cannot be converted; missing_rates names the excluded currencies. stats totals deposits, withdrawals, fees, dividends and interest per currency and, when every currency converts, in the reporting currency. net_contribution, dividends_net and each position's total_pl_reporting are worked out unrounded and rounded once.
 //	@Tags		portfolios
 //	@Produce	json
 //	@Param		id	path		string	true	"numeric id or `all`"
@@ -355,8 +357,8 @@ func cashMaps(summary holdings.Summary, rates map[string]decimal.Decimal, report
 }
 
 // positionRows is the open positions followed by the closed ones as response
-// rows, and the open positions' day_change_reporting summed unrounded (nil
-// when no row has one).
+// rows, and the day change total (open rows' day_change_reporting plus the
+// closed positions' move) summed unrounded (nil when no row has one).
 func positionRows(summary holdings.Summary, v valuation, prev map[int64]prevClose, rates map[string]decimal.Decimal, reporting string) ([]positionResponse, *decimal.Decimal) {
 	// Closed positions are listed too, with quantity and market value zero
 	// and their realized P/L set: without them the page can only total the
@@ -494,19 +496,29 @@ func positionRow(p holdings.Position, closed bool, v valuation, prev map[int64]p
 	}
 	// Current quantity moves from prev; tradeAdj moves the shares traded on
 	// price_date to their own prices and takes out the move of those traded
-	// after it.
+	// after it. A closed position has no price of its own and its row shows
+	// no day change, but the shares it traded out on or after price_date
+	// moved with it, so its move still counts toward the total.
 	var dayChange *decimal.Decimal
-	if pc, ok := prev[p.InstrumentID]; ok && p.HasPrice && !p.Quantity.IsZero() {
-		pd := pc.date
-		prevStr := pc.close.Round(9).String()
-		dc := p.Quantity.Mul(p.LastPrice.Sub(pc.close)).Add(pc.tradeAdj)
-		change := dc.StringFixed(2)
-		pr.PrevClose, pr.PrevPriceDate, pr.DayChange = &prevStr, &pd, &change
+	last, priced := p.LastPrice, p.HasPrice
+	if closed {
+		last, priced = v.latest[p.InstrumentID]
+	}
+	if pc, ok := prev[p.InstrumentID]; ok && priced && (closed && !pc.tradeAdj.IsZero() || !closed && !p.Quantity.IsZero()) {
+		dc := p.Quantity.Mul(last.Sub(pc.close)).Add(pc.tradeAdj)
 		if f, ok := holdings.Factor(rates, p.Currency, reporting); ok {
 			dcr := dc.Mul(f)
-			changeReporting := dcr.StringFixed(2)
-			pr.DayChangeReporting = &changeReporting
 			dayChange = &dcr
+		}
+		if !closed {
+			pd := pc.date
+			prevStr := pc.close.Round(9).String()
+			change := dc.StringFixed(2)
+			pr.PrevClose, pr.PrevPriceDate, pr.DayChange = &prevStr, &pd, &change
+			if dayChange != nil {
+				changeReporting := dayChange.StringFixed(2)
+				pr.DayChangeReporting = &changeReporting
+			}
 		}
 	}
 	if f, ok := holdings.Factor(rates, p.Currency, reporting); ok {

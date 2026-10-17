@@ -1402,6 +1402,10 @@ func TestPortfolioSummaryDayChange(t *testing.T) {
 //	      => the 5 never moved with it, 10 x (105 - 100) = 50
 //	POSS: sell 4 @ 110 Tue, same prices => the 4 sold still moved Mon,
 //	      10 x (105 - 100) = 50
+//	OUT:  sell all 10 @ 104 Mon, same prices => closed, row day_change null,
+//	      but the total takes 10 x (104 - 100) = 40
+//	OUTL: sell all 10 @ 110 Tue => closed, total takes 10 x (105 - 100) = 50
+//	OLD:  sell all 10 @ 95 on 01-03, before the price date => closed, adds 0
 func TestPortfolioSummaryDayChangeSameDayTrades(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
@@ -1426,7 +1430,7 @@ func TestPortfolioSummaryDayChangeSameDayTrades(t *testing.T) {
 
 	ctx := context.Background()
 	ids := map[string]int64{}
-	for _, symbol := range []string{"ONLY", "MIX", "SELL", "SPLT", "GAP", "POSB", "POSS"} {
+	for _, symbol := range []string{"ONLY", "MIX", "SELL", "SPLT", "GAP", "POSB", "POSS", "OUT", "OUTL", "OLD"} {
 		res, err := conn.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES (?, 'BIST', ?, 'TRY')`, symbol, symbol)
 		if err != nil {
 			t.Fatalf("insert instrument: %v", err)
@@ -1443,6 +1447,8 @@ func TestPortfolioSummaryDayChangeSameDayTrades(t *testing.T) {
 		{"GAP", "buy", "2024-01-05", "5", "99"},
 		{"POSB", "buy", "2024-01-02", "10", "90"}, {"POSS", "buy", "2024-01-02", "10", "90"},
 		{"POSB", "buy", "2024-01-09", "5", "108"}, {"POSS", "sell", "2024-01-09", "4", "110"},
+		{"OUT", "buy", "2024-01-02", "10", "90"}, {"OUTL", "buy", "2024-01-02", "10", "90"}, {"OLD", "buy", "2024-01-02", "10", "90"},
+		{"OLD", "sell", "2024-01-03", "10", "95"}, {"OUT", "sell", "2024-01-08", "10", "104"}, {"OUTL", "sell", "2024-01-09", "10", "110"},
 	} {
 		qty, px, id := decimal.RequireFromString(tr.quantity), decimal.RequireFromString(tr.price), ids[tr.symbol]
 		tx := transaction.Transaction{PortfolioID: pf.ID, InstrumentID: &id, Type: tr.typ, Date: tr.date, Quantity: qty, Price: px, Amount: qty.Mul(px), Fee: decimal.Zero, Currency: "TRY"}
@@ -1459,6 +1465,9 @@ func TestPortfolioSummaryDayChangeSameDayTrades(t *testing.T) {
 		{"GAP", "2024-01-04", "98"}, {"GAP", "2024-01-05", "100"},
 		{"POSB", "2024-01-05", "100"}, {"POSB", "2024-01-08", "105"},
 		{"POSS", "2024-01-05", "100"}, {"POSS", "2024-01-08", "105"},
+		{"OUT", "2024-01-05", "100"}, {"OUT", "2024-01-08", "105"},
+		{"OUTL", "2024-01-05", "100"}, {"OUTL", "2024-01-08", "105"},
+		{"OLD", "2024-01-05", "100"}, {"OLD", "2024-01-08", "105"},
 	} {
 		if err := prices.Upsert(ctx, ids[p.symbol], p.date, p.close, "bist"); err != nil {
 			t.Fatalf("prices.Upsert: %v", err)
@@ -1488,13 +1497,19 @@ func TestPortfolioSummaryDayChangeSameDayTrades(t *testing.T) {
 		return *s
 	}
 	for _, p := range got.Positions {
+		if p.Closed {
+			if p.DayChange != nil || p.DayChangeReporting != nil {
+				t.Errorf("%s closed: day_change = %s, reporting %s, want null", p.Symbol, str(p.DayChange), str(p.DayChangeReporting))
+			}
+			continue
+		}
 		want := map[string]string{"ONLY": "30.00", "MIX": "80.00", "SELL": "46.00", "SPLT": "65.00", "GAP": "25.00", "POSB": "50.00", "POSS": "50.00"}[p.Symbol]
 		if p.DayChange == nil || *p.DayChange != want || p.DayChangeReporting == nil || *p.DayChangeReporting != want {
 			t.Errorf("%s day_change = %s, reporting %s, want %s", p.Symbol, str(p.DayChange), str(p.DayChangeReporting), want)
 		}
 	}
-	if got.DayChange == nil || *got.DayChange != "346.00" {
-		t.Errorf("total day_change = %s, want 346.00", str(got.DayChange))
+	if got.DayChange == nil || *got.DayChange != "436.00" {
+		t.Errorf("total day_change = %s, want 436.00", str(got.DayChange))
 	}
 }
 
