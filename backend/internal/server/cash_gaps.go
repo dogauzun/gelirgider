@@ -82,7 +82,7 @@ func (h *cashGapHandler) list(w http.ResponseWriter, r *http.Request) {
 // its own portfolio, all in one database transaction. The client sends no
 // amounts, so a stale list cannot be written.
 //
-// ponytail: two concurrent POSTs both see the gaps and both write them;
+// shortcut: two concurrent POSTs both see the gaps and both write them;
 // the client sends one per confirm. Recompute inside the write transaction
 // if that ever matters.
 //

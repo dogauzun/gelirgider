@@ -30,7 +30,7 @@ type entry struct {
 // per (a fixed-window counter). Use it directly where a handler counts only
 // some of its requests, or one budget is shared by several routes.
 //
-// ponytail: in-memory limiter, single instance only — swap for a shared
+// shortcut: in-memory limiter, single instance only — swap for a shared
 // store (Redis) if the backend is ever scaled horizontally.
 type Limiter struct {
 	n    int

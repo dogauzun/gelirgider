@@ -96,7 +96,7 @@ export function asTransaction(
 // changed: the server derives it from quantity × price (see
 // backend/internal/transaction/handlers.go fromRequest). It is filled in here
 // for the preview table only, and not sent.
-// ponytail: Number arithmetic for that preview amount, like the dialog's cash
+// shortcut: Number arithmetic for that preview amount, like the dialog's cash
 // strip -- the figure that is stored is the server's.
 export function rowFromInput(
   key: string,

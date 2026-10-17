@@ -429,7 +429,7 @@ func syncLatestBulletin(ctx context.Context, in instrument.Instrument, instrumen
 // overlapping range is cheap. An admin backfill now queues a
 // source's whole history walk instead, one pending per source.
 //
-// ponytail: one worker and one pending entry per source name. Upgrade
+// shortcut: one worker and one pending entry per source name. Upgrade
 // path: parallel workers per source, if a single walk is ever too slow.
 type backfillQueue struct {
 	mu      sync.Mutex

@@ -5,7 +5,7 @@
 // startup, so a backend that missed the last scheduled run still has
 // today's data.
 //
-// ponytail: single-instance assumption. Two replicas would both wake up and
+// shortcut: single-instance assumption. Two replicas would both wake up and
 // both fetch (harmless, since each source's Sync upserts, but wasteful and
 // racy in the logs). Upgrade path when that matters: a lock row in the DB
 // (e.g. "INSERT OR IGNORE" into a price_fetch_lock table keyed by date) so

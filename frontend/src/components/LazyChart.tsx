@@ -13,7 +13,7 @@ import { Skeleton } from './ui/Skeleton'
 
 // The only way pages get a chart. Recharts and both charts are one
 // chunk, `charts/index.ts`, fetched when a page first renders a chart.
-// ponytail: a failed fetch stays failed until a reload. React keeps a
+// shortcut: a failed fetch stays failed until a reload. React keeps a
 // rejected lazy component, and the browser keeps a failed module fetch for
 // the document, so an in-page retry would only get the same error.
 const LazyLineChart = lazyNamed(() => import('./charts'), 'LineChart')

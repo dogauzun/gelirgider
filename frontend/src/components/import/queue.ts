@@ -85,7 +85,7 @@ const maxNames = 200
 // fund renamed on TEFAS is named in an early statement only by its old name,
 // which a later statement prints next to the code. A name two statements
 // give two instruments is left out, as the server leaves one it learned so.
-// ponytail: past maxNames distinct names the rest are dropped; a year of
+// shortcut: past maxNames distinct names the rest are dropped; a year of
 // statements prints a few dozen.
 export function batchNames(items: QueueItem[], broker: string | undefined): ImportAlias[] {
   const byName = new Map<string, number>()

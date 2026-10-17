@@ -25,7 +25,7 @@ const (
 // one RunLog and shares it between the scheduler and the admin run now
 // endpoint, so a source never runs twice at once.
 //
-// ponytail: no pruning; a few rows per source per day. Add a retention
+// shortcut: no pruning; a few rows per source per day. Add a retention
 // delete when the table size matters.
 type RunLog struct {
 	db      *sql.DB

@@ -165,7 +165,7 @@ export function placeTooltip(point: XY, card: Size, plot: XY & Size, gap: number
   )
   const x = point.x < plot.x + plot.width / 2 ? point.x + gap : point.x - gap - card.width
   const clear = below ? y >= point.y + gap / 2 : y + card.height <= point.y - gap / 2
-  // ponytail: beside the point the card may run past the plot's edge; a card
+  // shortcut: beside the point the card may run past the plot's edge; a card
   // too big for the room on every side of the point has nowhere else to go.
   if (!clear) return { x, y }
   return { x: clamp(x, plot.x, plot.x + plot.width - card.width), y }

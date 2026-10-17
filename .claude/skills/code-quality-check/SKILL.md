@@ -21,7 +21,7 @@ Two independent read-only audits, one for the backend and one for the frontend, 
 ```
 Audit <scope> of this repository for code quality. Read-only: do not edit, commit, or write to Jira or GitHub.
 
-Read first: CLAUDE.md, docs/PRINCIPLES.md, and the ADR in docs/adr/ that covers an area before you judge a design choice there. A choice recorded in an ADR, or marked with a `ponytail:` comment, is not a finding.
+Read first: CLAUDE.md, docs/PRINCIPLES.md, and the ADR in docs/adr/ that covers an area before you judge a design choice there. A choice recorded in an ADR, or marked with a `shortcut:` comment, is not a finding.
 
 Look for exactly these four things:
 1. Simplification: code that a shorter construct, the standard library, an installed dependency or an existing helper in this repo replaces; duplicated logic; dead code.

@@ -245,7 +245,7 @@ const startupBackfillTimeout = 2 * time.Hour
 // latest close is skipped: the startup catch-up already fetched it. sc
 // gives the start date override and the disabled sources.
 //
-// ponytail: this walk and internal/server's on-demand backfill can run at
+// shortcut: this walk and internal/server's on-demand backfill can run at
 // the same time and both fetch the same date; the ceiling is a few
 // duplicate downloads, since each date's upsert is idempotent and both
 // walks skip dates that already have a source row. Upgrade path: one

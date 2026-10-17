@@ -31,7 +31,7 @@ import { usePortfolioTitle } from '../lib/useTitle'
 
 // The Bitti list per history entry, so Back from a statement's "İşlemlerde
 // gör" returns to it.
-// ponytail: module memory, gone on a full reload; history state would have to
+// shortcut: module memory, gone on a full reload; history state would have to
 // structured-clone the files and ApiErrors. Kept per user, so another
 // account in this tab never gets it back. `listed` goes with it, so an
 // import undone while the user was away reads undone on return.
@@ -157,7 +157,7 @@ export function ImportPage() {
   // queue by period and to name the files that cannot be imported at all
   // before the first review. A single mutation cannot track parallel calls,
   // so these go through parseStatement directly.
-  // ponytail: no client concurrency cap, the browser queues uploads past ~6
+  // shortcut: no client concurrency cap, the browser queues uploads past ~6
   // per host. Add one if a year of statements ever strains the server.
   async function startBatch(selected: File[], dropped: Refused[]) {
     // A batch's files live in its queue, the refused ones last as not

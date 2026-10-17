@@ -333,8 +333,8 @@ export function TransactionDialog({
     }
     once(() =>
       createMutation.mutateAsync(input, {
-        // Keeping the type and the date is what makes "add and next" worth a
-        // shortcut: a day of transactions is usually the same type.
+        // Keeping the type and the date is what makes "add and next" worth
+        // it: a day of transactions is usually the same type.
         onSuccess: () => {
           toast(t('transactions.added'))
           if (keepOpen) startNext()

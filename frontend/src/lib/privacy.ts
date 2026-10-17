@@ -5,7 +5,7 @@
 // remount that would drop component state.
 import { createStore, readStored, writeStored } from './createStore'
 
-// ponytail: per-device, in the browser only, like the theme and the locale.
+// shortcut: per-device, in the browser only, like the theme and the locale.
 // Nothing stored, or storage disabled: amounts visible.
 const store = createStore(
   () => readStored('privacy') === 'on',

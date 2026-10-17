@@ -573,7 +573,7 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 			converted, carriedFlow = convertCarried(carriedFlow, currentRates, in.reporting)
 		}
 
-		// ponytail: the sweep is now O(txs + days * instruments) -- the
+		// shortcut: the sweep is now O(txs + days * instruments) -- the
 		// per-day work is one snapshot over the instruments held, not a
 		// replay of every transaction. A portfolio_snapshots table is still
 		// the upgrade path if the remaining per-day term ever matters.
@@ -626,7 +626,7 @@ func (in *sweepInputs) benchmarkPrice(benchmarkInstrument int64, dayIdx int, lat
 	if benchmarkInstrument != 0 {
 		// The close the valuation uses, zero before
 		// the first one. latest carries forward.
-		// ponytail: a split inside the range shows as a drop in
+		// shortcut: a split inside the range shows as a drop in
 		// the benchmark, since the carried close is not
 		// back-adjusted (funds and gold have no splits). Upgrade
 		// path: scale the shadow units by splitsOf[id] on each
@@ -649,7 +649,7 @@ func (s *historySweep) scanPositions(in *sweepInputs, positions []holdings.Posit
 			unpriced = append(unpriced, p.InstrumentID)
 			continue
 		}
-		// ponytail: the whole first-price jump is taken out, including
+		// shortcut: the whole first-price jump is taken out, including
 		// the gain on shares bought inside the range before that first
 		// price; splitting it would need a price at each of those buys.
 		if slices.Contains(firstPriced, p.InstrumentID) {
@@ -749,7 +749,7 @@ func benchmarkLevels(ctx context.Context, repo *benchmark.Repo, code string, fro
 		}
 		return levels, "", nil
 	case benchmark.CodeTUFE:
-		// ponytail: loads every stored month, a few hundred monthly rows
+		// shortcut: loads every stored month, a few hundred monthly rows
 		// (TUFE is published since 2003), since the extrapolation needs the
 		// last two stored months whatever the range.
 		rows, err := repo.Range(ctx, code, "0000-01-01", toStr)

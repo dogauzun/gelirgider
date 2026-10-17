@@ -297,7 +297,7 @@ func newYork() *time.Location {
 // session that has closed by now: the date a run at now stores a close
 // under, for a symbol that traded in that session (see FetchClose).
 //
-// ponytail: weekends only, no holiday calendar. The day after a holiday,
+// shortcut: weekends only, no holiday calendar. The day after a holiday,
 // during the session, the close before the holiday is stored under the
 // holiday's date: the same value the forward carry gives that day anyway.
 func LastSession(now time.Time) string {
@@ -458,7 +458,7 @@ type Syncer struct {
 // Every row with divCash > 0 is also stored in dividends, currency USD,
 // source = "tiingo" (ADR 0009).
 //
-// ponytail: a ticker Tiingo does not know (404) has no row on or before
+// shortcut: a ticker Tiingo does not know (404) has no row on or before
 // from, so it is re-requested on every call. Ceiling is one wasted
 // request per such symbol per save/startup; remember misses if the free
 // tier's hourly limit ever bites.
@@ -522,7 +522,7 @@ func (s *Syncer) storeHistory(ctx context.Context, in instrument.Instrument, clo
 // Without a Tiingo key it logs once and returns 0, nil. Returns the number
 // of closes written.
 //
-// ponytail: one Tiingo request per tracked symbol per run, against the free
+// shortcut: one Tiingo request per tracked symbol per run, against the free
 // tier's 50 requests/hour. Past ~50 tracked US symbols the tail of the run
 // gets 429s (logged, retried the next day); spread the run over the hour or
 // move to a paid tier if that ever happens.

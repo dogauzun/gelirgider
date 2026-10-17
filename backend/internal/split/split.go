@@ -78,7 +78,7 @@ func (r *Repo) ListMany(ctx context.Context, ids []int64) (map[int64][]Split, er
 	if len(ids) == 0 {
 		return out, nil
 	}
-	// ponytail: one IN list, no chunking; modernc sqlite's default
+	// shortcut: one IN list, no chunking; modernc sqlite's default
 	// SQLITE_MAX_VARIABLE_NUMBER is 32766, chunk when a portfolio nears it.
 	placeholders, args := db.InList(ids)
 	rows, err := r.query(ctx,
