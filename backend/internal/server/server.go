@@ -17,9 +17,11 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/benchmark"
 	"github.com/dogauzun/gelirgider/backend/internal/bist"
 	"github.com/dogauzun/gelirgider/backend/internal/btcturk"
+	"github.com/dogauzun/gelirgider/backend/internal/deposit"
 	"github.com/dogauzun/gelirgider/backend/internal/dividend"
 	"github.com/dogauzun/gelirgider/backend/internal/evds"
 	"github.com/dogauzun/gelirgider/backend/internal/fx"
+	"github.com/dogauzun/gelirgider/backend/internal/holdings"
 	"github.com/dogauzun/gelirgider/backend/internal/instrument"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
@@ -98,6 +100,13 @@ type deps struct {
 	splits       *split.Repo
 	benchmarks   *benchmark.Repo
 	dividends    *dividend.Repo
+	deposits     *deposit.Repo
+}
+
+// priceSources is what the valuations read prices from: the fetched closes,
+// the user's manual prices and the user's deposits.
+func (d *deps) priceSources() holdings.PriceSources {
+	return holdings.PriceSources{Prices: d.prices, Manual: d.manualPrices, Deposits: d.deposits}
 }
 
 // newHandler is New with the market-data fetchers injected in d, so tests
@@ -118,6 +127,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 	d.splits = split.NewRepo(conn)
 	d.benchmarks = benchmark.NewRepo(conn)
 	d.dividends = dividend.NewRepo(conn)
+	d.deposits = deposit.NewRepo(conn)
 	cfg, users, portfolios := d.cfg, d.users, d.portfolios
 	sessions := auth.NewRepo(conn)
 

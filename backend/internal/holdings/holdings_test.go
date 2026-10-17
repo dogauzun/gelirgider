@@ -1,13 +1,17 @@
 package holdings_test
 
 import (
+	"context"
 	"fmt"
 	"maps"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"testing"
 	"time"
 
+	"github.com/dogauzun/gelirgider/backend/internal/db"
+	"github.com/dogauzun/gelirgider/backend/internal/deposit"
 	"github.com/dogauzun/gelirgider/backend/internal/holdings"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
@@ -950,5 +954,100 @@ func TestComputeStats(t *testing.T) {
 				t.Errorf("merged Stats = %s", got)
 			}
 		})
+	}
+}
+
+// TestDepositPrices checks that a deposit's series and latest close come from
+// its terms, for its owner only, next to a stock with a fetched price.
+func TestDepositPrices(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+	ctx := context.Background()
+	for _, q := range []string{
+		`INSERT INTO users (id, email, password_hash, created_at) VALUES
+		 (1, 'a@example.com', 'x', '2026-01-01T00:00:00Z'),
+		 (2, 'b@example.com', 'x', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO portfolios (id, user_id, name, created_at) VALUES (1, 1, 'P', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO instruments (id, symbol, market, name, currency) VALUES
+		 (1, 'D1', 'DEPOSIT', 'Deposit', 'TRY'),
+		 (2, 'STK', 'BIST', 'Stock', 'TRY')`,
+		`INSERT INTO term_deposits (user_id, portfolio_id, instrument_id, currency, principal, rate, stopaj_rate, start_date, maturity_date, created_at)
+		 VALUES (1, 1, 1, 'TRY', '1000', '0.45', '0.175', '2026-01-10', '2026-01-20', '2026-01-10T00:00:00Z')`,
+	} {
+		if _, err := conn.Exec(q); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+	prices := price.NewRepo(conn)
+	if err := prices.Upsert(ctx, 2, "2026-01-12", "50", "test"); err != nil {
+		t.Fatalf("prices.Upsert: %v", err)
+	}
+	src := holdings.PriceSources{Prices: prices, Manual: price.NewManualRepo(conn), Deposits: deposit.NewRepo(conn)}
+	terms := deposit.Terms{Rate: d("0.45"), StopajRate: d("0.175"), StartDate: "2026-01-10", MaturityDate: "2026-01-20"}
+
+	// closes is the deposit's expected price rows for the dates in order.
+	closes := func(dates ...string) []price.Price {
+		rows := []price.Price{}
+		for _, date := range dates {
+			c, ok := deposit.Close(terms, date)
+			if !ok {
+				t.Fatalf("no close on %s", date)
+			}
+			rows = append(rows, price.Price{InstrumentID: 1, Date: date, Close: c, Source: deposit.Source})
+		}
+		return rows
+	}
+	series := func(userID int64, from, to string) map[int64][]price.Price {
+		f, _ := time.Parse(time.DateOnly, from)
+		u, _ := time.Parse(time.DateOnly, to)
+		got, err := holdings.MergedSeries(ctx, src, userID, []int64{1, 2}, f, u)
+		if err != nil {
+			t.Fatalf("MergedSeries: %v", err)
+		}
+		return got
+	}
+	same := func(label string, got, want []price.Price) {
+		t.Helper()
+		if fmt.Sprint(got) != fmt.Sprint(want) {
+			t.Errorf("%s = %v, want %v", label, got, want)
+		}
+	}
+
+	spanning := series(1, "2026-01-05", "2026-01-25")
+	same("series across start and maturity", spanning[1], closes("2026-01-10", "2026-01-11", "2026-01-12", "2026-01-13", "2026-01-14", "2026-01-15", "2026-01-16", "2026-01-17", "2026-01-18", "2026-01-19", "2026-01-20"))
+	if got := spanning[2]; len(got) != 1 || got[0].Date != "2026-01-12" {
+		t.Errorf("stock series = %v, want its one fetched row", got)
+	}
+	same("series inside the term", series(1, "2026-01-15", "2026-01-17")[1], closes("2026-01-14", "2026-01-15", "2026-01-16", "2026-01-17"))
+	// A range after maturity holds only the seed, dated the day before from, at the maturity close.
+	wantSeed := closes("2026-01-20")
+	wantSeed[0].Date = "2026-01-24"
+	same("series after maturity", series(1, "2026-01-25", "2026-01-27")[1], wantSeed)
+	same("another user's deposit", series(2, "2026-01-05", "2026-01-25")[1], []price.Price{})
+
+	latest := func(userID int64, asOf string) map[int64]price.Price {
+		got, err := holdings.LatestCloses(ctx, src, userID, []int64{1, 2}, asOf)
+		if err != nil {
+			t.Fatalf("LatestCloses: %v", err)
+		}
+		return got
+	}
+	if _, ok := latest(1, "2026-01-09")[1]; ok {
+		t.Error("latest close before the start date, want none")
+	}
+	// dated asOf, whatever day the close is of, so a matured deposit is not stale.
+	for _, tc := range []struct{ asOf, closeOn string }{{"2026-01-10", "2026-01-10"}, {"2026-01-15", "2026-01-15"}, {"2026-02-01", "2026-01-20"}} {
+		want := closes(tc.closeOn)[0]
+		want.Date = tc.asOf
+		same("latest on "+tc.asOf, []price.Price{latest(1, tc.asOf)[1]}, []price.Price{want})
+	}
+	if got := latest(1, "2026-01-15")[2]; got.Date != "2026-01-12" {
+		t.Errorf("stock latest = %v, want its fetched row", got)
+	}
+	if got := latest(2, "2026-02-01"); len(got) != 1 || got[2].Date != "2026-01-12" {
+		t.Errorf("another user's latest = %v, want the stock only", got)
 	}
 }

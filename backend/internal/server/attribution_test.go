@@ -9,6 +9,7 @@ import (
 
 	"github.com/dogauzun/gelirgider/backend/internal/benchmark"
 	"github.com/dogauzun/gelirgider/backend/internal/db"
+	"github.com/dogauzun/gelirgider/backend/internal/deposit"
 	"github.com/dogauzun/gelirgider/backend/internal/fx"
 	"github.com/dogauzun/gelirgider/backend/internal/instrument"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
@@ -138,7 +139,7 @@ func testSweepAttribution(t *testing.T, reporting string) {
 	d := &deps{
 		users: user.NewRepo(conn), portfolios: portfolio.NewRepo(conn), instruments: instrument.NewRepo(conn),
 		prices: price.NewRepo(conn), manualPrices: price.NewManualRepo(conn), transactions: transaction.NewRepo(conn),
-		fx: fx.NewRepo(conn), splits: split.NewRepo(conn), benchmarks: benchmark.NewRepo(conn),
+		fx: fx.NewRepo(conn), splits: split.NewRepo(conn), benchmarks: benchmark.NewRepo(conn), deposits: deposit.NewRepo(conn),
 	}
 	usr, err := d.users.Create(ctx, "attribution@example.com", "hash")
 	if err != nil {
@@ -290,7 +291,7 @@ func TestSweepAttributionDepositIsIncome(t *testing.T) {
 			d := &deps{
 				users: user.NewRepo(conn), portfolios: portfolio.NewRepo(conn), instruments: instrument.NewRepo(conn),
 				prices: price.NewRepo(conn), manualPrices: price.NewManualRepo(conn), transactions: transaction.NewRepo(conn),
-				fx: fx.NewRepo(conn), splits: split.NewRepo(conn), benchmarks: benchmark.NewRepo(conn),
+				fx: fx.NewRepo(conn), splits: split.NewRepo(conn), benchmarks: benchmark.NewRepo(conn), deposits: deposit.NewRepo(conn),
 			}
 			usr, err := d.users.Create(ctx, "deposit@example.com", "hash")
 			if err != nil {

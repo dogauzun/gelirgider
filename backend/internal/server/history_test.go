@@ -2243,3 +2243,50 @@ func TestPortfolioHistoryFirstPriceKeepsInRangeBuyGain(t *testing.T) {
 		})
 	}
 }
+
+// depositHistoryEnv holds one user with a 1000 TRY deposit held from
+// 2026-01-10 to its maturity on 2026-01-13, at 36.5% with 20% stopaj: the
+// close gains 0.365 x 0.8 / 365 = 0.0008 a day. The cash arrives on 01-09 and
+// the deposit's buy (quantity 1000 at price 1) is on 01-10. The deposit has
+// no price rows.
+func depositHistoryEnv(t *testing.T) (e *periodsEnv, session string, portfolioID, instrumentID int64) {
+	t.Helper()
+	e = newPeriodsEnv(t)
+	userID, session := e.user(t, "deposit@example.com")
+	portfolioID = e.portfolio(t, userID)
+	res, err := e.conn.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES ('DEP-T1', 'DEPOSIT', 'Deposit', 'TRY')`)
+	if err != nil {
+		t.Fatalf("insert deposit instrument: %v", err)
+	}
+	if instrumentID, err = res.LastInsertId(); err != nil {
+		t.Fatalf("deposit instrument id: %v", err)
+	}
+	if _, err := e.conn.Exec(`INSERT INTO term_deposits (user_id, portfolio_id, instrument_id, currency, principal, rate, stopaj_rate, start_date, maturity_date, created_at)
+		VALUES (?, ?, ?, 'TRY', '1000', '0.365', '0.2', '2026-01-10', '2026-01-13', '2026-01-10T00:00:00Z')`, userID, portfolioID, instrumentID); err != nil {
+		t.Fatalf("insert term deposit: %v", err)
+	}
+	e.cash(t, userID, portfolioID, "2026-01-09", "1000")
+	e.buy(t, userID, lot{portfolioID: portfolioID, instrumentID: instrumentID, date: "2026-01-10", qty: "1000", px: "1"})
+	return e, session, portfolioID, instrumentID
+}
+
+// TestPortfolioHistoryDeposit checks that a deposit with no price rows is
+// valued from its terms: total_value rises by the accrued net interest each
+// day until maturity and stays there, and no day carries a flow.
+func TestPortfolioHistoryDeposit(t *testing.T) {
+	e, session, portfolioID, _ := depositHistoryEnv(t)
+	var got historyResponse
+	e.get(t, session, fmt.Sprintf("/api/portfolios/%d/history?from=2026-01-09&to=2026-01-14", portfolioID), http.StatusOK, &got)
+	want := []string{"1000.00", "1000.00", "1000.80", "1001.60", "1002.40", "1002.40"}
+	if len(got.Points) != len(want) {
+		t.Fatalf("points = %+v, want %d", got.Points, len(want))
+	}
+	for i, w := range want {
+		if p := got.Points[i]; p.TotalValue != w || p.PriceUnknown {
+			t.Errorf("%s: total_value = %s price_unknown = %v, want %s known", p.Date, p.TotalValue, p.PriceUnknown, w)
+		}
+	}
+	if got.NetFlow != "0.00" {
+		t.Errorf("net_flow = %s, want 0.00", got.NetFlow)
+	}
+}

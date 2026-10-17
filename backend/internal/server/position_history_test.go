@@ -137,3 +137,28 @@ func TestPositionHistory(t *testing.T) {
 		t.Errorf("bob status = %d, want 404", rec.Code)
 	}
 }
+
+// TestPositionHistoryDeposit checks that a deposit's position history carries
+// the close from its terms: 1 on the start day, +0.0008 a day, flat from
+// maturity. The setup is depositHistoryEnv's.
+func TestPositionHistoryDeposit(t *testing.T) {
+	e, session, portfolioID, instrumentID := depositHistoryEnv(t)
+	var got positionHistoryResponse
+	e.get(t, session, fmt.Sprintf("/api/portfolios/%d/instruments/%d/history?from=2026-01-10&to=2026-01-14", portfolioID, instrumentID), http.StatusOK, &got)
+	want := []struct{ date, close, value string }{
+		{"2026-01-10", "1", "1000.00"},
+		{"2026-01-11", "1.0008", "1000.80"},
+		{"2026-01-12", "1.0016", "1001.60"},
+		{"2026-01-13", "1.0024", "1002.40"},
+		{"2026-01-14", "1.0024", "1002.40"},
+	}
+	if len(got.Points) != len(want) {
+		t.Fatalf("points = %+v, want %d", got.Points, len(want))
+	}
+	for i, w := range want {
+		p := got.Points[i]
+		if p.Close == nil || p.Date != w.date || *p.Close != w.close || p.Quantity != "1000" || p.MarketValue != w.value {
+			t.Errorf("point[%d] = %+v, want %+v", i, p, w)
+		}
+	}
+}
