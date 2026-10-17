@@ -8,11 +8,12 @@ import { currencyTotals, holdingsTotal, shareOf, shareUnits } from './positions'
 export const ALLOCATION_VIEWS = ['symbol', 'market', 'assetClass', 'currency'] as const
 export type AllocationView = (typeof ALLOCATION_VIEWS)[number]
 
-type AssetClass = 'equity' | 'fund' | 'commodity' | 'crypto' | 'deposit' | 'unknown'
+type AssetClass = 'equity' | 'fund' | 'commodity' | 'crypto' | 'cash' | 'deposit' | 'unknown'
 
-// A position's asset class, read from its market. shortcut: BIST and US ETFs
-// and ALTIN.S1 count as equity because positions carry no asset_class yet,
-// upgrade when they do. A market missing here falls into the 'unknown' row.
+// A position's asset class when its instrument stores none, read from its
+// market. shortcut: BIST and US ETFs and ALTIN.S1 count as equity because
+// their instruments carry no asset_class yet, upgrade when they do. A market
+// missing here falls into the 'unknown' row.
 const ASSET_CLASS_BY_MARKET: Record<string, AssetClass> = {
   US: 'equity',
   BIST: 'equity',
@@ -49,7 +50,10 @@ export interface AllocationRow {
 function groupOf(position: Position, view: AllocationView): [string, string] {
   if (view === 'symbol') return [`position-${position.instrument_id}`, position.symbol]
   if (view === 'assetClass') {
-    const assetClass = ASSET_CLASS_BY_MARKET[position.market] ?? 'unknown'
+    const assetClass =
+      (position.asset_class as AssetClass | null) ??
+      ASSET_CLASS_BY_MARKET[position.market] ??
+      'unknown'
     return [`class-${assetClass}`, t(`allocation.assetClass.${assetClass}`)]
   }
   return [position.market, marketLabel(position.market)]

@@ -8,6 +8,7 @@ function position(fields: Partial<Position>): Position {
     symbol: 'THYAO',
     name: 'Türk Hava Yolları',
     market: 'BIST',
+    asset_class: null,
     currency: 'TRY',
     quantity: '10',
     avg_cost: '100.00',

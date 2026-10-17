@@ -481,6 +481,10 @@ definitions:
     type: object
   server.positionResponse:
     properties:
+      asset_class:
+        description: the instrument's stored class (equity, fund, ...), null when
+          it has none
+        type: string
       avg_cost:
         type: string
       closed:
@@ -518,7 +522,7 @@ definitions:
       last_price:
         type: string
       market:
-        description: BIST, US, TEFAS or CRYPTO
+        description: BIST, US, TEFAS, CRYPTO or GOLD
         type: string
       market_value:
         type: string

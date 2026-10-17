@@ -8,12 +8,14 @@ function position(
   marketValueReporting: string | null,
   market = 'BIST',
   currency = 'TRY',
+  assetClass: string | null = null,
 ): Position {
   return {
     instrument_id: instrumentId,
     symbol,
     name: symbol,
     market,
+    asset_class: assetClass,
     currency,
     quantity: '1',
     avg_cost: '0',
@@ -153,6 +155,28 @@ describe('allocationRows', () => {
       ['Bilinmiyor', '100', 0.1],
       ['Nakit', '100', 0.1],
     ])
+  })
+
+  it('groups by the stored asset class over the market, and falls back to the market without one', () => {
+    const { rows } = allocationRows({
+      positions: [
+        position(1, 'AFT', '200.00', 'BIST', 'TRY', 'fund'),
+        position(2, 'THYAO', '300.00'),
+        position(3, 'GLDTR', '100.00', 'BIST', 'TRY', 'commodity'),
+        position(4, 'VTI', '100.00', 'US', 'USD', null),
+      ],
+      cash: '100.00',
+      cashByCurrencyReporting: { TRY: '100.00' },
+      view: 'assetClass',
+    })
+
+    expect(brief(rows)).toEqual([
+      ['Hisse senedi', '400', 0.5],
+      ['Fon', '200', 0.25],
+      ['Emtia', '100', 0.125],
+      ['Nakit', '100', 0.125],
+    ])
+    expect(rows.reduce((sum, row) => sum + row.share, 0)).toBeCloseTo(1, 10)
   })
 
   it('folds rows past the fifth into "Diğer", names its members and sums exactly', () => {

@@ -35,6 +35,7 @@ function position(
     symbol,
     name: symbol,
     market,
+    asset_class: null,
     currency,
     quantity: '1',
     avg_cost: '0',
