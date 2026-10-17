@@ -485,7 +485,8 @@ func seedFile(ctx context.Context, db *sql.DB, data []byte, market, currency str
 	if err != nil {
 		return fmt.Errorf("read csv header: %w", err)
 	}
-	if len(header) != 2 || header[0] != "symbol" || header[1] != "name" {
+	if len(header) < 2 || len(header) > 3 || header[0] != "symbol" || header[1] != "name" ||
+		(len(header) == 3 && header[2] != "asset_class") {
 		return fmt.Errorf("unexpected csv header: %v", header)
 	}
 
@@ -504,17 +505,32 @@ func seedFile(ctx context.Context, db *sql.DB, data []byte, market, currency str
 			return fmt.Errorf("read csv row: %w", err)
 		}
 		symbol, name := record[0], record[1]
+		class := sql.NullString{}
+		if len(record) == 3 && record[2] != "" {
+			class = sql.NullString{String: record[2], Valid: true}
+		}
 		_, err = tx.ExecContext(ctx,
-			`INSERT INTO instruments (symbol, market, name, currency)
-			 SELECT ?, ?, ?, ?
+			`INSERT INTO instruments (symbol, market, name, currency, asset_class)
+			 SELECT ?, ?, ?, ?, ?
 			 WHERE NOT EXISTS (
 			     SELECT 1 FROM instruments WHERE market = ? AND symbol = ?
 			 )`,
-			symbol, market, name, currency,
+			symbol, market, name, currency, class,
 			market, symbol,
 		)
 		if err != nil {
 			return fmt.Errorf("insert instrument %s: %w", symbol, err)
+		}
+		if !class.Valid {
+			continue
+		}
+		_, err = tx.ExecContext(ctx,
+			`UPDATE instruments SET asset_class = ?
+			 WHERE market = ? AND symbol = ? AND (asset_class IS NULL OR asset_class <> ?)`,
+			class, market, symbol, class,
+		)
+		if err != nil {
+			return fmt.Errorf("update asset class of %s: %w", symbol, err)
 		}
 	}
 	return tx.Commit()

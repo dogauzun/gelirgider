@@ -773,3 +773,61 @@ func TestAssetClassIsRead(t *testing.T) {
 	}
 	check("Search fresh", foundFresh[0].AssetClass, unset)
 }
+
+func TestSeedFileAssetClass(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	ctx := context.Background()
+	if _, err := conn.ExecContext(ctx, `INSERT INTO instruments (symbol, market, name, currency, asset_class)
+		VALUES ('THYAO', 'BIST', 'Turk Hava Yollari', 'TRY', NULL),
+		       ('ASELS', 'BIST', 'Aselsan', 'TRY', 'equity'),
+		       ('GARAN', 'BIST', 'Garanti', 'TRY', 'equity')`); err != nil {
+		t.Fatalf("seed instruments: %v", err)
+	}
+
+	classes := func() map[string]string {
+		t.Helper()
+		rows, err := conn.QueryContext(ctx, `SELECT symbol, COALESCE(asset_class, '-') FROM instruments`)
+		if err != nil {
+			t.Fatalf("query: %v", err)
+		}
+		defer rows.Close()
+		out := map[string]string{}
+		for rows.Next() {
+			var symbol, class string
+			if err := rows.Scan(&symbol, &class); err != nil {
+				t.Fatalf("scan: %v", err)
+			}
+			out[symbol] = class
+		}
+		return out
+	}
+
+	data := []byte("symbol,name,asset_class\nTHYAO,Turk Hava Yollari,equity\nASELS,Aselsan,fund\nGARAN,Garanti,\nEREGL,Eregli,equity\nSISE,Sise,\n")
+	want := map[string]string{"THYAO": "equity", "ASELS": "fund", "GARAN": "equity", "EREGL": "equity", "SISE": "-"}
+	for run := 1; run <= 2; run++ {
+		if err := instrument.SeedFile(ctx, conn, data, "BIST", "TRY"); err != nil {
+			t.Fatalf("seed run %d: %v", run, err)
+		}
+		got := classes()
+		if len(got) != len(want) {
+			t.Fatalf("run %d: classes = %v, want %v", run, got, want)
+		}
+		for symbol, class := range want {
+			if got[symbol] != class {
+				t.Fatalf("run %d: %s class = %q, want %q", run, symbol, got[symbol], class)
+			}
+		}
+	}
+
+	if err := instrument.SeedFile(ctx, conn, []byte("symbol,name\nAKBNK,Akbank\n"), "BIST", "TRY"); err != nil {
+		t.Fatalf("2-column seed: %v", err)
+	}
+	if got := classes()["AKBNK"]; got != "-" {
+		t.Fatalf("2-column row class = %q, want unset", got)
+	}
+}
