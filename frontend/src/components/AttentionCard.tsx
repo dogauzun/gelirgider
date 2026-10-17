@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import type { ExpectedDividend } from '../api/dividends'
 import { t, type StringKey } from '../i18n/strings'
 import { SHARE_FORMAT } from '../lib/allocation'
-import { ATTENTION, type AttentionItem } from '../lib/attention'
+import type { AttentionItem } from '../lib/attention'
 import { formatMarketDate, formatShortMarketDate } from '../lib/date'
 import { formatMoney, formatNumber, plTone, signedMoney, signedPercent } from '../lib/format'
 import { focusIfLost, neighbourOf } from '../lib/useFocusLater'
@@ -213,7 +213,7 @@ export function AttentionCard({
             <Label item={item}>
               {t('attention.staleManual', {
                 count: item.count,
-                days: ATTENTION.staleManualDays,
+                days: item.days,
               })}
             </Label>
           </Row>
