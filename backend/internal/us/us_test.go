@@ -82,6 +82,46 @@ func TestSyncHistoryStoresSplitFactor(t *testing.T) {
 	}
 }
 
+// TestSyncHistoryCountsClosesWhenSplitFails: the closes commit as one batch
+// before the splits; when a split upsert then fails, the returned count is
+// still every close stored, not the index of the failing split.
+func TestSyncHistoryCountsClosesWhenSplitFails(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`[
+			{"date":"2026-08-28T00:00:00.000Z","close":500.0,"splitFactor":4.0},
+			{"date":"2026-08-31T00:00:00.000Z","close":126.1,"splitFactor":1.0},
+			{"date":"2026-09-01T00:00:00.000Z","close":127.25,"splitFactor":1.0}
+		]`))
+	}))
+	defer srv.Close()
+
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+	ctx := context.Background()
+	for _, q := range []string{
+		`INSERT INTO instruments (id, symbol, market, name, currency) VALUES (1, 'AAPL', 'US', 'Apple Inc', 'USD')`,
+		`DROP TABLE splits`,
+	} {
+		if _, err := conn.ExecContext(ctx, q); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+
+	f := &us.Fetcher{TiingoBaseURL: srv.URL, TiingoKey: "test-key"}
+	in := instrument.Instrument{ID: 1, Symbol: "AAPL", Market: "US"}
+	s := &us.Syncer{Fetcher: f, Prices: price.NewRepo(conn), Splits: split.NewRepo(conn), Dividends: dividend.NewRepo(conn)}
+	n, err := s.SyncHistory(ctx, in, "2026-09-01")
+	if err == nil {
+		t.Fatalf("SyncHistory with a failing split upsert: got nil error, want one")
+	}
+	if n != 3 {
+		t.Fatalf("SyncHistory = %d, want 3 (every close was committed)", n)
+	}
+}
+
 // TestFetchCloseKeepsExactDecimal checks that the close is parsed from
 // the JSON text, so there is no float64 noise and no rounding of sub-cent
 // prices.

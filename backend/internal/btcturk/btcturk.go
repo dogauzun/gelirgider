@@ -225,7 +225,7 @@ type GoldSyncer struct {
 // tracked-instrument check: the benchmark needs the series even when nobody
 // holds gold. A missing GOLD/GRAM instrument is an error and nothing is
 // written; the instrument seed creates it, never SyncGold. Returns the
-// number of days stored.
+// number of days stored as prices, also when the benchmark write then fails.
 //
 // ponytail: PAXG, a token for one fine troy ounce, is the gold proxy, closed
 // at 24:00 UTC with no bank spread. To change the source, change the Source
@@ -250,7 +250,7 @@ func (s *GoldSyncer) SyncGold(ctx context.Context, from, to time.Time) (int, err
 		return 0, fmt.Errorf("upsert GOLD/GRAM prices: %w", err)
 	}
 	if err := s.Benchmarks.UpsertMany(ctx, benchRows); err != nil {
-		return 0, fmt.Errorf("upsert GOLD benchmark: %w", err)
+		return len(candles), fmt.Errorf("upsert GOLD benchmark: %w", err)
 	}
 	return len(candles), nil
 }
