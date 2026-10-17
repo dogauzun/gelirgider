@@ -38,14 +38,19 @@ against dividends entered by hand or imported from Midas.
 
 ### Gross in `amount`, stopaj in `fee`
 
-The same convention as the Midas import. Stopaj is pre-filled at a fixed rate
-per market:
+The same convention as the Midas import. Stopaj is pre-filled at a rate per
+market, read from the `stopaj_rates` table (`market`, `rate` as an exact
+decimal fraction in text) on every request. A market with no row gets 0. The
+table is global, like `dividends`. It is seeded with:
 
 | Market    | Stopaj                      |
 | --------- | --------------------------- |
 | `BIST`    | 15%                         |
 | `US`      | 20% (US-Turkey treaty rate) |
 | any other | 0                           |
+
+A change in law is an `UPDATE` of one row by the operator, with no release and
+no admin UI.
 
 The user can edit it before or after adding. For dividends the fee field is
 labelled Stopaj / Withholding tax instead of Komisyon / Commission.
@@ -95,8 +100,10 @@ temettüler", lists the expected dividends and is always open.
 
 - **The transaction date is the ex-date, not the payment date.** Neither
   source gives a payment date.
-- **Stopaj rates are fixed per market.** No per-instrument rate for ETFs or
-  funds, and a law change is a code change.
+- **Stopaj rates are per market only.** No per-instrument rate for ETFs or
+  funds: a BIST fund or a US holding under a different treaty rate is
+  pre-filled with its market's rate and the user corrects it. A nullable
+  `instruments.stopaj_rate` would cover it if it matters.
 - **BIST history covers the current calendar year only.**
 - **A cancelled planned dividend stays in the table.** The daily sync
   upserts what the page lists and deletes nothing; a changed announcement
