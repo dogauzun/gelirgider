@@ -12,6 +12,10 @@ export const enAuth: AreaStrings<typeof trAuth> = {
   'auth.login.submit': 'Log in',
   'auth.login.noAccount': 'No account? Sign up',
   'auth.login.sessionExpired': 'Your session expired, log in again',
+  'auth.login.codeTitle': 'Two-step verification',
+  'auth.login.code': 'Verification code',
+  'auth.login.codeHint': 'Enter the code from your authenticator app',
+  'auth.login.codeSubmit': 'Verify',
   'auth.login.forgotPassword':
     'If you forgot your password, you cannot reset it yourself. Contact the person running this app; they can reset it for you.',
   'auth.register.title': 'Sign up',

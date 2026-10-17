@@ -118,19 +118,48 @@ export function loginRedirectPath(state: unknown): string {
   return pathname + search + hash
 }
 
-function login(email: string, password: string): Promise<Me> {
-  return apiFetch<Me>('/api/auth/login', {
+// Login's answer for a user with two-step verification on: no session yet,
+// the token goes to /api/auth/login/totp with a code.
+interface TotpChallenge {
+  totp_required: true
+  token: string
+}
+
+export function isTotpChallenge(result: Me | TotpChallenge | undefined): result is TotpChallenge {
+  return result !== undefined && 'totp_required' in result
+}
+
+function login(email: string, password: string): Promise<Me | TotpChallenge> {
+  return apiFetch<Me | TotpChallenge>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   })
 }
 
-// `onLoggedIn` runs once me has refetched.
+// A challenge answer leaves the page on the code step: `onLoggedIn` runs, once
+// me has refetched, only for a real session.
 export function useLogin(onLoggedIn: () => void) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) =>
       login(email, password),
+    onSuccess: async (result) => {
+      if (isTotpChallenge(result)) return
+      await queryClient.invalidateQueries({ queryKey: meQueryKey })
+      onLoggedIn()
+    },
+  })
+}
+
+// Second login step. `onLoggedIn` runs once me has refetched.
+export function useLoginTotp(onLoggedIn: () => void) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ token, code }: { token: string; code: string }) =>
+      apiFetch<Me>('/api/auth/login/totp', {
+        method: 'POST',
+        body: JSON.stringify({ token, code }),
+      }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: meQueryKey })
       onLoggedIn()

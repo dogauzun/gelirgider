@@ -9,6 +9,10 @@ export const trAuth = {
   'auth.login.submit': 'Giriş yap',
   'auth.login.noAccount': 'Hesabın yok mu? Kayıt ol',
   'auth.login.sessionExpired': 'Oturumunun süresi doldu, tekrar giriş yap',
+  'auth.login.codeTitle': 'İki adımlı doğrulama',
+  'auth.login.code': 'Doğrulama kodu',
+  'auth.login.codeHint': 'Doğrulama uygulamandaki kodu yaz',
+  'auth.login.codeSubmit': 'Doğrula',
   // No self-service reset until the app can send email (Phase 6). Until then
   // only the operator can set a password, so point the user at them instead
   // of at a link that does not exist.
