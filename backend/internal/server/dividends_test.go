@@ -218,6 +218,19 @@ func TestExpectedDividends(t *testing.T) {
 		t.Errorf("monthly got  %+v\nwant %+v", got, wantMonthly)
 	}
 
+	// The pre-filled stopaj follows the stopaj_rates table: US 20% -> 10%.
+	if _, err := conn.Exec("UPDATE stopaj_rates SET rate = '0.10' WHERE market = 'US'"); err != nil {
+		t.Fatalf("update stopaj rate: %v", err)
+	}
+	rec = get(session.ID)
+	got = nil
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(got) != 1 || got[0].Symbol != "AAPL" || got[0].Stopaj != "0.20" || got[0].Net != "1.80" {
+		t.Errorf("after rate change got %+v, want AAPL stopaj 0.20 net 1.80", got)
+	}
+
 	// Deleting the portfolio leaves no orphan dismissal.
 	if _, err := portfolio.NewRepo(conn).Delete(ctx, usr.ID, pf.ID, true); err != nil {
 		t.Fatalf("portfolios.Delete: %v", err)

@@ -17,16 +17,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// stopajRate is the withholding tax pre-filled on an expected dividend, per
-// market; any other market gets 0 (ADR 0009).
-//
-// shortcut: fixed rates per market, no per-instrument rate for ETFs or funds,
-// and a law change is a code change. Move to a table if either matters.
-var stopajRate = map[string]decimal.Decimal{
-	"BIST": decimal.RequireFromString("0.15"),
-	"US":   decimal.RequireFromString("0.20"),
-}
-
 // registerDividendRoutes wires GET /api/portfolios/{id}/dividends/expected,
 // POST .../expected/dismiss, GET .../dividends/upcoming and GET .../dividends/timeline. It lives in
 // server for the same import-cycle reason as the summary route.
@@ -126,6 +116,13 @@ func (h *dividendHandler) writeSuggestions(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// The pre-filled stopaj per market (ADR 0009); a market without a row gets 0.
+	stopajRates, err := h.dividends.StopajRates(r.Context())
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+
 	var withDividends []int64
 	for id := range byInstrument {
 		if len(divs[id]) > 0 {
@@ -147,7 +144,7 @@ func (h *dividendHandler) writeSuggestions(w http.ResponseWriter, r *http.Reques
 		}
 		instr := instruments[id]
 		for _, e := range suggestions {
-			stopaj := e.Gross.Mul(stopajRate[instr.Market]).Round(2)
+			stopaj := e.Gross.Mul(stopajRates[instr.Market]).Round(2)
 			out = append(out, expectedDividendResponse{
 				InstrumentID: id,
 				Symbol:       instr.Symbol,

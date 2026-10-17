@@ -98,6 +98,30 @@ func (r *Repo) ListFor(ctx context.Context, instrumentIDs []int64) (map[int64][]
 	return out, nil
 }
 
+// StopajRates returns the stopaj rate per market from the stopaj_rates
+// table. A market without a row is absent: its rate is 0.
+func (r *Repo) StopajRates(ctx context.Context) (map[string]decimal.Decimal, error) {
+	rows, err := r.db.QueryContext(ctx, "SELECT market, rate FROM stopaj_rates")
+	if err != nil {
+		return nil, fmt.Errorf("query stopaj rates: %w", err)
+	}
+	defer rows.Close()
+
+	out := make(map[string]decimal.Decimal)
+	for rows.Next() {
+		var market string
+		var rate decimal.Decimal
+		if err := rows.Scan(&market, &rate); err != nil {
+			return nil, fmt.Errorf("scan stopaj rate: %w", err)
+		}
+		out[market] = rate
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate stopaj rates: %w", err)
+	}
+	return out, nil
+}
+
 // A dividend transaction dated from ex-date -MatchBeforeDays to
 // +MatchAfterDays accounts for that ex-date (see MatchRecorded).
 const (
