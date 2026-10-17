@@ -69,6 +69,25 @@ definitions:
       token:
         type: string
     type: object
+  auth.totpConfirmRequest:
+    properties:
+      code:
+        type: string
+    type: object
+  auth.totpSetupRequest:
+    properties:
+      password:
+        type: string
+    type: object
+  auth.totpSetupResponse:
+    properties:
+      secret:
+        description: base32, for manual entry
+        type: string
+      uri:
+        description: otpauth:// URI for a QR code
+        type: string
+    type: object
   auth.userResponse:
     properties:
       email:
@@ -1105,6 +1124,107 @@ paths:
                 type: string
             type: object
       summary: Change own password
+      tags:
+      - auth
+  /account/totp/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Needs a session. Checks the code against the pending secret and
+        turns two-factor on. Signs out every other session of the user. Rate-limited
+        per client IP, 10 per minute.
+      parameters:
+      - description: 6-digit code from the authenticator
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.totpConfirmRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: invalid request body; invalid code
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: no pending two-factor setup
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Confirm two-factor enrolment
+      tags:
+      - auth
+  /account/totp/setup:
+    post:
+      consumes:
+      - application/json
+      description: Needs a session and the current password, so a stolen session cannot
+        enrol an attacker's authenticator. Stores a new pending secret (a second call
+        replaces it) and returns it with its otpauth URI. Two-factor stays off until
+        confirm. Rate-limited per client IP, 10 per minute.
+      parameters:
+      - description: current password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.totpSetupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.totpSetupResponse'
+        "400":
+          description: invalid request body
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: current password is incorrect; unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: two-factor authentication is already on
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Start two-factor enrolment
       tags:
       - auth
   /admin/backfill:

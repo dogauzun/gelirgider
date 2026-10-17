@@ -148,7 +148,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 	// with more specific patterns (e.g. "/api/auth/login") still take
 	// precedence over this "/api/" subtree per net/http mux rules.
 	protected := http.NewServeMux()
-	auth.RegisterProtectedRoutes(protected, users, sessions)
+	auth.RegisterProtectedRoutes(protected, users, sessions, cfg)
 	// Admin-only routes sit on their own mux under /api/admin/, behind
 	// RequireAdmin on top of the RequireUser that wraps protected.
 	admin := http.NewServeMux()

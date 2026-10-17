@@ -113,6 +113,82 @@ func (r *Repo) UpdateReportingCurrency(ctx context.Context, id int64, currency s
 	return r.exec(ctx, "update reporting currency", "UPDATE users SET reporting_currency = ? WHERE id = ?", currency, id)
 }
 
+// ErrTOTPOn is returned by SetTOTPPending when the user already has TOTP on.
+var ErrTOTPOn = errors.New("totp already on")
+
+// ErrNoPendingTOTP is returned by ConfirmTOTP when there is no pending
+// secret matching the one the caller verified against.
+var ErrNoPendingTOTP = errors.New("no pending totp secret")
+
+// TOTPState is the sealed TOTP columns of a user: Secret is set once TOTP is
+// on, Pending only during enrolment ("" means NULL). LastStep is the last
+// accepted 30-second step.
+type TOTPState struct {
+	Secret, Pending string
+	LastStep        int64
+}
+
+// TOTP returns the sealed TOTP columns of the user with the given id, or a
+// MissingError, which is ErrNotFound.
+func (r *Repo) TOTP(ctx context.Context, id int64) (TOTPState, error) {
+	var s TOTPState
+	var secret, pending sql.NullString
+	err := r.db.QueryRowContext(ctx,
+		"SELECT totp_secret, totp_pending_secret, totp_last_step FROM users WHERE id = ?", id,
+	).Scan(&secret, &pending, &s.LastStep)
+	if errors.Is(err, sql.ErrNoRows) {
+		return TOTPState{}, MissingError{ID: id}
+	}
+	if err != nil {
+		return TOTPState{}, fmt.Errorf("query totp: %w", err)
+	}
+	s.Secret, s.Pending = secret.String, pending.String
+	return s, nil
+}
+
+// SetTOTPPending stores the sealed pending secret of the user, replacing an
+// earlier one. It returns ErrTOTPOn when TOTP is already on, or a
+// MissingError when the user is gone.
+func (r *Repo) SetTOTPPending(ctx context.Context, id int64, sealed string) error {
+	res, err := r.db.ExecContext(ctx,
+		"UPDATE users SET totp_pending_secret = ? WHERE id = ? AND totp_secret IS NULL", sealed, id)
+	if err != nil {
+		return fmt.Errorf("set pending totp: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("set pending totp: rows affected: %w", err)
+	}
+	if n > 0 {
+		return nil
+	}
+	if _, err := r.GetByID(ctx, id); err != nil {
+		return err
+	}
+	return ErrTOTPOn
+}
+
+// ConfirmTOTP turns the pending secret into the active one and records step
+// as the last accepted step, in one statement. pending is the sealed value
+// the caller verified the code against: a setup that replaced it meanwhile
+// gives ErrNoPendingTOTP, as does no pending secret or TOTP already on.
+func (r *Repo) ConfirmTOTP(ctx context.Context, id int64, pending string, step int64) error {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE users SET totp_secret = totp_pending_secret, totp_pending_secret = NULL, totp_last_step = ?
+		 WHERE id = ? AND totp_pending_secret = ? AND totp_secret IS NULL`, step, id, pending)
+	if err != nil {
+		return fmt.Errorf("confirm totp: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("confirm totp: rows affected: %w", err)
+	}
+	if n == 0 {
+		return ErrNoPendingTOTP
+	}
+	return nil
+}
+
 // AttentionRules returns the stored attention rule overrides of the user
 // with the given id, a JSON object text ("{}" when nothing is overridden),
 // or a MissingError, which is ErrNotFound.
