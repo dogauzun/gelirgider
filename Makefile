@@ -10,7 +10,7 @@ endif
 # Hand them to every target, like compose does for the backend in prod.
 export
 
-.PHONY: setup prune-worktrees dev dev-backend dev-frontend test test-backend test-frontend build-frontend build lint swagger swagger-check notices screenshots help
+.PHONY: setup prune-worktrees dev dev-backend dev-frontend test test-backend bench test-frontend build-frontend build lint swagger swagger-check notices screenshots help
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*##' $(firstword $(MAKEFILE_LIST)) | awk 'BEGIN {FS = ":.*##"}; {printf "  %-15s %s\n", $$1, $$2}'
@@ -99,6 +99,9 @@ dev-backend: ## Run backend dev server only
 
 test-backend: ## Run backend go vet and tests
 	cd backend && go vet ./... && go test ./...
+
+bench: ## Run the server benchmarks (history sweep, portfolio routes at 2,000 and 15,000 transactions)
+	cd backend && go test -run '^$$' -bench . -benchmem ./internal/server/
 
 dev-frontend: ## Run frontend dev server only
 	cd frontend && npm run dev
