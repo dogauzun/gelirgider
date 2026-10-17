@@ -134,6 +134,40 @@ func TestHealthHandlerDegradedWhenDBClosed(t *testing.T) {
 	}
 }
 
+func TestRequestLogSkipsSuccessfulHealthCheck(t *testing.T) {
+	tests := []struct {
+		name      string
+		path      string
+		closeDB   bool
+		wantLines int
+	}{
+		{"health ok is not logged", "/api/health", false, 0},
+		{"health failing is logged", "/api/health", true, 1},
+		{"other route is logged", "/api/portfolios", false, 1},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var logs bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&logs, nil))
+			conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+			if err != nil {
+				t.Fatalf("db.Open: %v", err)
+			}
+			defer conn.Close()
+			if tc.closeDB {
+				conn.Close()
+			}
+
+			req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+			New(logger, conn, false, settings.NewRepo(conn, nil), nil).ServeHTTP(httptest.NewRecorder(), req)
+
+			if got := strings.Count(logs.String(), `"msg":"request"`); got != tc.wantLines {
+				t.Fatalf("request lines = %d, want %d; logs:\n%s", got, tc.wantLines, logs.String())
+			}
+		})
+	}
+}
+
 func TestWithRecoverReturns500AndKeepsServing(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	mux := http.NewServeMux()
