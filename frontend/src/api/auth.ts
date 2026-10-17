@@ -11,7 +11,7 @@ import { clearToasts, flushToasts } from '../lib/toast'
 import { portfoliosQueryKey } from './portfolios'
 
 export interface Me {
-  id: string
+  id: number
   email: string
   reporting_currency: string
   is_admin: boolean
@@ -278,7 +278,7 @@ const keptQueryKeys: readonly unknown[] = [
 // user's page would join it and get its 401.
 export function dropDataOnUserChange(queryClient: QueryClient) {
   // undefined until /api/me first answers, null while signed out.
-  let cachedUserId: string | null | undefined
+  let cachedUserId: number | null | undefined
   const queryCache = queryClient.getQueryCache()
   const unseen = (query: Query) =>
     !keptQueryKeys.includes(query.queryKey[0]) && query.getObserversCount() === 0

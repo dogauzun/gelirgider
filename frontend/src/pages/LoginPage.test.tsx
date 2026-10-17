@@ -16,7 +16,7 @@ describe('LoginPage', () => {
   it('logs in and redirects to home on a successful submit', async () => {
     // A fresh Response per call: the auth config query reads one too.
     vi.spyOn(globalThis, 'fetch').mockImplementation(
-      async () => new Response(JSON.stringify({ id: '1', email: 'a@b.com' }), { status: 200 }),
+      async () => new Response(JSON.stringify({ id: 1, email: 'a@b.com' }), { status: 200 }),
     )
 
     const queryClient = new QueryClient()
@@ -156,7 +156,7 @@ describe('LoginPage', () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
       if (String(url) === '/api/auth/login') loggedIn = true
       if (String(url) === '/api/me' && !loggedIn) return new Response(null, { status: 401 })
-      return new Response(JSON.stringify({ id: '1', email: 'a@b.com' }), { status: 200 })
+      return new Response(JSON.stringify({ id: 1, email: 'a@b.com' }), { status: 200 })
     })
 
     function Where() {

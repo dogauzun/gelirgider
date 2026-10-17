@@ -176,6 +176,12 @@ export default tseslint.config(
             "JSXOpeningElement[name.name='ul'] > JSXAttribute[name.name='className'][value.value=/(^|\\s)md:hidden(\\s|$)/]",
           message: 'render one layout with useIsDesktop',
         },
+        // Ids are numbers on the wire and in the types.
+        {
+          selector:
+            "BinaryExpression[operator=/^[!=]==$/][left.callee.name='String'][right.callee.name='String']",
+          message: 'compare ids as their own type',
+        },
         // Focus recovery after a control leaves the page.
         {
           selector: "BinaryExpression[right.object.name='document'][right.property.name='body']",

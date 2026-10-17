@@ -43,7 +43,7 @@ function mockApi({
     const url = String(input)
     if (url === '/api/me') {
       return Response.json({
-        id: '1',
+        id: 1,
         email: 'ada@example.com',
         reporting_currency: 'TRY',
         is_admin: isAdmin,
@@ -217,7 +217,7 @@ describe('Sidebar', () => {
         return Response.json({ id: 7, name: 'Birikim' }, { status: 201 })
       }
       if (String(input) === '/api/portfolios') return Response.json(portfolios)
-      return Response.json({ id: '1', email: 'ada@example.com', reporting_currency: 'TRY' })
+      return Response.json({ id: 1, email: 'ada@example.com', reporting_currency: 'TRY' })
     })
     let location: { pathname: string; state: unknown } | undefined
     function Probe() {

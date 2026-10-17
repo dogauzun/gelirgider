@@ -41,7 +41,7 @@ describe('App', () => {
       if (!signedIn) return Response.json({ error: 'unauthorized' }, { status: 401 })
       if (url === '/api/me') {
         return Response.json({
-          id: '1',
+          id: 1,
           email: 'a@b.co',
           reporting_currency: 'TRY',
           is_admin: false,
@@ -127,8 +127,8 @@ describe('App', () => {
       currency: 'TRY',
       missing_rates: [],
     })
-    const userA = { id: '1', email: 'a@b.co', reporting_currency: 'TRY', is_admin: false }
-    const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
+    const userA = { id: 1, email: 'a@b.co', reporting_currency: 'TRY', is_admin: false }
+    const userB = { id: 2, email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
     let me: typeof userA | null = userA
     // B's list stays in flight until the assertion below has run.
     let releaseB = () => {}
@@ -208,7 +208,7 @@ describe('App', () => {
   // No remount: the pressed button stays, focused.
   // Runs after the test above, which leaves user B signed in.
   it('keeps focus on the privacy button when it is pressed', async () => {
-    const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
+    const userB = { id: 2, email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/setup/status') return Response.json({ needs_setup: false })
@@ -231,7 +231,7 @@ describe('App', () => {
   // Moved from the deleted Header tests. Runs after the test above,
   // which leaves user B signed in.
   it('offers a skip link to main first and names the logo links', async () => {
-    const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
+    const userB = { id: 2, email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/setup/status') return Response.json({ needs_setup: false })
@@ -260,7 +260,7 @@ describe('App', () => {
   // the first portfolio when there is none. Runs after the tests above,
   // which leave user B signed in.
   it('redirects / to Tüm portföyler', async () => {
-    const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
+    const userB = { id: 2, email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/setup/status') return Response.json({ needs_setup: false })
@@ -280,7 +280,7 @@ describe('App', () => {
   // The Performans tab is a route of its own. Runs after the tests
   // above, which leave user B signed in.
   it('routes the Performans tab', async () => {
-    const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
+    const userB = { id: 2, email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/setup/status') return Response.json({ needs_setup: false })
@@ -305,7 +305,7 @@ describe('App', () => {
   // Each page renders its own tab row, so a tab change unmounts
   // the focused tab with the page and dropped focus to <body>.
   it('keeps focus on the tab row when a tab is activated from the keyboard', async () => {
-    const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
+    const userB = { id: 2, email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/setup/status') return Response.json({ needs_setup: false })
@@ -344,7 +344,7 @@ describe('App', () => {
   // A signed-in user's unknown URL is a page like any other, inside
   // the shell. Runs after the tests above, which leave user B signed in.
   it('shows the not-found page inside the shell when signed in', async () => {
-    const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
+    const userB = { id: 2, email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/setup/status') return Response.json({ needs_setup: false })
@@ -368,7 +368,7 @@ describe('App', () => {
   // sub-path none of its children names is still unknown, not a portfolio
   // page. Runs after the tests above, which leave user B signed in.
   it('shows the not-found page for an unknown portfolio sub-path', async () => {
-    const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
+    const userB = { id: 2, email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/setup/status') return Response.json({ needs_setup: false })
@@ -409,7 +409,7 @@ describe('App', () => {
   // same not-found page as any unknown URL, inside the shell with its link
   // home, not a bare page.
   it('shows a non-admin the not-found page inside the shell at /setup/configure', async () => {
-    const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
+    const userB = { id: 2, email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/setup/status') return Response.json({ needs_setup: false })
@@ -456,7 +456,7 @@ describe('App', () => {
     onTestFinished(() => {
       vi.unstubAllGlobals()
     })
-    const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
+    const userB = { id: 2, email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const url = String(input)
       if (url === '/api/setup/status') return Response.json({ needs_setup: false })
@@ -519,7 +519,7 @@ describe('App', () => {
       currency: 'TRY',
       missing_rates: [],
     })
-    const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
+    const userB = { id: 2, email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/setup/status') return Response.json({ needs_setup: false })
@@ -566,7 +566,7 @@ describe('App', () => {
     HTMLDialogElement.prototype.showModal = function () {
       this.open = true
     }
-    const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
+    const userB = { id: 2, email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/setup/status') return Response.json({ needs_setup: false })
@@ -602,7 +602,7 @@ describe('App', () => {
       addEventListener() {},
       removeEventListener() {},
     }))
-    const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
+    const userB = { id: 2, email: 'b@b.co', reporting_currency: 'TRY', is_admin: false }
     const position = {
       instrument_id: 1,
       symbol: 'THYAO',
@@ -723,7 +723,7 @@ describe('App', () => {
   // Another admin removed this user's admin role while Yönetim was
   // open. Runs after the tests above, which leave user B signed in.
   it('says the user is no longer an admin and drops the admin page on a 403', async () => {
-    const userB = { id: '2', email: 'b@b.co', reporting_currency: 'TRY', is_admin: true }
+    const userB = { id: 2, email: 'b@b.co', reporting_currency: 'TRY', is_admin: true }
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/setup/status') return Response.json({ needs_setup: false })

@@ -64,7 +64,7 @@ describe('ProtectedRoute', () => {
     renderAt('/account')
     const retry = await screen.findByRole('button', { name: 'Tekrar dene' })
     fetchMock.mockResolvedValue(
-      Response.json({ id: '1', email: 'a@b.co', reporting_currency: 'TRY', is_admin: false }),
+      Response.json({ id: 1, email: 'a@b.co', reporting_currency: 'TRY', is_admin: false }),
     )
     fireEvent.click(retry)
 
@@ -94,7 +94,7 @@ describe('ProtectedRoute', () => {
   it('adds no session-expired notice after a logout the user chose', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) =>
       String(input) === '/api/me'
-        ? Response.json({ id: '1', email: 'a@b.co', reporting_currency: 'TRY', is_admin: false })
+        ? Response.json({ id: 1, email: 'a@b.co', reporting_currency: 'TRY', is_admin: false })
         : new Response(null, { status: 204 }),
     )
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })

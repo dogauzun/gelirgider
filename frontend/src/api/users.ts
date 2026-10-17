@@ -90,7 +90,7 @@ export function useToggleAdmin(onDemotedSelf: () => void) {
     mutationFn: (user: AdminUser) => setAdmin(user.id, !user.is_admin),
     onSuccess: (_, user) => {
       const me = queryClient.getQueryData<Me | null>(meQueryKey)
-      if (String(user.id) === String(me?.id) && user.is_admin) {
+      if (user.id === me?.id && user.is_admin) {
         queryClient.setQueryData<Me>(meQueryKey, (old) => old && { ...old, is_admin: false })
         onDemotedSelf()
       }
