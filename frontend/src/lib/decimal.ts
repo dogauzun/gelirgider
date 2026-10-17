@@ -89,6 +89,7 @@ export function unitsToDecimal(units: bigint): string {
   const abs = units < 0n ? -units : units
   const fraction = String(abs % 1_000_000_000n)
     .padStart(9, '0')
+    // eslint-disable-next-line no-restricted-syntax -- the one trailing-zero trim
     .replace(/0+$/, '')
   return `${sign}${abs / 1_000_000_000n}${fraction ? `.${fraction}` : ''}`
 }

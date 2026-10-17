@@ -50,6 +50,7 @@ export function CreatePortfolioDialog({
       // The list's opener may be gone by now: the new page takes focus
       // unless it moved on, as from the header.
       void navigate(`/portfolios/${created.id}`, {
+        // eslint-disable-next-line no-restricted-syntax -- the dialog itself sets the flag
         state: { focusAfterCreate: true } satisfies NavState,
       })
       onClose()
