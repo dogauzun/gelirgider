@@ -53,24 +53,13 @@ func (r *Repo) Upsert(ctx context.Context, instrumentID int64, date string, amou
 	}
 	defer tx.Rollback()
 
-	res, err := tx.ExecContext(ctx,
+	if err := db.Upsert(ctx, tx,
 		"UPDATE dividends SET amount = ?, currency = ?, source = ? WHERE instrument_id = ? AND date = ?",
-		amount.String(), currency, source, instrumentID, date,
-	)
-	if err != nil {
-		return fmt.Errorf("update dividend: %w", err)
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
-	}
-	if n == 0 {
-		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO dividends (instrument_id, date, amount, currency, source) VALUES (?, ?, ?, ?, ?)",
-			instrumentID, date, amount.String(), currency, source,
-		); err != nil {
-			return fmt.Errorf("insert dividend: %w", err)
-		}
+		[]any{amount.String(), currency, source, instrumentID, date},
+		"INSERT INTO dividends (instrument_id, date, amount, currency, source) VALUES (?, ?, ?, ?, ?)",
+		[]any{instrumentID, date, amount.String(), currency, source},
+	); err != nil {
+		return fmt.Errorf("upsert dividend: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit dividend: %w", err)

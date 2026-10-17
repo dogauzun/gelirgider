@@ -577,7 +577,7 @@ func (r *Repo) Update(ctx context.Context, userID, id int64, t Transaction) (Tra
 	if err != nil {
 		return Transaction{}, fmt.Errorf("update transaction: %w", err)
 	}
-	if err := checkAffected(res); err != nil {
+	if err := db.CheckAffected(res, ErrNotFound); err != nil {
 		return Transaction{}, err
 	}
 
@@ -600,7 +600,7 @@ func (r *Repo) Delete(ctx context.Context, userID, id int64) error {
 	if err != nil {
 		return fmt.Errorf("delete transaction: %w", err)
 	}
-	return checkAffected(res)
+	return db.CheckAffected(res, ErrNotFound)
 }
 
 // EarliestDate returns the earliest transaction date across every user and
@@ -656,17 +656,6 @@ func (r *Repo) EarliestDateByInstrument(ctx context.Context, market string) (map
 		return nil, fmt.Errorf("iterate earliest transaction dates: %w", err)
 	}
 	return out, nil
-}
-
-func checkAffected(res sql.Result) error {
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
-	}
-	if n == 0 {
-		return ErrNotFound
-	}
-	return nil
 }
 
 // nullInt returns nil for a nil pointer, or the pointed-to value, for use as

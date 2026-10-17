@@ -48,24 +48,13 @@ func (r *Repo) Upsert(ctx context.Context, currency, date, rate, source string) 
 	}
 	defer tx.Rollback()
 
-	res, err := tx.ExecContext(ctx,
+	if err := db.Upsert(ctx, tx,
 		"UPDATE fx_rates SET rate = ?, source = ? WHERE currency = ? AND date = ?",
-		rate, source, currency, date,
-	)
-	if err != nil {
-		return fmt.Errorf("update fx rate: %w", err)
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
-	}
-	if n == 0 {
-		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO fx_rates (currency, date, rate, source) VALUES (?, ?, ?, ?)",
-			currency, date, rate, source,
-		); err != nil {
-			return fmt.Errorf("insert fx rate: %w", err)
-		}
+		[]any{rate, source, currency, date},
+		"INSERT INTO fx_rates (currency, date, rate, source) VALUES (?, ?, ?, ?)",
+		[]any{currency, date, rate, source},
+	); err != nil {
+		return fmt.Errorf("upsert fx rate: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit fx rate: %w", err)

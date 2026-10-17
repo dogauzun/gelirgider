@@ -91,6 +91,41 @@ func IsForeignKeyViolation(err error) bool {
 	return err != nil && strings.Contains(strings.ToLower(err.Error()), "foreign key constraint")
 }
 
+// Upsert runs updateSQL on tx and, when it touched no row, insertSQL: the
+// portable UPDATE-then-INSERT of ADR 0002. The caller owns tx and must have
+// begun it with BeginTx, whose immediate lock keeps two writers of a new key
+// from both missing on the UPDATE. Errors are wrapped with "update" or
+// "insert" and keep the driver error reachable (IsForeignKeyViolation).
+func Upsert(ctx context.Context, tx *sql.Tx, updateSQL string, updateArgs []any, insertSQL string, insertArgs []any) error {
+	res, err := tx.ExecContext(ctx, updateSQL, updateArgs...)
+	if err != nil {
+		return fmt.Errorf("update: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+	if n > 0 {
+		return nil
+	}
+	if _, err := tx.ExecContext(ctx, insertSQL, insertArgs...); err != nil {
+		return fmt.Errorf("insert: %w", err)
+	}
+	return nil
+}
+
+// CheckAffected returns notFound when res touched no row.
+func CheckAffected(res sql.Result, notFound error) error {
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+	if n == 0 {
+		return notFound
+	}
+	return nil
+}
+
 // Backup writes a consistent snapshot of conn's database to path using
 // VACUUM INTO. It fails if path already exists: VACUUM INTO refuses to
 // overwrite, so callers must pick a unique target name rather than deleting

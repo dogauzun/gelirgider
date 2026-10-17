@@ -49,24 +49,13 @@ func (r *Repo) Upsert(ctx context.Context, instrumentID int64, date string, rati
 	}
 	defer tx.Rollback()
 
-	res, err := tx.ExecContext(ctx,
+	if err := db.Upsert(ctx, tx,
 		"UPDATE splits SET ratio = ?, source = ? WHERE instrument_id = ? AND date = ?",
-		ratio.String(), source, instrumentID, date,
-	)
-	if err != nil {
-		return fmt.Errorf("update split: %w", err)
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
-	}
-	if n == 0 {
-		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO splits (instrument_id, date, ratio, source) VALUES (?, ?, ?, ?)",
-			instrumentID, date, ratio.String(), source,
-		); err != nil {
-			return fmt.Errorf("insert split: %w", err)
-		}
+		[]any{ratio.String(), source, instrumentID, date},
+		"INSERT INTO splits (instrument_id, date, ratio, source) VALUES (?, ?, ?, ?)",
+		[]any{instrumentID, date, ratio.String(), source},
+	); err != nil {
+		return fmt.Errorf("upsert split: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit split: %w", err)

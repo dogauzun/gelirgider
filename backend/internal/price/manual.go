@@ -41,30 +41,19 @@ func (r *ManualRepo) Upsert(ctx context.Context, userID, instrumentID int64, dat
 	}
 	defer tx.Rollback()
 
-	res, err := tx.ExecContext(ctx,
+	err = db.Upsert(ctx, tx,
 		"UPDATE manual_prices SET close = ? WHERE user_id = ? AND instrument_id = ? AND date = ?",
-		close, userID, instrumentID, date,
+		[]any{close, userID, instrumentID, date},
+		"INSERT INTO manual_prices (user_id, instrument_id, date, close) VALUES (?, ?, ?, ?)",
+		[]any{userID, instrumentID, date, close},
 	)
-	if err != nil {
-		return fmt.Errorf("update manual price: %w", err)
+	// Instruments are never deleted, so a foreign key failure is the user
+	// deleted since the session check.
+	if db.IsForeignKeyViolation(err) {
+		return fmt.Errorf("upsert manual price: %w", user.MissingError{ID: userID})
 	}
-	n, err := res.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
-	}
-	if n == 0 {
-		_, err = tx.ExecContext(ctx,
-			"INSERT INTO manual_prices (user_id, instrument_id, date, close) VALUES (?, ?, ?, ?)",
-			userID, instrumentID, date, close,
-		)
-		// Instruments are never deleted, so a foreign key failure is the user
-		// deleted since the session check.
-		if db.IsForeignKeyViolation(err) {
-			return fmt.Errorf("insert manual price: %w", user.MissingError{ID: userID})
-		}
-		if err != nil {
-			return fmt.Errorf("insert manual price: %w", err)
-		}
+		return fmt.Errorf("upsert manual price: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit manual price: %w", err)

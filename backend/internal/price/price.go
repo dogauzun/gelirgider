@@ -158,24 +158,13 @@ func (r *Repo) Upsert(ctx context.Context, instrumentID int64, date, close, sour
 	}
 	defer tx.Rollback()
 
-	res, err := tx.ExecContext(ctx,
+	if err := db.Upsert(ctx, tx,
 		"UPDATE prices SET close = ?, source = ? WHERE instrument_id = ? AND date = ?",
-		close, source, instrumentID, date,
-	)
-	if err != nil {
-		return fmt.Errorf("update price: %w", err)
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
-	}
-	if n == 0 {
-		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO prices (instrument_id, date, close, source) VALUES (?, ?, ?, ?)",
-			instrumentID, date, close, source,
-		); err != nil {
-			return fmt.Errorf("insert price: %w", err)
-		}
+		[]any{close, source, instrumentID, date},
+		"INSERT INTO prices (instrument_id, date, close, source) VALUES (?, ?, ?, ?)",
+		[]any{instrumentID, date, close, source},
+	); err != nil {
+		return fmt.Errorf("upsert price: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit price: %w", err)
