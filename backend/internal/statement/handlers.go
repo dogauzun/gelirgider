@@ -1511,25 +1511,27 @@ func (h *handler) previewRows(ctx context.Context, req requester, picks map[stri
 		return nil, err
 	}
 	maps.Copy(learned, batch)
+	names := newNameIndex(learned)
 	// This statement's own balances are newer than any learned name. The
 	// parser maps a name that matches one of their names to its code, so a
 	// name that still matches one matches two funds and resolves nothing.
 	// A holding's code is a code, not a cut name, so no learned
 	// name resolves it either. Every own name maps to 1, so learnedName
 	// reports any match of them.
-	own := map[string]int64{}
+	ownIDs := map[string]int64{}
 	codes := map[string]bool{}
 	for _, hold := range st.Holdings {
 		codes[hold.Symbol] = true
 		if hold.Name != "" {
-			own[hold.Name] = 1
+			ownIDs[hold.Name] = 1
 		}
 	}
-	learnedFor := func(symbol string) map[string]int64 {
+	own := newNameIndex(ownIDs)
+	learnedFor := func(symbol string) *nameIndex {
 		if codes[symbol] || learnedName(symbol, own) != 0 {
 			return nil
 		}
-		return learned
+		return names
 	}
 	for i, t := range st.Trades {
 		row := previewRow{
@@ -1742,7 +1744,7 @@ func sortByDate(rows []previewRow) {
 // name the one TEFAS fund it is cut or abbreviated from (see nameInstrument),
 // and says so in ResolvedBy. It returns the instrument
 // of an ok row, else the zero Instrument. Every lookup goes through s's memo.
-func (h *handler) resolveInstrument(ctx context.Context, s *lookupSession, learned map[string]int64, row *previewRow) (instrument.Instrument, error) {
+func (h *handler) resolveInstrument(ctx context.Context, s *lookupSession, learned *nameIndex, row *previewRow) (instrument.Instrument, error) {
 	given := row.Currency
 	if given == "" {
 		row.Currency, row.CurrencyFallback = "TRY", true
@@ -1815,23 +1817,74 @@ func (h *handler) aliasInstrument(ctx context.Context, userID int64, broker stri
 	return h.instruments.Get(ctx, id)
 }
 
+// nameIndex is a set of learned fund names, searchable by prefix. sorted
+// holds the names in byte order, so those that start with a symbol are one
+// run, and sortedIDs their instrument ids; sameUntil[i] is the first index
+// after i whose id differs from sortedIDs[i], so a run is of one instrument
+// when sameUntil[start] reaches its end. ids maps each name to its
+// instrument; maxLen is the longest name.
+type nameIndex struct {
+	sorted    []string
+	sortedIDs []int64
+	sameUntil []int
+	ids       map[string]int64
+	maxLen    int
+}
+
+// newNameIndex indexes the names of ids, each with its instrument id.
+func newNameIndex(ids map[string]int64) *nameIndex {
+	x := &nameIndex{sorted: make([]string, 0, len(ids)), ids: ids}
+	for name := range ids {
+		x.sorted = append(x.sorted, name)
+		x.maxLen = max(x.maxLen, len(name))
+	}
+	slices.Sort(x.sorted)
+	x.sortedIDs = make([]int64, len(x.sorted))
+	x.sameUntil = make([]int, len(x.sorted))
+	for i := len(x.sorted) - 1; i >= 0; i-- {
+		x.sortedIDs[i] = ids[x.sorted[i]]
+		x.sameUntil[i] = i + 1
+		if i+1 < len(x.sorted) && x.sortedIDs[i+1] == x.sortedIDs[i] {
+			x.sameUntil[i] = x.sameUntil[i+1]
+		}
+	}
+	return x
+}
+
 // learnedName returns the instrument id of the learned names that equal
 // symbol, start with it or that it starts with: the rule the garanti parser
 // maps a movement to a balance by inside one statement, as statement names
 // are cut to a fixed width. It returns 0 for no match, or when the matches
-// name more than one instrument.
-func learnedName(symbol string, learned map[string]int64) int64 {
-	if symbol == "" {
+// name more than one instrument. A nil learned has no names. The cost
+// depends on symbol, not on how many names are stored: the names it starts
+// with are its shorter prefixes, each one map lookup, and the names that
+// start with it are one run of the sorted names, found by two binary
+// searches and checked for one instrument in constant time.
+func learnedName(symbol string, learned *nameIndex) int64 {
+	if symbol == "" || learned == nil {
 		return 0
 	}
 	var match int64
 	found := false
-	for name, id := range learned {
-		if strings.HasPrefix(name, symbol) || strings.HasPrefix(symbol, name) {
-			if found && match != id {
-				return 0
-			}
-			match, found = id, true
+	add := func(id int64) bool {
+		if found && match != id {
+			return false
+		}
+		match, found = id, true
+		return true
+	}
+	for n := 0; n < len(symbol) && n <= learned.maxLen; n++ {
+		if id, ok := learned.ids[symbol[:n]]; ok && !add(id) {
+			return 0
+		}
+	}
+	lo, _ := slices.BinarySearch(learned.sorted, symbol)
+	hi := lo + sort.Search(len(learned.sorted)-lo, func(i int) bool {
+		return !strings.HasPrefix(learned.sorted[lo+i], symbol)
+	})
+	if lo < hi {
+		if learned.sameUntil[lo] < hi || !add(learned.sortedIDs[lo]) {
+			return 0
 		}
 	}
 	return match

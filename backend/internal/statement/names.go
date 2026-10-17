@@ -31,7 +31,7 @@ type namedFund struct {
 // abbreviated from (see fundByName). A nil learned is a symbol
 // the statement's own balances keep unresolved, which stays so. The TEFAS
 // funds are read and split into words once per request, into s.funds.
-func (h *handler) nameInstrument(ctx context.Context, s *lookupSession, learned map[string]int64, row *previewRow) (instrument.Instrument, error) {
+func (h *handler) nameInstrument(ctx context.Context, s *lookupSession, learned *nameIndex, row *previewRow) (instrument.Instrument, error) {
 	if id := learnedName(row.Symbol, learned); id != 0 {
 		return h.instruments.Get(ctx, id)
 	}
