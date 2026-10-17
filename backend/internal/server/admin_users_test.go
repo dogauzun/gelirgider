@@ -189,6 +189,10 @@ func TestAdminDeleteUser(t *testing.T) {
 		exec("INSERT INTO dividend_dismissals (user_id, portfolio_id, instrument_id, date) VALUES (?, ?, 1, '2026-01-04')", uid, pid)
 		exec("INSERT INTO import_aliases (user_id, broker, symbol, instrument_id, created_at) VALUES (?, 'garanti', 'FUND', 1, '2026-02-01T00:00:00Z')", uid)
 		exec("INSERT INTO import_forgotten_names (user_id, broker, symbol, period_end) VALUES (?, 'garanti', 'FUND', '2026-01-31')", uid)
+		// A deposit and its DEPOSIT instrument: both go with the user.
+		exec("INSERT INTO instruments (id, symbol, market, name, currency) VALUES (?, ?, 'DEPOSIT', 'Deposit', 'TRY')", 100+uid, name)
+		exec(`INSERT INTO term_deposits (user_id, portfolio_id, instrument_id, currency, principal, rate, stopaj_rate, start_date, maturity_date, created_at)
+			VALUES (?, ?, ?, 'TRY', '1000', '0.45', '0.15', '2026-01-01', '2026-02-01', '2026-01-01T00:00:00Z')`, uid, pid, 100+uid)
 	}
 
 	// Discover tables from the schema, split by whether they have user_id.
@@ -284,6 +288,13 @@ func TestAdminDeleteUser(t *testing.T) {
 			t.Errorf("%s: %d rows for carol, want %d", table, n, carolBefore[table])
 		}
 	}
+	if n := count("SELECT COUNT(*) FROM instruments WHERE id = ?", 100+ids["bob"]); n != 0 {
+		t.Errorf("bob's DEPOSIT instrument still there")
+	}
+	if n := count("SELECT COUNT(*) FROM instruments WHERE id = ?", 100+ids["carol"]); n != 1 {
+		t.Errorf("carol's DEPOSIT instrument rows = %d, want 1", n)
+	}
+	otherBefore["instruments"]-- // bob's DEPOSIT instrument went with him
 	for _, table := range otherTables {
 		if n := count("SELECT COUNT(*) FROM " + table); n != otherBefore[table] {
 			t.Errorf("%s: %d rows, want %d untouched", table, n, otherBefore[table])

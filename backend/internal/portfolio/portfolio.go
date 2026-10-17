@@ -216,6 +216,21 @@ func (r *Repo) Delete(ctx context.Context, userID, id int64, cascade bool) (int,
 	); err != nil {
 		return n, fmt.Errorf("delete statement imports: %w", err)
 	}
+	// Term deposits go after the transactions, then their instruments: the
+	// deposit rows reference them.
+	depositInstruments, err := db.DepositInstrumentIDs(ctx, tx, userID, id)
+	if err != nil {
+		return n, err
+	}
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM term_deposits WHERE portfolio_id = ? AND user_id = ?",
+		id, userID,
+	); err != nil {
+		return n, fmt.Errorf("delete term deposits: %w", err)
+	}
+	if err := db.DeleteInstruments(ctx, tx, depositInstruments); err != nil {
+		return n, err
+	}
 	res, err := tx.ExecContext(ctx,
 		"DELETE FROM portfolios WHERE id = ? AND user_id = ?",
 		id, userID,
