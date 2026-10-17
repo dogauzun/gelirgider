@@ -11,6 +11,30 @@ definitions:
       is_admin:
         type: boolean
     type: object
+  auth.attentionRule:
+    properties:
+      enabled:
+        type: boolean
+      value:
+        type: number
+    type: object
+  auth.attentionRules:
+    properties:
+      cash_share:
+        $ref: '#/definitions/auth.attentionRule'
+      currency_share:
+        $ref: '#/definitions/auth.attentionRule'
+      movers:
+        $ref: '#/definitions/auth.attentionRule'
+      no_hedge:
+        $ref: '#/definitions/auth.attentionRule'
+      position_share:
+        $ref: '#/definitions/auth.attentionRule'
+      stale_manual_days:
+        $ref: '#/definitions/auth.attentionRule'
+      try_cash_share:
+        $ref: '#/definitions/auth.attentionRule'
+    type: object
   auth.changePasswordRequest:
     properties:
       current_password:
@@ -2471,6 +2495,67 @@ paths:
                 type: string
             type: object
       summary: Current user
+      tags:
+      - auth
+  /me/attention-rules:
+    get:
+      description: Needs a session. Returns only what the user overrode, `{}` when
+        nothing is.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.attentionRules'
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Attention rule overrides
+      tags:
+      - auth
+    put:
+      consumes:
+      - application/json
+      description: Needs a session. Replaces the whole object; keys are optional,
+        and so are `enabled` and `value` inside a key. `no_hedge` takes `enabled`
+        only. Shares are 0-1, `stale_manual_days` an integer 1-365, `movers` an integer
+        0-10.
+      parameters:
+      - description: overrides only
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.attentionRules'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.attentionRules'
+        "400":
+          description: 'invalid request body (unknown key, enabled not a boolean,
+            value not a number); <key>: value must be between <min> and <max>; <key>:
+            value must be an integer; no_hedge: value is not allowed'
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Replace attention rule overrides
       tags:
       - auth
   /me/reporting-currency:

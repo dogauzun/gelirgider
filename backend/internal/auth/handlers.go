@@ -58,6 +58,8 @@ func RegisterProtectedRoutes(mux *http.ServeMux, users *user.Repo, sessions *Rep
 	h := &handler{users: users, sessions: sessions}
 	mux.HandleFunc("GET /api/me", h.me)
 	mux.HandleFunc("PUT /api/me/reporting-currency", h.updateReportingCurrency)
+	mux.HandleFunc("GET /api/me/attention-rules", h.getAttentionRules)
+	mux.HandleFunc("PUT /api/me/attention-rules", h.updateAttentionRules)
 	mux.Handle("POST /api/account/password", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.changePassword)))
 }
 

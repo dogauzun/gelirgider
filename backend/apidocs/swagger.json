@@ -1991,6 +1991,91 @@
                 }
             }
         },
+        "/me/attention-rules": {
+            "get": {
+                "description": "Needs a session. Returns only what the user overrode, `{}` when nothing is.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Attention rule overrides",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auth.attentionRules"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Needs a session. Replaces the whole object; keys are optional, and so are `enabled` and `value` inside a key. `no_hedge` takes `enabled` only. Shares are 0-1, `stale_manual_days` an integer 1-365, `movers` an integer 0-10.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Replace attention rule overrides",
+                "parameters": [
+                    {
+                        "description": "overrides only",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.attentionRules"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auth.attentionRules"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body (unknown key, enabled not a boolean, value not a number); \u003ckey\u003e: value must be between \u003cmin\u003e and \u003cmax\u003e; \u003ckey\u003e: value must be an integer; no_hedge: value is not allowed",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/me/reporting-currency": {
             "put": {
                 "description": "Needs a session.",
@@ -3418,6 +3503,43 @@
                 },
                 "is_admin": {
                     "type": "boolean"
+                }
+            }
+        },
+        "auth.attentionRule": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "value": {
+                    "type": "number"
+                }
+            }
+        },
+        "auth.attentionRules": {
+            "type": "object",
+            "properties": {
+                "cash_share": {
+                    "$ref": "#/definitions/auth.attentionRule"
+                },
+                "currency_share": {
+                    "$ref": "#/definitions/auth.attentionRule"
+                },
+                "movers": {
+                    "$ref": "#/definitions/auth.attentionRule"
+                },
+                "no_hedge": {
+                    "$ref": "#/definitions/auth.attentionRule"
+                },
+                "position_share": {
+                    "$ref": "#/definitions/auth.attentionRule"
+                },
+                "stale_manual_days": {
+                    "$ref": "#/definitions/auth.attentionRule"
+                },
+                "try_cash_share": {
+                    "$ref": "#/definitions/auth.attentionRule"
                 }
             }
         },
