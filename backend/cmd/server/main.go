@@ -60,33 +60,9 @@ var version = "dev"
 //	@description	Rate-limited routes answer 429 `too many requests` with a `Retry-After` header.
 //	@description	A POST, PUT, PATCH or DELETE from another origin answers 403 `cross-origin request`.
 func main() {
-	fetchSource := flag.String("fetch", "", "run one scheduler source for -date and exit (no server); one of "+strings.Join(fetchSourceNames, ", "))
-	fetchDate := flag.String("date", price.Today(), "date YYYY-MM-DD for -fetch; default today in Europe/Istanbul")
-	var backfillPrices bool
-	var backfillFrom string
-	var healthcheck bool
-	var demoSeed bool
-	flag.BoolVar(&backfillPrices, "backfill-prices", false, "backfill historical BIST bulletin prices, TCMB FX rates, BtcTurk crypto closes, TEFAS fund NAVs, Tiingo US closes, the gram gold series and EVDS BIST 100 closes, plus the latest US prices, then exit")
-	flag.StringVar(&backfillFrom, "backfill-from", "", "override the BIST/TCMB/crypto/TEFAS/US/gold/XU100 backfill start date (YYYY-MM-DD); default is the earliest transaction date (for BIST, the earliest BIST instrument transaction; for US, each instrument's own earliest transaction)")
-	resetEmail := flag.String("set-password", "", "set the password of the user with this email, read from stdin, then exit (no server). Operator escape hatch for a forgotten password; there is no self-service reset")
-	addSplit := flag.String("add-split", "", "record a split as MARKET:SYMBOL,YYYY-MM-DD,RATIO (ratio = new shares per old share, date = ex-date), then exit (no server). Operator fallback for splits no provider covers")
-	backupPath := flag.String("backup", "", "write a consistent copy of the database to path via VACUUM INTO, then exit (no server)")
-	flag.BoolVar(&demoSeed, "demo", false, "fill an empty database with a synthetic demo user, portfolio and two years of prices, then exit (no server); refuses a database that has a user")
-	flag.BoolVar(&healthcheck, "healthcheck", false, "GET /api/health on localhost and exit 0/1 (for use as a container HEALTHCHECK; distroless image has no shell/curl)")
-	flag.Parse()
+	f := parseFlags()
 
-	// Without this check a mistyped one-shot run (-date alone, an empty
-	// -fetch) starts a second server with its own scheduler.
-	// -date defaults to today and the one-shot flags branch on
-	// a non-empty value, so only flag.Visit tells a flag was set.
-	setFlags := map[string]string{}
-	flag.Visit(func(f *flag.Flag) { setFlags[f.Name] = f.Value.String() })
-	if err := orphanFlag(setFlags); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
-	}
-
-	if healthcheck {
+	if f.healthcheck {
 		port := os.Getenv("PORT")
 		if port == "" {
 			port = "8080"
@@ -103,14 +79,7 @@ func main() {
 	// default logger, so it lands in the same JSON stream as the request
 	// lines without threading this logger through six packages of handlers.
 	slog.SetDefault(logger)
-	cfg := config.Load()
-	if cfg.TrustProxy {
-		if cfg.TrustedProxyHops < 1 {
-			logger.Error("TRUSTED_PROXY_HOPS must be an integer of at least 1")
-			os.Exit(1)
-		}
-		ratelimit.TrustedProxyHops = cfg.TrustedProxyHops
-	}
+	cfg := loadConfig(logger)
 
 	conn, err := db.Open(cfg.DBPath)
 	if err != nil {
@@ -124,91 +93,167 @@ func main() {
 		os.Exit(1)
 	}
 
-	// secretSettings returns the settings repo, exiting when SECRET_KEY is
-	// not valid. Only the server needs it outright (the provider keys are
-	// encrypted with it): -backup, -healthcheck and the other flags must
-	// work without it, and runFetch checks it for the us and xu100 sources.
-	hasSecret := len(cfg.SecretKey) == 32
-	secretSettings := func() *settings.Repo {
-		if !hasSecret {
-			fmt.Fprintln(os.Stderr, secretKeyHelp)
-			os.Exit(1)
-		}
-		return settings.NewRepo(conn, cfg.SecretKey)
-	}
-
-	if *backupPath != "" {
-		if err := runBackup(conn, *backupPath); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
+	if runOneShot(f, conn, cfg, logger) {
 		return
 	}
 
-	if demoSeed {
-		if err := demo.Seed(context.Background(), conn, price.Today()); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		fmt.Printf("demo data seeded, log in as %s with password %s\n", demo.Email, demo.Password)
-		return
-	}
+	serve(conn, cfg, logger, secretSettings(conn, cfg))
+}
 
-	if *resetEmail != "" {
-		password, err := readPassword(os.Stdin)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		if err := auth.SetPassword(context.Background(), user.NewRepo(conn), auth.NewRepo(conn), *resetEmail, password); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		fmt.Printf("password set for %s, all its sessions deleted\n", *resetEmail)
-		return
-	}
+// cliFlags is the parsed command line. The one-shot flags (backup, demo,
+// set-password, add-split, fetch, backfill-prices) run a job and exit
+// without a server; healthcheck is checked before the database opens.
+type cliFlags struct {
+	fetchSource    string
+	fetchDate      string
+	backfillPrices bool
+	backfillFrom   string
+	healthcheck    bool
+	demoSeed       bool
+	resetEmail     string
+	addSplit       string
+	backupPath     string
+}
 
-	if *addSplit != "" {
-		if err := runAddSplit(context.Background(), conn, *addSplit); err != nil {
-			fmt.Fprintln(os.Stderr, err)
+// parseFlags parses the command line and exits 2 on a one-shot flag
+// without its argument (orphanFlag).
+func parseFlags() cliFlags {
+	var f cliFlags
+	flag.StringVar(&f.fetchSource, "fetch", "", "run one scheduler source for -date and exit (no server); one of "+strings.Join(fetchSourceNames, ", "))
+	flag.StringVar(&f.fetchDate, "date", price.Today(), "date YYYY-MM-DD for -fetch; default today in Europe/Istanbul")
+	flag.BoolVar(&f.backfillPrices, "backfill-prices", false, "backfill historical BIST bulletin prices, TCMB FX rates, BtcTurk crypto closes, TEFAS fund NAVs, Tiingo US closes, the gram gold series and EVDS BIST 100 closes, plus the latest US prices, then exit")
+	flag.StringVar(&f.backfillFrom, "backfill-from", "", "override the BIST/TCMB/crypto/TEFAS/US/gold/XU100 backfill start date (YYYY-MM-DD); default is the earliest transaction date (for BIST, the earliest BIST instrument transaction; for US, each instrument's own earliest transaction)")
+	flag.StringVar(&f.resetEmail, "set-password", "", "set the password of the user with this email, read from stdin, then exit (no server). Operator escape hatch for a forgotten password; there is no self-service reset")
+	flag.StringVar(&f.addSplit, "add-split", "", "record a split as MARKET:SYMBOL,YYYY-MM-DD,RATIO (ratio = new shares per old share, date = ex-date), then exit (no server). Operator fallback for splits no provider covers")
+	flag.StringVar(&f.backupPath, "backup", "", "write a consistent copy of the database to path via VACUUM INTO, then exit (no server)")
+	flag.BoolVar(&f.demoSeed, "demo", false, "fill an empty database with a synthetic demo user, portfolio and two years of prices, then exit (no server); refuses a database that has a user")
+	flag.BoolVar(&f.healthcheck, "healthcheck", false, "GET /api/health on localhost and exit 0/1 (for use as a container HEALTHCHECK; distroless image has no shell/curl)")
+	flag.Parse()
+
+	// Without this check a mistyped one-shot run (-date alone, an empty
+	// -fetch) starts a second server with its own scheduler.
+	// -date defaults to today and the one-shot flags branch on
+	// a non-empty value, so only flag.Visit tells a flag was set.
+	setFlags := map[string]string{}
+	flag.Visit(func(fl *flag.Flag) { setFlags[fl.Name] = fl.Value.String() })
+	if err := orphanFlag(setFlags); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
+	return f
+}
+
+// loadConfig reads the environment config and exits 1 when the proxy
+// settings are invalid.
+func loadConfig(logger *slog.Logger) config.Config {
+	cfg := config.Load()
+	if cfg.TrustProxy {
+		if cfg.TrustedProxyHops < 1 {
+			logger.Error("TRUSTED_PROXY_HOPS must be an integer of at least 1")
 			os.Exit(1)
 		}
-		return
+		ratelimit.TrustedProxyHops = cfg.TrustedProxyHops
 	}
+	return cfg
+}
 
-	if *fetchSource != "" {
-		if code := runFetch(conn, cfg, logger, *fetchSource, *fetchDate); code != 0 {
+// hasSecretKey reports whether cfg.SecretKey is a valid 32-byte key.
+func hasSecretKey(cfg config.Config) bool {
+	return len(cfg.SecretKey) == 32
+}
+
+// secretSettings returns the settings repo, exiting when SECRET_KEY is
+// not valid. Only the server needs it outright (the provider keys are
+// encrypted with it): -backup, -healthcheck and the other flags must
+// work without it, and runFetch checks it for the us and xu100 sources.
+func secretSettings(conn *sql.DB, cfg config.Config) *settings.Repo {
+	if !hasSecretKey(cfg) {
+		fmt.Fprintln(os.Stderr, secretKeyHelp)
+		os.Exit(1)
+	}
+	return settings.NewRepo(conn, cfg.SecretKey)
+}
+
+// exitOnErr prints err to stderr and exits 1; nil is a no-op.
+func exitOnErr(err error) {
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+// runOneShot runs the one-shot job f selects and reports true, or reports
+// false when f selects none and the server should start.
+func runOneShot(f cliFlags, conn *sql.DB, cfg config.Config, logger *slog.Logger) bool {
+	ctx := context.Background()
+	switch {
+	case f.backupPath != "":
+		exitOnErr(runBackup(conn, f.backupPath))
+	case f.demoSeed:
+		exitOnErr(runDemo(ctx, conn))
+	case f.resetEmail != "":
+		exitOnErr(runSetPassword(ctx, conn, f.resetEmail))
+	case f.addSplit != "":
+		exitOnErr(runAddSplit(ctx, conn, f.addSplit))
+	case f.fetchSource != "":
+		if code := runFetch(conn, cfg, logger, f.fetchSource, f.fetchDate); code != 0 {
 			os.Exit(code)
 		}
-		return
+	case f.backfillPrices:
+		runBackfillPrices(ctx, conn, cfg, logger, f.backfillFrom)
+	default:
+		return false
 	}
+	return true
+}
 
-	if backfillPrices {
-		// Only the US and XU100 fetches need SECRET_KEY: without it,
-		// backfill every other source and skip those.
-		var settingsRepo *settings.Repo
-		if hasSecret {
-			settingsRepo = secretSettings()
-		}
-		fetchers := newSourceFetchers(settingsRepo)
-		if !hasSecret {
-			fetchers.us, fetchers.xu100 = nil, nil
-			logger.Warn("backfill: SECRET_KEY not set or not valid, skipping us and xu100")
-		}
-		// TEFAS is opt-in: skipped unless its source is on. The
-		// setting is plain text, so it needs no SECRET_KEY.
-		if !scheduler.Enabled(context.Background(), settings.NewRepo(conn, nil), scheduler.NameTEFAS, logger) {
-			fetchers.tefas = nil
-			logger.Info("backfill: tefas source is off, skipping tefas")
-		}
-		if err := runBackfill(context.Background(), logger, conn, fetchers, backfillFrom); err != nil {
-			logger.Error("backfill failed", "error", err)
-			os.Exit(1)
-		}
-		os.Exit(0)
+// runDemo fills an empty database with the demo user and prints its login.
+func runDemo(ctx context.Context, conn *sql.DB) error {
+	if err := demo.Seed(ctx, conn, price.Today()); err != nil {
+		return err
 	}
+	fmt.Printf("demo data seeded, log in as %s with password %s\n", demo.Email, demo.Password)
+	return nil
+}
 
-	serve(conn, cfg, logger, secretSettings())
+// runSetPassword reads the new password from stdin and sets it for email,
+// deleting the user's sessions.
+func runSetPassword(ctx context.Context, conn *sql.DB, email string) error {
+	password, err := readPassword(os.Stdin)
+	if err != nil {
+		return err
+	}
+	if err := auth.SetPassword(ctx, user.NewRepo(conn), auth.NewRepo(conn), email, password); err != nil {
+		return err
+	}
+	fmt.Printf("password set for %s, all its sessions deleted\n", email)
+	return nil
+}
+
+// runBackfillPrices runs the -backfill-prices walk and exits 1 on failure.
+func runBackfillPrices(ctx context.Context, conn *sql.DB, cfg config.Config, logger *slog.Logger, from string) {
+	// Only the US and XU100 fetches need SECRET_KEY: without it,
+	// backfill every other source and skip those.
+	hasSecret := hasSecretKey(cfg)
+	var settingsRepo *settings.Repo
+	if hasSecret {
+		settingsRepo = secretSettings(conn, cfg)
+	}
+	fetchers := newSourceFetchers(settingsRepo)
+	if !hasSecret {
+		fetchers.us, fetchers.xu100 = nil, nil
+		logger.Warn("backfill: SECRET_KEY not set or not valid, skipping us and xu100")
+	}
+	// TEFAS is opt-in: skipped unless its source is on. The
+	// setting is plain text, so it needs no SECRET_KEY.
+	if !scheduler.Enabled(ctx, settings.NewRepo(conn, nil), scheduler.NameTEFAS, logger) {
+		fetchers.tefas = nil
+		logger.Info("backfill: tefas source is off, skipping tefas")
+	}
+	if err := runBackfill(ctx, logger, conn, fetchers, from); err != nil {
+		logger.Error("backfill failed", "error", err)
+		os.Exit(1)
+	}
 }
 
 // secretKeyHelp is what a run that needs SECRET_KEY prints before it exits
@@ -228,7 +273,7 @@ func runFetch(conn *sql.DB, cfg config.Config, logger *slog.Logger, source, date
 	// are encrypted with SECRET_KEY): those exit without it, the
 	// others run without it.
 	var settingsRepo *settings.Repo
-	if len(cfg.SecretKey) == 32 {
+	if hasSecretKey(cfg) {
 		settingsRepo = settings.NewRepo(conn, cfg.SecretKey)
 	}
 	src, ok := scheduler.Find(schedulerSources(conn, logger, newSourceFetchers(settingsRepo)), source)
@@ -463,184 +508,253 @@ func newSourceFetchers(settingsRepo *settings.Repo) sourceFetchers {
 // API (server.New) lists them in this order. The startup backfill and
 // -backfill-prices walk their Backfill funcs (backfillHistory).
 func schedulerSources(conn *sql.DB, logger *slog.Logger, f sourceFetchers) []scheduler.Source {
-	fxRepo := fx.NewRepo(conn)
-	priceRepo := price.NewRepo(conn)
-	benchmarkRepo := benchmark.NewRepo(conn)
-	instrumentRepo := instrument.NewRepo(conn)
-	transactionRepo := transaction.NewRepo(conn)
-	goldSyncer := &btcturk.GoldSyncer{Fetcher: f.crypto, Instruments: instrumentRepo, Prices: priceRepo, Benchmarks: benchmarkRepo}
-	usSyncer := &us.Syncer{Fetcher: f.us, Instruments: instrumentRepo, Prices: priceRepo, Splits: split.NewRepo(conn), Dividends: dividend.NewRepo(conn)}
-	tefasSyncer := &tefas.Syncer{Fetcher: f.tefas, Instruments: instrumentRepo, Prices: priceRepo}
-	// run is the backfillRun of one Backfill call, ending at that call's
-	// f.now().
-	run := func(from string) backfillRun {
-		return backfillRun{logger: logger, instruments: instrumentRepo, prices: priceRepo, transactions: transactionRepo, from: from, now: f.now()}
+	b := sourceBuilder{
+		f:            f,
+		logger:       logger,
+		conn:         conn,
+		fx:           fx.NewRepo(conn),
+		prices:       price.NewRepo(conn),
+		benchmarks:   benchmark.NewRepo(conn),
+		instruments:  instrument.NewRepo(conn),
+		transactions: transaction.NewRepo(conn),
 	}
 	return []scheduler.Source{
-		{
-			Name: scheduler.NameBIST,
-			Sync: func(ctx context.Context, date time.Time) (int, error) {
-				return bist.Sync(ctx, f.bist, instrumentRepo, priceRepo, date)
-			},
-			Have: func(ctx context.Context, date string) (bool, error) {
-				return priceRepo.HasSource(ctx, date, bist.SourceBistBulletin)
-			},
-			Backfill: func(ctx context.Context, from string) (int, error) {
-				return run(from).backfillDates(ctx, bist.BulletinBackfillSource(f.bist, instrumentRepo, priceRepo), "BIST")
-			},
+		b.bist(),
+		b.bistSplits(),
+		b.tcmb(),
+		b.us(),
+		b.crypto(),
+		b.tefas(),
+		b.tufe(),
+		b.xu100(),
+		b.gold(),
+	}
+}
+
+// sourceBuilder holds what the source builders share: the fetchers and the
+// repos over one connection.
+type sourceBuilder struct {
+	f            sourceFetchers
+	logger       *slog.Logger
+	conn         *sql.DB
+	fx           *fx.Repo
+	prices       *price.Repo
+	benchmarks   *benchmark.Repo
+	instruments  *instrument.Repo
+	transactions *transaction.Repo
+}
+
+// run is the backfillRun of one Backfill call, ending at that call's
+// f.now().
+func (b sourceBuilder) run(from string) backfillRun {
+	return backfillRun{logger: b.logger, instruments: b.instruments, prices: b.prices, transactions: b.transactions, from: from, now: b.f.now()}
+}
+
+// goldSyncer, usSyncer and tefasSyncer build the syncers the sources share
+// between Sync and Backfill.
+func (b sourceBuilder) goldSyncer() *btcturk.GoldSyncer {
+	return &btcturk.GoldSyncer{Fetcher: b.f.crypto, Instruments: b.instruments, Prices: b.prices, Benchmarks: b.benchmarks}
+}
+
+func (b sourceBuilder) usSyncer() *us.Syncer {
+	return &us.Syncer{Fetcher: b.f.us, Instruments: b.instruments, Prices: b.prices, Splits: split.NewRepo(b.conn), Dividends: dividend.NewRepo(b.conn)}
+}
+
+func (b sourceBuilder) tefasSyncer() *tefas.Syncer {
+	return &tefas.Syncer{Fetcher: b.f.tefas, Instruments: b.instruments, Prices: b.prices}
+}
+
+func (b sourceBuilder) bist() scheduler.Source {
+	return scheduler.Source{
+		Name: scheduler.NameBIST,
+		Sync: func(ctx context.Context, date time.Time) (int, error) {
+			return bist.Sync(ctx, b.f.bist, b.instruments, b.prices, date)
 		},
-		{
-			// BIST bonus issues (ADR 0008) and cash dividends (ADR
-			// 0009). The page holds the whole current year, so one
-			// read is the backfill: no Have, and
-			// zero rows means nothing to store, not "not published yet".
-			Name: scheduler.NameBISTSplits,
-			Sync: func(ctx context.Context, date time.Time) (int, error) {
-				n, err := bist.SyncCapitalEvents(ctx, f.bist, instrumentRepo, split.NewRepo(conn), dividend.NewRepo(conn), date)
-				if err == nil && n == 0 {
-					return 0, scheduler.ErrNothingToFetch
-				}
-				return n, err
-			},
+		Have: func(ctx context.Context, date string) (bool, error) {
+			return b.prices.HasSource(ctx, date, bist.SourceBistBulletin)
 		},
-		{
-			Name: scheduler.NameTCMB,
-			Sync: func(ctx context.Context, date time.Time) (int, error) {
-				return tcmb.Sync(ctx, f.tcmb, fxRepo, date)
-			},
-			Have: func(ctx context.Context, date string) (bool, error) {
-				return fxRepo.HasSource(ctx, date, tcmb.SourceTCMB)
-			},
-			Backfill: func(ctx context.Context, from string) (int, error) {
-				return run(from).backfillDates(ctx, tcmb.BackfillSource(f.tcmb, fxRepo), "")
-			},
+		Backfill: func(ctx context.Context, from string) (int, error) {
+			return b.run(from).backfillDates(ctx, bist.BulletinBackfillSource(b.f.bist, b.instruments, b.prices), "BIST")
 		},
-		{
-			Name: scheduler.NameUS,
-			// Finnhub serves only the latest close, which us.Sync stores
-			// under the last closed session whatever date the catch-up
-			// walks, so Have looks that session up.
-			Have: func(ctx context.Context, _ string) (bool, error) {
-				return priceRepo.HasSource(ctx, us.LastSession(f.now()), us.SourceFinnhub)
-			},
-			Sync: func(ctx context.Context, _ time.Time) (int, error) {
-				if err := requireTracked(ctx, instrumentRepo, logger, "US"); err != nil {
-					return 0, err
-				}
-				written, err := us.Sync(ctx, f.us, instrumentRepo, priceRepo, f.now())
-				if err != nil {
-					return written, err
-				}
-				// Finnhub has no split data: re-read a recent Tiingo
-				// window for splits.
-				if _, err := usSyncer.SyncRecent(ctx, f.now()); err != nil && ctx.Err() == nil {
-					// A shutdown mid-run is not a failure.
-					logger.Error("us: recent tiingo sync failed", "error", err)
-				}
-				return written, nil
-			},
-			Backfill: func(ctx context.Context, from string) (int, error) {
-				return backfillUSHistory(ctx, run(from), usSyncer)
-			},
+	}
+}
+
+func (b sourceBuilder) bistSplits() scheduler.Source {
+	return scheduler.Source{
+		// BIST bonus issues (ADR 0008) and cash dividends (ADR
+		// 0009). The page holds the whole current year, so one
+		// read is the backfill: no Have, and
+		// zero rows means nothing to store, not "not published yet".
+		Name: scheduler.NameBISTSplits,
+		Sync: func(ctx context.Context, date time.Time) (int, error) {
+			n, err := bist.SyncCapitalEvents(ctx, b.f.bist, b.instruments, split.NewRepo(b.conn), dividend.NewRepo(b.conn), date)
+			if err == nil && n == 0 {
+				return 0, scheduler.ErrNothingToFetch
+			}
+			return n, err
 		},
-		{
-			Name:     scheduler.NameCrypto,
-			EveryDay: true,
-			Have:     haveDayBefore(priceRepo, btcturk.SourceBtcTurk),
-			Sync: trackedSync(instrumentRepo, logger, "CRYPTO", func(ctx context.Context, date time.Time) (int, error) {
-				return btcturk.Sync(ctx, f.crypto, instrumentRepo, priceRepo, date)
-			}),
-			Backfill: func(ctx context.Context, from string) (int, error) {
-				return backfillCrypto(ctx, run(from), f.crypto)
-			},
+	}
+}
+
+func (b sourceBuilder) tcmb() scheduler.Source {
+	return scheduler.Source{
+		Name: scheduler.NameTCMB,
+		Sync: func(ctx context.Context, date time.Time) (int, error) {
+			return tcmb.Sync(ctx, b.f.tcmb, b.fx, date)
 		},
-		{
-			// TEFAS publishes day D's NAV around 13:30 the same day
-			// (ADR 0004). Every run re-reads the last month, so a
-			// missed day heals on the next run.
-			Name:      scheduler.NameTEFAS,
-			DefaultAt: "14:00",
-			Have: func(ctx context.Context, date string) (bool, error) {
-				return priceRepo.HasSource(ctx, date, tefas.SourceTEFAS)
-			},
-			Sync: trackedSync(instrumentRepo, logger, "TEFAS", func(ctx context.Context, date time.Time) (int, error) {
-				return tefas.Sync(ctx, f.tefas, instrumentRepo, priceRepo, date)
-			}),
-			Backfill: func(ctx context.Context, from string) (int, error) {
-				return backfillTEFAS(ctx, run(from), tefasSyncer)
-			},
+		Have: func(ctx context.Context, date string) (bool, error) {
+			return b.fx.HasSource(ctx, date, tcmb.SourceTCMB)
 		},
-		{
-			// TÜİK releases month M's CPI on the 3rd of M+1 at 10:00
-			// (ADR 0012), a calendar date rather than a weekday, so the
-			// source runs every day. Have makes the runs a no-op once the
-			// month is stored. One download is the whole history, so
-			// Sync is also the backfill and from is ignored.
-			// Have looks up the month before date, the latest that can
-			// be published.
-			Name:      scheduler.NameTUFE,
-			DefaultAt: "11:00",
-			EveryDay:  true,
-			Have: func(ctx context.Context, date string) (bool, error) {
-				d, err := time.Parse(time.DateOnly, date)
-				if err != nil {
-					return false, err
-				}
-				prev := time.Date(d.Year(), d.Month()-1, 1, 0, 0, 0, 0, time.UTC)
-				return benchmarkRepo.Have(ctx, benchmark.CodeTUFE, prev.Format(time.DateOnly))
-			},
-			Sync: func(ctx context.Context, _ time.Time) (int, error) {
-				return tuik.SyncTUFE(ctx, f.tufe, benchmarkRepo)
-			},
-			Backfill: func(ctx context.Context, _ string) (int, error) {
-				return tuik.SyncTUFE(ctx, f.tufe, benchmarkRepo)
-			},
+		Backfill: func(ctx context.Context, from string) (int, error) {
+			return b.run(from).backfillDates(ctx, tcmb.BackfillSource(b.f.tcmb, b.fx), "")
 		},
-		{
-			// BIST 100 closes from TCMB EVDS (ADR 0012), weekdays only.
-			// 20:00 because Borsa İstanbul publishes its own index file
-			// at about 18:20 and EVDS's update time is unknown: a close
-			// this run misses lands with the next day's run through
-			// SyncXU100's 14-day window. The owner can change
-			// source.xu100.at in the admin area.
-			Name:      scheduler.NameXU100,
-			DefaultAt: "20:00",
-			Have: func(ctx context.Context, date string) (bool, error) {
-				return benchmarkRepo.Have(ctx, benchmark.CodeXU100, date)
-			},
-			Sync: func(ctx context.Context, date time.Time) (int, error) {
-				return evds.SyncXU100(ctx, f.xu100, benchmarkRepo, date)
-			},
-			Backfill: func(ctx context.Context, from string) (int, error) {
-				start, ok, err := backfillStartDate(ctx, transactionRepo, from, "")
-				if err != nil || !ok {
-					return 0, err
-				}
-				return evds.BackfillXU100(ctx, f.xu100, benchmarkRepo, start, price.Yesterday(f.now()))
-			},
+	}
+}
+
+func (b sourceBuilder) us() scheduler.Source {
+	return scheduler.Source{
+		Name: scheduler.NameUS,
+		// Finnhub serves only the latest close, which us.Sync stores
+		// under the last closed session whatever date the catch-up
+		// walks, so Have looks that session up.
+		Have: func(ctx context.Context, _ string) (bool, error) {
+			return b.prices.HasSource(ctx, us.LastSession(b.f.now()), us.SourceFinnhub)
 		},
-		{
-			// Gram gold from BtcTurk PAXG-TRY (ADR 0017), every day like
-			// crypto. No tracked-instrument check: the GOLD benchmark
-			// needs the series whether or not anyone holds gold.
-			Name:     scheduler.NameGold,
-			EveryDay: true,
-			Have:     haveDayBefore(priceRepo, btcturk.SourcePAXG),
-			Sync: func(ctx context.Context, date time.Time) (int, error) {
-				return goldSyncer.SyncGold(ctx, date.AddDate(0, 0, -7), date.Add(24*time.Hour))
-			},
-			// The backfill stores the series from the backfill start
-			// date (from, or the earliest transaction of any market) up
-			// to now via SyncGoldHistory, which clamps the range and
-			// skips it when it is already stored. No
-			// transaction and no from is nothing to fetch.
-			Backfill: func(ctx context.Context, from string) (int, error) {
-				start, ok, err := backfillStartDate(ctx, transactionRepo, from, "")
-				if err != nil || !ok {
-					return 0, err
-				}
-				return goldSyncer.SyncGoldHistory(ctx, start.Format(time.DateOnly), f.now())
-			},
+		Sync: func(ctx context.Context, _ time.Time) (int, error) {
+			if err := requireTracked(ctx, b.instruments, b.logger, "US"); err != nil {
+				return 0, err
+			}
+			written, err := us.Sync(ctx, b.f.us, b.instruments, b.prices, b.f.now())
+			if err != nil {
+				return written, err
+			}
+			// Finnhub has no split data: re-read a recent Tiingo
+			// window for splits.
+			if _, err := b.usSyncer().SyncRecent(ctx, b.f.now()); err != nil && ctx.Err() == nil {
+				// A shutdown mid-run is not a failure.
+				b.logger.Error("us: recent tiingo sync failed", "error", err)
+			}
+			return written, nil
+		},
+		Backfill: func(ctx context.Context, from string) (int, error) {
+			return backfillUSHistory(ctx, b.run(from), b.usSyncer())
+		},
+	}
+}
+
+func (b sourceBuilder) crypto() scheduler.Source {
+	return scheduler.Source{
+		Name:     scheduler.NameCrypto,
+		EveryDay: true,
+		Have:     haveDayBefore(b.prices, btcturk.SourceBtcTurk),
+		Sync: trackedSync(b.instruments, b.logger, "CRYPTO", func(ctx context.Context, date time.Time) (int, error) {
+			return btcturk.Sync(ctx, b.f.crypto, b.instruments, b.prices, date)
+		}),
+		Backfill: func(ctx context.Context, from string) (int, error) {
+			return backfillCrypto(ctx, b.run(from), b.f.crypto)
+		},
+	}
+}
+
+// syncTEFAS is the TEFAS source's fetch, run through trackedSync.
+func (b sourceBuilder) syncTEFAS(ctx context.Context, date time.Time) (int, error) {
+	return tefas.Sync(ctx, b.f.tefas, b.instruments, b.prices, date)
+}
+
+func (b sourceBuilder) tefas() scheduler.Source {
+	return scheduler.Source{
+		// TEFAS publishes day D's NAV around 13:30 the same day
+		// (ADR 0004). Every run re-reads the last month, so a
+		// missed day heals on the next run.
+		Name:      scheduler.NameTEFAS,
+		DefaultAt: "14:00",
+		Have: func(ctx context.Context, date string) (bool, error) {
+			return b.prices.HasSource(ctx, date, tefas.SourceTEFAS)
+		},
+		Sync: trackedSync(b.instruments, b.logger, "TEFAS", b.syncTEFAS),
+		Backfill: func(ctx context.Context, from string) (int, error) {
+			return backfillTEFAS(ctx, b.run(from), b.tefasSyncer())
+		},
+	}
+}
+
+func (b sourceBuilder) tufe() scheduler.Source {
+	return scheduler.Source{
+		// TÜİK releases month M's CPI on the 3rd of M+1 at 10:00
+		// (ADR 0012), a calendar date rather than a weekday, so the
+		// source runs every day. Have makes the runs a no-op once the
+		// month is stored. One download is the whole history, so
+		// Sync is also the backfill and from is ignored.
+		// Have looks up the month before date, the latest that can
+		// be published.
+		Name:      scheduler.NameTUFE,
+		DefaultAt: "11:00",
+		EveryDay:  true,
+		Have: func(ctx context.Context, date string) (bool, error) {
+			d, err := time.Parse(time.DateOnly, date)
+			if err != nil {
+				return false, err
+			}
+			prev := time.Date(d.Year(), d.Month()-1, 1, 0, 0, 0, 0, time.UTC)
+			return b.benchmarks.Have(ctx, benchmark.CodeTUFE, prev.Format(time.DateOnly))
+		},
+		Sync: func(ctx context.Context, _ time.Time) (int, error) {
+			return tuik.SyncTUFE(ctx, b.f.tufe, b.benchmarks)
+		},
+		Backfill: func(ctx context.Context, _ string) (int, error) {
+			return tuik.SyncTUFE(ctx, b.f.tufe, b.benchmarks)
+		},
+	}
+}
+
+func (b sourceBuilder) xu100() scheduler.Source {
+	return scheduler.Source{
+		// BIST 100 closes from TCMB EVDS (ADR 0012), weekdays only.
+		// 20:00 because Borsa İstanbul publishes its own index file
+		// at about 18:20 and EVDS's update time is unknown: a close
+		// this run misses lands with the next day's run through
+		// SyncXU100's 14-day window. The owner can change
+		// source.xu100.at in the admin area.
+		Name:      scheduler.NameXU100,
+		DefaultAt: "20:00",
+		Have: func(ctx context.Context, date string) (bool, error) {
+			return b.benchmarks.Have(ctx, benchmark.CodeXU100, date)
+		},
+		Sync: func(ctx context.Context, date time.Time) (int, error) {
+			return evds.SyncXU100(ctx, b.f.xu100, b.benchmarks, date)
+		},
+		Backfill: func(ctx context.Context, from string) (int, error) {
+			start, ok, err := backfillStartDate(ctx, b.transactions, from, "")
+			if err != nil || !ok {
+				return 0, err
+			}
+			return evds.BackfillXU100(ctx, b.f.xu100, b.benchmarks, start, price.Yesterday(b.f.now()))
+		},
+	}
+}
+
+func (b sourceBuilder) gold() scheduler.Source {
+	return scheduler.Source{
+		// Gram gold from BtcTurk PAXG-TRY (ADR 0017), every day like
+		// crypto. No tracked-instrument check: the GOLD benchmark
+		// needs the series whether or not anyone holds gold.
+		Name:     scheduler.NameGold,
+		EveryDay: true,
+		Have:     haveDayBefore(b.prices, btcturk.SourcePAXG),
+		Sync: func(ctx context.Context, date time.Time) (int, error) {
+			return b.goldSyncer().SyncGold(ctx, date.AddDate(0, 0, -7), date.Add(24*time.Hour))
+		},
+		// The backfill stores the series from the backfill start
+		// date (from, or the earliest transaction of any market) up
+		// to now via SyncGoldHistory, which clamps the range and
+		// skips it when it is already stored. No
+		// transaction and no from is nothing to fetch.
+		Backfill: func(ctx context.Context, from string) (int, error) {
+			start, ok, err := backfillStartDate(ctx, b.transactions, from, "")
+			if err != nil || !ok {
+				return 0, err
+			}
+			return b.goldSyncer().SyncGoldHistory(ctx, start.Format(time.DateOnly), b.f.now())
 		},
 	}
 }
