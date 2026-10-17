@@ -55,8 +55,9 @@ touches it from the host runs as root, shown with `sudo`.
 
 **Lost or changed `SECRET_KEY`.** A backup can be restored with any valid
 `SECRET_KEY`: users, portfolios, transactions and prices do not depend on
-it. Only the stored provider API keys do. With a different key the backend
-starts normally, the provider rows in Yönetim / Administration show that the
+it. Only the stored provider API keys and the users' two-step login secrets
+do (the last paragraph of this section says what that costs). With a different
+key the backend starts normally, the provider rows in Yönetim / Administration show that the
 stored key cannot be read, and the US and BIST 100 fetches fail until the
 keys are entered again there. To recover, generate a new key as above, put
 it in the `SECRET_KEY=` line (or the secret file `SECRET_KEY_FILE` names),
@@ -383,7 +384,8 @@ copy of the current state, and step 2 picks the older file instead.
 7. Log in at `https://DOMAIN` and confirm the restored data looks right.
    With a different `SECRET_KEY` than the backup was taken with, the data
    is all there, but the stored provider keys cannot be decrypted and must
-   be entered again (see Lost or changed `SECRET_KEY` in §1).
+   be entered again, and users with two-step login are locked out until
+   an admin resets their password (see Lost or changed `SECRET_KEY` in §1).
 8. Once confirmed, delete the `.bak` files moved aside in step 4 (`sudo rm`). The fresh
    backup from step 1 stays in `deploy/data/backups/`.
 
