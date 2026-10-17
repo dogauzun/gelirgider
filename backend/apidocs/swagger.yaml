@@ -74,6 +74,13 @@ definitions:
       code:
         type: string
     type: object
+  auth.totpDisableRequest:
+    properties:
+      code:
+        type: string
+      password:
+        type: string
+    type: object
   auth.totpSetupRequest:
     properties:
       password:
@@ -98,6 +105,8 @@ definitions:
         type: boolean
       reporting_currency:
         type: string
+      totp_enabled:
+        type: boolean
     type: object
   instrument.addRequest:
     properties:
@@ -1124,6 +1133,55 @@ paths:
                 type: string
             type: object
       summary: Change own password
+      tags:
+      - auth
+  /account/totp:
+    delete:
+      consumes:
+      - application/json
+      description: Needs a session, the current password and a current code, so a
+        stolen session alone cannot drop the second factor. A code at or below the
+        last accepted step is a replay and is rejected. Rate-limited per client IP,
+        10 per minute.
+      parameters:
+      - description: current password and 6-digit code from the authenticator
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.totpDisableRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: invalid request body; invalid code
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: current password is incorrect; unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: two-factor authentication is off
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Turn two-factor authentication off
       tags:
       - auth
   /account/totp/confirm:

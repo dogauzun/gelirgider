@@ -16,6 +16,7 @@ export interface Me {
   email: string
   reporting_currency: string
   is_admin: boolean
+  totp_enabled: boolean
 }
 
 export const meQueryKey = ['me'] as const

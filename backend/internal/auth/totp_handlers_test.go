@@ -62,8 +62,13 @@ func newTOTPEnv(t *testing.T) *totpEnv {
 
 func (e *totpEnv) post(path string, body any) *httptest.ResponseRecorder {
 	e.t.Helper()
+	return e.do(http.MethodPost, path, body)
+}
+
+func (e *totpEnv) do(method, path string, body any) *httptest.ResponseRecorder {
+	e.t.Helper()
 	b, _ := json.Marshal(body)
-	req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(b))
+	req := httptest.NewRequest(method, path, bytes.NewReader(b))
 	req.AddCookie(&http.Cookie{Name: cookieName, Value: e.cookie})
 	rec := httptest.NewRecorder()
 	e.srv.ServeHTTP(rec, req)
@@ -162,6 +167,94 @@ func TestTOTPEnrolment(t *testing.T) {
 	}
 	if rec := e.post("/api/account/totp/confirm", map[string]string{"code": totpCode(key, step)}); rec.Code != http.StatusConflict {
 		t.Errorf("confirm with TOTP on = %d, want 409", rec.Code)
+	}
+}
+
+// enrol turns TOTP on for the env's user and returns the secret's key and the
+// step confirm recorded as the last accepted one.
+func (e *totpEnv) enrol() (key []byte, step int64) {
+	e.t.Helper()
+	var resp totpSetupResponse
+	if err := json.Unmarshal(e.setup("right-password").Body.Bytes(), &resp); err != nil {
+		e.t.Fatalf("decode setup: %v", err)
+	}
+	key, err := totpEncoding.DecodeString(resp.Secret)
+	if err != nil {
+		e.t.Fatalf("decode secret: %v", err)
+	}
+	step = time.Now().Unix() / totpStepSeconds
+	if rec := e.post("/api/account/totp/confirm", map[string]string{"code": totpCode(key, step)}); rec.Code != http.StatusNoContent {
+		e.t.Fatalf("confirm = %d %s", rec.Code, rec.Body)
+	}
+	return key, step
+}
+
+func (e *totpEnv) totpEnabled() bool {
+	e.t.Helper()
+	req := httptest.NewRequest(http.MethodGet, "/api/me", nil)
+	req.AddCookie(&http.Cookie{Name: cookieName, Value: e.cookie})
+	rec := httptest.NewRecorder()
+	e.srv.ServeHTTP(rec, req)
+	var me userResponse
+	if rec.Code != http.StatusOK || json.Unmarshal(rec.Body.Bytes(), &me) != nil {
+		e.t.Fatalf("GET /api/me = %d %s", rec.Code, rec.Body)
+	}
+	return me.TOTPEnabled
+}
+
+func TestTOTPDisable(t *testing.T) {
+	e := newTOTPEnv(t)
+	disable := func(password, code string) *httptest.ResponseRecorder {
+		return e.do(http.MethodDelete, "/api/account/totp", map[string]string{"password": password, "code": code})
+	}
+
+	if rec := disable("right-password", "123456"); rec.Code != http.StatusConflict {
+		t.Fatalf("disable with TOTP off = %d, want 409", rec.Code)
+	}
+	if e.totpEnabled() {
+		t.Fatal("totp_enabled true before enrolment")
+	}
+
+	key, step := e.enrol()
+	if !e.totpEnabled() {
+		t.Fatal("totp_enabled false after enrolment")
+	}
+
+	if rec := disable("wrong-password", totpCode(key, step+1)); rec.Code != http.StatusUnauthorized || !strings.Contains(rec.Body.String(), "current password is incorrect") {
+		t.Fatalf("wrong password = %d %s, want 401 current password is incorrect", rec.Code, rec.Body)
+	}
+	if rec := disable("right-password", "000000"); rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "invalid code") {
+		t.Fatalf("wrong code = %d %s, want 400 invalid code", rec.Code, rec.Body)
+	}
+	// The code of the step confirm used is a replay.
+	if rec := disable("right-password", totpCode(key, step)); rec.Code != http.StatusBadRequest {
+		t.Fatalf("replayed code = %d %s, want 400", rec.Code, rec.Body)
+	}
+	if !e.totpEnabled() {
+		t.Fatal("rejected disables turned TOTP off")
+	}
+
+	if rec := disable("right-password", totpCode(key, step+1)); rec.Code != http.StatusNoContent {
+		t.Fatalf("disable = %d %s, want 204", rec.Code, rec.Body)
+	}
+	if e.totpEnabled() {
+		t.Error("totp_enabled still true after disable")
+	}
+	if s := e.state(); s.Secret != "" || s.Pending != "" || s.LastStep != 0 {
+		t.Errorf("state after disable = %+v, want empty", s)
+	}
+}
+
+func TestAdvanceTOTPStep(t *testing.T) {
+	e := newTOTPEnv(t)
+	ctx := context.Background()
+	for i, tc := range []struct {
+		step int64
+		want bool
+	}{{5, true}, {5, false}, {4, false}, {6, true}} {
+		if got, err := e.users.AdvanceTOTPStep(ctx, e.userID, tc.step); err != nil || got != tc.want {
+			t.Errorf("call %d step %d = %v, %v; want %v", i, tc.step, got, err, tc.want)
+		}
 	}
 }
 

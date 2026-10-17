@@ -136,3 +136,73 @@ func (h *handler) totpConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+type totpDisableRequest struct {
+	Password string `json:"password"`
+	Code     string `json:"code"`
+}
+
+// totpDisable handles DELETE /api/account/totp.
+//
+//	@Summary	Turn two-factor authentication off
+//	@Description	Needs a session, the current password and a current code, so a stolen session alone cannot drop the second factor. A code at or below the last accepted step is a replay and is rejected. Rate-limited per client IP, 10 per minute.
+//	@Tags		auth
+//	@Accept		json
+//	@Param		body	body		auth.totpDisableRequest	true	"current password and 6-digit code from the authenticator"
+//	@Success	204
+//	@Failure	400	{object}	object{error=string}	"invalid request body; invalid code"
+//	@Failure	401	{object}	object{error=string}	"current password is incorrect; unauthorized"
+//	@Failure	409	{object}	object{error=string}	"two-factor authentication is off"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/account/totp [delete]
+func (h *handler) totpDisable(w http.ResponseWriter, r *http.Request) {
+	userID := MustUserID(r.Context())
+
+	var req totpDisableRequest
+	if !DecodeJSON(w, r, &req) {
+		return
+	}
+	u, err := h.users.GetByID(r.Context(), userID)
+	if err != nil {
+		WriteInternalError(w, r, err)
+		return
+	}
+	if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(req.Password)) != nil {
+		WriteError(w, http.StatusUnauthorized, "current password is incorrect")
+		return
+	}
+	if !u.TOTPEnabled {
+		WriteError(w, http.StatusConflict, "two-factor authentication is off")
+		return
+	}
+	state, err := h.users.TOTP(r.Context(), userID)
+	if err != nil {
+		WriteInternalError(w, r, err)
+		return
+	}
+	secret, err := h.settings.Open(totpAAD(userID), state.Secret)
+	if err != nil {
+		WriteInternalError(w, r, err)
+		return
+	}
+	step, ok := verifyTOTP(secret, req.Code, time.Now(), state.LastStep)
+	if !ok {
+		WriteError(w, http.StatusBadRequest, "invalid code")
+		return
+	}
+	// The step is the replay guard: of two requests with one code, one wins.
+	advanced, err := h.users.AdvanceTOTPStep(r.Context(), userID, step)
+	if err != nil {
+		WriteInternalError(w, r, err)
+		return
+	}
+	if !advanced {
+		WriteError(w, http.StatusBadRequest, "invalid code")
+		return
+	}
+	if err := h.users.DisableTOTP(r.Context(), userID); err != nil {
+		WriteInternalError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
