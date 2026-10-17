@@ -182,7 +182,7 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, err := h.sweep(r.Context(), userID, txs, from, to, benchmarkRef{benchmarkCode, benchmarkInstrument})
+	s, err := h.sweep(r.Context(), userID, txs, from, to, sweepOpts{benchmarkRef{benchmarkCode, benchmarkInstrument}})
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
@@ -558,10 +558,39 @@ func (h *historyHandler) loadSweepInputs(ctx context.Context, userID int64, txs 
 	return in, nil
 }
 
+// sweepOpts are the optional parts of a sweep.
+type sweepOpts struct {
+	benchmark benchmarkRef
+}
+
+// sweepWalk is the state sweep carries from one day to the next.
+type sweepWalk struct {
+	in   *sweepInputs
+	txs  []transaction.Transaction
+	opts sweepOpts
+	from string
+	// txIdx is the first row of txs not applied yet.
+	txIdx    int
+	priceIdx map[int64]int
+	latest   map[int64]decimal.Decimal
+	// One running state per portfolio for the whole sweep: each transaction
+	// is applied once, instead of recomputing the holdings from the whole
+	// prefix every day. flatByDate is stable, so each state still
+	// sees its portfolio's rows in the order transaction.Repo.List returns
+	// (SortForApply); the day's snapshots are summed.
+	states map[int64]*holdings.State
+	// carriedFlow holds the flows no rate could convert yet, per currency,
+	// including those dated on or before the first point (their cash is
+	// only inside that point if it converted there).
+	carriedFlow     map[string]decimal.Decimal
+	missingSet      map[string]bool
+	missingPriceSet map[string]bool
+}
+
 // sweep walks txs (every portfolio's rows, flatByDate) day by day from
-// `from` to `to`, with bm's shadow series alongside.
-func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transaction.Transaction, from, to time.Time, bm benchmarkRef) (*historySweep, error) {
-	in, err := h.loadSweepInputs(ctx, userID, txs, from, to, bm)
+// `from` to `to`, with the benchmark of opts alongside.
+func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transaction.Transaction, from, to time.Time, opts sweepOpts) (*historySweep, error) {
+	in, err := h.loadSweepInputs(ctx, userID, txs, from, to, opts.benchmark)
 	if err != nil {
 		return nil, err
 	}
@@ -577,101 +606,104 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 		unpricedBuys: map[int64][]unpricedBuy{},
 		negativeCash: make([]bool, 0, days),
 	}
-	if bm.code != "" {
+	if opts.benchmark.code != "" {
 		s.benchmarkPrices = make([]float64, 0, days)
 		s.estimatedFrom = in.estimatedFrom
 	}
-	missingSet := map[string]bool{}
-	missingPriceSet := map[string]bool{}
-	txIdx := 0
-	priceIdx := map[int64]int{}
-	latest := map[int64]decimal.Decimal{}
-	// One running state per portfolio for the whole sweep: each transaction
-	// is applied once, instead of recomputing the holdings from the whole
-	// prefix every day. flatByDate is stable, so each state still
-	// sees its portfolio's rows in the order transaction.Repo.List returns
-	// (SortForApply); the day's snapshots are summed.
-	states := map[int64]*holdings.State{}
-	// carriedFlow holds the flows no rate could convert yet, per currency,
-	// including those dated on or before the first point (their cash is
-	// only inside that point if it converted there).
-	carriedFlow := map[string]decimal.Decimal{}
+	w := &sweepWalk{
+		in:              in,
+		txs:             txs,
+		opts:            opts,
+		from:            from.Format(time.DateOnly),
+		priceIdx:        map[int64]int{},
+		latest:          map[int64]decimal.Decimal{},
+		states:          map[int64]*holdings.State{},
+		carriedFlow:     map[string]decimal.Decimal{},
+		missingSet:      map[string]bool{},
+		missingPriceSet: map[string]bool{},
+	}
 	for day := from; !day.After(to); day = day.AddDate(0, 0, 1) {
-		dayStr := day.Format(time.DateOnly)
-		dayIdx := len(s.entries)
-
-		// dayFlow collects the day's external cash movements per currency.
-		// Converted below, after this day's fx rates are in, so a flow uses
-		// the same rate the same day's totals do.
-		var dayFlow map[string]decimal.Decimal
-		firstApplied := txIdx
-		txIdx, dayFlow = applyThrough(txs, txIdx, dayStr, states, in.currencyOf)
-		s.noteUnpricedBuys(txs[firstApplied:txIdx], dayIdx, latest)
-
-		// firstPriced is the instruments whose first price lands today.
-		// Day 0's never count: no range holds them unpriced before it.
-		firstPriced := advancePrices(in.pricesByInstrument, priceIdx, latest, in.splitsOf, dayStr, dayIdx > 0)
-
-		in.fxw.advance(dayStr)
-		currentRates := in.fxw.rates
-		if bm.code != "" {
-			s.benchmarkPrices = append(s.benchmarkPrices, in.benchmarkPrice(bm.instrumentID, from.Format(time.DateOnly), dayStr, dayIdx, latest, currentRates))
-		}
-
-		// Same conversion path as the totals, so a flow uses the rate its
-		// own day's cash uses. A currency with no rate that day converts
-		// to nothing here, but its cash is not lost either: it enters
-		// total_value on the first later day that has a rate, so the flow
-		// stays in carriedFlow until that same day and is counted there.
-		// Without the carry the header reads that jump as a
-		// gain.
-		for currency, amount := range dayFlow {
-			carriedFlow[currency] = carriedFlow[currency].Add(amount)
-		}
-		converted := decimal.Zero
-		if len(carriedFlow) > 0 {
-			converted, carriedFlow = convertCarried(carriedFlow, currentRates, in.reporting)
-		}
-
-		// shortcut: the sweep is now O(txs + days * instruments) -- the
-		// per-day work is one snapshot over the instruments held, not a
-		// replay of every transaction. A portfolio_snapshots table is still
-		// the upgrade path if the remaining per-day term ever matters.
-		// The states are snapshotted and summed in one pass, with only the
-		// fields read below: a Summarize and a Merge per day cost the `all`
-		// sweep over a second on ten years.
-		summary := holdings.SummarizeAll(slices.Collect(maps.Values(states)), latest)
-		totals := holdings.Convert(summary, currentRates, in.reporting)
-		for _, currency := range totals.Missing {
-			missingSet[currency] = true
-		}
-		unpriced := s.scanPositions(in, summary.Positions, currentRates, dayStr, firstPriced, missingPriceSet)
-		// CostBasis isn't a Totals field, but MarketValue - CostBasis =
-		// UnrealizedPL per position and Convert's factor is linear, so the
-		// identity holds after conversion too: derive it instead of
-		// re-summing CostBasis (which, unconverted, would mix currencies).
-		costBasis := totals.TotalValue.Sub(totals.Cash).Sub(totals.UnrealizedPL)
-
-		s.totals = append(s.totals, totals.TotalValue)
-		s.values = append(s.values, totals.TotalValue.InexactFloat64())
-		s.flows = append(s.flows, converted)
-		s.unpriced = append(s.unpriced, unpriced)
-		s.negativeCash = append(s.negativeCash, totals.Cash.Round(2).IsNegative())
-		s.entries = append(s.entries, historyEntry{
-			Date:         dayStr,
-			TotalValue:   totals.TotalValue.StringFixed(2),
-			Cash:         totals.Cash.StringFixed(2),
-			CostBasis:    costBasis.StringFixed(2),
-			PriceUnknown: len(unpriced) > 0,
-		})
+		s.addDay(w, day.Format(time.DateOnly))
 	}
 
 	// Sorted and never nil: an empty union is [] in the response.
-	s.missingRates = slices.AppendSeq(make([]string, 0, len(missingSet)), maps.Keys(missingSet))
+	s.missingRates = slices.AppendSeq(make([]string, 0, len(w.missingSet)), maps.Keys(w.missingSet))
 	slices.Sort(s.missingRates)
-	s.missingPrices = slices.AppendSeq(make([]string, 0, len(missingPriceSet)), maps.Keys(missingPriceSet))
+	s.missingPrices = slices.AppendSeq(make([]string, 0, len(w.missingPriceSet)), maps.Keys(w.missingPriceSet))
 	slices.Sort(s.missingPrices)
 	return s, nil
+}
+
+// addDay appends day (dayStr) to the series: applies the day's rows, moves
+// the prices and the fx walk on, then takes the snapshot.
+func (s *historySweep) addDay(w *sweepWalk, dayStr string) {
+	in := w.in
+	dayIdx := len(s.entries)
+
+	// activity.external is the day's external cash movements per currency.
+	// Converted below, after this day's fx rates are in, so a flow uses
+	// the same rate the same day's totals do.
+	firstApplied := w.txIdx
+	var activity dayActivity
+	w.txIdx, activity = applyThrough(w.txs, w.txIdx, dayStr, w.states, in.currencyOf)
+	s.noteUnpricedBuys(w.txs[firstApplied:w.txIdx], dayIdx, w.latest)
+
+	// firstPriced is the instruments whose first price lands today.
+	// Day 0's never count: no range holds them unpriced before it.
+	firstPriced := advancePrices(in.pricesByInstrument, w.priceIdx, w.latest, in.splitsOf, dayStr, dayIdx > 0)
+
+	in.fxw.advance(dayStr)
+	currentRates := in.fxw.rates
+	if w.opts.benchmark.code != "" {
+		s.benchmarkPrices = append(s.benchmarkPrices, in.benchmarkPrice(w.opts.benchmark.instrumentID, w.from, dayStr, dayIdx, w.latest, currentRates))
+	}
+
+	// Same conversion path as the totals, so a flow uses the rate its
+	// own day's cash uses. A currency with no rate that day converts
+	// to nothing here, but its cash is not lost either: it enters
+	// total_value on the first later day that has a rate, so the flow
+	// stays in carriedFlow until that same day and is counted there.
+	// Without the carry the header reads that jump as a
+	// gain.
+	for currency, amount := range activity.external {
+		w.carriedFlow[currency] = w.carriedFlow[currency].Add(amount)
+	}
+	converted := decimal.Zero
+	if len(w.carriedFlow) > 0 {
+		converted, w.carriedFlow = convertCarried(w.carriedFlow, currentRates, in.reporting)
+	}
+
+	// shortcut: the sweep is now O(txs + days * instruments) -- the
+	// per-day work is one snapshot over the instruments held, not a
+	// replay of every transaction. A portfolio_snapshots table is still
+	// the upgrade path if the remaining per-day term ever matters.
+	// The states are snapshotted and summed in one pass, with only the
+	// fields read below: a Summarize and a Merge per day cost the `all`
+	// sweep over a second on ten years.
+	summary := holdings.SummarizeAll(slices.Collect(maps.Values(w.states)), w.latest)
+	totals := holdings.Convert(summary, currentRates, in.reporting)
+	for _, currency := range totals.Missing {
+		w.missingSet[currency] = true
+	}
+	unpriced := s.scanPositions(in, summary.Positions, currentRates, dayStr, firstPriced, w.missingPriceSet)
+	// CostBasis isn't a Totals field, but MarketValue - CostBasis =
+	// UnrealizedPL per position and Convert's factor is linear, so the
+	// identity holds after conversion too: derive it instead of
+	// re-summing CostBasis (which, unconverted, would mix currencies).
+	costBasis := totals.TotalValue.Sub(totals.Cash).Sub(totals.UnrealizedPL)
+
+	s.totals = append(s.totals, totals.TotalValue)
+	s.values = append(s.values, totals.TotalValue.InexactFloat64())
+	s.flows = append(s.flows, converted)
+	s.unpriced = append(s.unpriced, unpriced)
+	s.negativeCash = append(s.negativeCash, totals.Cash.Round(2).IsNegative())
+	s.entries = append(s.entries, historyEntry{
+		Date:         dayStr,
+		TotalValue:   totals.TotalValue.StringFixed(2),
+		Cash:         totals.Cash.StringFixed(2),
+		CostBasis:    costBasis.StringFixed(2),
+		PriceUnknown: len(unpriced) > 0,
+	})
 }
 
 // benchmarkPrice is P_i for day dayIdx: the benchmark's level in the
@@ -758,10 +790,10 @@ func (s *historySweep) noteUnpricedBuys(applied []transaction.Transaction, dayId
 
 // applyThrough applies txs from index i on, up to the last one dated on or
 // before day, each to its portfolio's state in states (created on first
-// use). It returns the index of the first row left and the applied rows'
-// deposits less withdrawals per currency.
-func applyThrough(txs []transaction.Transaction, i int, day string, states map[int64]*holdings.State, currencyOf map[int64]string) (int, map[string]decimal.Decimal) {
-	dayFlow := map[string]decimal.Decimal{}
+// use). It returns the index of the first row left and what the applied
+// rows did that day.
+func applyThrough(txs []transaction.Transaction, i int, day string, states map[int64]*holdings.State, currencyOf map[int64]string) (int, dayActivity) {
+	act := dayActivity{external: map[string]decimal.Decimal{}}
 	for i < len(txs) && txs[i].Date <= day {
 		tx := txs[i]
 		state, ok := states[tx.PortfolioID]
@@ -772,13 +804,19 @@ func applyThrough(txs []transaction.Transaction, i int, day string, states map[i
 		state.Apply(tx)
 		switch tx.Type {
 		case transaction.TypeDeposit:
-			dayFlow[tx.Currency] = dayFlow[tx.Currency].Add(tx.Amount)
+			act.external[tx.Currency] = act.external[tx.Currency].Add(tx.Amount)
 		case transaction.TypeWithdrawal:
-			dayFlow[tx.Currency] = dayFlow[tx.Currency].Sub(tx.Amount)
+			act.external[tx.Currency] = act.external[tx.Currency].Sub(tx.Amount)
 		}
 		i++
 	}
-	return i, dayFlow
+	return i, act
+}
+
+// dayActivity is what one day's rows did.
+type dayActivity struct {
+	// external is the deposits less withdrawals per currency.
+	external map[string]decimal.Decimal
 }
 
 // advancePrices moves each instrument's series in prices on to day:

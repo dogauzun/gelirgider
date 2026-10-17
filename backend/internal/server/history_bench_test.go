@@ -181,7 +181,7 @@ func BenchmarkHistorySweep(b *testing.B) {
 						if err != nil {
 							b.Fatal(err)
 						}
-						if _, err := h.sweep(s.ctx, s.usr.ID, flatByDate(lists), s.from, s.to, benchmarkRef{}); err != nil {
+						if _, err := h.sweep(s.ctx, s.usr.ID, flatByDate(lists), s.from, s.to, sweepOpts{}); err != nil {
 							b.Fatal(err)
 						}
 					}
