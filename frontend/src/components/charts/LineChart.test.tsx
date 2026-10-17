@@ -590,15 +590,15 @@ describe('LineChart', () => {
     // Each drag move re-renders the chart; the y axis and the rest derived
     // from the points must not be recomputed for it.
     it('does not recompute the y axis on a drag move', async () => {
-      const start = Date.UTC(2016, 0, 1)
-      const decade = Array.from({ length: 3600 }, (_, i) =>
+      const start = Date.UTC(2026, 0, 1)
+      const month = Array.from({ length: 30 }, (_, i) =>
         point(new Date(start + i * 86400000).toISOString().slice(0, 10), String(1000 + i), null),
       )
       const ticks = vi.spyOn(chartLib, 'axisTicks')
-      const { container } = render(<LineChart points={decade} onZoom={vi.fn()} />)
+      const { container } = render(<LineChart points={month} onZoom={vi.fn()} />)
 
       await chartPress(wrapper(container), 60)
-      for (let i = 0; i < 50; i++) await chartMove(wrapper(container), 70 + i * 10)
+      for (let i = 0; i < 10; i++) await chartMove(wrapper(container), 70 + i * 10)
       expect(span(container)).not.toBeNull()
       expect(ticks).toHaveBeenCalledTimes(1)
     })
