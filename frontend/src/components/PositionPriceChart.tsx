@@ -49,7 +49,7 @@ export function PositionPriceChart({
     })
     .filter((p): p is typeof p & { total_value: string } => p.total_value !== null)
 
-  // ponytail: markers only cover the transactions the caller has loaded
+  // shortcut: markers only cover the transactions the caller has loaded
   // (100 rows per page); older markers appear after "load more".
   const markers: ChartMarker[] = [
     ...transactions

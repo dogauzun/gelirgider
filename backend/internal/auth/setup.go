@@ -89,7 +89,7 @@ func (h *setupHandler) createAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ponytail: one global lock, fine for a once-per-install endpoint.
+	// shortcut: one global lock, fine for a once-per-install endpoint.
 	h.mu.Lock()
 	defer h.mu.Unlock()
 

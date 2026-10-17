@@ -20,7 +20,7 @@ import (
 // stopajRate is the withholding tax pre-filled on an expected dividend, per
 // market; any other market gets 0 (ADR 0009).
 //
-// ponytail: fixed rates per market, no per-instrument rate for ETFs or funds,
+// shortcut: fixed rates per market, no per-instrument rate for ETFs or funds,
 // and a law change is a code change. Move to a table if either matters.
 var stopajRate = map[string]decimal.Decimal{
 	"BIST": decimal.RequireFromString("0.15"),

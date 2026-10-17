@@ -227,7 +227,7 @@ type GoldSyncer struct {
 // written; the instrument seed creates it, never SyncGold. Returns the
 // number of days stored as prices, also when the benchmark write then fails.
 //
-// ponytail: PAXG, a token for one fine troy ounce, is the gold proxy, closed
+// shortcut: PAXG, a token for one fine troy ounce, is the gold proxy, closed
 // at 24:00 UTC with no bank spread. To change the source, change the Source
 // section of docs/adr/0017-gold.md first.
 func (s *GoldSyncer) SyncGold(ctx context.Context, from, to time.Time) (int, error) {

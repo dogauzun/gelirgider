@@ -93,7 +93,7 @@ its results, rather than calling `holdings.Compute` on the merged list.
 
 `all` runs the existing per-portfolio queries in a loop: one transaction list
 per portfolio of the user, an N+1 loop that is fine for a handful of
-portfolios (a `ponytail:` note in `scopeTransactions` names the upgrade, one
+portfolios (a `shortcut:` note in `scopeTransactions` names the upgrade, one
 UNION query). Every query keeps filtering by `user_id`. Prices, manual
 prices, instruments and FX rates are looked up once for the union of the
 instruments.

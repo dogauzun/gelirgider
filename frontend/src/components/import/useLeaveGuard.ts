@@ -46,7 +46,7 @@ function guardNavigator(navigator: Navigator, guard: Guard) {
 // prompt for a reload or a tab close. react-router's useBlocker needs a data
 // router and the app runs on <BrowserRouter>, so the guard sits on the
 // router's navigator and on popstate itself.
-// ponytail: no data router; move to useBlocker if the app ever adopts one.
+// shortcut: no data router; move to useBlocker if the app ever adopts one.
 //
 // Returns `release`, which lets the page's own way out through, e.g. the
 // navigation after a successful commit.

@@ -35,7 +35,7 @@ func scopeTransactions(ctx context.Context, portfolios *portfolio.Repo, transact
 		ids = []int64{n}
 	}
 
-	// ponytail: one List query per portfolio. Fine for a handful of
+	// shortcut: one List query per portfolio. Fine for a handful of
 	// portfolios; one UNION query if portfolio counts grow.
 	lists := make([][]transaction.Transaction, 0, len(ids))
 	for _, pid := range ids {

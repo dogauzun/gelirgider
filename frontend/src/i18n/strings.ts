@@ -72,7 +72,7 @@ export const locales: readonly Locale[] = ['tr', 'en']
 
 const maps: Record<Locale, Strings> = { tr, en }
 
-// ponytail: the locale lives in the browser only (localStorage), not on the
+// shortcut: the locale lives in the browser only (localStorage), not on the
 // user row, because it affects rendering alone. Multi-device sync, if ever
 // wanted: a `locale` column next to `reporting_currency` and `PUT /api/me/locale`.
 // Nothing stored, or storage disabled: the default.

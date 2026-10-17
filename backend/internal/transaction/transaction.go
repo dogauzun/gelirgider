@@ -359,7 +359,7 @@ const bonusWindow = bonusWindowDays * 24 * time.Hour
 // average cost. Order is kept, so a moved buy may be out of date
 // order; List sorts the result afterwards.
 //
-// ponytail: any zero-price buy in the window suppresses the split, a gift of
+// shortcut: any zero-price buy in the window suppresses the split, a gift of
 // shares entered by hand next to a split included; the upgrade path is an
 // explicit marker on imported bonus rows.
 func DropBookedSplits(txs []Transaction) ([]Transaction, error) {

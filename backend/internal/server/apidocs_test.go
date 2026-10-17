@@ -26,7 +26,7 @@ var (
 // backend/internal has no swag @Router annotation, or an annotation names a
 // route that is not registered (ADR 0013). It reads source only.
 //
-// ponytail: a pattern built any other way than a literal or "METHOD "+Const
+// shortcut: a pattern built any other way than a literal or "METHOD "+Const
 // fails the test as unrecognized; extend the regexes if that ever happens.
 // It checks path and method only, not schemas.
 func TestEveryRouteDocumented(t *testing.T) {

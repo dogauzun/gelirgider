@@ -337,7 +337,7 @@ export function toInput(form: FormState, original?: Transaction | null): Transac
 
 // The live cash strip under the form. Display only -- the request still
 // carries the exact decimal strings the user typed.
-// ponytail: Number arithmetic is enough for a preview; a decimal library only
+// shortcut: Number arithmetic is enough for a preview; a decimal library only
 // if this figure ever becomes something other than a hint.
 export function cashEffect(form: FormState): { out: boolean; amount: number } | null {
   const feeText = feeInput(form)

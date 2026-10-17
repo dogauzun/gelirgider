@@ -225,7 +225,7 @@ func Sync(ctx context.Context, f *Fetcher, instruments *instrument.Repo, prices 
 // window TEFAS serves, so a very old transaction does not refetch forever.
 // Returns rows written.
 //
-// ponytail: a transaction dated before the fund existed (a typo) refetches
+// shortcut: a transaction dated before the fund existed (a typo) refetches
 // the fund on every call, one request each. Upgrade path: remember the
 // attempt in empty_fetches if that ever shows up in the logs.
 func (s *Syncer) SyncHistory(ctx context.Context, in instrument.Instrument, from string, now time.Time) (int, error) {
