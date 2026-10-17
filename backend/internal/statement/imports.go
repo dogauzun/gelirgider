@@ -31,7 +31,9 @@ var ErrDuplicate = errors.New("import already exists")
 // ErrSamePeriod is returned when the user already has an import of the same
 // statement: same broker, portfolio, account currency and exact period, from
 // a different file. Midas regenerates the PDF on every download, so a
-// re-downloaded month has a new hash and only this check catches it.
+// re-downloaded month has a new hash and only this check catches it. A CSV
+// is never the same period: it prints none, so a re-export of an edited
+// portfolio spans the same dates, and its rows are checked one by one.
 var ErrSamePeriod = errors.New("statement period already imported")
 
 // Import is one imported statement file.
@@ -217,9 +219,10 @@ func create(ctx context.Context, q querier, n NewImport) (Import, error) {
 
 // samePeriod reports whether imp is the same statement as one of the given
 // account currency and period: exactly the same dates, of the same account.
-// Broker and portfolio are the caller's to match.
+// Broker and portfolio are the caller's to match. A CSV is never the same
+// statement, only overlapping rows are (flagDuplicates).
 func (imp Import) samePeriod(currency, periodStart, periodEnd string) bool {
-	return imp.PeriodStart == periodStart && imp.PeriodEnd == periodEnd && imp.sameAccount(currency)
+	return imp.Broker != "csv" && imp.PeriodStart == periodStart && imp.PeriodEnd == periodEnd && imp.sameAccount(currency)
 }
 
 // sameAccount reports whether imp may be of the account with the given

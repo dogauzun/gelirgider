@@ -805,9 +805,10 @@ func TestParseStatementFlagsDuplicateTradesAndCash(t *testing.T) {
 
 // TestParseCSVAgainstEarlierImports checks that a CSV is one file, not an
 // account, so its import is recorded with no account currency. A second CSV
-// over the same dates is the same period whatever its majority currency, and
-// one over part of them overlaps. A row an earlier import already booked
-// comes back with that transaction's date.
+// over the same dates or part of them overlaps, whatever its majority
+// currency, and never blocks the commit: its rows are checked one by one. A
+// row an earlier import already booked comes back with that transaction's
+// date.
 func TestParseCSVAgainstEarlierImports(t *testing.T) {
 	e := newTransactionTestEnv(t)
 	session := e.login("csv-repeat@example.com")
@@ -858,10 +859,10 @@ func TestParseCSVAgainstEarlierImports(t *testing.T) {
 		name, file, code string
 		want             map[string]string
 	}{
-		// Only the USD trades, over the same dates.
-		{"same dates", usxBuy + usxSell, "same_period", map[string]string{"trade-0": "2025-05-02", "trade-1": "2025-05-05"}},
 		// One of them again and a new one after the first CSV's period.
 		{"partial", usxSell + "2025-05-08,buy,USX,2,105,,,USD\n", "overlap", map[string]string{"trade-0": "2025-05-05", "trade-1": ""}},
+		// Only the USD trades, over the same dates. Last: its commit adds an import.
+		{"same dates", usxBuy + usxSell, "overlap", map[string]string{"trade-0": "2025-05-02", "trade-1": "2025-05-05"}},
 	} {
 		p := parsePreview(t, upload(e, session, "csv", portfolioID, []byte(header+c.file)))
 		if p.Currency != "USD" || len(p.Warnings) != 1 || p.Warnings[0].Code != c.code || p.Warnings[0].ImportID != imported.ID {
@@ -875,16 +876,16 @@ func TestParseCSVAgainstEarlierImports(t *testing.T) {
 				t.Errorf("%s: %s duplicate_of = %q, want %q", c.name, row.Key, row.DuplicateOf, c.want[row.Key])
 			}
 		}
-		if c.code != "same_period" {
+		if c.name != "same dates" {
 			continue
 		}
-		// Both rows: a CSV's period is the dates it commits.
+		// Both rows: a CSV's period is the dates it commits. Not refused.
 		rec := commit(p,
 			map[string]any{"type": "buy", "date": "2025-05-02", "instrument_id": usx, "quantity": "1", "price": "100", "currency": "USD"},
 			map[string]any{"type": "sell", "date": "2025-05-05", "instrument_id": usx, "quantity": "1", "price": "110", "currency": "USD"},
 		)
-		if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), `"import_id":`+strconv.FormatInt(imported.ID, 10)) {
-			t.Errorf("%s: commit status = %d, body %s; want 409 naming import %d", c.name, rec.Code, rec.Body.String(), imported.ID)
+		if rec.Code != http.StatusCreated {
+			t.Errorf("%s: commit status = %d, body %s; want %d", c.name, rec.Code, rec.Body.String(), http.StatusCreated)
 		}
 	}
 }
