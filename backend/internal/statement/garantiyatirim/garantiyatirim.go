@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/statement"
+	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/shopspring/decimal"
 )
 
@@ -443,7 +444,7 @@ func parseMove(st *statement.Statement, rec []string, f numberFormat, requests m
 			return
 		}
 		st.Trades = append(st.Trades, statement.Trade{
-			Date: date, Symbol: rec[0], Side: "buy", Quantity: quantity,
+			Date: date, Symbol: rec[0], Side: transaction.TypeBuy, Quantity: quantity,
 			Price: price, Amount: paid, Currency: "TRY",
 		})
 		return
@@ -460,7 +461,7 @@ func parseMove(st *statement.Statement, rec []string, f numberFormat, requests m
 		}
 	}
 	st.Trades = append(st.Trades, statement.Trade{
-		Date: date, Symbol: rec[0], Side: "buy", Quantity: quantity,
+		Date: date, Symbol: rec[0], Side: transaction.TypeBuy, Quantity: quantity,
 		Price: price, Amount: quantity.Mul(price), Currency: "TRY",
 	})
 }
@@ -513,11 +514,11 @@ func parseLedger(st *statement.Statement, ledger [][]string, f numberFormat) {
 			st.Skipped = append(st.Skipped, statement.Skipped{Section: ledgerSection, Reason: "IPO refund", Row: rec})
 		case ipoRow.MatchString(desc) && amount.IsPositive():
 			st.Cash = append(st.Cash, statement.CashMovement{
-				Date: valueDate, Kind: "deposit", Amount: amount, Currency: "TRY", Description: desc,
+				Date: valueDate, Kind: transaction.TypeDeposit, Amount: amount, Currency: "TRY", Description: desc,
 			})
 		case refund != nil && amount.IsNegative():
 			st.Cash = append(st.Cash, statement.CashMovement{
-				Date: valueDate, Kind: "withdrawal", Amount: amount.Abs(), Currency: "TRY", Description: desc,
+				Date: valueDate, Kind: transaction.TypeWithdrawal, Amount: amount.Abs(), Currency: "TRY", Description: desc,
 			})
 		case fraction != nil && amount.IsPositive():
 			quantity, err := parseNumber(fraction[1], usFormat)
@@ -528,7 +529,7 @@ func parseLedger(st *statement.Statement, ledger [][]string, f numberFormat) {
 			// The amount is booked as printed; the price is rounded to the
 			// transaction API's 9 fraction digits.
 			st.Trades = append(st.Trades, statement.Trade{
-				Date: valueDate, Symbol: fraction[2], Side: "sell", Quantity: quantity,
+				Date: valueDate, Symbol: fraction[2], Side: transaction.TypeSell, Quantity: quantity,
 				Price: amount.DivRound(quantity, 9), Amount: amount, Currency: "TRY",
 			})
 		case openingRow.MatchString(desc):
@@ -543,7 +544,7 @@ func parseLedger(st *statement.Statement, ledger [][]string, f numberFormat) {
 			commissions = append(commissions, commission{valueDate, matrah, amount.Abs()})
 		case commissionRow.MatchString(desc):
 			st.Cash = append(st.Cash, statement.CashMovement{
-				Date: valueDate, Kind: "fee", Amount: amount.Abs(), Currency: "TRY", Description: desc,
+				Date: valueDate, Kind: transaction.TypeFee, Amount: amount.Abs(), Currency: "TRY", Description: desc,
 			})
 		case div != nil && div[2] == "" && amount.IsPositive():
 			// The printed amount is what reached the account, which looks
@@ -555,12 +556,12 @@ func parseLedger(st *statement.Statement, ledger [][]string, f numberFormat) {
 				Date: valueDate, Symbol: div[1], Gross: amount, Tax: decimal.Zero, Currency: "TRY",
 			})
 		case div != nil && div[2] != "", transferRow.MatchString(desc), feeRow.MatchString(desc):
-			kind := "deposit"
+			kind := transaction.TypeDeposit
 			switch {
 			case amount.IsNegative() && feeRow.MatchString(desc):
-				kind = "fee"
+				kind = transaction.TypeFee
 			case amount.IsNegative():
-				kind = "withdrawal"
+				kind = transaction.TypeWithdrawal
 			}
 			st.Cash = append(st.Cash, statement.CashMovement{
 				Date: valueDate, Kind: kind, Amount: amount.Abs(), Currency: "TRY", Description: desc,
@@ -596,9 +597,9 @@ func parseTradeRow(st *statement.Statement, rec, m []string, amount decimal.Deci
 	if d, err := parseDate(m[1]); err == nil && d >= st.PeriodStart && d <= st.PeriodEnd {
 		date = d
 	}
-	side := "buy"
+	side := transaction.TypeBuy
 	if m[2] == "HS" {
-		side = "sell"
+		side = transaction.TypeSell
 	}
 	t := trade{index: len(st.Trades), valueDate: valueDate}
 	st.Trades = append(st.Trades, statement.Trade{
@@ -642,7 +643,7 @@ func bookCommissions(st *statement.Statement, trades []trade, commissions []comm
 		g := pick(groups, c.valueDate, c.matrah)
 		if g == nil {
 			// Every trade of that day was unreadable: keep the commission as a fee.
-			st.Cash = append(st.Cash, statement.CashMovement{Date: c.valueDate, Kind: "fee", Amount: c.amount, Currency: "TRY"})
+			st.Cash = append(st.Cash, statement.CashMovement{Date: c.valueDate, Kind: transaction.TypeFee, Amount: c.amount, Currency: "TRY"})
 			continue
 		}
 		if !g.booked {
@@ -665,12 +666,12 @@ func moveTakasDeposits(st *statement.Statement, trades []trade) {
 	firstBuy := map[string]string{}
 	for _, t := range trades {
 		d := st.Trades[t.index].Date
-		if st.Trades[t.index].Side == "buy" && (firstBuy[t.valueDate] == "" || d < firstBuy[t.valueDate]) {
+		if st.Trades[t.index].Side == transaction.TypeBuy && (firstBuy[t.valueDate] == "" || d < firstBuy[t.valueDate]) {
 			firstBuy[t.valueDate] = d
 		}
 	}
 	for i, c := range st.Cash {
-		if d := firstBuy[c.Date]; c.Kind == "deposit" && takasRow.MatchString(c.Description) && d != "" && d < c.Date {
+		if d := firstBuy[c.Date]; c.Kind == transaction.TypeDeposit && takasRow.MatchString(c.Description) && d != "" && d < c.Date {
 			st.Cash[i].Date = d
 		}
 	}
@@ -694,7 +695,7 @@ type group struct {
 func pick(groups map[string]*group, valueDate string, matrah decimal.Decimal) *group {
 	var best *group
 	bestDiff := decimal.Zero
-	for _, side := range []string{"buy", "sell"} {
+	for _, side := range []string{transaction.TypeBuy, transaction.TypeSell} {
 		g := groups[valueDate+" "+side]
 		if g == nil {
 			continue

@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/statement"
+	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/shopspring/decimal"
 )
 
@@ -224,9 +225,9 @@ func parseTrade(st *statement.Statement, row []string) {
 	var side string
 	switch row[3] {
 	case "Alış":
-		side = "buy"
+		side = transaction.TypeBuy
 	case "Satış":
-		side = "sell"
+		side = transaction.TypeSell
 	default:
 		st.Errors = append(st.Errors, statement.ParseError{Section: secTrades, Row: row, Code: "unknown_type", Value: row[3], Message: "unknown trade type " + row[3], Date: date})
 		return
@@ -276,19 +277,19 @@ func parseCash(st *statement.Statement, row []string) {
 		// "Aylık Nema Geliri", Midas's monthly interest on idle TRY cash. It
 		// is income, not a contribution, so it imports as a dividend with no
 		// instrument.
-		kind = "dividend"
+		kind = transaction.TypeDividend
 	case "Para Çekme":
-		kind = "withdrawal"
+		kind = transaction.TypeWithdrawal
 	case "Diğer Gider":
 		// A tax or expense debit, so far only "Stopaj", the withholding on
 		// the monthly interest. It imports as a fee.
-		kind = "fee"
+		kind = transaction.TypeFee
 	case "Döviz Alış", "Döviz Satış":
 		kind = "fx"
 	case "Para Yatırma", "Ücretsiz İşlem":
 		// Ücretsiz İşlem is Midas's zero-commission credit, paid into the cash
 		// account like a deposit.
-		kind = "deposit"
+		kind = transaction.TypeDeposit
 	default:
 		date, _ := parseDate(row[1])
 		st.Errors = append(st.Errors, statement.ParseError{Section: secCash, Row: row, Code: "unknown_type", Value: row[2], Message: "unknown cash type " + row[2], Date: date})
@@ -308,7 +309,7 @@ func parseCash(st *statement.Statement, row []string) {
 		st.BadNumber(secCash, row, "amount", date)
 		return
 	}
-	if kind == "fee" {
+	if kind == transaction.TypeFee {
 		// Printed negative; a fee's amount is positive, as in the Garanti
 		// parsers.
 		amount = amount.Abs()
@@ -323,9 +324,9 @@ func parseCash(st *statement.Statement, row []string) {
 			st.Skipped = append(st.Skipped, statement.Skipped{Section: secCash, Reason: "fx conversion", Row: row})
 			return
 		case (row[2] == "Döviz Satış") == (currency == "USD"):
-			kind = "withdrawal"
+			kind = transaction.TypeWithdrawal
 		default:
-			kind = "deposit"
+			kind = transaction.TypeDeposit
 		}
 	}
 	st.Cash = append(st.Cash, statement.CashMovement{

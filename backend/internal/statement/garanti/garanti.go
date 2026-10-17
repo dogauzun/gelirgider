@@ -30,6 +30,7 @@ import (
 	"unicode"
 
 	"github.com/dogauzun/gelirgider/backend/internal/statement"
+	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/shopspring/decimal"
 )
 
@@ -325,15 +326,15 @@ func net(st *statement.Statement, moves []movement, funds funds) {
 		switch {
 		case !g.units.IsZero():
 			// A buy pays the gross out of cash, a sell brings it in.
-			side, cash := "sell", g.gross.Abs()
+			side, cash := transaction.TypeSell, g.gross.Abs()
 			if g.units.IsPositive() {
-				side, cash = "buy", cash.Neg()
+				side, cash = transaction.TypeBuy, cash.Neg()
 			}
 			e = e.Add(cash).Sub(g.stopaj)
 			st.Trades = append(st.Trades, statement.Trade{Date: g.date, Symbol: g.symbol, Side: side, Quantity: g.units.Abs(), Price: g.price, Amount: g.gross.Abs(), Fee: g.stopaj, Currency: "TRY", Market: "TEFAS"})
 		case g.stopaj.IsPositive():
 			e = e.Sub(g.stopaj)
-			fees[g.date] = append(fees[g.date], statement.CashMovement{Date: g.date, Kind: "fee", Amount: g.stopaj, Currency: "TRY"})
+			fees[g.date] = append(fees[g.date], statement.CashMovement{Date: g.date, Kind: transaction.TypeFee, Amount: g.stopaj, Currency: "TRY"})
 		}
 		effect[g.date] = e
 	}
@@ -342,9 +343,9 @@ func net(st *statement.Statement, moves []movement, funds funds) {
 		e := effect[date]
 		switch {
 		case e.IsNegative():
-			st.Cash = append(st.Cash, statement.CashMovement{Date: date, Kind: "deposit", Amount: e.Neg(), Currency: "TRY"})
+			st.Cash = append(st.Cash, statement.CashMovement{Date: date, Kind: transaction.TypeDeposit, Amount: e.Neg(), Currency: "TRY"})
 		case e.IsPositive():
-			st.Cash = append(st.Cash, statement.CashMovement{Date: date, Kind: "withdrawal", Amount: e, Currency: "TRY"})
+			st.Cash = append(st.Cash, statement.CashMovement{Date: date, Kind: transaction.TypeWithdrawal, Amount: e, Currency: "TRY"})
 		}
 	}
 }
