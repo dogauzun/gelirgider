@@ -467,7 +467,10 @@ definitions:
       currency:
         type: string
       day_change:
-        description: quantity × (last_price − prev_close), in the position's currency.
+        description: |-
+          The move of the position as held at the end of price_date, in the
+          position's currency: shares bought or sold on price_date move from their
+          own trade price, and trades dated after it are ignored.
         type: string
       day_change_reporting:
         description: day_change in the reporting currency; also null without a rate.
