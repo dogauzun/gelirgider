@@ -517,22 +517,7 @@ func Merge(summaries []Summary) Summary {
 				m = &Position{InstrumentID: in.InstrumentID, Currency: in.Currency}
 				byID[in.InstrumentID] = m
 			}
-			m.Quantity = m.Quantity.Add(in.Quantity)
-			m.CostBasis = m.CostBasis.Add(in.CostBasis)
-			m.MarketValue = m.MarketValue.Add(in.MarketValue)
-			m.UnrealizedPL = m.UnrealizedPL.Add(in.UnrealizedPL)
-			m.RealizedPL = m.RealizedPL.Add(in.RealizedPL)
-			m.RealizedCost = m.RealizedCost.Add(in.RealizedCost)
-			m.CostBasisReporting = m.CostBasisReporting.Add(in.CostBasisReporting)
-			m.CostRateMissing = m.CostRateMissing || in.CostRateMissing
-			if in.HasPrice {
-				m.LastPrice, m.HasPrice = in.LastPrice, true
-			}
-			for _, sp := range in.Splits {
-				if !slices.ContainsFunc(m.Splits, func(x Split) bool { return x.Date == sp.Date }) {
-					m.Splits = append(m.Splits, sp)
-				}
-			}
+			m.combine(in)
 		}
 	}
 
@@ -550,6 +535,26 @@ func Merge(summaries []Summary) Summary {
 		out.Positions = append(out.Positions, p)
 	}
 	return out
+}
+
+// combine adds in, one input row of an instrument, into m for Merge.
+func (m *Position) combine(in Position) {
+	m.Quantity = m.Quantity.Add(in.Quantity)
+	m.CostBasis = m.CostBasis.Add(in.CostBasis)
+	m.MarketValue = m.MarketValue.Add(in.MarketValue)
+	m.UnrealizedPL = m.UnrealizedPL.Add(in.UnrealizedPL)
+	m.RealizedPL = m.RealizedPL.Add(in.RealizedPL)
+	m.RealizedCost = m.RealizedCost.Add(in.RealizedCost)
+	m.CostBasisReporting = m.CostBasisReporting.Add(in.CostBasisReporting)
+	m.CostRateMissing = m.CostRateMissing || in.CostRateMissing
+	if in.HasPrice {
+		m.LastPrice, m.HasPrice = in.LastPrice, true
+	}
+	for _, sp := range in.Splits {
+		if !slices.ContainsFunc(m.Splits, func(x Split) bool { return x.Date == sp.Date }) {
+			m.Splits = append(m.Splits, sp)
+		}
+	}
 }
 
 // SummarizeAll is Merge over each state's Summarize(latest), cut down to
