@@ -53,6 +53,8 @@ export const trCommon = {
   'attention.updateLabel': '{symbol} fiyatını güncelle',
   'attention.estimatedBenchmark': 'Karşılaştırma değerleri {date} itibarıyla tahmini',
   'attention.currencyAssets': '{currency} varlıklar',
+  'attention.tryCashShare': "Varlığın {share}'i TL nakitte; enflasyon karşısında değer kaybeder",
+  'attention.noHedge': 'USD, EUR, altın veya ABD hissesi yok',
   'prices.enter': 'Fiyat gir',
   'prices.enterLabel': '{symbol} için fiyat gir',
   'prices.error.invalid': "Fiyat 0'dan büyük bir sayı olmalı.",

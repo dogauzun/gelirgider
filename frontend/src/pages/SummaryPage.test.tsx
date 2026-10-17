@@ -3280,12 +3280,15 @@ describe('SummaryPage', () => {
         .map((li) => li.textContent)
 
     it('hides a concentration item that the owner raised the position share above', async () => {
-      attentionRules = { position_share: { value: 0.5 } }
+      attentionRules = { position_share: { value: 0.5 }, no_hedge: { enabled: false } }
       mockApi(twoPositions)
       renderPage()
       const card = within(await screen.findByRole('region', { name: 'Dikkat' }))
-      // Cash, 50% of the total, stays above its own default of 40%.
-      await vi.waitFor(() => expect(concentrated(card)).toEqual([expect.stringContaining('Nakit')]))
+      // Cash, 50% of the total, stays above its own default of 40%; as TRY cash it
+      // is the TRY item.
+      await vi.waitFor(() =>
+        expect(concentrated(card)).toEqual([expect.stringContaining('TL nakitte')]),
+      )
     })
 
     describe('Tüm portföyler (GLG-935)', () => {
@@ -3406,7 +3409,7 @@ describe('SummaryPage', () => {
       })
 
       it('hides a concentration item that the owner raised the position share above', async () => {
-        attentionRules = { position_share: { value: 0.5 } }
+        attentionRules = { position_share: { value: 0.5 }, no_hedge: { enabled: false } }
         mockAll()
         const client = new QueryClient()
         renderAll(client)
@@ -3416,7 +3419,7 @@ describe('SummaryPage', () => {
         )
         const card = within(await screen.findByRole('region', { name: 'Dikkat' }))
         await vi.waitFor(() =>
-          expect(concentrated(card)).toEqual([expect.stringContaining('Nakit')]),
+          expect(concentrated(card)).toEqual([expect.stringContaining('TL nakitte')]),
         )
       })
 

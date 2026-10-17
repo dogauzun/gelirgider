@@ -49,6 +49,17 @@ function renderCard(list: AttentionItem[]) {
 describe('AttentionCard', () => {
   afterEach(() => setPrivacy(false))
 
+  it('words the TRY cash share and no-hedge items under Yoğunlaşma', () => {
+    renderCard([{ kind: 'try-cash-share', share: 0.466 }, { kind: 'no-hedge' }])
+    expect(
+      screen.getByText("Varlığın %46,6'i TL nakitte; enflasyon karşısında değer kaybeder"),
+    ).toBeTruthy()
+    expect(screen.getByText('USD, EUR, altın veya ABD hissesi yok')).toBeTruthy()
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+      'Yoğunlaşma',
+    ])
+  })
+
   it('renders the groups in order with their headings', () => {
     renderCard(items)
     expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([

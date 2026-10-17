@@ -71,8 +71,20 @@ const dividend: ExpectedDividend = {
 const spread = (n: number, from = 100) =>
   Array.from({ length: n }, (_, i) => position(from + i, `P${i}`, '100'))
 
+// The two TRY rules are off here: most fixtures are all-TRY BIST, and their
+// tests are about the other rules. The TRY rules have their own describe.
+const tryRulesOff: AttentionRules = {
+  try_cash_share: { enabled: false },
+  no_hedge: { enabled: false },
+}
 const run = (s: Summary, rest: Partial<Parameters<typeof attentionItems>[0]> = {}) =>
-  attentionItems({ summary: s, expected: [], today: TODAY, ...rest })
+  attentionItems({
+    summary: s,
+    expected: [],
+    today: TODAY,
+    ...rest,
+    rules: { ...tryRulesOff, ...rest.rules },
+  })
 
 describe('attentionItems', () => {
   it('returns nothing for an empty portfolio', () => {
@@ -347,6 +359,58 @@ describe('attentionItems', () => {
       ['dividend', 'Ana'],
       ['mover', 'Ana'],
       ['concentration', 'Ana'],
+      ['no-hedge', 'Ana'],
+    ])
+  })
+})
+
+describe('TRY cash share and no-hedge rules', () => {
+  const all = (s: Summary, rules: AttentionRules = {}) =>
+    attentionItems({ summary: s, expected: [], today: TODAY, rules })
+  const kinds = (items: ReturnType<typeof all>) =>
+    items.map((item) => (item.kind === 'concentration' ? item.subject : item.kind))
+
+  it('flags an all-TRY portfolio without a hedge; a GRAM position clears it', () => {
+    const tryOnly = summary(spread(8), '100')
+    expect(kinds(all(tryOnly))).toEqual(['no-hedge'])
+    const gram = position(1, 'GRAM', '100', { market: 'GOLD' })
+    expect(kinds(all(summary([gram, ...spread(8)], '100')))).toEqual([])
+    expect(kinds(all(tryOnly, { no_hedge: { enabled: false } }))).toEqual([])
+  })
+
+  it('counts a USD position or USD cash as a hedge, and ignores an empty portfolio', () => {
+    const usd = position(1, 'U', '100', { currency: 'USD', market: 'BIST' })
+    expect(kinds(all(summary([usd, ...spread(8)])))).toEqual([])
+    const usdCash = summary(spread(8), '0', { cash_by_currency: { USD: '10' } })
+    expect(kinds(all(usdCash))).toEqual([])
+    expect(all(summary([]))).toEqual([])
+  })
+
+  it('gives 50% TRY cash the TRY item and no generic cash item, until the rule is off', () => {
+    const gram = position(1, 'GRAM', '100', { market: 'GOLD' })
+    const half = summary([gram, ...spread(4)], '500')
+    expect(all(half)).toEqual([{ kind: 'try-cash-share', share: 0.5 }])
+    expect(all(half, { try_cash_share: { enabled: false } })).toEqual([
+      { kind: 'concentration', subject: 'cash', label: 'TRY', share: 0.5 },
+    ])
+    // Exactly at the threshold is not above it.
+    expect(all(summary([gram, ...spread(5)], '400'))).toEqual([])
+  })
+
+  it('does not count a USD cash balance as TRY cash', () => {
+    const gram = position(1, 'GRAM', '100', { market: 'GOLD' })
+    const s = summary([gram, ...spread(4)], '500', { cash_by_currency_reporting: { USD: '500' } })
+    expect(all(s)).toEqual([{ kind: 'concentration', subject: 'cash', label: 'TRY', share: 0.5 }])
+  })
+
+  it('applies neither TRY rule to a USD reporting currency, and the generic cash rule works', () => {
+    const s = summary(spread(2), '500', {
+      currency: 'USD',
+      cash_by_currency: { USD: '500' },
+      cash_by_currency_reporting: { USD: '500' },
+    })
+    expect(all(s)).toEqual([
+      { kind: 'concentration', subject: 'cash', label: 'USD', share: 500 / 700 },
     ])
   })
 })
