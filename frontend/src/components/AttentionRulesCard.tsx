@@ -82,7 +82,9 @@ function AttentionRulesForm({ rules }: { rules: AttentionRules }) {
     const body: AttentionRules = {}
     for (const { key, unit, fallback } of ruleDefs) {
       const { enabled, value } = draft[key]
-      const number = fromInput(unit, value)
+      // A blank input (possible while the rule is off, which skips `required`)
+      // keeps the saved value instead of becoming 0.
+      const number = value.trim() === '' ? (rules[key]?.value ?? fallback) : fromInput(unit, value)
       const override = {
         ...(enabled ? {} : { enabled: false }),
         ...(number === fallback ? {} : { value: number }),

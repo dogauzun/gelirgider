@@ -159,6 +159,21 @@ describe('AccountPage', () => {
     })
   })
 
+  it('does not send a value for a cleared input of a switched-off rule', async () => {
+    const fetchMock = mockMe('TRY')
+    renderPage()
+
+    const cash = await screen.findByRole('spinbutton', { name: 'Nakit payı' })
+    fireEvent.change(cash, { target: { value: '' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Nakit payı' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Kaydet' }))
+
+    await waitFor(() => expect(attentionPut(fetchMock)).toHaveLength(1))
+    expect(JSON.parse(attentionPut(fetchMock)[0][1]?.body as string)).toEqual({
+      cash_share: { enabled: false },
+    })
+  })
+
   it('shows a rejected attention rule under the card', async () => {
     mockMe('TRY')
     renderPage()
