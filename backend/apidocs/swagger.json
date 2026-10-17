@@ -2689,6 +2689,60 @@
                 }
             }
         },
+        "/portfolios/{id}/dividends/upcoming": {
+            "get": {
+                "description": "Stored ex-dates after today for the quantity the portfolio holds now, soonest first; none when it holds none. Not matched against recorded dividends and not dismissable: those apply only after the ex-date. Stopaj is pre-filled per market like the expected list. The all scope is not supported.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dividends"
+                ],
+                "summary": "List upcoming dividends",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "portfolio id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/server.expectedDividendResponse"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/portfolios/{id}/history": {
             "get": {
                 "description": "One point per day from `from` to `to`, in the reporting currency. A `from` before the first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the first transaction (at most 3660 days back); a `to` after today is clamped to today. The three returns are null when undefined for the range; benchmark is null when no benchmark was requested, and its returns are null when it has no level on or before the first point. Each point's twr is the time-weighted return from the first point to that one, ending on returns.twr, and null on every point when returns.twr is null; benchmark_twr is the same for the benchmark's shadow series. inflation is the TUFE change over the range, whatever the benchmark, null unless the reporting currency is TRY or when TUFE has no level on or before the first point; inflation_estimated_from is the first extrapolated day of it, null when none.",

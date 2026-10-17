@@ -110,3 +110,37 @@ func TestExpected(t *testing.T) {
 		})
 	}
 }
+
+// TestUpcoming gives one instrument a past and a future ex-date: the future
+// one is only in Upcoming, the past one only in Expected, and Upcoming counts
+// the quantity held now, not before the ex-date.
+func TestUpcoming(t *testing.T) {
+	d := decimal.RequireFromString
+	id := int64(1)
+	tx := func(typ, date, qty string) transaction.Transaction {
+		return transaction.Transaction{InstrumentID: &id, Type: typ, Date: date, Quantity: d(qty), Price: d("1"), Amount: d(qty), Currency: "TRY"}
+	}
+	div := func(date string) dividend.Dividend {
+		return dividend.Dividend{InstrumentID: id, Date: date, Amount: d("0.3333"), Currency: "TRY"}
+	}
+	rows := []transaction.Transaction{tx(transaction.TypeBuy, "2024-01-05", "10"), tx(transaction.TypeBuy, "2024-06-01", "5"), tx(transaction.TypeBuy, "2024-08-01", "100")}
+	divs := []dividend.Dividend{div("2024-05-10"), div("2024-07-15")}
+	const today = "2024-06-30"
+
+	past, err := dividend.Expected(rows, divs, nil, today)
+	if err != nil {
+		t.Fatalf("Expected: %v", err)
+	}
+	if len(past) != 1 || past[0].Date != "2024-05-10" {
+		t.Errorf("Expected: got %+v, want only 2024-05-10", past)
+	}
+	got := dividend.Upcoming(rows, divs, today)
+	if len(got) != 1 || got[0].Date != "2024-07-15" || !got[0].Quantity.Equal(d("15")) || got[0].Gross.StringFixed(2) != "5.00" {
+		t.Errorf("Upcoming: got %+v, want only 2024-07-15 for 15 shares, gross 5.00", got)
+	}
+
+	sold := []transaction.Transaction{rows[0], rows[1], tx(transaction.TypeSell, "2024-06-30", "15")}
+	if got := dividend.Upcoming(sold, divs, today); len(got) != 0 {
+		t.Errorf("Upcoming after selling everything: got %+v, want none", got)
+	}
+}

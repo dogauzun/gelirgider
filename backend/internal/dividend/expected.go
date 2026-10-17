@@ -79,3 +79,35 @@ func Expected(rows []transaction.Transaction, divs []Dividend, dismissed map[Dis
 	}
 	return out, nil
 }
+
+// Upcoming returns the ex-dates of divs after today for the quantity rows
+// hold now (every row dated on or before today; Expected counts the rows
+// before the ex-date, and a future ex-date has none yet), with a gross above
+// 0. Not matched against recorded dividends and not dismissable: those apply
+// only after the ex-date, and an ex-date of today stays in Expected. rows and
+// divs are ordered as for Expected; the result is date-ascending.
+func Upcoming(rows []transaction.Transaction, divs []Dividend, today string) []Suggestion {
+	state := holdings.NewState(nil)
+	for _, t := range rows {
+		if t.Date > today {
+			break
+		}
+		state.Apply(t)
+	}
+	var out []Suggestion
+	for _, d := range divs {
+		if d.Date <= today {
+			continue
+		}
+		qty := state.Quantity(d.InstrumentID)
+		if !qty.IsPositive() {
+			continue
+		}
+		gross := qty.Mul(d.Amount).Round(2)
+		if !gross.IsPositive() {
+			continue
+		}
+		out = append(out, Suggestion{InstrumentID: d.InstrumentID, Date: d.Date, Quantity: qty, PerShare: d.Amount, Gross: gross, Currency: d.Currency})
+	}
+	return out
+}
