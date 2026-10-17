@@ -2193,3 +2193,53 @@ func TestPortfolioHistoryAllScope(t *testing.T) {
 		t.Errorf("benchmark = %+v, want USD with a twr", all.Benchmark)
 	}
 }
+
+// TestPortfolioHistoryFirstPriceKeepsInRangeBuyGain checks that an
+// instrument's first price takes out of the range return only the gain on
+// the shares held when the range opened (valued at cost until then). The
+// gain on shares bought inside the range before that price stays in it: the
+// buy price values them.
+//
+//	day 1: deposit 10000 (and, when "held at start", buy 100 @ 50)
+//	day 3: buy 100 @ 50, no price yet
+//	day 10: first price 60
+//
+// With 100 shares held at the start the jump is 2000, 1000 of it the
+// start's. With nothing held at the start no jump is taken out at all.
+func TestPortfolioHistoryFirstPriceKeepsInRangeBuyGain(t *testing.T) {
+	for _, tc := range []struct {
+		name                    string
+		startQty                string
+		last, netFlow, twr, sim string
+	}{
+		{"held at start", "100", "12000.00", "1000.00", "0.100000", "0.090909"},
+		{"nothing held at start", "", "11000.00", "0.00", "0.100000", "0.100000"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := newPeriodsEnv(t)
+			userID, session := e.user(t, "inrange@example.com")
+			pf := e.portfolio(t, userID)
+			id := e.instrument(t, "LATE")
+			e.cash(t, userID, pf, "2024-01-01", "10000")
+			if tc.startQty != "" {
+				e.buy(t, userID, lot{portfolioID: pf, instrumentID: id, date: "2024-01-01", qty: tc.startQty, px: "50"})
+			}
+			e.buy(t, userID, lot{portfolioID: pf, instrumentID: id, date: "2024-01-03", qty: "100", px: "50"})
+			if err := price.NewRepo(e.conn).Upsert(context.Background(), id, "2024-01-10", "60", "test"); err != nil {
+				t.Fatalf("prices.Upsert: %v", err)
+			}
+
+			var got historyResponse
+			e.get(t, session, fmt.Sprintf("/api/portfolios/%d/history?from=2024-01-01&to=2024-01-10", pf), http.StatusOK, &got)
+			if last := got.Points[len(got.Points)-1].TotalValue; last != tc.last {
+				t.Errorf("last total_value = %s, want %s", last, tc.last)
+			}
+			if got.NetFlow != tc.netFlow {
+				t.Errorf("net_flow = %s, want %s", got.NetFlow, tc.netFlow)
+			}
+			if got.Returns.TWR == nil || *got.Returns.TWR != tc.twr || got.Returns.Simple == nil || *got.Returns.Simple != tc.sim {
+				t.Errorf("returns = %s, want twr %s, simple %s", asJSON(t, got.Returns), tc.twr, tc.sim)
+			}
+		})
+	}
+}

@@ -381,6 +381,9 @@ type historySweep struct {
 	// opened while the instrument was unpriced.
 	unpriced   [][]int64
 	firstPrice map[int64]priceJump
+	// unpricedBuys is, per instrument, the buys made after day 0 while it had
+	// no price yet, which firstPrice splits out of the jump.
+	unpricedBuys map[int64][]unpricedBuy
 	// negativeCash is set on a day whose cash, as the point reports it (2
 	// decimals), is below zero: no base to measure a return on.
 	// A sub-cent residual shown as 0.00 doesn't count.
@@ -394,9 +397,38 @@ type historySweep struct {
 	estimatedFrom   string
 }
 
+// priceJump is the jump from cost to market when an instrument's first price
+// lands on day, in the reporting currency. inRange holds the part of it that
+// each buy made earlier, while unpriced, accounts for.
 type priceJump struct {
-	day    int
-	amount decimal.Decimal
+	day     int
+	amount  decimal.Decimal
+	inRange []buyGain
+}
+
+type unpricedBuy struct {
+	day int
+	tx  transaction.Transaction
+}
+
+// buyGain is the gain between the price of a buy made on day and the first
+// price.
+type buyGain struct {
+	day  int
+	gain decimal.Decimal
+}
+
+// heldAt is the part of the jump that belongs to a range opening on day i:
+// shares bought after i have a price, their buy price, so their gain stays in
+// the return.
+func (j priceJump) heldAt(i int) decimal.Decimal {
+	held := j.amount
+	for _, g := range j.inRange {
+		if g.day > i {
+			held = held.Sub(g.gain)
+		}
+	}
+	return held
 }
 
 // rangeInputs is what periodReturns takes for days i..j, the way a history
@@ -409,7 +441,7 @@ func (s *historySweep) rangeInputs(i, j int) (values, flows []float64, external 
 	copy(external[1:], s.flows[i+1:j+1])
 	for _, id := range s.unpriced[i] {
 		if jump, ok := s.firstPrice[id]; ok && jump.day <= j {
-			external[jump.day-i] = external[jump.day-i].Add(jump.amount)
+			external[jump.day-i] = external[jump.day-i].Add(jump.heldAt(i))
 		}
 	}
 	flows = make([]float64, len(external))
@@ -542,6 +574,7 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 		flows:        make([]decimal.Decimal, 0, days),
 		unpriced:     make([][]int64, 0, days),
 		firstPrice:   map[int64]priceJump{},
+		unpricedBuys: map[int64][]unpricedBuy{},
 		negativeCash: make([]bool, 0, days),
 	}
 	if bm.code != "" {
@@ -571,7 +604,9 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 		// Converted below, after this day's fx rates are in, so a flow uses
 		// the same rate the same day's totals do.
 		var dayFlow map[string]decimal.Decimal
+		firstApplied := txIdx
 		txIdx, dayFlow = applyThrough(txs, txIdx, dayStr, states, in.currencyOf)
+		s.noteUnpricedBuys(txs[firstApplied:txIdx], dayIdx, latest)
 
 		// firstPriced is the instruments whose first price lands today.
 		// Day 0's never count: no range holds them unpriced before it.
@@ -610,7 +645,7 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 		for _, currency := range totals.Missing {
 			missingSet[currency] = true
 		}
-		unpriced := s.scanPositions(in, summary.Positions, currentRates, dayIdx, firstPriced, missingPriceSet)
+		unpriced := s.scanPositions(in, summary.Positions, currentRates, dayStr, firstPriced, missingPriceSet)
 		// CostBasis isn't a Totals field, but MarketValue - CostBasis =
 		// UnrealizedPL per position and Convert's factor is linear, so the
 		// identity holds after conversion too: derive it instead of
@@ -669,28 +704,56 @@ func (in *sweepInputs) benchmarkPrice(benchmarkInstrument int64, from, day strin
 
 // scanPositions lists the instruments held without a price on the day
 // (recording their symbols in missingPrices) and records in s.firstPrice
-// the jump of each one of firstPriced whose first price lands today.
-func (s *historySweep) scanPositions(in *sweepInputs, positions []holdings.Position, rates map[string]decimal.Decimal, dayIdx int, firstPriced []int64, missingPrices map[string]bool) (unpriced []int64) {
+// the jump of each one of firstPriced whose first price lands today, dayStr
+// (the day s.entries is about to get).
+func (s *historySweep) scanPositions(in *sweepInputs, positions []holdings.Position, rates map[string]decimal.Decimal, dayStr string, firstPriced []int64, missingPrices map[string]bool) (unpriced []int64) {
 	for _, p := range positions {
 		if !p.HasPrice {
 			missingPrices[in.symbolOf[p.InstrumentID]] = true
 			unpriced = append(unpriced, p.InstrumentID)
 			continue
 		}
-		// shortcut: the whole first-price jump is taken out, including
-		// the gain on shares bought inside the range before that first
-		// price; splitting it would need a price at each of those buys.
 		if slices.Contains(firstPriced, p.InstrumentID) {
 			// No rate: zero, as the position is also left out of
 			// total_value today.
-			jump := decimal.Zero
+			jump := priceJump{day: len(s.entries)}
 			if f, ok := holdings.Factor(rates, p.Currency, in.reporting); ok {
-				jump = p.UnrealizedPL.Mul(f)
+				jump.amount = p.UnrealizedPL.Mul(f)
+				// shortcut: a sell before the first price is not netted off
+				// these buys, so the in-range part is then overstated;
+				// upgrade with lot-level cost if that ever shows.
+				for _, b := range s.unpricedBuys[p.InstrumentID] {
+					shares := b.tx.Quantity
+					for _, sp := range in.splitsOf[p.InstrumentID] {
+						if sp.Date > b.tx.Date && sp.Date <= dayStr {
+							shares = shares.Mul(sp.Ratio)
+						}
+					}
+					gain := shares.Mul(p.LastPrice).Sub(b.tx.Amount).Sub(b.tx.Fee)
+					jump.inRange = append(jump.inRange, buyGain{day: b.day, gain: gain.Mul(f)})
+				}
 			}
-			s.firstPrice[p.InstrumentID] = priceJump{day: dayIdx, amount: jump}
+			s.firstPrice[p.InstrumentID] = jump
 		}
 	}
 	return unpriced
+}
+
+// noteUnpricedBuys keeps the buys among applied, the rows of day dayIdx, of
+// instruments with no price yet (not in latest). Day 0's are held when every
+// range opens, so they never matter.
+func (s *historySweep) noteUnpricedBuys(applied []transaction.Transaction, dayIdx int, latest map[int64]decimal.Decimal) {
+	if dayIdx == 0 {
+		return
+	}
+	for _, tx := range applied {
+		if tx.Type != transaction.TypeBuy {
+			continue
+		}
+		if _, priced := latest[*tx.InstrumentID]; !priced {
+			s.unpricedBuys[*tx.InstrumentID] = append(s.unpricedBuys[*tx.InstrumentID], unpricedBuy{day: dayIdx, tx: tx})
+		}
+	}
 }
 
 // applyThrough applies txs from index i on, up to the last one dated on or
