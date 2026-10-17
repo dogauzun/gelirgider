@@ -18,6 +18,9 @@ export const alreadyImportedSkip = (): Pick<QueueItem, 'status' | 'reason'> => (
 // statement, a corrected re-issue or a fuller re-download, both stay queued,
 // each naming the other, for the user to skip one at its turn:
 // the later one opens with the same_period warning once the first is in.
+// Two CSVs of the same dates are named alike, but the later one opens with
+// the non-blocking overlap warning instead: a CSV is never the same
+// statement, only its rows can repeat.
 export function queueFromParses(
   selected: File[],
   results: PromiseSettledResult<StatementPreview>[],
