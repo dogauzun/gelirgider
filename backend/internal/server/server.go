@@ -655,6 +655,10 @@ func withLogging(logger *slog.Logger, next http.Handler) http.Handler {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
+		// The containers' own health check hits this every 30 s; a failing one keeps its line.
+		if r.Method == http.MethodGet && r.URL.Path == "/api/health" && rec.status == http.StatusOK {
+			return
+		}
 		fields := []any{
 			"method", r.Method,
 			"path", r.URL.Path,

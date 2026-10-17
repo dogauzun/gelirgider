@@ -409,9 +409,9 @@ copy of the current state, and step 2 picks the older file instead.
    front of Caddy, make Caddy trust it (`trusted_proxies`) and raise
    `TRUSTED_PROXY_HOPS` to 3, or every request logs and rate-limits under
    that proxy's address. `user_id` is there
-   only for a signed-in request. The container health check's own
-   `GET /api/health` requests are logged too, with `remote_addr` set to the
-   container's loopback address. `status` 499 means the client closed the
+   only for a signed-in request. Successful container health checks
+   (`/api/health` on the backend, `/healthz` on the frontend) are not logged;
+   a failing one is. `status` 499 means the client closed the
    request before it finished (e.g. the user left the page while it
    loaded); it is not an error.
    An error line (e.g. a recovered panic) looks like:
