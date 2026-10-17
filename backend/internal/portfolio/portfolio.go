@@ -156,7 +156,7 @@ func (r *Repo) Rename(ctx context.Context, userID, id int64, name string) error 
 	if err != nil {
 		return fmt.Errorf("update portfolio: %w", err)
 	}
-	if err := checkAffected(res); err != nil {
+	if err := db.CheckAffected(res, ErrNotFound); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
@@ -223,7 +223,7 @@ func (r *Repo) Delete(ctx context.Context, userID, id int64, cascade bool) (int,
 	if err != nil {
 		return n, fmt.Errorf("delete portfolio: %w", err)
 	}
-	if err := checkAffected(res); err != nil {
+	if err := db.CheckAffected(res, ErrNotFound); err != nil {
 		return n, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -275,17 +275,6 @@ var turkishI = strings.NewReplacer("İ", "i", "I", "i", "ı", "i")
 // "Portfoy" and "Portföy" remain two names.
 func foldName(s string) string {
 	return strings.ToLower(turkishI.Replace(collapseSpace(s)))
-}
-
-func checkAffected(res sql.Result) error {
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
-	}
-	if n == 0 {
-		return ErrNotFound
-	}
-	return nil
 }
 
 // scanner is satisfied by both *sql.Row and *sql.Rows.

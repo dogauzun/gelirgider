@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/dogauzun/gelirgider/backend/internal/db"
 	"github.com/shopspring/decimal"
 )
 
@@ -58,24 +59,13 @@ func (r *Repo) Upsert(ctx context.Context, code, date, value, source string) err
 	}
 	defer tx.Rollback()
 
-	res, err := tx.ExecContext(ctx,
+	if err := db.Upsert(ctx, tx,
 		"UPDATE benchmark_values SET value = ?, source = ? WHERE code = ? AND date = ?",
-		value, source, code, date,
-	)
-	if err != nil {
-		return fmt.Errorf("update benchmark value: %w", err)
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
-	}
-	if n == 0 {
-		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO benchmark_values (code, date, value, source) VALUES (?, ?, ?, ?)",
-			code, date, value, source,
-		); err != nil {
-			return fmt.Errorf("insert benchmark value: %w", err)
-		}
+		[]any{value, source, code, date},
+		"INSERT INTO benchmark_values (code, date, value, source) VALUES (?, ?, ?, ?)",
+		[]any{code, date, value, source},
+	); err != nil {
+		return fmt.Errorf("upsert benchmark value: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit benchmark value: %w", err)

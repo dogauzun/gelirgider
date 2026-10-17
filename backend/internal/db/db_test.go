@@ -3,6 +3,7 @@ package db_test
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -259,5 +260,89 @@ func TestOpen_RejectsSchemaFromNewerVersion(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "999_future.sql") {
 		t.Fatalf("expected error to name 999_future.sql, got: %v", err)
+	}
+}
+
+func openUpsertTable(t *testing.T) *sql.DB {
+	t.Helper()
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	t.Cleanup(func() { conn.Close() })
+	if _, err := conn.Exec("CREATE TABLE upsert_t (k TEXT PRIMARY KEY, v TEXT NOT NULL)"); err != nil {
+		t.Fatalf("create table: %v", err)
+	}
+	if _, err := conn.Exec("INSERT INTO upsert_t (k, v) VALUES ('a', 'old')"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	return conn
+}
+
+func TestUpsert(t *testing.T) {
+	const upd = "UPDATE upsert_t SET v = ? WHERE k = ?"
+	const ins = "INSERT INTO upsert_t (k, v) VALUES (?, ?)"
+	tests := []struct {
+		name    string
+		key     string
+		updSQL  string
+		insSQL  string
+		wantErr string
+	}{
+		{name: "update hits", key: "a", updSQL: upd, insSQL: ins},
+		{name: "update misses", key: "b", updSQL: upd, insSQL: ins},
+		{name: "update error", key: "a", updSQL: "UPDATE nope SET v = ?", insSQL: ins, wantErr: "update:"},
+		{name: "insert error", key: "b", updSQL: upd, insSQL: "INSERT INTO nope VALUES (?, ?)", wantErr: "insert:"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conn := openUpsertTable(t)
+			ctx := context.Background()
+			tx, err := conn.BeginTx(ctx, nil)
+			if err != nil {
+				t.Fatalf("BeginTx: %v", err)
+			}
+			defer tx.Rollback()
+
+			updArgs, insArgs := []any{"new", tt.key}, []any{tt.key, "new"}
+			if tt.updSQL != upd {
+				updArgs = []any{"new"}
+			}
+			err = db.Upsert(ctx, tx, tt.updSQL, updArgs, tt.insSQL, insArgs)
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("Upsert error = %v, want it to contain %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Upsert: %v", err)
+			}
+			var v string
+			var n int
+			if err := tx.QueryRow("SELECT v FROM upsert_t WHERE k = ?", tt.key).Scan(&v); err != nil || v != "new" {
+				t.Errorf("row %q = %q, %v; want \"new\"", tt.key, v, err)
+			}
+			if err := tx.QueryRow("SELECT COUNT(*) FROM upsert_t WHERE k = ?", tt.key).Scan(&n); err != nil || n != 1 {
+				t.Errorf("rows for %q = %d, %v; want 1", tt.key, n, err)
+			}
+		})
+	}
+}
+
+func TestCheckAffected(t *testing.T) {
+	conn := openUpsertTable(t)
+	notFound := errors.New("not found")
+	for _, tt := range []struct {
+		key  string
+		want error
+	}{{"a", nil}, {"zzz", notFound}} {
+		res, err := conn.Exec("UPDATE upsert_t SET v = 'x' WHERE k = ?", tt.key)
+		if err != nil {
+			t.Fatalf("update: %v", err)
+		}
+		if got := db.CheckAffected(res, notFound); !errors.Is(got, tt.want) {
+			t.Errorf("CheckAffected for %q = %v, want %v", tt.key, got, tt.want)
+		}
 	}
 }

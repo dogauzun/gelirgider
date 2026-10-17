@@ -12,6 +12,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/dogauzun/gelirgider/backend/internal/db"
 )
 
 // ErrUndecryptable is returned by GetSecret for a stored value that does not
@@ -54,18 +56,11 @@ func (r *Repo) Set(ctx context.Context, key, value string) error {
 	}
 	defer tx.Rollback()
 
-	res, err := tx.ExecContext(ctx, "UPDATE settings SET value = ?, updated_at = ? WHERE key = ?", value, now, key)
-	if err != nil {
-		return fmt.Errorf("update setting %s: %w", key, err)
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
-	}
-	if n == 0 {
-		if _, err := tx.ExecContext(ctx, "INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)", key, value, now); err != nil {
-			return fmt.Errorf("insert setting %s: %w", key, err)
-		}
+	if err := db.Upsert(ctx, tx,
+		"UPDATE settings SET value = ?, updated_at = ? WHERE key = ?", []any{value, now, key},
+		"INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)", []any{key, value, now},
+	); err != nil {
+		return fmt.Errorf("upsert setting %s: %w", key, err)
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit setting %s: %w", key, err)

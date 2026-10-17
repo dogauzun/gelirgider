@@ -357,12 +357,8 @@ func (r *ImportRepo) Delete(ctx context.Context, userID, id int64) error {
 	if err != nil {
 		return fmt.Errorf("delete import: %w", err)
 	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
-	}
-	if n == 0 {
-		return ErrNotFound
+	if err := db.CheckAffected(res, ErrNotFound); err != nil {
+		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit transaction: %w", err)
