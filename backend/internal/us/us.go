@@ -486,7 +486,8 @@ func (s *Syncer) SyncHistory(ctx context.Context, in instrument.Instrument, from
 
 // storeHistory upserts closes into Prices in one transaction, every splitFactor that is
 // present and not 1 into Splits, and every divCash > 0 into Dividends in
-// USD, all source = "tiingo". Returns the number of closes written.
+// USD, all source = "tiingo". Returns the number of closes written, also when a
+// split or dividend upsert then fails: the closes are already committed.
 func (s *Syncer) storeHistory(ctx context.Context, in instrument.Instrument, closes []DailyClose) (int, error) {
 	rows := make([]price.Row, len(closes))
 	for i, c := range closes {
@@ -495,15 +496,15 @@ func (s *Syncer) storeHistory(ctx context.Context, in instrument.Instrument, clo
 	if err := s.Prices.UpsertMany(ctx, rows); err != nil {
 		return 0, fmt.Errorf("upsert prices for %s: %w", in.Symbol, err)
 	}
-	for i, c := range closes {
+	for _, c := range closes {
 		if !c.SplitFactor.IsZero() && !c.SplitFactor.Equal(decimal.NewFromInt(1)) {
 			if err := s.Splits.Upsert(ctx, in.ID, c.Date, c.SplitFactor, sourceTiingo); err != nil {
-				return i + 1, fmt.Errorf("upsert split for %s: %w", in.Symbol, err)
+				return len(closes), fmt.Errorf("upsert split for %s: %w", in.Symbol, err)
 			}
 		}
 		if c.DivCash.IsPositive() {
 			if err := s.Dividends.Upsert(ctx, in.ID, c.Date, c.DivCash, "USD", sourceTiingo); err != nil {
-				return i + 1, fmt.Errorf("upsert dividend for %s: %w", in.Symbol, err)
+				return len(closes), fmt.Errorf("upsert dividend for %s: %w", in.Symbol, err)
 			}
 		}
 	}

@@ -145,6 +145,41 @@ func TestSyncFailsWhenEveryPairFails(t *testing.T) {
 	}
 }
 
+// TestSyncGoldCountsPricesWhenBenchmarkFails: the GOLD/GRAM price batch
+// commits before the GOLD benchmark batch; when the benchmark write fails,
+// the returned count is still the days stored as prices.
+func TestSyncGoldCountsPricesWhenBenchmarkFails(t *testing.T) {
+	d1 := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, `{"s":"ok","t":[%d],"o":[1],"h":[1],"l":[1],"c":[62206.9536]}`, d1.Unix())
+	}))
+	defer srv.Close()
+
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+	ctx := context.Background()
+	for _, q := range []string{
+		`INSERT INTO instruments (id, symbol, market, name, currency) VALUES (1, 'GRAM', 'GOLD', 'Gram Altın', 'TRY')`,
+		`DROP TABLE benchmark_values`,
+	} {
+		if _, err := conn.ExecContext(ctx, q); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+	s := &btcturk.GoldSyncer{Fetcher: &btcturk.Fetcher{BaseURL: srv.URL}, Instruments: instrument.NewRepo(conn), Prices: price.NewRepo(conn), Benchmarks: benchmark.NewRepo(conn)}
+
+	n, err := s.SyncGold(ctx, d1.AddDate(0, 0, -7), d1.AddDate(0, 0, 2))
+	if err == nil {
+		t.Fatalf("SyncGold with a failing benchmark write: got nil error, want one")
+	}
+	if n != 1 {
+		t.Fatalf("SyncGold = %d, want 1 (the GOLD/GRAM price was committed)", n)
+	}
+}
+
 // TestSyncGoldStoresGramPrice: without a GOLD/GRAM row SyncGold must fail
 // and write nothing; with it, a PAXGTRY close of 62206.9536 TRY/oz must be
 // stored as 2000.0000 TRY/g under the candle's UTC date, both as the
