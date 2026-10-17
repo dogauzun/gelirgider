@@ -30,6 +30,13 @@ it('frames a history query in its four states', () => {
   expect(refetch).toHaveBeenCalledOnce()
   expect(screen.queryByText('chart')).not.toBeInTheDocument()
 
+  rerender(
+    <ChartFrame query={query({ isError: true, error: new Error('boom') })} errorTitle="Başlık">
+      <p>chart</p>
+    </ChartFrame>,
+  )
+  expect(screen.getByRole('alert')).toHaveTextContent('Başlık')
+
   rerender(frame({}))
   expect(container.firstElementChild).toHaveStyle({ height: '220px' })
   expect(screen.queryByText('chart')).not.toBeInTheDocument()
