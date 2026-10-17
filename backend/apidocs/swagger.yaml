@@ -59,6 +59,14 @@ definitions:
       token:
         type: string
     type: object
+  auth.recoveryCodesResponse:
+    properties:
+      recovery_codes:
+        description: 10 codes, "ABCDE-FGHIJ"
+        items:
+          type: string
+        type: array
+    type: object
   auth.reportingCurrencyRequest:
     properties:
       reporting_currency:
@@ -1151,11 +1159,13 @@ paths:
       consumes:
       - application/json
       description: Needs a session, the current password and a current code, so a
-        stolen session alone cannot drop the second factor. A code at or below the
-        last accepted step is a replay and is rejected. Rate-limited per client IP,
-        10 per minute.
+        stolen session alone cannot drop the second factor. The code is a 6-digit
+        authenticator code or an unused recovery code. An authenticator code at or
+        below the last accepted step is a replay and is rejected. Deletes the user's
+        recovery codes. Rate-limited per client IP, 10 per minute.
       parameters:
-      - description: current password and 6-digit code from the authenticator
+      - description: current password and a 6-digit code from the authenticator or
+          a recovery code
         in: body
         name: body
         required: true
@@ -1199,9 +1209,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Needs a session. Checks the code against the pending secret and
-        turns two-factor on. Signs out every other session of the user. Rate-limited
-        per client IP, 10 per minute.
+      description: Needs a session. Checks the code against the pending secret, turns
+        two-factor on and returns 10 one-time recovery codes, shown only this once.
+        Signs out every other session of the user. Rate-limited per client IP, 10
+        per minute.
       parameters:
       - description: 6-digit code from the authenticator
         in: body
@@ -1209,9 +1220,13 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/auth.totpConfirmRequest'
+      produces:
+      - application/json
       responses:
-        "204":
-          description: No Content
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.recoveryCodesResponse'
         "400":
           description: invalid request body; invalid code
           schema:
@@ -1241,6 +1256,60 @@ paths:
                 type: string
             type: object
       summary: Confirm two-factor enrolment
+      tags:
+      - auth
+  /account/totp/recovery-codes:
+    post:
+      consumes:
+      - application/json
+      description: Needs a session, the current password and a current code (a 6-digit
+        authenticator code or an unused recovery code). Replaces all of the user's
+        recovery codes with 10 new ones in one transaction and returns them; they
+        are shown only this once. Rate-limited per client IP, 10 per minute.
+      parameters:
+      - description: current password and a 6-digit code from the authenticator or
+          a recovery code
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.totpDisableRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.recoveryCodesResponse'
+        "400":
+          description: invalid request body; invalid code
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: current password is incorrect; unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: two-factor authentication is off
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Regenerate recovery codes
       tags:
       - auth
   /account/totp/setup:
@@ -2022,13 +2091,16 @@ paths:
       consumes:
       - application/json
       description: Trades the token login returned for a session, given the current
-        6-digit code, and sets the `session` cookie. A token allows 5 code checks
-        and lives 5 minutes; an unknown, expired or used-up token, and one whose user
-        turned two-factor off since, all answer 401 login expired. A code at or below
-        the last accepted step is a replay and answers 401 invalid code. Rate-limited
-        per client IP, 10 per minute.
+        6-digit code or an unused recovery code, and sets the `session` cookie. A
+        code that is not 6 digits is tried as a recovery code and is spent by a match;
+        it counts against the token's 5 checks like any other. A token allows 5 code
+        checks and lives 5 minutes; an unknown, expired or used-up token, and one
+        whose user turned two-factor off since, all answer 401 login expired. An authenticator
+        code at or below the last accepted step is a replay and answers 401 invalid
+        code. Rate-limited per client IP, 10 per minute.
       parameters:
-      - description: token from login and 6-digit code from the authenticator
+      - description: token from login and a 6-digit code from the authenticator or
+          a recovery code
         in: body
         name: body
         required: true

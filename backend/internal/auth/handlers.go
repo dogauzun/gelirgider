@@ -67,6 +67,7 @@ func RegisterProtectedRoutes(mux *http.ServeMux, users *user.Repo, sessions *Rep
 	mux.Handle("POST /api/account/totp/setup", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.totpSetup)))
 	mux.Handle("POST /api/account/totp/confirm", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.totpConfirm)))
 	mux.Handle("DELETE /api/account/totp", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.totpDisable)))
+	mux.Handle("POST /api/account/totp/recovery-codes", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.totpRecoveryCodes)))
 }
 
 type handler struct {
@@ -311,11 +312,11 @@ type loginTOTPRequest struct {
 // loginTOTP handles POST /api/auth/login/totp.
 //
 //	@Summary	Sign in, second step
-//	@Description	Trades the token login returned for a session, given the current 6-digit code, and sets the `session` cookie. A token allows 5 code checks and lives 5 minutes; an unknown, expired or used-up token, and one whose user turned two-factor off since, all answer 401 login expired. A code at or below the last accepted step is a replay and answers 401 invalid code. Rate-limited per client IP, 10 per minute.
+//	@Description	Trades the token login returned for a session, given the current 6-digit code or an unused recovery code, and sets the `session` cookie. A code that is not 6 digits is tried as a recovery code and is spent by a match; it counts against the token's 5 checks like any other. A token allows 5 code checks and lives 5 minutes; an unknown, expired or used-up token, and one whose user turned two-factor off since, all answer 401 login expired. An authenticator code at or below the last accepted step is a replay and answers 401 invalid code. Rate-limited per client IP, 10 per minute.
 //	@Tags		auth
 //	@Accept		json
 //	@Produce	json
-//	@Param		body	body		auth.loginTOTPRequest	true	"token from login and 6-digit code from the authenticator"
+//	@Param		body	body		auth.loginTOTPRequest	true	"token from login and a 6-digit code from the authenticator or a recovery code"
 //	@Success	200	{object}	auth.userResponse
 //	@Header		200	{string}	Set-Cookie	"session=<id>; Path=/; Expires=<30 days>; HttpOnly; SameSite=Lax; Secure when COOKIE_SECURE=true"
 //	@Failure	400	{object}	object{error=string}	"invalid request body"
@@ -352,23 +353,12 @@ func (h *handler) loginTOTP(w http.ResponseWriter, r *http.Request) {
 		WriteInternalError(w, r, err)
 		return
 	}
-	secret, err := h.settings.Open(totpAAD(userID), state.Secret)
+	ok, err = h.checkSecondFactor(r.Context(), userID, state, req.Code)
 	if err != nil {
 		WriteInternalError(w, r, err)
 		return
 	}
-	step, ok := verifyTOTP(secret, req.Code, time.Now(), state.LastStep)
 	if !ok {
-		WriteError(w, http.StatusUnauthorized, "invalid code")
-		return
-	}
-	// The step is the replay guard: of two requests with one code, one wins.
-	advanced, err := h.users.AdvanceTOTPStep(r.Context(), userID, step)
-	if err != nil {
-		WriteInternalError(w, r, err)
-		return
-	}
-	if !advanced {
 		WriteError(w, http.StatusUnauthorized, "invalid code")
 		return
 	}

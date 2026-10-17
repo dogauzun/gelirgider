@@ -134,6 +134,9 @@ func TestLoginTOTPChallengeDoesNotSurviveReset(t *testing.T) {
 	if _, ok, err := e.sessions.AttemptChallenge(context.Background(), token); ok || err != nil {
 		t.Errorf("AttemptChallenge after reset = %v, %v; want the row gone", ok, err)
 	}
+	if got := e.recoveryRows(false); got != 0 {
+		t.Errorf("%d recovery code rows after reset, want 0", got)
+	}
 }
 
 func TestLoginTOTPChallengeExpires(t *testing.T) {

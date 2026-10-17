@@ -74,7 +74,7 @@
         },
         "/account/totp": {
             "delete": {
-                "description": "Needs a session, the current password and a current code, so a stolen session alone cannot drop the second factor. A code at or below the last accepted step is a replay and is rejected. Rate-limited per client IP, 10 per minute.",
+                "description": "Needs a session, the current password and a current code, so a stolen session alone cannot drop the second factor. The code is a 6-digit authenticator code or an unused recovery code. An authenticator code at or below the last accepted step is a replay and is rejected. Deletes the user's recovery codes. Rate-limited per client IP, 10 per minute.",
                 "consumes": [
                     "application/json"
                 ],
@@ -84,7 +84,7 @@
                 "summary": "Turn two-factor authentication off",
                 "parameters": [
                     {
-                        "description": "current password and 6-digit code from the authenticator",
+                        "description": "current password and a 6-digit code from the authenticator or a recovery code",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -146,8 +146,11 @@
         },
         "/account/totp/confirm": {
             "post": {
-                "description": "Needs a session. Checks the code against the pending secret and turns two-factor on. Signs out every other session of the user. Rate-limited per client IP, 10 per minute.",
+                "description": "Needs a session. Checks the code against the pending secret, turns two-factor on and returns 10 one-time recovery codes, shown only this once. Signs out every other session of the user. Rate-limited per client IP, 10 per minute.",
                 "consumes": [
+                    "application/json"
+                ],
+                "produces": [
                     "application/json"
                 ],
                 "tags": [
@@ -166,8 +169,11 @@
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content"
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auth.recoveryCodesResponse"
+                        }
                     },
                     "400": {
                         "description": "invalid request body; invalid code",
@@ -193,6 +199,84 @@
                     },
                     "409": {
                         "description": "no pending two-factor setup",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/account/totp/recovery-codes": {
+            "post": {
+                "description": "Needs a session, the current password and a current code (a 6-digit authenticator code or an unused recovery code). Replaces all of the user's recovery codes with 10 new ones in one transaction and returns them; they are shown only this once. Rate-limited per client IP, 10 per minute.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Regenerate recovery codes",
+                "parameters": [
+                    {
+                        "description": "current password and a 6-digit code from the authenticator or a recovery code",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.totpDisableRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auth.recoveryCodesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; invalid code",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "current password is incorrect; unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "two-factor authentication is off",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -1371,7 +1455,7 @@
         },
         "/auth/login/totp": {
             "post": {
-                "description": "Trades the token login returned for a session, given the current 6-digit code, and sets the `session` cookie. A token allows 5 code checks and lives 5 minutes; an unknown, expired or used-up token, and one whose user turned two-factor off since, all answer 401 login expired. A code at or below the last accepted step is a replay and answers 401 invalid code. Rate-limited per client IP, 10 per minute.",
+                "description": "Trades the token login returned for a session, given the current 6-digit code or an unused recovery code, and sets the `session` cookie. A code that is not 6 digits is tried as a recovery code and is spent by a match; it counts against the token's 5 checks like any other. A token allows 5 code checks and lives 5 minutes; an unknown, expired or used-up token, and one whose user turned two-factor off since, all answer 401 login expired. An authenticator code at or below the last accepted step is a replay and answers 401 invalid code. Rate-limited per client IP, 10 per minute.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1384,7 +1468,7 @@
                 "summary": "Sign in, second step",
                 "parameters": [
                     {
-                        "description": "token from login and 6-digit code from the authenticator",
+                        "description": "token from login and a 6-digit code from the authenticator or a recovery code",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -3948,6 +4032,18 @@
                 },
                 "token": {
                     "type": "string"
+                }
+            }
+        },
+        "auth.recoveryCodesResponse": {
+            "type": "object",
+            "properties": {
+                "recovery_codes": {
+                    "description": "10 codes, \"ABCDE-FGHIJ\"",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

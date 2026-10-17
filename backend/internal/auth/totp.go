@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -27,6 +28,47 @@ func newTOTPSecret() (string, error) {
 		return "", fmt.Errorf("totp secret: %w", err)
 	}
 	return totpEncoding.EncodeToString(b), nil
+}
+
+const (
+	recoveryCodeCount = 10
+	recoveryCodeLen   = 10 // base32 characters, 50 bits
+)
+
+// newRecoveryCodes returns recoveryCodeCount random codes, each 10 base32
+// characters shown as two groups of five ("ABCDE-FGHIJ"), and their hashes
+// for storage.
+func newRecoveryCodes() (codes, hashes []string, err error) {
+	for range recoveryCodeCount {
+		b := make([]byte, 7)
+		if _, err := rand.Read(b); err != nil {
+			return nil, nil, fmt.Errorf("recovery code: %w", err)
+		}
+		c := totpEncoding.EncodeToString(b)[:recoveryCodeLen]
+		codes = append(codes, c[:5]+"-"+c[5:])
+		hashes = append(hashes, recoveryCodeHash(c))
+	}
+	return codes, hashes, nil
+}
+
+// recoveryCodeHash hashes a recovery code after dropping case, spaces and
+// dashes, so what a user types matches what was shown.
+func recoveryCodeHash(code string) string {
+	return hashToken(strings.ToUpper(strings.NewReplacer(" ", "", "-", "").Replace(code)))
+}
+
+// isTOTPCode reports whether code looks like an authenticator code (6
+// digits); anything else is tried as a recovery code.
+func isTOTPCode(code string) bool {
+	if len(code) != totpDigits {
+		return false
+	}
+	for _, c := range code {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // totpCode returns the 6-digit code of key at the 30-second step (RFC 4226
