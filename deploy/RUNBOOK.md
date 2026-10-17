@@ -205,6 +205,11 @@ Copying `deploy/data/backups/` somewhere off this host (another disk,
 object storage, whatever sync tool is already in use) is the operator's
 job — this script only keeps local copies.
 
+The export in the account menu is not a backup. It holds transactions only,
+one CSV per portfolio. Users, password hashes, provider keys, manual prices,
+dividend dismissals, learned import names and price history live only in the
+database, so `backup.sh` stays the backup. §6 restores one.
+
 ## 5. Daily price fetch
 
 The backend has a built-in scheduler (no cron needed) that fetches each

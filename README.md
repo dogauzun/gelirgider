@@ -20,6 +20,14 @@ Multi-user portfolio tracking tool. BIST, US stocks, TEFAS funds, crypto and gol
 - Dividends and stock splits.
 - Statement import from Midas, Garanti BBVA and Garanti BBVA Yatırım
   statements, and from a generic CSV file.
+- Export of your transactions from the account menu: one zip with one CSV per
+  portfolio. Import each CSV into its portfolio through the import page with
+  the CSV format; rows already in the portfolio are flagged as duplicates and
+  start unticked. A file over 5000 rows is refused, so split a large portfolio
+  with the `from` and `to` filters of the per-portfolio CSV export
+  (`/api/portfolios/{id}/transactions.csv?from=YYYY-MM-DD&to=YYYY-MM-DD`). The
+  export holds transactions only and is not a backup: see
+  [deploy/RUNBOOK.md](deploy/RUNBOOK.md) for the database backup.
 - An admin area for provider API keys, the price fetch schedule, registration
   and users.
 
