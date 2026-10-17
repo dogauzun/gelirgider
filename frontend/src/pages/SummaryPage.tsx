@@ -40,7 +40,7 @@ import { t, type StringKey } from '../i18n/strings'
 import { attentionItems, mergeAttention } from '../lib/attention'
 import { formatMarketDate, formatShortMarketDate, monthsBetween, todayIstanbul } from '../lib/date'
 import { formatMoney, MISSING, plTone, signedMoney } from '../lib/format'
-import { useNavState, type NavState } from '../lib/navState'
+import { useNavState } from '../lib/navState'
 import { returnPercent } from '../lib/positions'
 import { resolveRange } from '../lib/ranges'
 import { useRange } from '../lib/useRange'
@@ -576,7 +576,6 @@ export function SummaryPage() {
 // Tüm portföyler with no portfolio at all: the first one to create, as the
 // home page offered before it went.
 function NoPortfolio() {
-  const navigate = useNavigate()
   const [creating, setCreating] = useState(false)
   return (
     <section className="flex flex-col items-center gap-3 card px-6 py-12 text-center">
@@ -584,14 +583,7 @@ function NoPortfolio() {
       <p className="text-[16px] font-semibold text-ink">{t('portfolios.emptyTitle')}</p>
       <p className="text-[13px] text-muted">{t('portfolios.emptyBody')}</p>
       <Button onClick={() => setCreating(true)}>{t('portfolios.emptyCta')}</Button>
-      {creating && (
-        <CreatePortfolioDialog
-          onClose={() => setCreating(false)}
-          onCreated={(id) =>
-            navigate(`/portfolios/${id}`, { state: { focusAfterCreate: true } satisfies NavState })
-          }
-        />
-      )}
+      {creating && <CreatePortfolioDialog onClose={() => setCreating(false)} />}
     </section>
   )
 }

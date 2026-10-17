@@ -144,6 +144,8 @@ export default tseslint.config(
       'src/api/auth.ts',
       'src/lib/useRange.ts',
       'src/lib/decimal.ts',
+      'src/components/CreatePortfolioDialog.tsx',
+      'src/lib/navState.ts',
     ],
     rules: {
       'no-restricted-syntax': [
@@ -193,6 +195,11 @@ export default tseslint.config(
         {
           selector: "BinaryExpression[right.object.name='document'][right.property.name='body']",
           message: 'use lib/useFocusLater',
+        },
+        // The dialog navigates to the new portfolio and sets the focus flag.
+        {
+          selector: "Property[key.name='focusAfterCreate']",
+          message: 'CreatePortfolioDialog opens the new portfolio',
         },
         // One sortable header, with one aria-sort convention and arrow.
         { selector: "JSXAttribute[name.name='aria-sort']", message: 'use ui/SortHeader' },
