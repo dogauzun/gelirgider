@@ -259,3 +259,62 @@ func TestDeleteRemovesStatementImports(t *testing.T) {
 		t.Fatalf("imports left = %v, want [9]", ids)
 	}
 }
+
+// TestDeleteRemovesTermDeposits checks that deleting a portfolio takes its
+// term deposits and their DEPOSIT instruments with it, and leaves the
+// deposits of the user's other portfolio and of another user alone.
+func TestDeleteRemovesTermDeposits(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	for _, q := range []string{
+		`INSERT INTO users (id, email, password_hash, created_at) VALUES
+		 (1, 'a@example.com', 'x', '2026-01-01T00:00:00Z'),
+		 (2, 'b@example.com', 'x', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO portfolios (id, user_id, name, created_at) VALUES
+		 (1, 1, 'Gone', '2026-01-01T00:00:00Z'),
+		 (2, 1, 'Kept', '2026-01-01T00:00:00Z'),
+		 (3, 2, 'Other', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO instruments (id, symbol, market, name, currency) VALUES
+		 (1, 'D1', 'DEPOSIT', 'Deposit', 'TRY'),
+		 (2, 'D2', 'DEPOSIT', 'Deposit', 'TRY'),
+		 (3, 'D3', 'DEPOSIT', 'Deposit', 'TRY')`,
+		`INSERT INTO term_deposits (user_id, portfolio_id, instrument_id, currency, principal, rate, stopaj_rate, start_date, maturity_date, created_at) VALUES
+		 (1, 1, 1, 'TRY', '1000', '0.45', '0.15', '2026-01-01', '2026-02-01', '2026-01-01T00:00:00Z'),
+		 (1, 2, 2, 'TRY', '1000', '0.45', '0.15', '2026-01-01', '2026-02-01', '2026-01-01T00:00:00Z'),
+		 (2, 3, 3, 'TRY', '1000', '0.45', '0.15', '2026-01-01', '2026-02-01', '2026-01-01T00:00:00Z')`,
+	} {
+		if _, err := conn.Exec(q); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+
+	if _, err := NewRepo(conn).Delete(context.Background(), 1, 1, false); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+
+	for _, q := range []string{
+		"SELECT instrument_id FROM term_deposits ORDER BY 1",
+		"SELECT id FROM instruments ORDER BY 1",
+	} {
+		rows, err := conn.Query(q)
+		if err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+		var got []int64
+		for rows.Next() {
+			var id int64
+			if err := rows.Scan(&id); err != nil {
+				t.Fatalf("scan: %v", err)
+			}
+			got = append(got, id)
+		}
+		rows.Close()
+		if fmt.Sprint(got) != "[2 3]" {
+			t.Errorf("%s = %v, want [2 3]", q, got)
+		}
+	}
+}

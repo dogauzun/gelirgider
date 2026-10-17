@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/dogauzun/gelirgider/backend/internal/db"
 )
 
 // ErrNotFound is returned when no user matches the lookup.
@@ -182,7 +184,7 @@ func (r *Repo) Demote(ctx context.Context, id int64) error {
 // userDataTables lists every table with a user_id column, children before
 // parents so no foreign key is left dangling mid-transaction: transactions
 // reference statement_imports and portfolios, imports and dismissals
-// reference portfolios. A new user-data table must be added here;
+// reference portfolios, term deposits reference portfolios. A new user-data table must be added here;
 // TestAdminDeleteUser fails otherwise.
 var userDataTables = []string{
 	"transactions",
@@ -192,6 +194,7 @@ var userDataTables = []string{
 	"import_forgotten_names",
 	"manual_prices",
 	"sessions",
+	"term_deposits",
 	"portfolios",
 }
 
@@ -206,10 +209,19 @@ func (r *Repo) Delete(ctx context.Context, id int64) error {
 		return fmt.Errorf("begin delete user: %w", err)
 	}
 	defer tx.Rollback()
+	// The deposits' instruments are read before their rows go and deleted
+	// after them: term_deposits references instruments.
+	depositInstruments, err := db.DepositInstrumentIDs(ctx, tx, id, 0)
+	if err != nil {
+		return err
+	}
 	for _, table := range userDataTables {
 		if _, err := tx.ExecContext(ctx, "DELETE FROM "+table+" WHERE user_id = ?", id); err != nil {
 			return fmt.Errorf("delete user %s: %w", table, err)
 		}
+	}
+	if err := db.DeleteInstruments(ctx, tx, depositInstruments); err != nil {
+		return err
 	}
 	res, err := tx.ExecContext(ctx,
 		`DELETE FROM users
