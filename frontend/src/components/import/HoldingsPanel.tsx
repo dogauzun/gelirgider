@@ -3,6 +3,7 @@ import type { CashReconciliation, Holding, Reconciliation } from '../../api/impo
 import { t } from '../../i18n/strings'
 import { formatQuantity, subDecimal } from '../../lib/decimal'
 import { formatMoney, formatNumber, formatUnitPrice, MISSING, signedMoney } from '../../lib/format'
+import { useIsDesktop } from '../../lib/useIsDesktop'
 import { Icon } from '../ui/Icon'
 
 // The statement's period-end snapshot next to what the portfolio computes
@@ -15,13 +16,12 @@ export function HoldingsPanel({
   holdings,
   reconciliation,
   cash,
-  desktop,
 }: {
   holdings: Holding[]
   reconciliation: Reconciliation[]
   cash: CashReconciliation | null
-  desktop: boolean
 }) {
+  const desktop = useIsDesktop()
   if (reconciliation.length === 0 && !cash) return null
   const bySymbol = new Map(holdings.map((holding) => [holding.symbol, holding]))
   // A table with the difference per line, so a mismatch reads at a glance

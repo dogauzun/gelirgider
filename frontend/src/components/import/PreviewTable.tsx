@@ -5,7 +5,7 @@ import type { PreviewRow } from '../../api/imports'
 import { t, type StringKey } from '../../i18n/strings'
 import { formatMarketDate, formatShortMarketDate } from '../../lib/date'
 import { formatMoney } from '../../lib/format'
-import { useIsWide } from '../../lib/useIsDesktop'
+import { useIsDesktop, useIsWide } from '../../lib/useIsDesktop'
 import { feeText, quantityTimesPrice } from '../../lib/transactionCells'
 import { TransactionHeadCells, TypePill } from '../TransactionCells'
 import { feeLabelKey, typeLabelKeyFor } from '../transactionForm'
@@ -614,7 +614,6 @@ export function UnknownNames({
 // they are. `failedKey` is the row a commit error names.
 export function PreviewRows({
   shown,
-  desktop,
   failedKey,
   failed,
   onSelectAll,
@@ -623,7 +622,6 @@ export function PreviewRows({
   onPick,
 }: {
   shown: Row[]
-  desktop: boolean
   failedKey: string | undefined
   failed: Error | null
   onSelectAll: (checked: boolean) => void
@@ -632,6 +630,7 @@ export function PreviewRows({
   onPick: (key: string, instrument: Instrument) => void
 }) {
   // The review table's Durum column only from xl up.
+  const desktop = useIsDesktop()
   const wide = useIsWide()
   // The opening rows come first by their date, the day before the period;
   // one line above the first of them says what they are.

@@ -15,7 +15,6 @@ import type { TransactionInput } from '../../api/transactions'
 import { t, type StringKey } from '../../i18n/strings'
 import { formatMarketDate } from '../../lib/date'
 import { toast } from '../../lib/toast'
-import { useIsDesktop } from '../../lib/useIsDesktop'
 import { useOneAtATime } from '../../lib/useOneAtATime'
 import { TransactionDialog } from '../TransactionDialog'
 import { feeLabelKey, fromTransaction } from '../transactionForm'
@@ -178,7 +177,6 @@ export function StatementReview({
   onCommitted,
 }: StatementReviewProps) {
   const { rows, dialog, filter, announcement } = review
-  const desktop = useIsDesktop()
   // The keys of the rows the last commit sent, in order: its `rows[i]` error
   // names the row on screen through these.
   const [sentKeys, setSentKeys] = useState<string[]>([])
@@ -434,7 +432,6 @@ export function StatementReview({
       ) : (
         <PreviewRows
           shown={shown}
-          desktop={desktop}
           failedKey={failedKey}
           failed={commit.error}
           onSelectAll={(checked) => change({ type: 'selectAll', checked })}
@@ -448,7 +445,6 @@ export function StatementReview({
         holdings={preview.holdings}
         reconciliation={reconciliation}
         cash={cashReconciliation}
-        desktop={desktop}
       />
 
       {/* A mismatch is a warning, never a block: an earlier month that

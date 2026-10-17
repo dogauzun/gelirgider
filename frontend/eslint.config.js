@@ -183,6 +183,11 @@ export default tseslint.config(
             "BinaryExpression[operator=/^[!=]==$/][left.callee.name='String'][right.callee.name='String']",
           message: 'compare ids as their own type',
         },
+        // A component reads the viewport itself; its parent does not pass it down.
+        {
+          selector: 'TSPropertySignature[key.name=desktop]',
+          message: 'call useIsDesktop inside the component',
+        },
         // Focus recovery after a control leaves the page.
         {
           selector: "BinaryExpression[right.object.name='document'][right.property.name='body']",

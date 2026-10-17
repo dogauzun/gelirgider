@@ -4,6 +4,7 @@ import type { Transaction } from '../../api/transactions'
 import { t } from '../../i18n/strings'
 import { formatMarketDate } from '../../lib/date'
 import { amountTone, feeText, quantityTimesPrice, signedAmount } from '../../lib/transactionCells'
+import { useIsDesktop } from '../../lib/useIsDesktop'
 import { TransactionHeadCells, TypePill } from '../TransactionCells'
 import { feeLabelKey, typeLabelKeyFor } from '../transactionForm'
 import { ActionsTh } from '../ui/ActionsTh'
@@ -273,7 +274,6 @@ function TransactionListItem({
 export function TransactionList({
   rows,
   imports,
-  desktop,
   editingId,
   cardRef,
   onEdit,
@@ -282,13 +282,13 @@ export function TransactionList({
 }: {
   rows: Transaction[]
   imports: Map<number, Import>
-  desktop: boolean
   editingId: number | undefined
   cardRef: RefObject<HTMLDivElement | null>
   onEdit: (tx: Transaction) => void
   onClone: (tx: Transaction) => void
   onDelete: (tx: Transaction, keyboard: boolean) => void
 }) {
+  const desktop = useIsDesktop()
   const groups = groupByMonth(rows)
   // relative: the actions header's sr-only label is absolute, so without a
   // positioned card it escapes the scroll clip and widens the page.
