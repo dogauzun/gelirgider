@@ -111,6 +111,27 @@ func (r *Repo) UpdateReportingCurrency(ctx context.Context, id int64, currency s
 	return r.exec(ctx, "update reporting currency", "UPDATE users SET reporting_currency = ? WHERE id = ?", currency, id)
 }
 
+// AttentionRules returns the stored attention rule overrides of the user
+// with the given id, a JSON object text ("{}" when nothing is overridden),
+// or a MissingError, which is ErrNotFound.
+func (r *Repo) AttentionRules(ctx context.Context, id int64) (string, error) {
+	var rules string
+	err := r.db.QueryRowContext(ctx, "SELECT attention_rules FROM users WHERE id = ?", id).Scan(&rules)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", MissingError{ID: id}
+	}
+	if err != nil {
+		return "", fmt.Errorf("query attention rules: %w", err)
+	}
+	return rules, nil
+}
+
+// UpdateAttentionRules replaces the attention rule overrides of the user
+// with the given id. Callers validate rules, a JSON object text, first.
+func (r *Repo) UpdateAttentionRules(ctx context.Context, id int64, rules string) error {
+	return r.exec(ctx, "update attention rules", "UPDATE users SET attention_rules = ? WHERE id = ?", rules, id)
+}
+
 // SetAdmin sets or clears the admin flag for the user with the given id.
 func (r *Repo) SetAdmin(ctx context.Context, id int64, admin bool) error {
 	return r.exec(ctx, "update is_admin", "UPDATE users SET is_admin = ? WHERE id = ?", admin, id)

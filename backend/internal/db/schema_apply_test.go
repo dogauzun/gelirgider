@@ -434,7 +434,8 @@ func TestSchema029KeepsUserRows(t *testing.T) {
 		before = append(before, sorted(q))
 	}
 
-	if err := applySchema(conn, schemaFS, "schema"); err != nil {
+	// Through 029 only: later files add columns to users.
+	if err := applySchema(conn, schemaBefore(t, "030"), "schema"); err != nil {
 		t.Fatalf("apply schema: %v", err)
 	}
 
