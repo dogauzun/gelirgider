@@ -13,23 +13,14 @@ import { useIsDesktop } from '../lib/useIsDesktop'
 import { useOneAtATime } from '../lib/useOneAtATime'
 import { toast } from '../lib/toast'
 import { focusIfLost, neighbourOf } from '../lib/useFocusLater'
+import { SymbolLabel } from './TransactionCells'
 import { TransactionDialog } from './TransactionDialog'
 import { expectedDividendForm } from './expectedDividendForm'
 import { toInput } from './transactionForm'
 import { ActionsTh } from './ui/ActionsTh'
-import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
 import { Notice } from './ui/Notice'
 import { ROW_44, TABLE, TD, TD_NUM, TH } from './ui/table'
-
-function SymbolLabel({ row }: { row: ExpectedDividend }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span className="text-[13px] font-semibold text-ink">{row.symbol}</span>
-      <Badge>{row.market}</Badge>
-    </span>
-  )
-}
 
 const rowKey = (row: ExpectedDividend) => `${row.instrument_id}-${row.date}`
 
@@ -211,7 +202,7 @@ export function ExpectedDividends({ portfolioId }: { portfolioId: number }) {
                   {rows.map((row) => (
                     <tr key={rowKey(row)} className={ROW_44}>
                       <td className={TD}>
-                        <SymbolLabel row={row} />
+                        <SymbolLabel tx={row} badge={row.market} />
                       </td>
                       <td className={TD}>{formatMarketDate(row.date)}</td>
                       <td className={TD_NUM}>{formatQuantity(row.quantity)}</td>
@@ -236,7 +227,7 @@ export function ExpectedDividends({ portfolioId }: { portfolioId: number }) {
                 <li key={rowKey(row)} className="border-b border-line px-4 py-2.5 last:border-0">
                   <div className="flex items-start justify-between gap-3">
                     <span className="min-w-0">
-                      <SymbolLabel row={row} />
+                      <SymbolLabel tx={row} badge={row.market} />
                       <span className="mt-0.5 block truncate text-[12px] text-muted">
                         {`${formatMarketDate(row.date)} · ${formatQuantity(row.quantity)} × ${formatUnitPrice(row.per_share, row.currency)}`}
                       </span>

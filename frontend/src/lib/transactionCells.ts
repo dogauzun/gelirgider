@@ -18,7 +18,7 @@ export function isCashIn(type: TransactionType): boolean {
 
 // Intl writes a plain hyphen for a negative; the sign here is the typographic
 // minus, the same one the dialog's cash strip uses.
-export function signedAmount(tx: Transaction): string {
+export function signedAmount(tx: Pick<Transaction, 'type' | 'amount' | 'currency'>): string {
   return `${isCashIn(tx.type) ? '+' : '−'}${formatMoney(tx.amount, tx.currency)}`
 }
 
@@ -31,11 +31,13 @@ export function amountTone(tx: Transaction): string {
 // symbol, which a transaction does not carry.
 export type Cells = {
   type?: TransactionType
+  date?: string
   instrument_id?: number | null
   symbol?: string
   quantity?: string | null
   price?: string | null
   fee?: string | null
+  amount?: string
   currency?: string
 }
 

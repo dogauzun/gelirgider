@@ -3,30 +3,27 @@ import { importLabel, type Import } from '../../api/imports'
 import type { Transaction } from '../../api/transactions'
 import { t } from '../../i18n/strings'
 import { formatMarketDate } from '../../lib/date'
-import { amountTone, feeText, quantityTimesPrice, signedAmount } from '../../lib/transactionCells'
+import {
+  amountTone,
+  feeText,
+  quantityTimesPrice,
+  signedAmount,
+  type Cells,
+} from '../../lib/transactionCells'
 import { useIsDesktop } from '../../lib/useIsDesktop'
-import { TransactionHeadCells, TypePill } from '../TransactionCells'
-import { feeLabelKey, typeLabelKeyFor } from '../transactionForm'
+import { SymbolLabel, TransactionHeadCells, TypePill } from '../TransactionCells'
+import { feeLabelKey, rowLabel } from '../transactionForm'
 import { ActionsTh } from '../ui/ActionsTh'
-import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { Icon } from '../ui/Icon'
 import { Pill } from '../ui/Pill'
 import { GROUP_ROW, ROW_44, TABLE, TD, TD_NUM, TH } from '../ui/table'
 
-// What a row's icon buttons act on, so a screen reader can tell twenty
-// "Sil" buttons apart: symbol, date and type, then quantity × price
-// and the signed amount, which tell a TRY and a USD deposit or two buys of
-// one day apart.
-function rowLabel(tx: Transaction): string {
-  const parts = [
-    formatMarketDate(tx.date),
-    t(typeLabelKeyFor(tx.type, tx.instrument_id)),
-    quantityTimesPrice(tx),
-    signedAmount(tx),
-  ]
-  if (tx.instrument_id !== null) parts.unshift(tx.instrument_symbol ?? `#${tx.instrument_id}`)
-  return parts.filter(Boolean).join(' ')
+// A row as the shared cells read it: the symbol is the instrument's, `#id`
+// while it is not loaded, and a cash row has none.
+function cellsOf(tx: Transaction): Cells {
+  if (tx.instrument_id === null) return tx
+  return { ...tx, symbol: tx.instrument_symbol ?? `#${tx.instrument_id}` }
 }
 
 interface MonthGroup {
@@ -70,17 +67,6 @@ function Source({ tx, imports }: { tx: Transaction; imports: Map<number, Import>
   return <Pill tone="cash">{item ? importLabel(item) : t('transactions.imported')}</Pill>
 }
 
-function InstrumentLabel({ tx }: { tx: Transaction }) {
-  return (
-    <span className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[13px] font-semibold text-ink">
-        {tx.instrument_symbol ?? `#${tx.instrument_id}`}
-      </span>
-      {tx.currency !== 'TRY' && <Badge>{tx.currency}</Badge>}
-    </span>
-  )
-}
-
 function EditableTransactionRow({
   tx,
   imports,
@@ -120,7 +106,7 @@ function EditableTransactionRow({
         <span className="flex min-w-0 items-center gap-1.5">
           {tx.instrument_id !== null && (
             <span className="shrink-0">
-              <InstrumentLabel tx={tx} />
+              <SymbolLabel tx={cellsOf(tx)} />
             </span>
           )}
           <span className="min-w-0 truncate">
@@ -150,7 +136,7 @@ function EditableTransactionRow({
           <Button
             variant="ghost"
             iconOnly
-            aria-label={t('transactions.edit', { what: rowLabel(tx) })}
+            aria-label={t('transactions.edit', { what: rowLabel(cellsOf(tx)) })}
             onClick={onEdit}
             disabled={isEditing}
           >
@@ -159,7 +145,7 @@ function EditableTransactionRow({
           <Button
             variant="ghost"
             iconOnly
-            aria-label={t('transactions.clone', { what: rowLabel(tx) })}
+            aria-label={t('transactions.clone', { what: rowLabel(cellsOf(tx)) })}
             onClick={onClone}
             disabled={isEditing}
           >
@@ -168,7 +154,7 @@ function EditableTransactionRow({
           <Button
             variant="ghost"
             iconOnly
-            aria-label={t('transactions.delete', { what: rowLabel(tx) })}
+            aria-label={t('transactions.delete', { what: rowLabel(cellsOf(tx)) })}
             data-delete-tx={tx.id}
             onClick={onDelete}
             disabled={isEditing}
@@ -228,7 +214,7 @@ function TransactionListItem({
           <span className="flex-1">
             <span className="flex flex-wrap items-center gap-1.5">
               <TypePill tx={tx} />
-              {tx.instrument_id !== null && <InstrumentLabel tx={tx} />}
+              {tx.instrument_id !== null && <SymbolLabel tx={cellsOf(tx)} />}
               {tx.import_id ? <Source tx={tx} imports={imports} /> : null}
             </span>
           </span>
@@ -249,7 +235,7 @@ function TransactionListItem({
           iconOnly
           // 44px touch target on a phone; this list renders only below md.
           className="max-md:h-11 max-md:w-11"
-          aria-label={t('transactions.clone', { what: rowLabel(tx) })}
+          aria-label={t('transactions.clone', { what: rowLabel(cellsOf(tx)) })}
           onClick={onClone}
         >
           <Icon name="copy" />
@@ -258,7 +244,7 @@ function TransactionListItem({
           variant="ghost"
           iconOnly
           className="max-md:h-11 max-md:w-11"
-          aria-label={t('transactions.delete', { what: rowLabel(tx) })}
+          aria-label={t('transactions.delete', { what: rowLabel(cellsOf(tx)) })}
           data-delete-tx={tx.id}
           onClick={onDelete}
         >

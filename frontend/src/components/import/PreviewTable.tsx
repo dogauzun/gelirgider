@@ -7,10 +7,9 @@ import { formatMarketDate, formatShortMarketDate } from '../../lib/date'
 import { formatMoney } from '../../lib/format'
 import { useIsDesktop, useIsWide } from '../../lib/useIsDesktop'
 import { feeText, quantityTimesPrice } from '../../lib/transactionCells'
-import { TransactionHeadCells, TypePill } from '../TransactionCells'
-import { feeLabelKey, typeLabelKeyFor } from '../transactionForm'
+import { SymbolLabel, TransactionHeadCells, TypePill } from '../TransactionCells'
+import { feeLabelKey, rowLabel } from '../transactionForm'
 import { ActionsTh } from '../ui/ActionsTh'
-import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { Checkbox } from '../ui/Checkbox'
 import { Icon } from '../ui/Icon'
@@ -122,21 +121,6 @@ function money(value: string | undefined, currency: string | undefined): string 
   return formatMoney(value, currency)
 }
 
-// Date, symbol, type, quantity × price and amount -- whichever the row has --
-// so eight row controls read apart to a screen reader,
-// even two same-day deposits in TRY and USD.
-function rowWhat(row: Row): string {
-  return [
-    row.date && formatMarketDate(row.date),
-    row.symbol,
-    row.type && t(typeLabelKeyFor(row.type, row.instrument_id ?? row.symbol)),
-    quantityTimesPrice(row),
-    money(row.amount, row.currency),
-  ]
-    .filter(Boolean)
-    .join(' ')
-}
-
 function RowCheckbox({ row, onToggle }: { row: Row; onToggle: () => void }) {
   // Skipped and error rows have nothing to commit, so they get no control at
   // all; unknown instruments get a disabled one, so the column stays aligned
@@ -144,7 +128,7 @@ function RowCheckbox({ row, onToggle }: { row: Row; onToggle: () => void }) {
   if (row.status === 'skipped' || row.status === 'error') return null
   return (
     <Checkbox
-      aria-label={t('import.selectRow', { what: rowWhat(row) })}
+      aria-label={t('import.selectRow', { what: rowLabel(row) })}
       checked={row.checked}
       disabled={row.status !== 'ok'}
       onChange={onToggle}
@@ -218,16 +202,6 @@ export function DialogContext({ row }: { row: PreviewRow }) {
   )
 }
 
-function SymbolLabel({ row }: { row: PreviewRow }) {
-  if (!row.symbol) return null
-  return (
-    <span className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[13px] font-semibold text-ink">{row.symbol}</span>
-      {row.currency && row.currency !== 'TRY' && <Badge>{row.currency}</Badge>}
-    </span>
-  )
-}
-
 // The symbol cell: the symbol, also while the instrument is unknown, whose
 // picker is in the block above the table. A symbol resolved by the
 // user's earlier pick, or by a fund name an earlier statement printed,
@@ -251,7 +225,7 @@ function InstrumentCell({
   if (row.resolved_by) {
     return (
       <span className="block">
-        <SymbolLabel row={row} />
+        <SymbolLabel tx={row} />
         <span className="mb-1 flex flex-wrap items-baseline gap-1.5 text-[12px] text-muted">
           <span>{t(row.resolved_by === 'name' ? 'import.learnedName' : 'import.earlierPick')}</span>
           {row.instrument_symbol && (
@@ -275,7 +249,7 @@ function InstrumentCell({
       </span>
     )
   }
-  return <SymbolLabel row={row} />
+  return <SymbolLabel tx={row} />
 }
 
 // Değiştir's picker: a pick closes it.
@@ -302,7 +276,7 @@ function ChangePicker({
 
 function EditButton({ row, onEdit }: { row: Row; onEdit: () => void }) {
   // A skipped row may carry none of the parts; it keeps the plain name.
-  const what = rowWhat(row)
+  const what = rowLabel(row)
   return (
     <Button
       variant="ghost"
@@ -583,7 +557,7 @@ export function UnknownNames({
             className="flex flex-wrap items-start gap-x-3 gap-y-1 border-b border-line py-2 last:border-0"
           >
             <span className="min-w-0 flex-1 basis-48 pt-1.5">
-              <SymbolLabel row={first} />
+              <SymbolLabel tx={first} />
               <span className="block text-[12px] text-muted">
                 {t('import.unknownNameRows', { count: rest.length + 1 })}
               </span>
