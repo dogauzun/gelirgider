@@ -34,6 +34,24 @@ English: [README.md](README.md)
 Arayüz Türkçe (`tr`, varsayılan) ve İngilizce (`en`); dil seçiciyle değiştirilir.
 Seçim yalnızca tarayıcıda saklanır.
 
+## Ghostfolio ile karşılaştırma
+
+[Ghostfolio](https://github.com/ghostfolio/ghostfolio) ile üç fark, README ve CHANGELOG dosyalarında yazdığı gibi.
+
+| Özellik            | gelirgider                                                                                                 | Ghostfolio                                                                                                                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Getiri             | Basit, TWR ve MWR yan yana ([ADR 0011](docs/adr/0011-portfolio-returns.md))                                | README (3.88.0) ROAI'yi (ortalama yatırım üzerinden getiri) anar; CHANGELOG, 3.88.0'da ROI'yi deneysel olarak ekler                                                                        |
+| Veritabanı         | SQLite ve tek bir backend ikili dosyası ([ADR 0002](docs/adr/0002-production-datastore-and-migrations.md)) | README (3.88.0) PostgreSQL ve Redis'i anar                                                                                                                                                 |
+| Ekstre içe aktarma | Midas, Garanti BBVA ve Garanti BBVA Yatırım PDF ekstreleri ve genel CSV                                    | README (3.88.0) JSON içe aktarmayı belgeler; CHANGELOG, 3.84.2'de diğer aracı kurumların CSV dosyalarını ve CSV, PDF ile görsel dosyalarının Ghostfolio AI ile okunmasını (deneysel) ekler |
+
+Ghostfolio bilgileri 2026-10-18 tarihinde, 3.88.0 sürümünde kontrol edildi.
+
+gelirgider BIST'i, TEFAS fonlarını[^tefas], gram altını ve TÜFE karşılaştırmasını kapsar; bölünmeler ve temettüler otomatiktir[^auto].
+
+[^tefas]: TEFAS varsayılan olarak kapalıdır, bkz. [Veri kaynakları](#veri-kaynakları).
+
+[^auto]: BIST için İş Yatırım'dan, yalnızca içinde bulunulan takvim yılı; eski bedelsiz sermaye artırımları `-add-split` operatör bayrağıyla girilir ([ADR 0008](docs/adr/0008-splits.md)). ABD için Tiingo'dan, kurulumun Tiingo anahtarı gerekir. TEFAS, kripto ve altın için yok.
+
 ## Ekran görüntüleri
 
 `-demo` örnek verisiyle oluşturulan Demo portföyü (bkz. [Geliştirme](#geliştirme)).

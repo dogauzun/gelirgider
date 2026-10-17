@@ -34,6 +34,24 @@ Multi-user portfolio tracking tool. BIST, US stocks, TEFAS funds, crypto and gol
 The UI is in Turkish (`tr`, the default) and English (`en`), chosen with the
 language switch. The choice is stored in the browser only.
 
+## Compared with Ghostfolio
+
+Three differences from [Ghostfolio](https://github.com/ghostfolio/ghostfolio), as its README and CHANGELOG state them.
+
+| Feature          | gelirgider                                                                                            | Ghostfolio                                                                                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Returns          | Simple, TWR and MWR side by side ([ADR 0011](docs/adr/0011-portfolio-returns.md))                     | README (3.88.0) names ROAI (return on average investment); CHANGELOG adds ROI as experimental in 3.88.0                                                                |
+| Datastore        | SQLite and a single backend binary ([ADR 0002](docs/adr/0002-production-datastore-and-migrations.md)) | README (3.88.0) names PostgreSQL and Redis                                                                                                                             |
+| Statement import | PDF statements from Midas, Garanti BBVA and Garanti BBVA Yatırım, plus generic CSV                    | README (3.88.0) documents a JSON import; CHANGELOG adds CSV files of other brokers, and reading CSV, PDF and image files with Ghostfolio AI as experimental, in 3.84.2 |
+
+Ghostfolio claims checked on 2026-10-18, version 3.88.0.
+
+gelirgider covers BIST, TEFAS funds[^tefas], gram gold and a TÜFE benchmark, and splits and dividends are automatic[^auto].
+
+[^tefas]: TEFAS is off by default, see [Data sources](#data-sources).
+
+[^auto]: BIST from İş Yatırım for the current calendar year only; older bonus issues go in with the `-add-split` operator flag ([ADR 0008](docs/adr/0008-splits.md)). US from Tiingo, which needs the instance's Tiingo key. TEFAS, crypto and gold get none.
+
 ## Screenshots
 
 The Demo portfolio from the `-demo` seed (see [Development](#development)).
