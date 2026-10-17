@@ -75,7 +75,7 @@ Format: `<file>:<line>, <what was simplified>. ceiling: <the limit>. upgrade: <t
 
 ## backend/internal/transaction/transaction.go
 
-- transaction.go:362, any zero-price buy in the window suppresses split detection. ceiling: a hand-entered gift next to a split is hidden. upgrade: explicit marker on imported bonus rows (path only, no trigger).
+- transaction.go:362, any zero-price buy in the window suppresses split detection. ceiling: a hand-entered gift next to a split is hidden. upgrade: explicit marker on imported bonus rows (path only, no trigger). `no-trigger`
 
 ## backend/internal/us/us.go
 
@@ -125,7 +125,7 @@ Format: `<file>:<line>, <what was simplified>. ceiling: <the limit>. upgrade: <t
 
 ## frontend/src/pages/ImportPage.tsx
 
-- ImportPage.tsx:34, import queue in module memory. ceiling: gone on a full reload. upgrade: history state, which would have to structured-clone the files and ApiErrors (path only, no trigger).
+- ImportPage.tsx:34, import queue in module memory. ceiling: gone on a full reload. upgrade: history state, which would have to structured-clone the files and ApiErrors (path only, no trigger). `no-trigger`
 - ImportPage.tsx:160, no client upload concurrency cap. ceiling: the browser queues past ~6 per host. upgrade: add one if a year of statements ever strains the server.
 
 ## frontend/src/theme.ts
@@ -134,6 +134,6 @@ Format: `<file>:<line>, <what was simplified>. ceiling: <the limit>. upgrade: <t
 
 ## Totals
 
-37 markers, 14 with no trigger.
+36 markers, 14 with no trigger.
 
-36 of 37 still use the old `ponytail:` prefix. A grep for `shortcut:` alone misses them.
+35 of 36 still use the old `ponytail:` prefix. A grep for `shortcut:` alone misses them.
