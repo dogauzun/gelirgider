@@ -10,8 +10,9 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/user"
 )
 
-// SetPassword replaces the password of the user with the given email and
-// deletes every session that user has, so any open login is signed out.
+// SetPassword replaces the password of the user with the given email, clears
+// their TOTP state and deletes every session that user has, so any open login
+// is signed out.
 //
 // This is the operator escape hatch behind the server's -set-password flag:
 // there is no self-service reset, because sending mail is not part of the
@@ -32,7 +33,7 @@ func SetPassword(ctx context.Context, users *user.Repo, sessions *Repo, email, p
 	if err != nil {
 		return fmt.Errorf("hash password: %w", err)
 	}
-	if err := users.UpdatePasswordHash(ctx, u.ID, string(hash)); err != nil {
+	if err := users.ResetPassword(ctx, u.ID, string(hash)); err != nil {
 		return err
 	}
 	// Session ids are never empty, so "keep nothing" deletes all of this

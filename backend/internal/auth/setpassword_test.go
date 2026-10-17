@@ -14,7 +14,7 @@ import (
 )
 
 // TestSetPassword covers the operator escape hatch: the new password replaces
-// the old one, every session of that user is deleted, and another user's
+// the old one, the TOTP columns are cleared, every session of that user is deleted, and another user's
 // session is left alone.
 func TestSetPassword(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
@@ -37,6 +37,10 @@ func TestSetPassword(t *testing.T) {
 	bob, err := users.Create(context.Background(), "bob@example.com", string(oldHash))
 	if err != nil {
 		t.Fatalf("create bob: %v", err)
+	}
+
+	if _, err := conn.Exec("UPDATE users SET totp_secret = 'sealed', totp_pending_secret = 'pending', totp_last_step = 42 WHERE id = ?", alice.ID); err != nil {
+		t.Fatalf("set totp columns: %v", err)
 	}
 
 	var aliceSessions []string
@@ -66,6 +70,14 @@ func TestSetPassword(t *testing.T) {
 	}
 	if bcrypt.CompareHashAndPassword([]byte(updated.PasswordHash), []byte("old-password")) == nil {
 		t.Error("old password still matches stored hash")
+	}
+
+	totp, err := users.TOTP(context.Background(), alice.ID)
+	if err != nil {
+		t.Fatalf("TOTP: %v", err)
+	}
+	if totp != (user.TOTPState{}) {
+		t.Errorf("totp state after reset = %+v, want zero", totp)
 	}
 
 	for _, id := range aliceSessions {
