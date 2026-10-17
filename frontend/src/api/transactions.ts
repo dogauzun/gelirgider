@@ -7,10 +7,8 @@ import {
   type QueryClient,
 } from '@tanstack/react-query'
 import { apiFetch, apiFetchWithHeaders } from '../api'
-import { dividendTimelineQueryKey, expectedDividendsQueryKey } from './dividends'
-import { historyQueryKey } from './history'
 import { portfoliosQueryKey } from './portfolios'
-import { summaryQueryKey, type PortfolioScope } from './summary'
+import type { PortfolioScope } from './summary'
 
 export type TransactionType = 'buy' | 'sell' | 'dividend' | 'deposit' | 'withdrawal' | 'fee'
 
@@ -232,25 +230,21 @@ export function useFillCashGaps(scope: PortfolioScope) {
   })
 }
 
-// invalidatePortfolio also refreshes the summary and history queries: a
-// transaction changes both, and their cached data would otherwise paint
-// stale totals until something else happens to refetch them. The
-// expected dividends follow the holdings and hide once a dividend is entered;
-// the dividend timeline sums the dividend rows, and shares its page
-// with the expected panel's add flow. The portfolio list carries
-// each portfolio's value, which the always-mounted sidebar shows;
-// exact, since every key above starts with 'portfolios' too.
+// invalidatePortfolio refreshes everything cached for one portfolio: a
+// transaction changes the transactions, summary, history, position history,
+// expected dividends and dividend timeline, and stale data would paint wrong
+// totals until something else refetches. They all sit under
+// ['portfolios', portfolioId], so one prefix match covers them and any key
+// added there later. The portfolio list carries each portfolio's value, which
+// the always-mounted sidebar shows; it is matched exactly because the prefix
+// above is not its own. The all scope's keys are not touched.
 export function invalidatePortfolio(
   queryClient: ReturnType<typeof useQueryClient>,
   portfolioId: number,
 ) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: portfoliosQueryKey, exact: true }),
-    queryClient.invalidateQueries({ queryKey: transactionsQueryKey(portfolioId) }),
-    queryClient.invalidateQueries({ queryKey: summaryQueryKey(portfolioId) }),
-    queryClient.invalidateQueries({ queryKey: historyQueryKey(portfolioId) }),
-    queryClient.invalidateQueries({ queryKey: expectedDividendsQueryKey(portfolioId) }),
-    queryClient.invalidateQueries({ queryKey: dividendTimelineQueryKey(portfolioId) }),
+    queryClient.invalidateQueries({ queryKey: [...portfoliosQueryKey, portfolioId] }),
   ])
 }
 

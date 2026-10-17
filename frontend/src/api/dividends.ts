@@ -19,7 +19,7 @@ export interface ExpectedDividend {
   currency: string
 }
 
-export const expectedDividendsQueryKey = (portfolioId: PortfolioScope) =>
+const expectedDividendsQueryKey = (portfolioId: PortfolioScope) =>
   ['portfolios', portfolioId, 'dividends', 'expected'] as const
 
 function fetchExpectedDividends(portfolioId: number): Promise<ExpectedDividend[]> {
@@ -76,7 +76,7 @@ export interface DividendTimeline {
   missing_rates: string[]
 }
 
-export const dividendTimelineQueryKey = (portfolioId: PortfolioScope) =>
+const dividendTimelineQueryKey = (portfolioId: PortfolioScope) =>
   ['portfolios', portfolioId, 'dividends', 'timeline'] as const
 
 // Per portfolio like expected dividends: the `all` scope makes no request.

@@ -32,7 +32,7 @@ function fetchPositionHistory(
   )
 }
 
-// Under the portfolio's history key, so invalidatePortfolio refreshes it
+// Under the portfolio's prefix, so invalidatePortfolio refreshes it
 // after a transaction edit.
 export function usePositionHistory(
   portfolioId: number,
