@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useLocation, useSearchParams } from 'react-router'
 import { todayIstanbul } from './date'
 import { RANGES, resolveRange, type RangeValue } from './ranges'
 import { patchSearchParams } from './searchParams'
@@ -88,4 +88,11 @@ export function rangeSearch(search: string): string {
   }
   const s = out.toString()
   return s ? `?${s}` : ''
+}
+
+// The link to a position page, carrying the page's range.
+export function usePositionPath(): (scope: number | 'all', instrumentId: number) => string {
+  const { search } = useLocation()
+  return (scope, instrumentId) =>
+    `/portfolios/${scope}/positions/${instrumentId}${rangeSearch(search)}`
 }

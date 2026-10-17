@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link } from 'react-router'
 import type { PortfolioScope, Position } from '../api/summary'
 import { t } from '../i18n/strings'
 import { CONTRIBUTION_MODES, contributionRows, type ContributionMode } from '../lib/contribution'
 import { plTone, signedMoney } from '../lib/format'
-import { rangeSearch } from '../lib/useRange'
+import { usePositionPath } from '../lib/useRange'
 import { Segmented } from './ui/Segmented'
 import { TAP_Y } from './ui/tap'
 
@@ -29,7 +29,7 @@ export function ContributionCard({
 }) {
   const [mode, setMode] = useState<ContributionMode>('total')
   const [all, setAll] = useState(false)
-  const { search } = useLocation()
+  const positionPath = usePositionPath()
   const { rows, hidden } = contributionRows(positions, mode, all ? null : LIMIT)
 
   return (
@@ -61,7 +61,7 @@ export function ContributionCard({
                   <span className="font-semibold text-ink">{row.symbol}</span>
                 ) : (
                   <Link
-                    to={`/portfolios/${portfolioId}/positions/${row.instrumentId}${rangeSearch(search)}`}
+                    to={positionPath(portfolioId, row.instrumentId)}
                     className="font-semibold text-ink hover:underline"
                   >
                     {row.symbol}

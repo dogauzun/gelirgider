@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, type ReactNode } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link } from 'react-router'
 import type { ExpectedDividend } from '../api/dividends'
 import { t, type StringKey } from '../i18n/strings'
 import { SHARE_FORMAT } from '../lib/allocation'
@@ -7,7 +7,7 @@ import { ATTENTION, type AttentionItem } from '../lib/attention'
 import { formatMarketDate, formatShortMarketDate } from '../lib/date'
 import { formatMoney, formatNumber, plTone, signedMoney, signedPercent } from '../lib/format'
 import { focusIfLost, neighbourOf } from '../lib/useFocusLater'
-import { rangeSearch } from '../lib/useRange'
+import { usePositionPath } from '../lib/useRange'
 import { Button } from './ui/Button'
 import { Pill } from './ui/Pill'
 
@@ -103,7 +103,7 @@ export function AttentionCard({
   onDismissDividend: (dividend: ExpectedDividend) => void
   onEditPrice: (instrumentId: number) => void
 }) {
-  const { search } = useLocation()
+  const positionPath = usePositionPath()
   // The item last acted on, which button, and that kind's item order then.
   const actedRef = useRef<{
     key: string
@@ -280,7 +280,7 @@ export function AttentionCard({
                 <span className="font-semibold">{item.symbol}</span>
               ) : (
                 <Link
-                  to={`/portfolios/${portfolioId}/positions/${item.instrument_id}${rangeSearch(search)}`}
+                  to={positionPath(portfolioId, item.instrument_id)}
                   className="font-semibold hover:underline"
                 >
                   {item.symbol}
