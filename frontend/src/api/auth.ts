@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-query'
 import { apiFetch } from '../api'
 import { getLocale } from '../i18n/strings'
+import type { AttentionRules } from '../lib/attention'
 import { clearToasts, flushToasts } from '../lib/toast'
 import { portfoliosQueryKey } from './portfolios'
 
@@ -234,6 +235,17 @@ export function useUpdateReportingCurrency(onSaved: () => void) {
       void queryClient.invalidateQueries({ queryKey: portfoliosQueryKey, exact: true })
       onSaved()
     },
+  })
+}
+
+// The user's attention rule overrides, `{}` when there are none. The summary
+// page uses the defaults until it arrives or when it fails.
+export const attentionRulesQueryKey = ['attention-rules'] as const
+
+export function useAttentionRules() {
+  return useQuery({
+    queryKey: attentionRulesQueryKey,
+    queryFn: () => apiFetch<AttentionRules>('/api/me/attention-rules'),
   })
 }
 
