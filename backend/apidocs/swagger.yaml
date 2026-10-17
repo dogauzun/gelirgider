@@ -52,6 +52,13 @@ definitions:
       password:
         type: string
     type: object
+  auth.loginTOTPRequest:
+    properties:
+      code:
+        type: string
+      token:
+        type: string
+    type: object
   auth.reportingCurrencyRequest:
     properties:
       reporting_currency:
@@ -1946,8 +1953,13 @@ paths:
     post:
       consumes:
       - application/json
-      description: Checks email and password and sets the `session` cookie. The locale
-        field is ignored. Rate-limited per client IP, 10 per minute.
+      description: 'Checks email and password. Without two-factor it sets the `session`
+        cookie and answers with the user. With two-factor on it sets no cookie and
+        answers 200 with {"totp_required": true, "token": "..."} (the token is valid
+        5 minutes) instead of the user: send the token and a code to /auth/login/totp.
+        A user whose recent tokens already hold 10 code checks gets 429, even with
+        the right password. The locale field is ignored. Rate-limited per client IP,
+        10 per minute.'
       parameters:
       - description: email and password
         in: body
@@ -1959,11 +1971,11 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: the user; or {totp_required, token} when two-factor is on
           headers:
             Set-Cookie:
               description: session=<id>; Path=/; Expires=<30 days>; HttpOnly; SameSite=Lax;
-                Secure when COOKIE_SECURE=true
+                Secure when COOKIE_SECURE=true; set only when two-factor is off
               type: string
           schema:
             $ref: '#/definitions/auth.userResponse'
@@ -1988,6 +2000,13 @@ paths:
               error:
                 type: string
             type: object
+        "429":
+          description: too many requests
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "500":
           description: internal error
           schema:
@@ -1996,6 +2015,66 @@ paths:
                 type: string
             type: object
       summary: Sign in
+      tags:
+      - auth
+  /auth/login/totp:
+    post:
+      consumes:
+      - application/json
+      description: Trades the token login returned for a session, given the current
+        6-digit code, and sets the `session` cookie. A token allows 5 code checks
+        and lives 5 minutes; an unknown, expired or used-up token, and one whose user
+        turned two-factor off since, all answer 401 login expired. A code at or below
+        the last accepted step is a replay and answers 401 invalid code. Rate-limited
+        per client IP, 10 per minute.
+      parameters:
+      - description: token from login and 6-digit code from the authenticator
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.loginTOTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            Set-Cookie:
+              description: session=<id>; Path=/; Expires=<30 days>; HttpOnly; SameSite=Lax;
+                Secure when COOKIE_SECURE=true
+              type: string
+          schema:
+            $ref: '#/definitions/auth.userResponse'
+        "400":
+          description: invalid request body
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: login expired; invalid code
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: setup_required
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Sign in, second step
       tags:
       - auth
   /auth/logout:

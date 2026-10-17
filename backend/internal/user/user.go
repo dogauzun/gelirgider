@@ -126,8 +126,13 @@ func (r *Repo) ResetPassword(ctx context.Context, id int64, passwordHash string)
 	return tx.Commit()
 }
 
-// clearTOTP is the one place that wipes a user's TOTP state.
+// clearTOTP is the one place that wipes a user's TOTP state. It also drops
+// the user's login challenges: with no secret left, a code has nothing to be
+// checked against.
 func clearTOTP(ctx context.Context, tx *sql.Tx, id int64) error {
+	if _, err := tx.ExecContext(ctx, "DELETE FROM login_challenges WHERE user_id = ?", id); err != nil {
+		return fmt.Errorf("clear login challenges: %w", err)
+	}
 	if _, err := tx.ExecContext(ctx,
 		"UPDATE users SET totp_secret = NULL, totp_pending_secret = NULL, totp_last_step = 0 WHERE id = ?", id); err != nil {
 		return fmt.Errorf("clear totp: %w", err)
@@ -327,6 +332,7 @@ var userDataTables = []string{
 	"import_forgotten_names",
 	"manual_prices",
 	"sessions",
+	"login_challenges",
 	"term_deposits",
 	"portfolios",
 }

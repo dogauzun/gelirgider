@@ -35,7 +35,8 @@ const (
 )
 
 // RegisterRoutes wires the register/login/logout and auth config endpoints
-// into mux. Login and register are individually rate-limited per client IP.
+// into mux. Login, its second step and register are individually
+// rate-limited per client IP.
 // Register answers 403 while the registration toggle in cfg is closed, and
 // both register and login answer 403 until first-time setup is done.
 // onRegister, if non-nil, is called with the id of a newly created user and
@@ -47,6 +48,7 @@ func RegisterRoutes(mux *http.ServeMux, users *user.Repo, sessions *Repo, cfg *s
 	mux.HandleFunc("GET /api/auth/config", h.authConfig)
 	mux.Handle("POST /api/auth/register", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.register)))
 	mux.Handle("POST /api/auth/login", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.login)))
+	mux.Handle("POST /api/auth/login/totp", ratelimit.Limit(authRateLimit, authRateWindow)(http.HandlerFunc(h.loginTOTP)))
 	mux.HandleFunc("POST /api/auth/logout", h.logout)
 }
 
@@ -90,6 +92,12 @@ type credentials struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	Locale   string `json:"locale"` // register only: tr (default) or en; login ignores it
+}
+
+// totpChallengeResponse is login's answer for a user with two-factor on.
+type totpChallengeResponse struct {
+	TOTPRequired bool   `json:"totp_required"`
+	Token        string `json:"token"`
 }
 
 type userResponse struct {
@@ -217,16 +225,17 @@ func (h *handler) createUser(ctx context.Context, email, password, locale string
 // login handles POST /api/auth/login.
 //
 //	@Summary	Sign in
-//	@Description	Checks email and password and sets the `session` cookie. The locale field is ignored. Rate-limited per client IP, 10 per minute.
+//	@Description	Checks email and password. Without two-factor it sets the `session` cookie and answers with the user. With two-factor on it sets no cookie and answers 200 with {"totp_required": true, "token": "..."} (the token is valid 5 minutes) instead of the user: send the token and a code to /auth/login/totp. A user whose recent tokens already hold 10 code checks gets 429, even with the right password. The locale field is ignored. Rate-limited per client IP, 10 per minute.
 //	@Tags		auth
 //	@Accept		json
 //	@Produce	json
 //	@Param		body	body		auth.credentials	true	"email and password"
-//	@Success	200	{object}	auth.userResponse
-//	@Header		200	{string}	Set-Cookie	"session=<id>; Path=/; Expires=<30 days>; HttpOnly; SameSite=Lax; Secure when COOKIE_SECURE=true"
+//	@Success	200	{object}	auth.userResponse	"the user; or {totp_required, token} when two-factor is on"
+//	@Header		200	{string}	Set-Cookie	"session=<id>; Path=/; Expires=<30 days>; HttpOnly; SameSite=Lax; Secure when COOKIE_SECURE=true; set only when two-factor is off"
 //	@Failure	400	{object}	object{error=string}	"invalid request body"
 //	@Failure	401	{object}	object{error=string}	"invalid email or password"
 //	@Failure	403	{object}	object{error=string}	"setup_required"
+//	@Failure	429	{object}	object{error=string}	"too many requests"
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/auth/login [post]
 func (h *handler) login(w http.ResponseWriter, r *http.Request) {
@@ -257,10 +266,32 @@ func (h *handler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if u.TOTPEnabled {
+		token, err := h.sessions.CreateChallenge(r.Context(), u.ID)
+		switch {
+		case errors.Is(err, ErrTooManyChallenges):
+			WriteError(w, http.StatusTooManyRequests, "too many requests")
+		// Deleted after the password check: the answer an unknown account gets.
+		case errors.Is(err, user.ErrNotFound):
+			WriteError(w, http.StatusUnauthorized, badCreds)
+		case err != nil:
+			WriteInternalError(w, r, err)
+		default:
+			w.Header().Set("Cache-Control", "no-store")
+			WriteJSON(w, http.StatusOK, totpChallengeResponse{TOTPRequired: true, Token: token})
+		}
+		return
+	}
+
+	h.startSession(w, r, u, badCreds)
+}
+
+// startSession creates a session for u, sets the cookie and answers with the
+// user. A user deleted since the caller checked them gets 401 with notFoundMsg.
+func (h *handler) startSession(w http.ResponseWriter, r *http.Request, u user.User, notFoundMsg string) {
 	session, err := h.sessions.CreateSession(r.Context(), u.ID)
-	// Deleted after the password check: the answer an unknown account gets.
 	if errors.Is(err, user.ErrNotFound) {
-		WriteError(w, http.StatusUnauthorized, badCreds)
+		WriteError(w, http.StatusUnauthorized, notFoundMsg)
 		return
 	}
 	if err != nil {
@@ -270,6 +301,91 @@ func (h *handler) login(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, h.cookie(session.ID, session.ExpiresAt))
 
 	WriteJSON(w, http.StatusOK, newUserResponse(u))
+}
+
+type loginTOTPRequest struct {
+	Token string `json:"token"`
+	Code  string `json:"code"`
+}
+
+// loginTOTP handles POST /api/auth/login/totp.
+//
+//	@Summary	Sign in, second step
+//	@Description	Trades the token login returned for a session, given the current 6-digit code, and sets the `session` cookie. A token allows 5 code checks and lives 5 minutes; an unknown, expired or used-up token, and one whose user turned two-factor off since, all answer 401 login expired. A code at or below the last accepted step is a replay and answers 401 invalid code. Rate-limited per client IP, 10 per minute.
+//	@Tags		auth
+//	@Accept		json
+//	@Produce	json
+//	@Param		body	body		auth.loginTOTPRequest	true	"token from login and 6-digit code from the authenticator"
+//	@Success	200	{object}	auth.userResponse
+//	@Header		200	{string}	Set-Cookie	"session=<id>; Path=/; Expires=<30 days>; HttpOnly; SameSite=Lax; Secure when COOKIE_SECURE=true"
+//	@Failure	400	{object}	object{error=string}	"invalid request body"
+//	@Failure	401	{object}	object{error=string}	"login expired; invalid code"
+//	@Failure	403	{object}	object{error=string}	"setup_required"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/auth/login/totp [post]
+func (h *handler) loginTOTP(w http.ResponseWriter, r *http.Request) {
+	if h.setupPending(w, r) {
+		return
+	}
+	var req loginTOTPRequest
+	if !DecodeJSON(w, r, &req) {
+		return
+	}
+	const expired = "login expired"
+
+	// The attempt is counted before the code is looked at.
+	userID, ok, err := h.sessions.AttemptChallenge(r.Context(), req.Token)
+	if err != nil {
+		WriteInternalError(w, r, err)
+		return
+	}
+	if !ok {
+		WriteError(w, http.StatusUnauthorized, expired)
+		return
+	}
+	state, err := h.users.TOTP(r.Context(), userID)
+	if errors.Is(err, user.ErrNotFound) || (err == nil && state.Secret == "") {
+		WriteError(w, http.StatusUnauthorized, expired)
+		return
+	}
+	if err != nil {
+		WriteInternalError(w, r, err)
+		return
+	}
+	secret, err := h.settings.Open(totpAAD(userID), state.Secret)
+	if err != nil {
+		WriteInternalError(w, r, err)
+		return
+	}
+	step, ok := verifyTOTP(secret, req.Code, time.Now(), state.LastStep)
+	if !ok {
+		WriteError(w, http.StatusUnauthorized, "invalid code")
+		return
+	}
+	// The step is the replay guard: of two requests with one code, one wins.
+	advanced, err := h.users.AdvanceTOTPStep(r.Context(), userID, step)
+	if err != nil {
+		WriteInternalError(w, r, err)
+		return
+	}
+	if !advanced {
+		WriteError(w, http.StatusUnauthorized, "invalid code")
+		return
+	}
+	u, err := h.users.GetByID(r.Context(), userID)
+	if errors.Is(err, user.ErrNotFound) {
+		WriteError(w, http.StatusUnauthorized, expired)
+		return
+	}
+	if err != nil {
+		WriteInternalError(w, r, err)
+		return
+	}
+	if err := h.sessions.DeleteChallenge(r.Context(), req.Token); err != nil {
+		WriteInternalError(w, r, err)
+		return
+	}
+	h.startSession(w, r, u, expired)
 }
 
 // logout handles POST /api/auth/logout.
