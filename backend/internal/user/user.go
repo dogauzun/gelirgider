@@ -107,6 +107,33 @@ func (r *Repo) UpdatePasswordHash(ctx context.Context, id int64, passwordHash st
 	return r.exec(ctx, "update password hash", "UPDATE users SET password_hash = ? WHERE id = ?", passwordHash, id)
 }
 
+// ResetPassword sets a new password hash and wipes the user's TOTP state in
+// one transaction. It backs the admin and CLI resets, the only way back for a
+// user who lost their authenticator and has no recovery code.
+func (r *Repo) ResetPassword(ctx context.Context, id int64, passwordHash string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin reset password: %w", err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, "UPDATE users SET password_hash = ? WHERE id = ?", passwordHash, id); err != nil {
+		return fmt.Errorf("reset password: %w", err)
+	}
+	if err := clearTOTP(ctx, tx, id); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// clearTOTP is the one place that wipes a user's TOTP state.
+func clearTOTP(ctx context.Context, tx *sql.Tx, id int64) error {
+	if _, err := tx.ExecContext(ctx,
+		"UPDATE users SET totp_secret = NULL, totp_pending_secret = NULL, totp_last_step = 0 WHERE id = ?", id); err != nil {
+		return fmt.Errorf("clear totp: %w", err)
+	}
+	return nil
+}
+
 // UpdateReportingCurrency sets the reporting currency for the user with the
 // given id. Callers are responsible for validating currency before calling.
 func (r *Repo) UpdateReportingCurrency(ctx context.Context, id int64, currency string) error {
