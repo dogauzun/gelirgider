@@ -297,35 +297,8 @@ func (h *summaryHandler) get(w http.ResponseWriter, r *http.Request) {
 
 	totals := holdings.Convert(summary, rates, reporting)
 
-	cashByCurrency := make(map[string]string, len(summary.Cash))
-	cashByCurrencyReporting := make(map[string]string, len(summary.Cash))
-	for currency, amount := range summary.Cash {
-		cashByCurrency[currency] = amount.StringFixed(2)
-		if f, ok := holdings.Factor(rates, currency, reporting); ok {
-			cashByCurrencyReporting[currency] = amount.Mul(f).StringFixed(2)
-		}
-	}
-
-	// Closed positions are listed too, with quantity and market value zero
-	// and their realized P/L set: without them the page can only total the
-	// open rows, which disagrees with the realized_pl below.
-	valued := make([]holdings.Position, 0, len(summary.Positions)+len(summary.Closed))
-	valued = append(valued, summary.Positions...)
-	valued = append(valued, summary.Closed...)
-
-	positions := make([]positionResponse, 0, len(valued))
-	var dayTotal *decimal.Decimal
-	for i, p := range valued {
-		pr, dcr := positionRow(p, i >= len(summary.Positions), v, prev, rates, reporting)
-		if dcr != nil {
-			sum := *dcr
-			if dayTotal != nil {
-				sum = dayTotal.Add(*dcr)
-			}
-			dayTotal = &sum
-		}
-		positions = append(positions, pr)
-	}
+	cashByCurrency, cashByCurrencyReporting := cashMaps(summary, rates, reporting)
+	positions, dayTotal := positionRows(summary, v, prev, rates, reporting)
 
 	missingRates := totals.Missing
 	if missingRates == nil {
@@ -363,6 +336,47 @@ func (h *summaryHandler) get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	auth.WriteJSON(w, http.StatusOK, resp)
+}
+
+// cashMaps is summary's cash per currency and each entry converted into the
+// reporting currency; a currency with no rate is left out of the second map.
+func cashMaps(summary holdings.Summary, rates map[string]decimal.Decimal, reporting string) (byCurrency, byCurrencyReporting map[string]string) {
+	byCurrency = make(map[string]string, len(summary.Cash))
+	byCurrencyReporting = make(map[string]string, len(summary.Cash))
+	for currency, amount := range summary.Cash {
+		byCurrency[currency] = amount.StringFixed(2)
+		if f, ok := holdings.Factor(rates, currency, reporting); ok {
+			byCurrencyReporting[currency] = amount.Mul(f).StringFixed(2)
+		}
+	}
+	return byCurrency, byCurrencyReporting
+}
+
+// positionRows is the open positions followed by the closed ones as response
+// rows, and the open positions' day_change_reporting summed unrounded (nil
+// when no row has one).
+func positionRows(summary holdings.Summary, v valuation, prev map[int64]prevClose, rates map[string]decimal.Decimal, reporting string) ([]positionResponse, *decimal.Decimal) {
+	// Closed positions are listed too, with quantity and market value zero
+	// and their realized P/L set: without them the page can only total the
+	// open rows, which disagrees with realized_pl.
+	valued := make([]holdings.Position, 0, len(summary.Positions)+len(summary.Closed))
+	valued = append(valued, summary.Positions...)
+	valued = append(valued, summary.Closed...)
+
+	positions := make([]positionResponse, 0, len(valued))
+	var dayTotal *decimal.Decimal
+	for i, p := range valued {
+		pr, dcr := positionRow(p, i >= len(summary.Positions), v, prev, rates, reporting)
+		if dcr != nil {
+			sum := *dcr
+			if dayTotal != nil {
+				sum = dayTotal.Add(*dcr)
+			}
+			dayTotal = &sum
+		}
+		positions = append(positions, pr)
+	}
+	return positions, dayTotal
 }
 
 // prevClose is an instrument's previous close in today's terms and the date

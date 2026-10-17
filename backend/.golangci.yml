@@ -24,11 +24,11 @@ linters:
         - pattern: '^price\.Istanbul$'
           msg: use the price day helpers
     funlen:
-      lines: 150
+      lines: 100
       statements: -1
       ignore-comments: true
     gocognit:
-      min-complexity: 45
+      min-complexity: 30
     nestif:
       min-complexity: 10
     revive:
