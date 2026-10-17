@@ -293,23 +293,80 @@ func newYork() *time.Location {
 	return loc
 }
 
-// LastSession returns the New York date (YYYY-MM-DD) of the latest weekday
-// session that has closed by now: the date a run at now stores a close
-// under, for a symbol that traded in that session (see FetchClose).
-//
-// shortcut: weekends only, no holiday calendar. The day after a holiday,
-// during the session, the close before the holiday is stored under the
-// holiday's date: the same value the forward carry gives that day anyway.
+// LastSession returns the New York date (YYYY-MM-DD) of the latest session
+// that has closed by now, skipping weekends and NYSE holidays: the date a
+// run at now stores a close under, for a symbol that traded in that
+// session (see FetchClose).
 func LastSession(now time.Time) string {
 	d := now.In(newYork())
 	day := price.Midnight(d)
 	if d.Hour() < marketCloseHour {
 		day = day.AddDate(0, 0, -1)
 	}
-	for day.Weekday() == time.Saturday || day.Weekday() == time.Sunday {
+	for day.Weekday() == time.Saturday || day.Weekday() == time.Sunday || isHoliday(day) {
 		day = day.AddDate(0, 0, -1)
 	}
 	return day.Format(time.DateOnly)
+}
+
+// isHoliday reports whether the NYSE is closed all day on day, a New York
+// midnight.
+//
+// shortcut: the standing holidays only. One-off closures (a state funeral,
+// a hurricane) and Juneteenth before 2022 are not known; add the date here
+// if one matters.
+func isHoliday(day time.Time) bool {
+	y, loc := day.Year(), day.Location()
+	at := func(m time.Month, d int) time.Time { return time.Date(y, m, d, 0, 0, 0, 0, loc) }
+	// nth occurrence of wd in m; n < 0 counts back from the month's end.
+	nth := func(m time.Month, wd time.Weekday, n int) time.Time {
+		if n < 0 {
+			last := at(m+1, 0)
+			return last.AddDate(0, 0, -((int(last.Weekday()) - int(wd) + 7) % 7))
+		}
+		first := at(m, 1)
+		return first.AddDate(0, 0, (int(wd)-int(first.Weekday())+7)%7+7*(n-1))
+	}
+	// A Saturday holiday is observed the Friday before, a Sunday one the Monday after.
+	observed := func(t time.Time) time.Time {
+		switch t.Weekday() {
+		case time.Saturday:
+			return t.AddDate(0, 0, -1)
+		case time.Sunday:
+			return t.AddDate(0, 0, 1)
+		}
+		return t
+	}
+	// Easter Sunday, Anonymous Gregorian algorithm.
+	a, b, c := y%19, y/100, y%100
+	g := (b - (b+8)/25 + 1) / 3
+	h := (19*a + b - b/4 - g + 15) % 30
+	l := (32 + 2*(b%4) + 2*(c/4) - h - c%4) % 7
+	m := (a + 11*h + 22*l) / 451
+	easter := at(time.Month((h+l-7*m+114)/31), (h+l-7*m+114)%31+1)
+
+	holidays := []time.Time{
+		nth(time.January, time.Monday, 3),
+		nth(time.February, time.Monday, 3),
+		easter.AddDate(0, 0, -2),
+		nth(time.May, time.Monday, -1),
+		observed(at(time.July, 4)),
+		nth(time.September, time.Monday, 1),
+		nth(time.November, time.Thursday, 4),
+		observed(at(time.December, 25)),
+	}
+	if y >= 2022 {
+		holidays = append(holidays, observed(at(time.June, 19)))
+	}
+	if at(time.January, 1).Weekday() != time.Saturday { // not observed on the Friday before
+		holidays = append(holidays, observed(at(time.January, 1)))
+	}
+	for _, hd := range holidays {
+		if hd.Equal(day) {
+			return true
+		}
+	}
+	return false
 }
 
 // defaultTiingoBaseURL is the production Tiingo REST API base.
