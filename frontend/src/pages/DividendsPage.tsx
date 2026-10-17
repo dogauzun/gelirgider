@@ -27,6 +27,7 @@ import { decimalUnits, unitsToDecimal } from '../lib/decimal'
 import { sortRows } from '../lib/sortRows'
 import { formatMoney, formatNumber, MISSING } from '../lib/format'
 import { usePortfolioTitle } from '../lib/useTitle'
+import { usePositionPath } from '../lib/useRange'
 import { useStoredChoice } from '../lib/useStoredChoice'
 
 const GROUP_KEYS = ['month', 'year'] as const
@@ -113,6 +114,7 @@ export function DividendsPage() {
 
 function DividendsBody({ portfolioId }: { portfolioId: number }) {
   usePortfolioTitle(t('dividends.page.title'), portfolioId)
+  const positionPath = usePositionPath()
   const { data, isLoading, isError, error, refetch, isFetching } = useDividendTimeline(portfolioId)
   const summary = usePortfolioSummary(portfolioId)
   const [group, setGroup] = useStoredChoice('dividendsGroup', GROUP_KEYS, 'month')
@@ -235,7 +237,7 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
                 <tr key={row.instrument_id} className={ROW_44}>
                   <td className={TD}>
                     <Link
-                      to={`/portfolios/${portfolioId}/positions/${row.instrument_id}`}
+                      to={positionPath(portfolioId, row.instrument_id)}
                       className="font-semibold text-ink hover:underline"
                     >
                       {row.symbol}

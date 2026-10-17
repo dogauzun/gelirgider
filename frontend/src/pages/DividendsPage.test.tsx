@@ -114,10 +114,10 @@ function mockApi({
   return calls
 }
 
-function renderPage() {
+function renderPage(search = '') {
   return render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter initialEntries={['/portfolios/1/dividends']}>
+      <MemoryRouter initialEntries={[`/portfolios/1/dividends${search}`]}>
         <Routes>
           <Route path="/portfolios/:id/dividends" element={<DividendsPage />} />
         </Routes>
@@ -150,6 +150,16 @@ it('leads with the dividends to confirm, open, and books them from there', async
   fireEvent.click(screen.getByRole('button', { name: t('dividends.expected.addAll') }))
   await waitFor(() => expect(calls.timeline).toBe(2))
   expect(calls.posts).toHaveLength(1)
+})
+
+it('links an instrument to its position page with the current range', async () => {
+  mockApi()
+  renderPage('?range=1y&x=1')
+
+  expect(await screen.findByRole('link', { name: 'THYAO' })).toHaveAttribute(
+    'href',
+    '/portfolios/1/positions/7?range=1y',
+  )
 })
 
 it('has no confirm card when nothing is expected', async () => {

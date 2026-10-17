@@ -142,6 +142,7 @@ export default tseslint.config(
       'src/api/transactions.ts',
       'src/api/portfolios.ts',
       'src/api/auth.ts',
+      'src/lib/useRange.ts',
     ],
     rules: {
       'no-restricted-syntax': [
@@ -204,6 +205,12 @@ export default tseslint.config(
           selector:
             ':matches(Literal[value=/md:-translate-y-1.2/], TemplateElement[value.raw=/md:-translate-y-1.2/])',
           message: 'use sheetPanel from ui/sheetPanel',
+        },
+        // One position-page link, with the range; a tail quasi is a path prefix
+        // test. `.` stands for the slash.
+        {
+          selector: 'TemplateElement[tail=false][value.raw=/.positions.$/]',
+          message: 'use usePositionPath from lib/useRange',
         },
         // A control busy with its request keeps focus: one pending prop.
         {

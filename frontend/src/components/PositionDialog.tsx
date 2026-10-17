@@ -1,5 +1,5 @@
 import { useId, type KeyboardEvent } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link } from 'react-router'
 import { useDividendTimeline } from '../api/dividends'
 import { usePositionHistory } from '../api/positions'
 import type { PortfolioScope, Position, Summary } from '../api/summary'
@@ -7,7 +7,7 @@ import { useTransactions } from '../api/transactions'
 import { t } from '../i18n/strings'
 import { todayIstanbul } from '../lib/date'
 import { resolveRange, type RangeValue } from '../lib/ranges'
-import { rangeSearch } from '../lib/useRange'
+import { usePositionPath } from '../lib/useRange'
 import { PositionActions } from './PositionActions'
 import { PositionKpis } from './PositionKpis'
 import { PositionPriceChart } from './PositionPriceChart'
@@ -83,7 +83,7 @@ export function PositionDialog({
 }) {
   const dialogRef = useModal()
   const titleId = useId()
-  const { search } = useLocation()
+  const positionPath = usePositionPath()
   const dividends = useDividendTimeline(scope)
   const index = positions.findIndex((p) => p.instrument_id === position.instrument_id)
   const prev = index > 0 ? positions[index - 1] : null
@@ -108,10 +108,7 @@ export function PositionDialog({
               {scope === 'all' ? (
                 position.symbol
               ) : (
-                <Link
-                  to={`/portfolios/${scope}/positions/${position.instrument_id}${rangeSearch(search)}`}
-                  className="hover:underline"
-                >
+                <Link to={positionPath(scope, position.instrument_id)} className="hover:underline">
                   {position.symbol}
                 </Link>
               )}

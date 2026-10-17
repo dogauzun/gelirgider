@@ -1,5 +1,5 @@
 import { useRef, useState, type HTMLAttributes } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link } from 'react-router'
 import { usePortfolios } from '../api/portfolios'
 import type { PortfolioScope, Position, Summary } from '../api/summary'
 import { t, type StringKey } from '../i18n/strings'
@@ -25,7 +25,7 @@ import {
   weightOf,
 } from '../lib/positions'
 import { useIsDesktop } from '../lib/useIsDesktop'
-import { rangeSearch, useRange } from '../lib/useRange'
+import { useRange, usePositionPath } from '../lib/useRange'
 import { toast } from '../lib/toast'
 import { ActionsTh } from './ui/ActionsTh'
 import { Badge } from './ui/Badge'
@@ -147,13 +147,13 @@ function SymbolLink({
   portfolioId: PortfolioScope
   plain?: boolean
 }) {
-  const { search } = useLocation()
+  const positionPath = usePositionPath()
   if (plain || portfolioId === 'all') {
     return <span className="shrink-0 font-semibold text-ink">{position.symbol}</span>
   }
   return (
     <Link
-      to={`/portfolios/${portfolioId}/positions/${position.instrument_id}${rangeSearch(search)}`}
+      to={positionPath(portfolioId, position.instrument_id)}
       className="shrink-0 font-semibold text-ink hover:underline"
     >
       {position.symbol}
