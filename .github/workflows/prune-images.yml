@@ -4,9 +4,15 @@
 # Keeps every version tagged `latest` or `v*`, and the 30 newest versions
 # carrying a `sha-` tag; deletes the older `sha-` versions. The rollback step
 # pins `IMAGE_TAG=sha-<7>` (deploy/RUNBOOK.md section 8), which is why recent
-# `sha-` versions stay. Versions without a `sha-` tag, untagged ones included,
-# are left alone: publish.yml never makes a version that way, and a deleted
-# untagged version could be a layer of a kept one.
+# `sha-` versions stay.
+#
+# A tag on ghcr.io points at an OCI index that references one untagged version
+# per platform (linux/amd64, linux/arm64), so deleting an index leaves its two
+# children behind. The second step therefore reads every remaining tagged
+# index, collects the digests it references, and deletes the untagged versions
+# outside that set. A version younger than one day is skipped: publish.yml
+# pushes the children before it tags the index, and a run in between must not
+# take them.
 #
 # actions/delete-package-versions is not used: it matches its ignore regex
 # against the digest, not the tags, so it cannot protect `v*`.
@@ -46,4 +52,24 @@ jobs:
             while read -r action id tags; do
               echo "$action $id $tags"
               if [ "$action" = delete ]; then gh api -X DELETE "$path/$id"; fi
+            done
+      - name: Prune untagged versions no index references
+        shell: bash
+        run: |
+          path="/users/${GITHUB_REPOSITORY_OWNER}/packages/container/${{ matrix.package }}/versions"
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${{ matrix.package }}"
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          gh api --paginate "$path" \
+            --jq '.[] | {id, name, created_at, tagged: ((.metadata.container.tags // []) | length > 0)}' > versions.jsonl
+          : > refs.txt
+          jq -r 'select(.tagged) | .name' versions.jsonl | while read -r digest; do
+            docker buildx imagetools inspect --raw "$image@$digest" | jq -r '.manifests[]?.digest' >> refs.txt
+          done
+          jq -r --rawfile refs refs.txt --arg cutoff "$(date -u -d '1 day ago' +%Y-%m-%dT%H:%M:%SZ)" '
+            select(.tagged | not) | select(.created_at < $cutoff) | . as $v
+            | select(($refs | split("\n") | index($v.name)) == null)
+            | "\(.id) \(.name)"' versions.jsonl |
+            while read -r id digest; do
+              echo "delete $id $digest"
+              gh api -X DELETE "$path/$id"
             done
