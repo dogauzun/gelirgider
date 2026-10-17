@@ -84,6 +84,8 @@ export const trErrors = {
     "Fiyat 0'dan büyük bir sayı olmalı (ondalık için nokta veya virgül kullanabilirsin).",
   'error.dateRange': 'Tarih aralığı geçersiz.',
   'error.limit': 'Limit pozitif bir tam sayı olmalı.',
+  'error.attentionRule':
+    'Paylar % 0-100, gün sayısı 1-365, hareketliler 0-10 arasında tam sayı olmalı.',
   'error.field.reporting_currency': 'Geçersiz para birimi.',
   'error.field.note': 'Not en fazla 500 karakter olmalı.',
 } as const

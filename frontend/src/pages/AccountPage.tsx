@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError } from '../api'
 import { useChangePassword, useMe, useUpdateReportingCurrency } from '../api/auth'
+import { AttentionRulesCard } from '../components/AttentionRulesCard'
 import { PageHeader } from '../components/PageHeader'
 import { Button } from '../components/ui/Button'
 import { Field } from '../components/ui/Field'
@@ -254,6 +255,7 @@ export function AccountPage() {
             </div>
           </Card>
           <PasswordSection />
+          <AttentionRulesCard />
         </div>
       </div>
     </main>
