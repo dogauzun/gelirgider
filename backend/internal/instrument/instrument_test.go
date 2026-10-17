@@ -683,3 +683,93 @@ func TestByIDs(t *testing.T) {
 		t.Fatalf("ByIDs(nil) = %v, %v; want empty map, nil", empty, err)
 	}
 }
+
+// TestAssetClassIsRead checks that every reader returns the stored
+// asset_class, and unset for an instrument with none.
+func TestAssetClassIsRead(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	ctx := context.Background()
+	if _, err := conn.ExecContext(ctx, `INSERT INTO instruments (id, symbol, market, name, currency)
+		VALUES (1, 'THYAO', 'BIST', 'Turk Hava Yollari', 'TRY'),
+		       (2, 'AAPL', 'US', 'Apple Inc', 'USD')`); err != nil {
+		t.Fatalf("seed instruments: %v", err)
+	}
+	if _, err := conn.ExecContext(ctx, `INSERT INTO users (id, email, password_hash, created_at)
+		VALUES (1, 'u@example.com', 'x', '2026-09-11T00:00:00Z')`); err != nil {
+		t.Fatalf("seed user: %v", err)
+	}
+	if _, err := conn.ExecContext(ctx, `INSERT INTO portfolios (id, user_id, name, created_at)
+		VALUES (1, 1, 'Main', '2026-09-11T00:00:00Z')`); err != nil {
+		t.Fatalf("seed portfolio: %v", err)
+	}
+	if _, err := conn.ExecContext(ctx, `INSERT INTO transactions
+		(id, user_id, portfolio_id, instrument_id, type, date, quantity, price, amount, fee, currency, created_at)
+		VALUES (1, 1, 1, 1, 'buy', '2026-09-10', '5', '300.00', '1500.00', '0', 'TRY', '2026-09-10T00:00:00Z')`); err != nil {
+		t.Fatalf("seed transaction: %v", err)
+	}
+	if _, err := conn.ExecContext(ctx, `UPDATE instruments SET asset_class = 'equity' WHERE id = 1`); err != nil {
+		t.Fatalf("set asset_class: %v", err)
+	}
+
+	repo := instrument.NewRepo(conn)
+	set := sql.NullString{String: "equity", Valid: true}
+	unset := sql.NullString{}
+	check := func(name string, got, want sql.NullString) {
+		t.Helper()
+		if got != want {
+			t.Errorf("%s: AssetClass = %+v, want %+v", name, got, want)
+		}
+	}
+
+	withClass, err := repo.Get(ctx, 1)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	check("Get", withClass.AssetClass, set)
+	fresh, err := repo.Get(ctx, 2)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	check("Get fresh", fresh.AssetClass, unset)
+
+	many, err := repo.ByIDs(ctx, []int64{1, 2})
+	if err != nil {
+		t.Fatalf("ByIDs: %v", err)
+	}
+	check("ByIDs", many[1].AssetClass, set)
+	check("ByIDs fresh", many[2].AssetClass, unset)
+
+	bySymbol, err := repo.BySymbol(ctx, "BIST", "THYAO")
+	if err != nil {
+		t.Fatalf("BySymbol: %v", err)
+	}
+	check("BySymbol", bySymbol.AssetClass, set)
+
+	all, err := repo.All(ctx, "BIST")
+	if err != nil || len(all) != 1 {
+		t.Fatalf("All = %+v, %v; want THYAO", all, err)
+	}
+	check("All", all[0].AssetClass, set)
+
+	tracked, err := repo.Tracked(ctx, "BIST")
+	if err != nil || len(tracked) != 1 {
+		t.Fatalf("Tracked = %+v, %v; want THYAO", tracked, err)
+	}
+	check("Tracked", tracked[0].AssetClass, set)
+
+	found, err := repo.Search(ctx, "THYAO", 5)
+	if err != nil || len(found) != 1 {
+		t.Fatalf("Search = %+v, %v; want THYAO", found, err)
+	}
+	check("Search", found[0].AssetClass, set)
+	foundFresh, err := repo.Search(ctx, "AAPL", 5)
+	if err != nil || len(foundFresh) != 1 {
+		t.Fatalf("Search = %+v, %v; want AAPL", foundFresh, err)
+	}
+	check("Search fresh", foundFresh[0].AssetClass, unset)
+}
