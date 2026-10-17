@@ -580,7 +580,7 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 		in.fxw.advance(dayStr)
 		currentRates := in.fxw.rates
 		if bm.code != "" {
-			s.benchmarkPrices = append(s.benchmarkPrices, in.benchmarkPrice(bm.instrumentID, dayIdx, latest, currentRates))
+			s.benchmarkPrices = append(s.benchmarkPrices, in.benchmarkPrice(bm.instrumentID, from.Format(time.DateOnly), dayStr, dayIdx, latest, currentRates))
 		}
 
 		// Same conversion path as the totals, so a flow uses the rate its
@@ -641,22 +641,25 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 
 // benchmarkPrice is P_i for day dayIdx: the benchmark's level in the
 // reporting currency, 0 with no rate yet. benchmarkInstrument is the
-// instrument:<id> id, 0 for the other benchmarks; latest is the closes
-// the valuation uses.
-func (in *sweepInputs) benchmarkPrice(benchmarkInstrument int64, dayIdx int, latest map[int64]decimal.Decimal, rates map[string]decimal.Decimal) float64 {
+// instrument:<id> id, 0 for the other benchmarks; from and day are the
+// range's first date and today's; latest is the closes the valuation uses.
+func (in *sweepInputs) benchmarkPrice(benchmarkInstrument int64, from, day string, dayIdx int, latest map[int64]decimal.Decimal, rates map[string]decimal.Decimal) float64 {
 	level := 1.0
 	if in.levels != nil {
 		level = in.levels[dayIdx]
 	}
 	if benchmarkInstrument != 0 {
-		// The close the valuation uses, zero before
-		// the first one. latest carries forward.
-		// shortcut: a split inside the range shows as a drop in
-		// the benchmark, since the carried close is not
-		// back-adjusted (funds and gold have no splits). Upgrade
-		// path: scale the shadow units by splitsOf[id] on each
-		// ex-date.
-		level = latest[benchmarkInstrument].InexactFloat64()
+		// The close the valuation uses, zero before the first one;
+		// latest carries forward. It is in the day's terms, so the
+		// shares of a fixed holding grow by each in-range split's
+		// ratio: a split is not a loss.
+		units := decimal.NewFromInt(1)
+		for _, sp := range in.splitsOf[benchmarkInstrument] {
+			if sp.Date > from && sp.Date <= day {
+				units = units.Mul(sp.Ratio)
+			}
+		}
+		level = units.Mul(latest[benchmarkInstrument]).InexactFloat64()
 	}
 	if f, ok := holdings.Factor(rates, in.benchmarkCurrency, in.reporting); ok {
 		return level * f.InexactFloat64()

@@ -1992,6 +1992,79 @@ func TestPortfolioHistoryInstrumentBenchmark(t *testing.T) {
 	})
 }
 
+// TestPortfolioHistoryInstrumentBenchmarkSplit checks that a split of the
+// benchmark instrument is not a loss: the unadjusted close halves on the
+// ex-date of a 2-for-1 split (100, 100, 50, 55), and the benchmark series
+// must stay flat across it, then follow the 50 -> 55 move.
+func TestPortfolioHistoryInstrumentBenchmarkSplit(t *testing.T) {
+	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+	ctx := context.Background()
+
+	res, err := conn.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES ('SPLT', 'BIST', 'SPLT', 'TRY')`)
+	if err != nil {
+		t.Fatalf("insert instrument: %v", err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		t.Fatalf("instrument id: %v", err)
+	}
+	usr, err := user.NewRepo(conn).Create(ctx, "benchmark-split@example.com", "hash")
+	if err != nil {
+		t.Fatalf("users.Create: %v", err)
+	}
+	session, err := auth.NewRepo(conn).CreateSession(ctx, usr.ID)
+	if err != nil {
+		t.Fatalf("sessions.CreateSession: %v", err)
+	}
+	pf, err := portfolio.NewRepo(conn).Create(ctx, usr.ID, "Test")
+	if err != nil {
+		t.Fatalf("portfolios.Create: %v", err)
+	}
+	d := decimal.RequireFromString
+	transactions := transaction.NewRepo(conn)
+	for _, tx := range []transaction.Transaction{
+		{PortfolioID: pf.ID, Type: transaction.TypeDeposit, Date: "2024-01-01", Amount: d("1000"), Currency: "TRY"},
+		{PortfolioID: pf.ID, InstrumentID: &id, Type: transaction.TypeBuy, Date: "2024-01-01", Quantity: d("10"), Price: d("100"), Amount: d("1000"), Currency: "TRY"},
+	} {
+		if _, err := transactions.Create(ctx, usr.ID, tx); err != nil {
+			t.Fatalf("transactions.Create: %v", err)
+		}
+	}
+	for date, close := range map[string]string{"2024-01-01": "100", "2024-01-02": "100", "2024-01-03": "50", "2024-01-04": "55"} {
+		if err := price.NewRepo(conn).Upsert(ctx, id, date, close, "test"); err != nil {
+			t.Fatalf("prices.Upsert: %v", err)
+		}
+	}
+	if err := split.NewRepo(conn).Upsert(ctx, id, "2024-01-03", d("2"), "manual"); err != nil {
+		t.Fatalf("splits.Upsert: %v", err)
+	}
+
+	url := fmt.Sprintf("/api/portfolios/%d/history?from=2024-01-01&to=2024-01-04&benchmark=instrument:%d", pf.ID, id)
+	r := httptest.NewRequest(http.MethodGet, url, nil)
+	r.AddCookie(&http.Cookie{Name: "session", Value: session.ID})
+	rec := httptest.NewRecorder()
+	New(logger, conn, false, settings.NewRepo(conn, nil), nil).ServeHTTP(rec, r)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d; body: %s", rec.Code, rec.Body.String())
+	}
+	var got historyResponse
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	var values []string
+	for _, p := range got.Points {
+		values = append(values, p.BenchmarkValue)
+	}
+	if want := []string{"1000.00", "1000.00", "1000.00", "1100.00"}; !slices.Equal(values, want) {
+		t.Errorf("benchmark_value = %v, want %v", values, want)
+	}
+}
+
 // TestPortfolioHistoryAllScope checks the `all` scope against the
 // per-portfolio series. A buys X on day 1 and sells it all on day
 // 2; B's day-2 buy of X is saved first, so a lower id: one shared State in

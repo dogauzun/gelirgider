@@ -52,8 +52,9 @@ levels (index close, CPI level, gram price). `P_i` is the level converted with t
 `i`, the same conversion as `holdings.Convert`
 ([ADR 0003](0003-multi-currency-and-market-data-sources.md)). An instrument
 benchmark uses its price from the sweep's own series in its currency. Prices
-are not back-adjusted ([ADR 0008](0008-splits.md)), so a split inside the
-range shows as a drop.
+are not back-adjusted ([ADR 0008](0008-splits.md)), so the level is the price
+times a share count that starts at 1 and grows by the ratio on each split
+ex-date inside the range: a split is not a drop.
 
 A benchmark with no level on or before the range's first point is not shown
 for that range: its returns are `null` and there is no `benchmark_value`, even
