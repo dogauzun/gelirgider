@@ -14,6 +14,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/dogauzun/gelirgider/backend/internal/deposit"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/shopspring/decimal"
@@ -73,30 +74,69 @@ func LatestClose(fetched, manual map[int64]price.Price, id int64) (price.Price, 
 
 // LatestCloses loads, for each of ids, the latest fetched row and userID's
 // latest manual row dated on or before asOf and keeps the one LatestClose
-// picks. Ids with neither row are omitted.
+// picks. Ids with neither row are omitted. A deposit of userID's has no
+// stored prices: its close on asOf comes from its terms, dated asOf (not its
+// maturity date, so a matured deposit never reads as stale), and is omitted
+// before its start date.
 func LatestCloses(ctx context.Context, src PriceSources, userID int64, ids []int64, asOf string) (map[int64]price.Price, error) {
-	fetchedRows, err := src.Prices.Latest(ctx, ids, asOf)
+	deposits, priced, err := splitDeposits(ctx, src, userID, ids)
 	if err != nil {
 		return nil, err
 	}
-	manualRows, err := src.Manual.Latest(ctx, userID, ids, asOf)
+	fetchedRows, err := src.Prices.Latest(ctx, priced, asOf)
+	if err != nil {
+		return nil, err
+	}
+	manualRows, err := src.Manual.Latest(ctx, userID, priced, asOf)
 	if err != nil {
 		return nil, err
 	}
 	out := make(map[int64]price.Price, len(ids))
-	for _, id := range ids {
+	for _, id := range priced {
 		if won, ok := LatestClose(fetchedRows, manualRows, id); ok {
 			out[id] = won
+		}
+	}
+	for id, dep := range deposits {
+		if c, ok := deposit.Close(dep.Terms, asOf); ok {
+			out[id] = price.Price{InstrumentID: id, Date: asOf, Close: c, Source: deposit.Source}
 		}
 	}
 	return out, nil
 }
 
+// splitDeposits looks up which of ids are userID's deposits and returns them
+// with the remaining ids, in order.
+func splitDeposits(ctx context.Context, src PriceSources, userID int64, ids []int64) (map[int64]deposit.Deposit, []int64, error) {
+	if src.Deposits == nil {
+		return nil, ids, nil
+	}
+	deposits, err := src.Deposits.ByInstrumentIDs(ctx, userID, ids)
+	if err != nil {
+		return nil, nil, err
+	}
+	priced := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		if _, ok := deposits[id]; !ok {
+			priced = append(priced, id)
+		}
+	}
+	return deposits, priced, nil
+}
+
+// DepositLookup finds a user's term deposits by instrument id; an id that is
+// not the user's deposit is absent. *deposit.Repo satisfies it.
+type DepositLookup interface {
+	ByInstrumentIDs(ctx context.Context, userID int64, ids []int64) (map[int64]deposit.Deposit, error)
+}
+
 // PriceSources is what LatestCloses and MergedSeries read: the fetched closes
-// and the user's manual prices that override them.
+// and the user's manual prices that override them, and the user's deposits,
+// whose closes come from their terms. Deposits may be nil: no deposits.
 type PriceSources struct {
-	Prices *price.Repo
-	Manual *price.ManualRepo
+	Prices   *price.Repo
+	Manual   *price.ManualRepo
+	Deposits DepositLookup
 }
 
 // MergedSeries builds, for each of ids, the date-ascending series of its
@@ -104,8 +144,18 @@ type PriceSources struct {
 // still has one) followed by every row in [from, to], fetched and
 // userID's manual rows merged by MergeSeries. The seed is dated before
 // from, so it never duplicates a Range row. Every id has an entry, empty
-// when it has no price.
+// when it has no price. A deposit of userID's has no stored prices: its
+// series is its terms' close on each day from its start to its maturity,
+// with the seed when it had started by then.
 func MergedSeries(ctx context.Context, src PriceSources, userID int64, ids []int64, from, to time.Time) (map[int64][]price.Price, error) {
+	deposits, ids, err := splitDeposits(ctx, src, userID, ids)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[int64][]price.Price, len(ids)+len(deposits))
+	for id, dep := range deposits {
+		out[id] = depositSeries(id, dep.Terms, from, to)
+	}
 	seedAsOf := from.AddDate(0, 0, -1).Format(time.DateOnly)
 	fromStr, toStr := from.Format(time.DateOnly), to.Format(time.DateOnly)
 	fetchedSeed, err := src.Prices.Latest(ctx, ids, seedAsOf)
@@ -126,11 +176,27 @@ func MergedSeries(ctx context.Context, src PriceSources, userID int64, ids []int
 	}
 	fetched := seeded(fetchedSeed, fetchedRows)
 	manualByID := seeded(manualSeed, manualRows)
-	out := make(map[int64][]price.Price, len(ids))
 	for _, id := range ids {
 		out[id] = MergeSeries(fetched[id], manualByID[id])
 	}
 	return out, nil
+}
+
+// depositSeries is a deposit's closes: the seed dated the day before from
+// (when it had started by then, at its maturity value once matured), then
+// one row per day of [from, to] from its start to its maturity.
+func depositSeries(id int64, terms deposit.Terms, from, to time.Time) []price.Price {
+	rows := []price.Price{}
+	for day := from.AddDate(0, 0, -1); !day.After(to); day = day.AddDate(0, 0, 1) {
+		date := day.Format(time.DateOnly)
+		if !day.Before(from) && date > terms.MaturityDate {
+			break
+		}
+		if c, ok := deposit.Close(terms, date); ok {
+			rows = append(rows, price.Price{InstrumentID: id, Date: date, Close: c, Source: deposit.Source})
+		}
+	}
+	return rows
 }
 
 // seeded groups rows (sorted by instrument then date) per instrument, each

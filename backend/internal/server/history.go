@@ -508,7 +508,7 @@ func (h *historyHandler) loadSweepInputs(ctx context.Context, userID int64, txs 
 	// Each instrument's series, manual merged over fetched, led
 	// by its last price before the range, which the sweep consumes on
 	// day one, the same way the fx rates are seeded with fx.Latest.
-	in.pricesByInstrument, err = holdings.MergedSeries(ctx, holdings.PriceSources{Prices: h.prices, Manual: h.manualPrices}, userID, instrumentIDs, from, to)
+	in.pricesByInstrument, err = holdings.MergedSeries(ctx, h.priceSources(), userID, instrumentIDs, from, to)
 	if err != nil {
 		return nil, err
 	}

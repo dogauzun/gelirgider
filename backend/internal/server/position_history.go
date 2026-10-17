@@ -87,7 +87,7 @@ func (h *positionHistoryHandler) get(w http.ResponseWriter, r *http.Request) {
 	days := int(to.Sub(from).Hours()/24) + 1
 
 	// Same series as history.go builds per instrument (holdings.MergedSeries).
-	merged, err := holdings.MergedSeries(r.Context(), holdings.PriceSources{Prices: h.prices, Manual: h.manualPrices}, userID, []int64{instrumentID}, from, to)
+	merged, err := holdings.MergedSeries(r.Context(), h.priceSources(), userID, []int64{instrumentID}, from, to)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
