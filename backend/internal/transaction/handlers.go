@@ -229,9 +229,9 @@ func fromRequest(req Request) (Transaction, error) {
 		return Transaction{}, fmt.Errorf("date: %w", err)
 	}
 
+	var err error
 	fee := decimal.Zero
 	if req.Fee != nil && *req.Fee != "" {
-		var err error
 		if fee, err = parseNonNegativeDecimal(req.Fee); err != nil {
 			return Transaction{}, fmt.Errorf("fee: %w", err)
 		}
@@ -239,74 +239,96 @@ func fromRequest(req Request) (Transaction, error) {
 
 	t := Transaction{Type: req.Type, Date: req.Date, Fee: fee}
 	if req.Note != nil {
-		// Trim first so surrounding whitespace neither counts against the
-		// limit nor gets stored as an empty-looking note.
-		note := strings.TrimSpace(*req.Note)
-		if utf8.RuneCountInString(note) > maxNoteLen {
-			return Transaction{}, fmt.Errorf("note: must be at most %d characters", maxNoteLen)
+		if t.Note, err = parseNote(*req.Note); err != nil {
+			return Transaction{}, err
 		}
-		// Same rule as portfolio names: the note is a
-		// single line in the UI, so tabs and newlines go too. A non-empty
-		// note with no visible rune (only combining marks) renders blank,
-		// which is refused for names too; an empty note is fine.
-		if textcheck.HasInvisible(note) || note != "" && !strings.ContainsFunc(note, textcheck.IsVisible) {
-			return Transaction{}, fmt.Errorf("note: must not contain control characters")
-		}
-		t.Note = note
 	}
 
 	switch req.Type {
 	case TypeBuy, TypeSell:
-		if err := fillTrade(req, &t); err != nil {
-			return Transaction{}, err
-		}
+		err = fillTrade(req, &t)
 	default: // dividend, deposit, withdrawal, fee
-		// A dividend with no instrument is interest income, like Midas's
-		// monthly nema: cash in that is not a contribution. It
-		// takes its currency like a deposit; one with an instrument gets the
-		// instrument's in FromRequest.
-		if req.InstrumentID != nil && req.Type != TypeDividend {
-			return Transaction{}, fmt.Errorf("instrument_id: not allowed for %s", req.Type)
-		}
-		amount, err := parsePositiveDecimal(req.Amount)
-		if err != nil {
-			return Transaction{}, fmt.Errorf("amount: %w", err)
-		}
-		t.Amount = amount
-		if req.InstrumentID != nil {
-			t.InstrumentID = req.InstrumentID
-			break
-		}
+		err = fillCash(req, &t)
+	}
+	if err != nil {
+		return Transaction{}, err
+	}
+	if err := checkFee(req.Type, fee, t.Amount); err != nil {
+		return Transaction{}, err
+	}
+	return t, nil
+}
 
-		currency := "TRY"
-		if req.Currency != nil && *req.Currency != "" {
-			currency = *req.Currency
-		}
-		if !IsValidCurrency(currency) {
-			return Transaction{}, fmt.Errorf("currency: must be one of %s", strings.Join(ValidCurrencies, ", "))
-		}
-		t.Currency = currency
+// parseNote trims and validates a transaction note.
+func parseNote(raw string) (string, error) {
+	// Trim first so surrounding whitespace neither counts against the
+	// limit nor gets stored as an empty-looking note.
+	note := strings.TrimSpace(raw)
+	if utf8.RuneCountInString(note) > maxNoteLen {
+		return "", fmt.Errorf("note: must be at most %d characters", maxNoteLen)
+	}
+	// Same rule as portfolio names: the note is a
+	// single line in the UI, so tabs and newlines go too. A non-empty
+	// note with no visible rune (only combining marks) renders blank,
+	// which is refused for names too; an empty note is fine.
+	if textcheck.HasInvisible(note) || note != "" && !strings.ContainsFunc(note, textcheck.IsVisible) {
+		return "", fmt.Errorf("note: must not contain control characters")
+	}
+	return note, nil
+}
+
+// fillCash validates the instrument, amount and currency of the dividend,
+// deposit, withdrawal or fee req and sets them on t.
+func fillCash(req Request, t *Transaction) error {
+	// A dividend with no instrument is interest income, like Midas's
+	// monthly nema: cash in that is not a contribution. It
+	// takes its currency like a deposit; one with an instrument gets the
+	// instrument's in FromRequest.
+	if req.InstrumentID != nil && req.Type != TypeDividend {
+		return fmt.Errorf("instrument_id: not allowed for %s", req.Type)
+	}
+	amount, err := parsePositiveDecimal(req.Amount)
+	if err != nil {
+		return fmt.Errorf("amount: %w", err)
+	}
+	t.Amount = amount
+	if req.InstrumentID != nil {
+		t.InstrumentID = req.InstrumentID
+		return nil
 	}
 
+	currency := "TRY"
+	if req.Currency != nil && *req.Currency != "" {
+		currency = *req.Currency
+	}
+	if !IsValidCurrency(currency) {
+		return fmt.Errorf("currency: must be one of %s", strings.Join(ValidCurrencies, ", "))
+	}
+	t.Currency = currency
+	return nil
+}
+
+// checkFee rejects a fee that makes no sense for the transaction type.
+func checkFee(typ string, fee, amount decimal.Decimal) error {
 	// For a dividend and a deposit the fee comes out of the amount, so a
 	// fee above the amount would book a negative one. A
 	// withdrawal is capped alongside them: its fee adds to the cash that
 	// leaves, and a fee larger than the withdrawal itself is a
 	// typo, not a movement. Buy and sell are excluded: there the fee adds
 	// to the cost, which may well exceed the amount.
-	switch req.Type {
+	switch typ {
 	case TypeDividend, TypeDeposit, TypeWithdrawal:
-		if fee.GreaterThan(t.Amount) {
-			return Transaction{}, fmt.Errorf("fee: must not exceed amount")
+		if fee.GreaterThan(amount) {
+			return fmt.Errorf("fee: must not exceed amount")
 		}
 	case TypeFee:
 		// A fee row's amount is the fee; a second fee on top of it has no
 		// meaning and would only double-charge cash.
 		if !fee.IsZero() {
-			return Transaction{}, fmt.Errorf("fee: must be 0 for a fee transaction")
+			return fmt.Errorf("fee: must be 0 for a fee transaction")
 		}
 	}
-	return t, nil
+	return nil
 }
 
 // fillTrade validates the instrument, quantity, price and amount of the buy
