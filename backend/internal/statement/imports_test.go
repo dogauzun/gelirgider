@@ -160,6 +160,32 @@ func TestDeletedImportIDNotReused(t *testing.T) {
 	}
 }
 
+// TestCommitSamePeriod: a CSV has no printed period, so a re-export of an
+// edited portfolio spans the same dates under a new hash and must commit,
+// where a statement regenerated for the same period is refused.
+func TestCommitSamePeriod(t *testing.T) {
+	for _, c := range []struct {
+		broker  string
+		wantErr error
+	}{{"csv", nil}, {"midas", ErrSamePeriod}} {
+		t.Run(c.broker, func(t *testing.T) {
+			repo := openTestDB(t)
+			ctx := context.Background()
+			n := NewImport{UserID: 1, PortfolioID: 1, Broker: c.broker, PeriodStart: "2026-01-01", PeriodEnd: "2026-01-31", SHA256: "abc"}
+			first := transaction.Transaction{PortfolioID: 1, Type: "deposit", Date: "2026-01-02", Amount: decimal.NewFromInt(100), Currency: "TRY"}
+			if _, err := repo.Commit(ctx, n, []transaction.Transaction{first}, nil, nil); err != nil {
+				t.Fatalf("Commit first: %v", err)
+			}
+			n.SHA256 = "def"
+			second := first
+			second.Amount = decimal.NewFromInt(200)
+			if _, err := repo.Commit(ctx, n, []transaction.Transaction{second}, nil, nil); !errors.Is(err, c.wantErr) {
+				t.Fatalf("Commit second over the same period: got %v, want %v", err, c.wantErr)
+			}
+		})
+	}
+}
+
 func TestOverlapping(t *testing.T) {
 	repo := openTestDB(t)
 	ctx := context.Background()

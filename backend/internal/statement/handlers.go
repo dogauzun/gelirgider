@@ -2091,7 +2091,7 @@ func (h *handler) soleMatch(ctx context.Context, s *lookupSession, markets []str
 // legitimate (ADR 0006). The other currency's statement of it is the other
 // account and gets no warning at all. The same statement again is
 // flagged as same_period, which the commit refuses until the earlier import
-// is undone.
+// is undone, except for a CSV.
 func (h *handler) overlapWarnings(ctx context.Context, userID, portfolioID int64, broker string, st Statement) ([]warning, error) {
 	overlapping, err := h.imports.Overlapping(ctx, userID, portfolioID, broker, st.PeriodStart, st.PeriodEnd)
 	if err != nil {
