@@ -142,8 +142,6 @@ type historyResponse struct {
 //	@Failure	404	{object}	object{error=string}	"portfolio not found"
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/history [get]
-//
-//nolint:dupl // positionHistoryHandler.get copies the from/to rules on purpose, see its ponytail comment
 func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 	userID := auth.MustUserID(r.Context())
 	// One list per portfolio in scope: a numeric id or "all".
@@ -170,62 +168,8 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	today := istanbulToday()
-	to := today
-	if q := r.URL.Query().Get("to"); q != "" {
-		to, err = time.Parse(time.DateOnly, q)
-		if err != nil {
-			auth.WriteError(w, http.StatusBadRequest, "to must be YYYY-MM-DD")
-			return
-		}
-		// A future `to` would draw made-up flat points past today and,
-		// with no `from`, push the real history out of the default window.
-		// Clamp rather than reject: a client whose clock is
-		// ahead of Istanbul still gets its chart. A `from` after today is
-		// then after `to` and gets the 400 below.
-		if to.After(today) {
-			to = today
-		}
-	}
-
-	var from time.Time
-	explicitFrom := r.URL.Query().Get("from") != ""
-	if explicitFrom {
-		from, err = time.Parse(time.DateOnly, r.URL.Query().Get("from"))
-		if err != nil {
-			auth.WriteError(w, http.StatusBadRequest, "from must be YYYY-MM-DD")
-			return
-		}
-		// A range opening before the first transaction would draw zeros up
-		// to it and weigh the first deposit as a mid-range flow, inflating
-		// the range return. Start at the first transaction
-		// instead, unless that is after `to` too.
-		if len(txs) > 0 {
-			first, err := time.Parse(time.DateOnly, txs[0].Date)
-			if err != nil {
-				auth.WriteInternalError(w, r, err)
-				return
-			}
-			if first.After(from) && !first.After(to) {
-				from = first
-			}
-		}
-	} else if len(txs) > 0 {
-		from, err = defaultHistoryFrom(txs, to)
-		if err != nil {
-			auth.WriteInternalError(w, r, err)
-			return
-		}
-	} else {
-		from = to
-	}
-
-	if from.After(to) {
-		auth.WriteError(w, http.StatusBadRequest, "from must not be after to")
-		return
-	}
-	if days := int(to.Sub(from).Hours()/24) + 1; explicitFrom && days > maxHistoryDays {
-		auth.WriteError(w, http.StatusBadRequest, "range exceeds 3660 days")
+	from, to, ok := historyRange(w, r, txs)
+	if !ok {
 		return
 	}
 
@@ -238,6 +182,90 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 	last := len(entries) - 1
 	values, flows, external, negativeCash := s.rangeInputs(0, last)
 
+	netFlow := s.netFlow(external)
+
+	var benchmark *benchmarkResponse
+	if benchmarkCode != "" {
+		benchmark = s.benchmarkSeries(benchmarkCode, flows, negativeCash)
+	}
+
+	returns := periodReturns(values, flows, negativeCash)
+	for i, twr := range twrPoints(values, flows, returns.TWR) {
+		entries[i].TWR = twr
+	}
+
+	auth.WriteJSON(w, http.StatusOK, historyResponse{Currency: s.currency, Points: entries, MissingRates: s.missingRates, MissingPrices: s.missingPrices, NetFlow: netFlow.StringFixed(2), Returns: returns, Benchmark: benchmark})
+}
+
+// historyRange resolves the ?from= and ?to= of a daily series over txs (the
+// scope's rows by date): to defaults to today and is clamped to it, from
+// defaults to the first transaction (at most maxHistoryDays back). It writes
+// the error response itself and returns ok false when the range is bad.
+func historyRange(w http.ResponseWriter, r *http.Request, txs []transaction.Transaction) (from, to time.Time, ok bool) {
+	var err error
+	today := istanbulToday()
+	to = today
+	if q := r.URL.Query().Get("to"); q != "" {
+		to, err = time.Parse(time.DateOnly, q)
+		if err != nil {
+			auth.WriteError(w, http.StatusBadRequest, "to must be YYYY-MM-DD")
+			return from, to, false
+		}
+		// A future `to` would draw made-up flat points past today and,
+		// with no `from`, push the real history out of the default window.
+		// Clamp rather than reject: a client whose clock is
+		// ahead of Istanbul still gets its chart. A `from` after today is
+		// then after `to` and gets the 400 below.
+		if to.After(today) {
+			to = today
+		}
+	}
+
+	explicitFrom := r.URL.Query().Get("from") != ""
+	if explicitFrom {
+		from, err = time.Parse(time.DateOnly, r.URL.Query().Get("from"))
+		if err != nil {
+			auth.WriteError(w, http.StatusBadRequest, "from must be YYYY-MM-DD")
+			return from, to, false
+		}
+		// A range opening before the first transaction would draw zeros up
+		// to it and weigh the first deposit as a mid-range flow, inflating
+		// the range return. Start at the first transaction
+		// instead, unless that is after `to` too.
+		if len(txs) > 0 {
+			first, err := time.Parse(time.DateOnly, txs[0].Date)
+			if err != nil {
+				auth.WriteInternalError(w, r, err)
+				return from, to, false
+			}
+			if first.After(from) && !first.After(to) {
+				from = first
+			}
+		}
+	} else if len(txs) > 0 {
+		from, err = defaultHistoryFrom(txs, to)
+		if err != nil {
+			auth.WriteInternalError(w, r, err)
+			return from, to, false
+		}
+	} else {
+		from = to
+	}
+
+	if from.After(to) {
+		auth.WriteError(w, http.StatusBadRequest, "from must not be after to")
+		return from, to, false
+	}
+	if days := int(to.Sub(from).Hours()/24) + 1; explicitFrom && days > maxHistoryDays {
+		auth.WriteError(w, http.StatusBadRequest, "range exceeds 3660 days")
+		return from, to, false
+	}
+	return from, to, true
+}
+
+// netFlow is the history response's net_flow, from the external flows of
+// the whole range (rangeInputs).
+func (s *historySweep) netFlow(external []decimal.Decimal) decimal.Decimal {
 	// net_flow is read against the points' rounded total_value, so each
 	// day's flow is added as the step it makes in the rounded total:
 	// round(total) - round(total - flow). Rounding the sum once can miss
@@ -247,30 +275,28 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 	for i, flow := range external {
 		netFlow = netFlow.Add(s.totals[i].Round(2).Sub(s.totals[i].Sub(flow).Round(2)))
 	}
+	return netFlow
+}
 
-	var benchmark *benchmarkResponse
-	if benchmarkCode != "" {
-		benchmark = &benchmarkResponse{Code: benchmarkCode}
-		if shadow, returns, ok := s.rangeBenchmark(0, last, flows, negativeCash); ok {
-			for i, v := range shadow {
-				entries[i].BenchmarkValue = decimal.NewFromFloat(v).StringFixed(2)
-			}
-			benchmark.Returns = returns
-			for i, twr := range twrPoints(shadow, flows, returns.TWR) {
-				entries[i].BenchmarkTWR = twr
-			}
-			if s.estimatedFrom != "" {
-				benchmark.EstimatedFrom = &s.estimatedFrom
-			}
+// benchmarkSeries is the history response's benchmark block for the whole
+// range, given its flows and negativeCash from rangeInputs; it also fills
+// the benchmark value and twr of the entries. The block carries no returns
+// when the benchmark has no level on a day of the range.
+func (s *historySweep) benchmarkSeries(code string, flows []float64, negativeCash bool) *benchmarkResponse {
+	benchmark := &benchmarkResponse{Code: code}
+	if shadow, returns, ok := s.rangeBenchmark(0, len(s.entries)-1, flows, negativeCash); ok {
+		for i, v := range shadow {
+			s.entries[i].BenchmarkValue = decimal.NewFromFloat(v).StringFixed(2)
+		}
+		benchmark.Returns = returns
+		for i, twr := range twrPoints(shadow, flows, returns.TWR) {
+			s.entries[i].BenchmarkTWR = twr
+		}
+		if s.estimatedFrom != "" {
+			benchmark.EstimatedFrom = &s.estimatedFrom
 		}
 	}
-
-	returns := periodReturns(values, flows, negativeCash)
-	for i, twr := range twrPoints(values, flows, returns.TWR) {
-		entries[i].TWR = twr
-	}
-
-	auth.WriteJSON(w, http.StatusOK, historyResponse{Currency: s.currency, Points: entries, MissingRates: s.missingRates, MissingPrices: s.missingPrices, NetFlow: netFlow.StringFixed(2), Returns: returns, Benchmark: benchmark})
+	return benchmark
 }
 
 // parseBenchmark validates a ?benchmark= value: "" (none), a fixed code of
@@ -390,20 +416,38 @@ type benchmarkRef struct {
 	instrumentID int64
 }
 
-// sweep walks txs (every portfolio's rows, flatByDate) day by day from
-// `from` to `to`, with bm's shadow series alongside.
-func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transaction.Transaction, from, to time.Time, bm benchmarkRef) (*historySweep, error) {
+// sweepInputs is what sweep loads before its day loop, from the repos: the
+// price series and splits, the instrument lookups, the user's reporting
+// currency, the fx walk and the benchmark levels.
+type sweepInputs struct {
+	pricesByInstrument map[int64][]price.Price
+	splitsOf           map[int64][]split.Split
+	currencyOf         map[int64]string
+	symbolOf           map[int64]string
+	reporting          string
+	benchmarkCurrency  string
+	fxw                *fxWalk
+	// levels is nil without a benchmark and for the benchmarks whose level
+	// the sweep derives itself (see benchmarkLevels).
+	levels        []float64
+	estimatedFrom string
+}
+
+// loadSweepInputs loads everything sweep reads from the repos, for the
+// instruments in txs over from..to.
+func (h *historyHandler) loadSweepInputs(ctx context.Context, userID int64, txs []transaction.Transaction, from, to time.Time, bm benchmarkRef) (*sweepInputs, error) {
 	benchmarkCode, benchmarkInstrument := bm.code, bm.instrumentID
 	instrumentIDs := distinctInstrumentIDs(txs)
-	days := int(to.Sub(from).Hours()/24) + 1
+	in := &sweepInputs{}
+	var err error
 	// Each instrument's series, manual merged over fetched, led
-	// by its last price before the range, which the sweep below consumes on
+	// by its last price before the range, which the sweep consumes on
 	// day one, the same way the fx rates are seeded with fx.Latest.
-	pricesByInstrument, err := holdings.MergedSeries(ctx, holdings.PriceSources{Prices: h.prices, Manual: h.manualPrices}, userID, instrumentIDs, from, to)
+	in.pricesByInstrument, err = holdings.MergedSeries(ctx, holdings.PriceSources{Prices: h.prices, Manual: h.manualPrices}, userID, instrumentIDs, from, to)
 	if err != nil {
 		return nil, err
 	}
-	splitsOf, err := h.splits.ListMany(ctx, instrumentIDs)
+	in.splitsOf, err = h.splits.ListMany(ctx, instrumentIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -412,29 +456,29 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 	if err != nil {
 		return nil, err
 	}
-	currencyOf := make(map[int64]string, len(instrumentIDs))
-	symbolOf := make(map[int64]string, len(instrumentIDs))
+	in.currencyOf = make(map[int64]string, len(instrumentIDs))
+	in.symbolOf = make(map[int64]string, len(instrumentIDs))
 	for id, instr := range instruments {
-		currencyOf[id] = instr.Currency
-		symbolOf[id] = instr.Symbol
+		in.currencyOf[id] = instr.Currency
+		in.symbolOf[id] = instr.Symbol
 	}
-	benchmarkCurrency := benchmarkCurrencies[benchmarkCode]
+	in.benchmarkCurrency = benchmarkCurrencies[benchmarkCode]
 	if benchmarkInstrument != 0 {
-		benchmarkCurrency = currencyOf[benchmarkInstrument]
+		in.benchmarkCurrency = in.currencyOf[benchmarkInstrument]
 	}
 
 	usr, err := h.users.GetByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	reporting := usr.ReportingCurrency
+	in.reporting = usr.ReportingCurrency
 
 	// fxCurrencySet is every currency that could appear in a day's
 	// conversion: currencies held (instrument or cash, via tx.Currency,
 	// which already covers cash-only rows with no instrument); loadFXWalk
 	// adds reporting and drops TRY.
 	fxCurrencySet := map[string]bool{}
-	for _, c := range currencyOf {
+	for _, c := range in.currencyOf {
 		fxCurrencySet[c] = true
 	}
 	for _, t := range txs {
@@ -442,15 +486,31 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 	}
 	// The benchmark's rate is walked even when nothing held uses it.
 	if benchmarkCode != "" {
-		fxCurrencySet[benchmarkCurrency] = true
+		fxCurrencySet[in.benchmarkCurrency] = true
 	}
-	fxw, err := loadFXWalk(ctx, h.fx, fxCurrencySet, reporting, from.Format(time.DateOnly), to.Format(time.DateOnly))
+	in.fxw, err = loadFXWalk(ctx, h.fx, fxCurrencySet, in.reporting, from.Format(time.DateOnly), to.Format(time.DateOnly))
 	if err != nil {
 		return nil, err
 	}
+	if benchmarkCode != "" {
+		in.levels, in.estimatedFrom, err = benchmarkLevels(ctx, h.benchmarks, benchmarkCode, from, to)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return in, nil
+}
 
+// sweep walks txs (every portfolio's rows, flatByDate) day by day from
+// `from` to `to`, with bm's shadow series alongside.
+func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transaction.Transaction, from, to time.Time, bm benchmarkRef) (*historySweep, error) {
+	in, err := h.loadSweepInputs(ctx, userID, txs, from, to, bm)
+	if err != nil {
+		return nil, err
+	}
+	days := int(to.Sub(from).Hours()/24) + 1
 	s := &historySweep{
-		currency:     reporting,
+		currency:     in.reporting,
 		entries:      make([]historyEntry, 0, days),
 		totals:       make([]decimal.Decimal, 0, days),
 		values:       make([]float64, 0, days),
@@ -458,6 +518,10 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 		unpriced:     make([][]int64, 0, days),
 		firstPrice:   map[int64]priceJump{},
 		negativeCash: make([]bool, 0, days),
+	}
+	if bm.code != "" {
+		s.benchmarkPrices = make([]float64, 0, days)
+		s.estimatedFrom = in.estimatedFrom
 	}
 	missingSet := map[string]bool{}
 	missingPriceSet := map[string]bool{}
@@ -474,14 +538,6 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 	// including those dated on or before the first point (their cash is
 	// only inside that point if it converted there).
 	carriedFlow := map[string]decimal.Decimal{}
-	var levels []float64
-	if benchmarkCode != "" {
-		s.benchmarkPrices = make([]float64, 0, days)
-		levels, s.estimatedFrom, err = benchmarkLevels(ctx, h.benchmarks, benchmarkCode, from, to)
-		if err != nil {
-			return nil, err
-		}
-	}
 	for day := from; !day.After(to); day = day.AddDate(0, 0, 1) {
 		dayStr := day.Format(time.DateOnly)
 		dayIdx := len(s.entries)
@@ -490,34 +546,16 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 		// Converted below, after this day's fx rates are in, so a flow uses
 		// the same rate the same day's totals do.
 		var dayFlow map[string]decimal.Decimal
-		txIdx, dayFlow = applyThrough(txs, txIdx, dayStr, states, currencyOf)
+		txIdx, dayFlow = applyThrough(txs, txIdx, dayStr, states, in.currencyOf)
 
 		// firstPriced is the instruments whose first price lands today.
 		// Day 0's never count: no range holds them unpriced before it.
-		firstPriced := advancePrices(pricesByInstrument, priceIdx, latest, splitsOf, dayStr, dayIdx > 0)
+		firstPriced := advancePrices(in.pricesByInstrument, priceIdx, latest, in.splitsOf, dayStr, dayIdx > 0)
 
-		fxw.advance(dayStr)
-		currentRates := fxw.rates
-		if benchmarkCode != "" {
-			level := 1.0
-			if levels != nil {
-				level = levels[dayIdx]
-			}
-			if benchmarkInstrument != 0 {
-				// The close the valuation uses, zero before
-				// the first one. latest carries forward.
-				// ponytail: a split inside the range shows as a drop in
-				// the benchmark, since the carried close is not
-				// back-adjusted (funds and gold have no splits). Upgrade
-				// path: scale the shadow units by splitsOf[id] on each
-				// ex-date.
-				level = latest[benchmarkInstrument].InexactFloat64()
-			}
-			p := 0.0
-			if f, ok := holdings.Factor(currentRates, benchmarkCurrency, reporting); ok {
-				p = level * f.InexactFloat64()
-			}
-			s.benchmarkPrices = append(s.benchmarkPrices, p)
+		in.fxw.advance(dayStr)
+		currentRates := in.fxw.rates
+		if bm.code != "" {
+			s.benchmarkPrices = append(s.benchmarkPrices, in.benchmarkPrice(bm.instrumentID, dayIdx, latest, currentRates))
 		}
 
 		// Same conversion path as the totals, so a flow uses the rate its
@@ -532,7 +570,7 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 		}
 		converted := decimal.Zero
 		if len(carriedFlow) > 0 {
-			converted, carriedFlow = convertCarried(carriedFlow, currentRates, reporting)
+			converted, carriedFlow = convertCarried(carriedFlow, currentRates, in.reporting)
 		}
 
 		// ponytail: the sweep is now O(txs + days * instruments) -- the
@@ -543,32 +581,11 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 		// fields read below: a Summarize and a Merge per day cost the `all`
 		// sweep over a second on ten years.
 		summary := holdings.SummarizeAll(slices.Collect(maps.Values(states)), latest)
-		totals := holdings.Convert(summary, currentRates, reporting)
+		totals := holdings.Convert(summary, currentRates, in.reporting)
 		for _, currency := range totals.Missing {
 			missingSet[currency] = true
 		}
-		priceUnknown := false
-		var unpriced []int64
-		for _, p := range summary.Positions {
-			if !p.HasPrice {
-				priceUnknown = true
-				missingPriceSet[symbolOf[p.InstrumentID]] = true
-				unpriced = append(unpriced, p.InstrumentID)
-				continue
-			}
-			// ponytail: the whole first-price jump is taken out, including
-			// the gain on shares bought inside the range before that first
-			// price; splitting it would need a price at each of those buys.
-			if slices.Contains(firstPriced, p.InstrumentID) {
-				// No rate: zero, as the position is also left out of
-				// total_value today.
-				jump := decimal.Zero
-				if f, ok := holdings.Factor(currentRates, p.Currency, reporting); ok {
-					jump = p.UnrealizedPL.Mul(f)
-				}
-				s.firstPrice[p.InstrumentID] = priceJump{day: dayIdx, amount: jump}
-			}
-		}
+		unpriced := s.scanPositions(in, summary.Positions, currentRates, dayIdx, firstPriced, missingPriceSet)
 		// CostBasis isn't a Totals field, but MarketValue - CostBasis =
 		// UnrealizedPL per position and Convert's factor is linear, so the
 		// identity holds after conversion too: derive it instead of
@@ -585,7 +602,7 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 			TotalValue:   totals.TotalValue.StringFixed(2),
 			Cash:         totals.Cash.StringFixed(2),
 			CostBasis:    costBasis.StringFixed(2),
-			PriceUnknown: priceUnknown,
+			PriceUnknown: len(unpriced) > 0,
 		})
 	}
 
@@ -595,6 +612,57 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 	s.missingPrices = slices.AppendSeq(make([]string, 0, len(missingPriceSet)), maps.Keys(missingPriceSet))
 	slices.Sort(s.missingPrices)
 	return s, nil
+}
+
+// benchmarkPrice is P_i for day dayIdx: the benchmark's level in the
+// reporting currency, 0 with no rate yet. benchmarkInstrument is the
+// instrument:<id> id, 0 for the other benchmarks; latest is the closes
+// the valuation uses.
+func (in *sweepInputs) benchmarkPrice(benchmarkInstrument int64, dayIdx int, latest map[int64]decimal.Decimal, rates map[string]decimal.Decimal) float64 {
+	level := 1.0
+	if in.levels != nil {
+		level = in.levels[dayIdx]
+	}
+	if benchmarkInstrument != 0 {
+		// The close the valuation uses, zero before
+		// the first one. latest carries forward.
+		// ponytail: a split inside the range shows as a drop in
+		// the benchmark, since the carried close is not
+		// back-adjusted (funds and gold have no splits). Upgrade
+		// path: scale the shadow units by splitsOf[id] on each
+		// ex-date.
+		level = latest[benchmarkInstrument].InexactFloat64()
+	}
+	if f, ok := holdings.Factor(rates, in.benchmarkCurrency, in.reporting); ok {
+		return level * f.InexactFloat64()
+	}
+	return 0
+}
+
+// scanPositions lists the instruments held without a price on the day
+// (recording their symbols in missingPrices) and records in s.firstPrice
+// the jump of each one of firstPriced whose first price lands today.
+func (s *historySweep) scanPositions(in *sweepInputs, positions []holdings.Position, rates map[string]decimal.Decimal, dayIdx int, firstPriced []int64, missingPrices map[string]bool) (unpriced []int64) {
+	for _, p := range positions {
+		if !p.HasPrice {
+			missingPrices[in.symbolOf[p.InstrumentID]] = true
+			unpriced = append(unpriced, p.InstrumentID)
+			continue
+		}
+		// ponytail: the whole first-price jump is taken out, including
+		// the gain on shares bought inside the range before that first
+		// price; splitting it would need a price at each of those buys.
+		if slices.Contains(firstPriced, p.InstrumentID) {
+			// No rate: zero, as the position is also left out of
+			// total_value today.
+			jump := decimal.Zero
+			if f, ok := holdings.Factor(rates, p.Currency, in.reporting); ok {
+				jump = p.UnrealizedPL.Mul(f)
+			}
+			s.firstPrice[p.InstrumentID] = priceJump{day: dayIdx, amount: jump}
+		}
+	}
+	return unpriced
 }
 
 // applyThrough applies txs from index i on, up to the last one dated on or

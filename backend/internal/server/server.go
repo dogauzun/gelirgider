@@ -293,45 +293,19 @@ func newOnDemandFetch(d *deps, backfills *backfillQueue) transaction.OnDemandFet
 		}
 
 		if on && in.Market == "BIST" {
-			latest, err := prices.Latest(ctx, []int64{in.ID}, price.Today())
-			logFetchErr(ctx, err, "on-demand price fetch: check latest price failed", "instrument_id", in.ID)
-			if err == nil {
-				if _, hasPrice := latest[in.ID]; !hasPrice {
-					syncLatestBulletin(ctx, in, instruments, prices, d.bistFetcher)
-				}
-				sources = append(sources, bist.BulletinBackfillSource(d.bistFetcher, instruments, prices))
-			}
+			sources = append(sources, fetchBISTOnDemand(ctx, d, in)...)
 		}
 
 		if on && in.Market == "US" {
-			latest, err := prices.Latest(ctx, []int64{in.ID}, price.Today())
-			logFetchErr(ctx, err, "on-demand price fetch: check latest price failed", "instrument_id", in.ID)
-			if err == nil {
-				if _, hasPrice := latest[in.ID]; !hasPrice {
-					_, err := us.SyncOne(ctx, d.usFetcher, prices, in, time.Now())
-					logFetchErr(ctx, err, "on-demand us price fetch failed", "instrument_id", in.ID, "symbol", in.Symbol)
-				}
-				_, err := usSyncer.SyncHistory(ctx, in, date)
-				logFetchErr(ctx, err, "on-demand us history fetch failed", "instrument_id", in.ID, "symbol", in.Symbol)
-			}
+			fetchUSOnDemand(ctx, d, usSyncer, in, date)
 		}
 
 		// Gold runs on every save, after the instrument's own fetch so that
 		// one keeps the timeout budget: the GOLD benchmark needs the series
 		// whatever the transaction is. For a GOLD instrument "gold"
 		// is also on, so this is the GOLD/GRAM price fetch too.
-		// A ctx already done here was spent by the instrument's own fetch,
-		// which logged it if it timed out, or by an import's shared
-		// deadline: the gold fetch is skipped, not logged as an
-		// error per target.
 		if scheduler.Enabled(settingsCtx, settingsRepo, scheduler.NameGold, slog.Default()) {
-			if ctx.Err() != nil {
-				slog.Default().Debug("on-demand gold price fetch skipped",
-					"source", scheduler.NameGold, "date", date, "reason", ctx.Err().Error())
-			} else {
-				_, err := goldSyncer.SyncGoldHistory(ctx, date, time.Now())
-				logFetchErr(ctx, err, "on-demand gold price fetch failed", "source", scheduler.NameGold, "date", date)
-			}
+			fetchGoldOnDemand(ctx, goldSyncer, date)
 		}
 
 		if scheduler.Enabled(settingsCtx, settingsRepo, scheduler.NameTCMB, slog.Default()) {
@@ -339,6 +313,51 @@ func newOnDemandFetch(d *deps, backfills *backfillQueue) transaction.OnDemandFet
 		}
 		startBackfill(backfills, in, date, sources)
 	}
+}
+
+// fetchBISTOnDemand fetches in's latest bulletin when it has no price yet
+// and returns the bulletin backfill source for the caller to run; none when
+// the latest-price check failed.
+func fetchBISTOnDemand(ctx context.Context, d *deps, in instrument.Instrument) []bist.BackfillSource {
+	latest, err := d.prices.Latest(ctx, []int64{in.ID}, price.Today())
+	logFetchErr(ctx, err, "on-demand price fetch: check latest price failed", "instrument_id", in.ID)
+	if err != nil {
+		return nil
+	}
+	if _, hasPrice := latest[in.ID]; !hasPrice {
+		syncLatestBulletin(ctx, in, d.instruments, d.prices, d.bistFetcher)
+	}
+	return []bist.BackfillSource{bist.BulletinBackfillSource(d.bistFetcher, d.instruments, d.prices)}
+}
+
+// fetchUSOnDemand fetches in's latest price when it has none yet, then its
+// history from date.
+func fetchUSOnDemand(ctx context.Context, d *deps, usSyncer *us.Syncer, in instrument.Instrument, date string) {
+	latest, err := d.prices.Latest(ctx, []int64{in.ID}, price.Today())
+	logFetchErr(ctx, err, "on-demand price fetch: check latest price failed", "instrument_id", in.ID)
+	if err != nil {
+		return
+	}
+	if _, hasPrice := latest[in.ID]; !hasPrice {
+		_, err := us.SyncOne(ctx, d.usFetcher, d.prices, in, time.Now())
+		logFetchErr(ctx, err, "on-demand us price fetch failed", "instrument_id", in.ID, "symbol", in.Symbol)
+	}
+	_, err = usSyncer.SyncHistory(ctx, in, date)
+	logFetchErr(ctx, err, "on-demand us history fetch failed", "instrument_id", in.ID, "symbol", in.Symbol)
+}
+
+// fetchGoldOnDemand stores the gold history from date. A ctx already done
+// here was spent by the instrument's own fetch, which logged it if it timed
+// out, or by an import's shared deadline: the gold fetch is skipped, not
+// logged as an error per target.
+func fetchGoldOnDemand(ctx context.Context, goldSyncer *btcturk.GoldSyncer, date string) {
+	if ctx.Err() != nil {
+		slog.Default().Debug("on-demand gold price fetch skipped",
+			"source", scheduler.NameGold, "date", date, "reason", ctx.Err().Error())
+		return
+	}
+	_, err := goldSyncer.SyncGoldHistory(ctx, date, time.Now())
+	logFetchErr(ctx, err, "on-demand gold price fetch failed", "source", scheduler.NameGold, "date", date)
 }
 
 // marketSource maps an instrument market to the scheduler source whose
