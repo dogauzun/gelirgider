@@ -3,6 +3,7 @@ package auth
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -25,6 +26,8 @@ type totpEnv struct {
 	sessions *Repo
 	cfg      *settings.Repo
 	srv      http.Handler
+	conn     *sql.DB
+	codes    []string // the recovery codes the last enrol returned
 	userID   int64
 	cookie   string // the session making the requests
 	other    string // a second session of the same user
@@ -37,7 +40,7 @@ func newTOTPEnv(t *testing.T) *totpEnv {
 		t.Fatalf("db.Open: %v", err)
 	}
 	t.Cleanup(func() { conn.Close() })
-	e := &totpEnv{t: t, users: user.NewRepo(conn), sessions: NewRepo(conn), cfg: settings.NewRepo(conn, bytes.Repeat([]byte{1}, 32))}
+	e := &totpEnv{t: t, conn: conn, users: user.NewRepo(conn), sessions: NewRepo(conn), cfg: settings.NewRepo(conn, bytes.Repeat([]byte{1}, 32))}
 	hash, err := bcrypt.GenerateFromPassword([]byte("right-password"), bcrypt.MinCost)
 	if err != nil {
 		t.Fatalf("bcrypt: %v", err)
@@ -147,7 +150,7 @@ func TestTOTPEnrolment(t *testing.T) {
 		t.Fatalf("decode secret: %v", err)
 	}
 	step := time.Now().Unix() / totpStepSeconds
-	if rec := e.post("/api/account/totp/confirm", map[string]string{"code": totpCode(key, step)}); rec.Code != http.StatusNoContent {
+	if rec := e.post("/api/account/totp/confirm", map[string]string{"code": totpCode(key, step)}); rec.Code != http.StatusOK {
 		t.Fatalf("confirm = %d %s", rec.Code, rec.Body)
 	}
 	s := e.state()
@@ -183,9 +186,12 @@ func (e *totpEnv) enrol() (key []byte, step int64) {
 		e.t.Fatalf("decode secret: %v", err)
 	}
 	step = time.Now().Unix() / totpStepSeconds
-	if rec := e.post("/api/account/totp/confirm", map[string]string{"code": totpCode(key, step)}); rec.Code != http.StatusNoContent {
+	rec := e.post("/api/account/totp/confirm", map[string]string{"code": totpCode(key, step)})
+	var codes recoveryCodesResponse
+	if rec.Code != http.StatusOK || json.Unmarshal(rec.Body.Bytes(), &codes) != nil {
 		e.t.Fatalf("confirm = %d %s", rec.Code, rec.Body)
 	}
+	e.codes = codes.RecoveryCodes
 	return key, step
 }
 

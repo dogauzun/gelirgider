@@ -127,9 +127,12 @@ func (r *Repo) ResetPassword(ctx context.Context, id int64, passwordHash string)
 }
 
 // clearTOTP is the one place that wipes a user's TOTP state. It also drops
-// the user's login challenges: with no secret left, a code has nothing to be
-// checked against.
+// the user's login challenges and recovery codes: with no secret left, a code
+// has nothing to be checked against.
 func clearTOTP(ctx context.Context, tx *sql.Tx, id int64) error {
+	if _, err := tx.ExecContext(ctx, "DELETE FROM totp_recovery_codes WHERE user_id = ?", id); err != nil {
+		return fmt.Errorf("clear recovery codes: %w", err)
+	}
 	if _, err := tx.ExecContext(ctx, "DELETE FROM login_challenges WHERE user_id = ?", id); err != nil {
 		return fmt.Errorf("clear login challenges: %w", err)
 	}
@@ -201,12 +204,18 @@ func (r *Repo) SetTOTPPending(ctx context.Context, id int64, sealed string) erro
 	return ErrTOTPOn
 }
 
-// ConfirmTOTP turns the pending secret into the active one and records step
-// as the last accepted step, in one statement. pending is the sealed value
-// the caller verified the code against: a setup that replaced it meanwhile
-// gives ErrNoPendingTOTP, as does no pending secret or TOTP already on.
-func (r *Repo) ConfirmTOTP(ctx context.Context, id int64, pending string, step int64) error {
-	res, err := r.db.ExecContext(ctx,
+// ConfirmTOTP turns the pending secret into the active one, records step as
+// the last accepted step and stores the user's recovery code hashes, in one
+// transaction. pending is the sealed value the caller verified the code
+// against: a setup that replaced it meanwhile gives ErrNoPendingTOTP, as does
+// no pending secret or TOTP already on.
+func (r *Repo) ConfirmTOTP(ctx context.Context, id int64, pending string, step int64, recoveryHashes []string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin confirm totp: %w", err)
+	}
+	defer tx.Rollback()
+	res, err := tx.ExecContext(ctx,
 		`UPDATE users SET totp_secret = totp_pending_secret, totp_pending_secret = NULL, totp_last_step = ?
 		 WHERE id = ? AND totp_pending_secret = ? AND totp_secret IS NULL`, step, id, pending)
 	if err != nil {
@@ -219,7 +228,54 @@ func (r *Repo) ConfirmTOTP(ctx context.Context, id int64, pending string, step i
 	if n == 0 {
 		return ErrNoPendingTOTP
 	}
+	if err := replaceRecoveryCodes(ctx, tx, id, recoveryHashes); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// ReplaceRecoveryCodes deletes the user's recovery codes and stores the given
+// hashes in their place, in one transaction.
+func (r *Repo) ReplaceRecoveryCodes(ctx context.Context, id int64, hashes []string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin replace recovery codes: %w", err)
+	}
+	defer tx.Rollback()
+	if err := replaceRecoveryCodes(ctx, tx, id, hashes); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func replaceRecoveryCodes(ctx context.Context, tx *sql.Tx, id int64, hashes []string) error {
+	if _, err := tx.ExecContext(ctx, "DELETE FROM totp_recovery_codes WHERE user_id = ?", id); err != nil {
+		return fmt.Errorf("delete recovery codes: %w", err)
+	}
+	for _, h := range hashes {
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO totp_recovery_codes (user_id, code_hash) VALUES (?, ?)", id, h); err != nil {
+			return fmt.Errorf("insert recovery code: %w", err)
+		}
+	}
 	return nil
+}
+
+// RedeemRecoveryCode spends the recovery code with the given hash and reports
+// whether it did. The check and the spend are one statement, so of two
+// requests carrying the same code only one gets true.
+func (r *Repo) RedeemRecoveryCode(ctx context.Context, id int64, hash string) (bool, error) {
+	res, err := r.db.ExecContext(ctx,
+		"UPDATE totp_recovery_codes SET used_at = ? WHERE user_id = ? AND code_hash = ? AND used_at IS NULL",
+		time.Now().UTC().Format(time.RFC3339), id, hash)
+	if err != nil {
+		return false, fmt.Errorf("redeem recovery code: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("redeem recovery code: rows affected: %w", err)
+	}
+	return n == 1, nil
 }
 
 // AdvanceTOTPStep records step as the last accepted step when it is above the
@@ -333,6 +389,7 @@ var userDataTables = []string{
 	"manual_prices",
 	"sessions",
 	"login_challenges",
+	"totp_recovery_codes",
 	"term_deposits",
 	"portfolios",
 }
