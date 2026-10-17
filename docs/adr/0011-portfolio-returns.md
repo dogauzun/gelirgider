@@ -92,7 +92,9 @@ first deposit is not weighed as a mid-range flow.
 
 An external flow is a converted deposit minus a converted withdrawal, gross,
 plus the first-price jump pseudo-flows (a position held before its first
-price enters the value at that price). Fees, buys, sells, dividends and
+price enters the value at that price; shares bought inside the range keep
+their gain over the buy price, so only the shares held when the range opens
+make the flow). Fees, buys, sells, dividends and
 splits are not flows: they move value inside the portfolio or are part of its
 performance. Interest is a `dividend` with no instrument, so it counts as
 return, not as a flow.
