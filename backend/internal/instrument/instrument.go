@@ -87,7 +87,14 @@ type Instrument struct {
 	Market   string
 	Name     string
 	Currency string
+	// AssetClass is the stored class (equity, fund or commodity), unset when
+	// none is stored and the class follows from the market (ADR 0026).
+	AssetClass sql.NullString
 }
+
+// columns is the instrument column list every SELECT reads, in the order
+// query scans it.
+const columns = "id, symbol, market, name, currency, asset_class"
 
 // Repo provides access to instruments.
 type Repo struct {
@@ -143,8 +150,8 @@ const maxSearchRunes = 1000
 // the derived table only names the folded expression, which
 // SQLite still evaluates once per word.
 var searchQuery = fmt.Sprintf(
-	`SELECT id, symbol, market, name, currency FROM
-	   (SELECT id, symbol, market, name, currency, %s AS folded FROM instruments
+	`SELECT `+columns+` FROM
+	   (SELECT `+columns+`, %s AS folded FROM instruments
 	    WHERE market <> '`+MarketDeposit+`') AS i
 	 WHERE symbol LIKE ? ESCAPE '\' OR (%%s)
 	 ORDER BY
@@ -261,7 +268,7 @@ func (r *Repo) query(ctx context.Context, query string, args ...any) ([]Instrume
 	out := []Instrument{}
 	for rows.Next() {
 		var in Instrument
-		if err := rows.Scan(&in.ID, &in.Symbol, &in.Market, &in.Name, &in.Currency); err != nil {
+		if err := rows.Scan(&in.ID, &in.Symbol, &in.Market, &in.Name, &in.Currency, &in.AssetClass); err != nil {
 			return nil, fmt.Errorf("scan instrument: %w", err)
 		}
 		out = append(out, in)
@@ -276,8 +283,8 @@ func (r *Repo) query(ctx context.Context, query string, args ...any) ([]Instrume
 func (r *Repo) Get(ctx context.Context, id int64) (Instrument, error) {
 	var in Instrument
 	err := r.db.QueryRowContext(ctx,
-		"SELECT id, symbol, market, name, currency FROM instruments WHERE id = ?", id,
-	).Scan(&in.ID, &in.Symbol, &in.Market, &in.Name, &in.Currency)
+		"SELECT "+columns+" FROM instruments WHERE id = ?", id,
+	).Scan(&in.ID, &in.Symbol, &in.Market, &in.Name, &in.Currency, &in.AssetClass)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Instrument{}, ErrNotFound
 	}
@@ -299,7 +306,7 @@ func (r *Repo) ByIDs(ctx context.Context, ids []int64) (map[int64]Instrument, er
 	for chunk := range slices.Chunk(ids, byIDsChunk) {
 		placeholders, args := db.InList(chunk)
 		rows, err := r.query(ctx,
-			"SELECT id, symbol, market, name, currency FROM instruments WHERE id IN ("+placeholders+")",
+			"SELECT "+columns+" FROM instruments WHERE id IN ("+placeholders+")",
 			args...,
 		)
 		if err != nil {
@@ -323,9 +330,9 @@ func (r *Repo) ByIDs(ctx context.Context, ids []int64) (map[int64]Instrument, er
 func (r *Repo) BySymbol(ctx context.Context, market, symbol string) (Instrument, error) {
 	var in Instrument
 	err := r.db.QueryRowContext(ctx,
-		"SELECT id, symbol, market, name, currency FROM instruments WHERE market = ? AND symbol = ?",
+		"SELECT "+columns+" FROM instruments WHERE market = ? AND symbol = ?",
 		market, symbol,
-	).Scan(&in.ID, &in.Symbol, &in.Market, &in.Name, &in.Currency)
+	).Scan(&in.ID, &in.Symbol, &in.Market, &in.Name, &in.Currency, &in.AssetClass)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Instrument{}, ErrNotFound
 	}
@@ -340,7 +347,7 @@ func (r *Repo) BySymbol(ctx context.Context, market, symbol string) (Instrument,
 // clause per symbol (bulletins carry hundreds of symbols at once).
 func (r *Repo) All(ctx context.Context, market string) ([]Instrument, error) {
 	return r.query(ctx,
-		"SELECT id, symbol, market, name, currency FROM instruments WHERE market = ? ORDER BY symbol",
+		"SELECT "+columns+" FROM instruments WHERE market = ? ORDER BY symbol",
 		market,
 	)
 }
@@ -352,7 +359,7 @@ func (r *Repo) All(ctx context.Context, market string) ([]Instrument, error) {
 // fetched.
 func (r *Repo) Tracked(ctx context.Context, market string) ([]Instrument, error) {
 	return r.query(ctx,
-		`SELECT id, symbol, market, name, currency FROM instruments
+		`SELECT `+columns+` FROM instruments
 		 WHERE market = ? AND id IN (
 		     SELECT DISTINCT instrument_id FROM transactions WHERE instrument_id IS NOT NULL
 		 )
