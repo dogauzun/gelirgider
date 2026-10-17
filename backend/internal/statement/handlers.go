@@ -465,26 +465,8 @@ type fetchTarget struct {
 func (h *handler) commit(w http.ResponseWriter, r *http.Request) {
 	userID := auth.MustUserID(r.Context())
 
-	// This route is exempt from the global 64 KB limit, so it sets its own.
-	r.Body = http.MaxBytesReader(w, r.Body, maxCommitBytes)
-	var req commitRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		var tooLarge *http.MaxBytesError
-		if errors.As(err, &tooLarge) {
-			auth.WriteError(w, http.StatusRequestEntityTooLarge, fmt.Sprintf("rows: larger than %d MB", maxCommitBytes>>20))
-			return
-		}
-		auth.WriteError(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-	if req.Broker == "csv" {
-		if err := req.setCSVPeriod(); err != nil {
-			auth.WriteError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-	}
-	if err := req.validate(); err != nil {
-		auth.WriteError(w, http.StatusBadRequest, err.Error())
+	req, ok := decodeCommit(w, r)
+	if !ok {
 		return
 	}
 	if _, err := h.portfolios.Get(r.Context(), userID, req.PortfolioID); err != nil {
@@ -509,7 +491,44 @@ func (h *handler) commit(w http.ResponseWriter, r *http.Request) {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
+	ts, targets, ok := commitTransactions(w, r, req, getInstrument)
+	if !ok {
+		return
+	}
+	h.storeImport(w, r, userID, req, ts, targets)
+}
 
+// decodeCommit reads and validates the commit's body. ok is false once it
+// has written the error.
+func decodeCommit(w http.ResponseWriter, r *http.Request) (req commitRequest, ok bool) {
+	// This route is exempt from the global 64 KB limit, so it sets its own.
+	r.Body = http.MaxBytesReader(w, r.Body, maxCommitBytes)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			auth.WriteError(w, http.StatusRequestEntityTooLarge, fmt.Sprintf("rows: larger than %d MB", maxCommitBytes>>20))
+			return req, false
+		}
+		auth.WriteError(w, http.StatusBadRequest, "invalid request body")
+		return req, false
+	}
+	if req.Broker == "csv" {
+		if err := req.setCSVPeriod(); err != nil {
+			auth.WriteError(w, http.StatusBadRequest, err.Error())
+			return req, false
+		}
+	}
+	if err := req.validate(); err != nil {
+		auth.WriteError(w, http.StatusBadRequest, err.Error())
+		return req, false
+	}
+	return req, true
+}
+
+// commitTransactions validates req's rows into the transactions to store,
+// and the price fetch to run for each distinct instrument or cash currency
+// after the commit. ok is false once it has written the error.
+func commitTransactions(w http.ResponseWriter, r *http.Request, req commitRequest, getInstrument func(int64) (instrument.Instrument, error)) (ts []transaction.Transaction, targets map[string]fetchTarget, ok bool) {
 	// The note never carries anything off the statement itself: the
 	// description column holds the customer's bank name and IBAN (ADR 0006,
 	// PII).
@@ -518,23 +537,23 @@ func (h *handler) commit(w http.ResponseWriter, r *http.Request) {
 	// Keyed by instrument id, or by currency for a cash row, so the fetch
 	// runs once per distinct instrument and once per distinct cash currency
 	// instead of once per row.
-	targets := map[string]fetchTarget{}
+	targets = map[string]fetchTarget{}
 
 	// validate checked the period's shape.
 	start, _ := time.Parse(time.DateOnly, req.PeriodStart)
 	openingDate := start.AddDate(0, 0, -1).Format(time.DateOnly)
 	end, _ := time.Parse(time.DateOnly, req.PeriodEnd)
 	interestDate := end.AddDate(0, 0, 1).Format(time.DateOnly)
-	ts := make([]transaction.Transaction, 0, len(req.Rows))
+	ts = make([]transaction.Transaction, 0, len(req.Rows))
 	for i, row := range req.Rows {
 		t, in, err := transaction.FromRequestWith(row, getInstrument)
 		if err != nil {
 			if errors.Is(err, transaction.ErrLookup) {
 				auth.WriteInternalError(w, r, err)
-				return
+				return nil, nil, false
 			}
 			auth.WriteError(w, http.StatusBadRequest, fmt.Sprintf("rows[%d].%s", i, err.Error()))
-			return
+			return nil, nil, false
 		}
 		// The import's undo and history describe its period, so every row
 		// must fall inside it; a Midas statement only lists rows dated in its
@@ -544,7 +563,7 @@ func (h *handler) commit(w http.ResponseWriter, r *http.Request) {
 		// this statement.
 		if (t.Date < req.PeriodStart && t.Date != openingDate) || (t.Date > req.PeriodEnd && t.Date != interestDate) {
 			auth.WriteError(w, http.StatusBadRequest, fmt.Sprintf("rows[%d].date: must be within %s – %s", i, req.PeriodStart, req.PeriodEnd))
-			return
+			return nil, nil, false
 		}
 		t.PortfolioID = req.PortfolioID
 		t.Note = note
@@ -558,7 +577,12 @@ func (h *handler) commit(w http.ResponseWriter, r *http.Request) {
 			targets[key] = fetchTarget{in: in, t: t}
 		}
 	}
+	return ts, targets, true
+}
 
+// storeImport writes the import row, ts and the aliases, answers with the
+// import, and fetches the prices of targets once the rows are committed.
+func (h *handler) storeImport(w http.ResponseWriter, r *http.Request, userID int64, req commitRequest, ts []transaction.Transaction, targets map[string]fetchTarget) {
 	aliases, learn := commitAliases(req)
 
 	// A CSV is one file, not an account: its currency is only the rows'
