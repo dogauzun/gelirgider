@@ -272,7 +272,7 @@ func (h *summaryHandler) get(w http.ResponseWriter, r *http.Request) {
 	}
 	asOf := v.asOf
 
-	prev, err := h.prevCloses(r.Context(), userID, v)
+	prev, err := h.prevCloses(r.Context(), userID, v, txs)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
@@ -366,18 +366,23 @@ func (h *summaryHandler) get(w http.ResponseWriter, r *http.Request) {
 }
 
 // prevClose is an instrument's previous close in today's terms and the date
-// it was recorded on.
+// it was recorded on. tradeAdj is what the buys and sells dated on or after
+// the price date change its day change by, over current quantity × (last −
+// prev): a share bought that day moves from its price, one bought later did
+// not move at all, and one sold later still moved with the price date.
 type prevClose struct {
-	close decimal.Decimal
-	date  string
+	close    decimal.Decimal
+	date     string
+	tradeAdj decimal.Decimal
 }
 
 // prevCloses finds the previous close per priced instrument of v: the same
 // merge as v's, as of the day before the winner's date, so weekends and
 // holidays fall out as the latest stored close before it.
 // Ids are grouped by that day so each distinct date costs one LatestCloses
-// call, not one per instrument.
-func (h *summaryHandler) prevCloses(ctx context.Context, userID int64, v valuation) (map[int64]prevClose, error) {
+// call, not one per instrument. txs, every portfolio's rows in scope, gives
+// each prevClose its tradeAdj.
+func (h *summaryHandler) prevCloses(ctx context.Context, userID int64, v valuation, txs []transaction.Transaction) (map[int64]prevClose, error) {
 	idsBefore := make(map[string][]int64)
 	for id, won := range v.winner {
 		day, err := time.Parse(time.DateOnly, won.Date)
@@ -398,6 +403,36 @@ func (h *summaryHandler) prevCloses(ctx context.Context, userID int64, v valuati
 			// with like.
 			out[id] = prevClose{close: splitScaled(prev.Close, v.splitsOf[id], prev.Date, v.asOf), date: prev.Date}
 		}
+	}
+	for _, t := range txs {
+		if t.InstrumentID == nil || (t.Type != transaction.TypeBuy && t.Type != transaction.TypeSell) {
+			continue
+		}
+		pc, ok := out[*t.InstrumentID]
+		// A zero-price buy is a bonus share (ADR 0008), held at prev like the
+		// shares it came with, not a purchase at 0.
+		if !ok || t.Date < v.winner[*t.InstrumentID].Date || t.Price.IsZero() {
+			continue
+		}
+		// In today's terms like prev: the splits after the trade scale its
+		// quantity up; its price is already per share of the day it traded.
+		qty := t.Quantity
+		for _, s := range v.splitsOf[*t.InstrumentID] {
+			if s.Date > t.Date && s.Date <= v.asOf {
+				qty = qty.Mul(s.Ratio)
+			}
+		}
+		// A trade after the price date is priced at last: it contributes
+		// nothing to the move.
+		adj := qty.Mul(pc.close.Sub(v.latest[*t.InstrumentID]))
+		if t.Date == v.winner[*t.InstrumentID].Date {
+			adj = qty.Mul(pc.close).Sub(t.Quantity.Mul(t.Price))
+		}
+		if t.Type == transaction.TypeSell {
+			adj = adj.Neg()
+		}
+		pc.tradeAdj = pc.tradeAdj.Add(adj)
+		out[*t.InstrumentID] = pc
 	}
 	return out, nil
 }
@@ -441,14 +476,14 @@ func positionRow(p holdings.Position, closed bool, v valuation, prev map[int64]p
 			pr.PriceDate = &won.Date
 		}
 	}
-	// ponytail: current quantity × (last − prev) ignores trades dated on
-	// price_date, so a same-day buy shows the whole day's move; replay that
-	// day's trades against prev_close if it matters.
+	// Current quantity moves from prev; tradeAdj moves the shares traded on
+	// price_date to their own prices and takes out the move of those traded
+	// after it.
 	var dayChange *decimal.Decimal
 	if pc, ok := prev[p.InstrumentID]; ok && p.HasPrice && !p.Quantity.IsZero() {
 		pd := pc.date
 		prevStr := pc.close.Round(9).String()
-		dc := p.Quantity.Mul(p.LastPrice.Sub(pc.close))
+		dc := p.Quantity.Mul(p.LastPrice.Sub(pc.close)).Add(pc.tradeAdj)
 		change := dc.StringFixed(2)
 		pr.PrevClose, pr.PrevPriceDate, pr.DayChange = &prevStr, &pd, &change
 		if f, ok := holdings.Factor(rates, p.Currency, reporting); ok {
