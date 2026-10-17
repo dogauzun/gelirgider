@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -1644,6 +1645,7 @@ func TestPortfolioHistoryBenchmark(t *testing.T) {
 	t.Run("XU100 from benchmark_values", f.testXU100)
 	t.Run("XU100 in USD", f.testXU100InUSD)
 	t.Run("TUFE", f.testTUFE)
+	t.Run("inflation", f.testInflation)
 	t.Run("GOLD from benchmark_values", f.testGOLD)
 	t.Run("unknown code", func(t *testing.T) {
 		f.get(t, "from=2024-01-01&to=2024-01-03&benchmark=SILVER", http.StatusBadRequest)
@@ -1743,6 +1745,43 @@ func (f *historyBenchmarkFixture) testTUFE(t *testing.T) {
 	got = f.get(t, "from=2024-01-01&to=2024-02-02&benchmark=TUFE", http.StatusOK)
 	if b := decodeBenchmark(t, got); b.EstimatedFrom == nil || *b.EstimatedFrom != "2024-02-01" {
 		t.Errorf("benchmark = %s, want estimated_from 2024-02-01", got["benchmark"])
+	}
+}
+
+// testInflation runs after testTUFE seeded December 100 and January 110:
+// day 1 is 100 * 1.1^(1/31) and day 3 is 100 * 1.1^(3/31), so over the
+// range the CPI change is 1.1^(2/31) - 1, whatever benchmark is requested.
+func (f *historyBenchmarkFixture) testInflation(t *testing.T) {
+	want := fmt.Sprintf(`"%.6f"`, math.Pow(1.1, 2.0/31)-1)
+	for _, query := range []string{"from=2024-01-01&to=2024-01-03", "from=2024-01-01&to=2024-01-03&benchmark=USD"} {
+		got := f.get(t, query, http.StatusOK)
+		if inf := string(got["inflation"]); inf != want {
+			t.Errorf("%s: inflation = %s, want %s", query, inf, want)
+		}
+		if est := string(got["inflation_estimated_from"]); est != "null" {
+			t.Errorf("%s: inflation_estimated_from = %s inside the last stored month, want null", query, est)
+		}
+	}
+
+	got := f.get(t, "from=2024-01-01&to=2024-02-02", http.StatusOK)
+	if est := string(got["inflation_estimated_from"]); est != `"2024-02-01"` {
+		t.Errorf("inflation_estimated_from = %s, want \"2024-02-01\"", est)
+	}
+
+	if err := f.users.UpdateReportingCurrency(context.Background(), f.usr.ID, "USD"); err != nil {
+		t.Fatalf("users.UpdateReportingCurrency: %v", err)
+	}
+	defer func() {
+		if err := f.users.UpdateReportingCurrency(context.Background(), f.usr.ID, "TRY"); err != nil {
+			t.Fatalf("users.UpdateReportingCurrency: %v", err)
+		}
+	}()
+	got = f.get(t, "from=2024-01-01&to=2024-01-03", http.StatusOK)
+	if inf := string(got["inflation"]); inf != "null" {
+		t.Errorf("USD reporting: inflation = %s, want null", inf)
+	}
+	if est := string(got["inflation_estimated_from"]); est != "null" {
+		t.Errorf("USD reporting: inflation_estimated_from = %s, want null", est)
 	}
 }
 

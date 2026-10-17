@@ -119,6 +119,8 @@ export const trCharts = {
     'Günlük getirilerin zincirlenmesi; para giriş çıkışlarının zamanlamasından bağımsız',
   'chart.return.mwr.hint': 'İç verim oranı; para giriş çıkışlarının zamanlaması dahil',
   'chart.return.undefined': 'Bu aralık için tanımsız',
+  'chart.return.real': 'Reel getiri',
+  'chart.return.realHint': "TÜFE'ye göre, TWR",
   // The return card's "% | ₺" switch and its percent line's legend entry:
   // the line is always time-weighted, so with another method it
   // says so and why.

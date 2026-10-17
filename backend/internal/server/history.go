@@ -124,13 +124,22 @@ type historyResponse struct {
 	// put the same external flows into the benchmark (ADR 0012,
 	// docs/adr/0012-benchmarks.md). null when no benchmark was requested.
 	Benchmark *benchmarkResponse `json:"benchmark"`
+	// Inflation is the TUFE change over the range, levels[last] /
+	// levels[first] - 1 with 6 decimals, whatever benchmark was requested
+	// (ADR 0012). null unless the reporting currency is TRY, and when TUFE
+	// has no level on or before the first point.
+	Inflation *string `json:"inflation"`
+	// InflationEstimatedFrom is the first day of the range whose TUFE level
+	// is extrapolated past the last stored month, null when none is or when
+	// inflation is null.
+	InflationEstimatedFrom *string `json:"inflation_estimated_from"`
 }
 
 // get answers the portfolio's daily value series over a date range, with
 // its returns and an optional benchmark comparison.
 //
 //	@Summary	Portfolio value history
-//	@Description	One point per day from `from` to `to`, in the reporting currency. A `from` before the first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the first transaction (at most 3660 days back); a `to` after today is clamped to today. The three returns are null when undefined for the range; benchmark is null when no benchmark was requested, and its returns are null when it has no level on or before the first point. Each point's twr is the time-weighted return from the first point to that one, ending on returns.twr, and null on every point when returns.twr is null; benchmark_twr is the same for the benchmark's shadow series.
+//	@Description	One point per day from `from` to `to`, in the reporting currency. A `from` before the first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the first transaction (at most 3660 days back); a `to` after today is clamped to today. The three returns are null when undefined for the range; benchmark is null when no benchmark was requested, and its returns are null when it has no level on or before the first point. Each point's twr is the time-weighted return from the first point to that one, ending on returns.twr, and null on every point when returns.twr is null; benchmark_twr is the same for the benchmark's shadow series. inflation is the TUFE change over the range, whatever the benchmark, null unless the reporting currency is TRY or when TUFE has no level on or before the first point; inflation_estimated_from is the first extrapolated day of it, null when none.
 //	@Tags		portfolios
 //	@Produce	json
 //	@Param		id			path		string	true	"numeric id or `all`"
@@ -184,9 +193,9 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 
 	netFlow := s.netFlow(external)
 
-	var benchmark *benchmarkResponse
+	var bench *benchmarkResponse
 	if benchmarkCode != "" {
-		benchmark = s.benchmarkSeries(benchmarkCode, flows, negativeCash)
+		bench = s.benchmarkSeries(benchmarkCode, flows, negativeCash)
 	}
 
 	returns := periodReturns(values, flows, negativeCash)
@@ -194,7 +203,23 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 		entries[i].TWR = twr
 	}
 
-	auth.WriteJSON(w, http.StatusOK, historyResponse{Currency: s.currency, Points: entries, MissingRates: s.missingRates, MissingPrices: s.missingPrices, NetFlow: netFlow.StringFixed(2), Returns: returns, Benchmark: benchmark})
+	resp := historyResponse{Currency: s.currency, Points: entries, MissingRates: s.missingRates, MissingPrices: s.missingPrices, NetFlow: netFlow.StringFixed(2), Returns: returns, Benchmark: bench}
+	if s.currency == "TRY" && last >= 0 {
+		// shortcut: loads TUFE again when it is the benchmark, one extra
+		// range read, upgrade if the sweep ever hands its levels back.
+		levels, estimatedFrom, err := benchmarkLevels(r.Context(), h.benchmarks, benchmark.CodeTUFE, from, to)
+		if err != nil {
+			auth.WriteInternalError(w, r, err)
+			return
+		}
+		if len(levels) > 0 && levels[0] > 0 {
+			resp.Inflation = formatReturn(levels[len(levels)-1]/levels[0]-1, true)
+			if estimatedFrom != "" {
+				resp.InflationEstimatedFrom = &estimatedFrom
+			}
+		}
+	}
+	auth.WriteJSON(w, http.StatusOK, resp)
 }
 
 // historyRange resolves the ?from= and ?to= of a daily series over txs (the

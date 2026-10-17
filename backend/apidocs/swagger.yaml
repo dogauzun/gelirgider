@@ -269,6 +269,19 @@ definitions:
           docs/adr/0012-benchmarks.md). null when no benchmark was requested.
       currency:
         type: string
+      inflation:
+        description: |-
+          Inflation is the TUFE change over the range, levels[last] /
+          levels[first] - 1 with 6 decimals, whatever benchmark was requested
+          (ADR 0012). null unless the reporting currency is TRY, and when TUFE
+          has no level on or before the first point.
+        type: string
+      inflation_estimated_from:
+        description: |-
+          InflationEstimatedFrom is the first day of the range whose TUFE level
+          is extrapolated past the last stored month, null when none is or when
+          inflation is null.
+        type: string
       missing_prices:
         description: |-
           MissingPrices is the union, over every point with price_unknown, of
@@ -2893,7 +2906,11 @@ paths:
         was requested, and its returns are null when it has no level on or before
         the first point. Each point's twr is the time-weighted return from the first
         point to that one, ending on returns.twr, and null on every point when returns.twr
-        is null; benchmark_twr is the same for the benchmark's shadow series.
+        is null; benchmark_twr is the same for the benchmark's shadow series. inflation
+        is the TUFE change over the range, whatever the benchmark, null unless the
+        reporting currency is TRY or when TUFE has no level on or before the first
+        point; inflation_estimated_from is the first extrapolated day of it, null
+        when none.
       parameters:
       - description: numeric id or `all`
         in: path

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Benchmark, HistoryResponse, ReturnMethod } from '../api/history'
@@ -123,6 +123,29 @@ describe('ReturnCard', () => {
     renderCard({ data: history({ code: 'TUFE', mwr: '0.400000' }), benchmark: 'TUFE' })
     const pill = within(headline()).getByText('Enflasyon (TÜFE) +%40 · reel -%7,1')
     expect(pill).toHaveClass('text-loss')
+  })
+
+  it('shows the real return after TÜFE with no benchmark selected, estimated when extrapolated', () => {
+    // twr 20%, inflation 10%: 1.2 / 1.1 - 1 = 9.1%
+    renderCard({ data: { ...history(), inflation: '0.100000' } })
+    expect(screen.getByTestId('real-return')).toHaveTextContent('Reel getiri +%9,1')
+    expect(screen.getByTestId('real-return')).not.toHaveTextContent('tahmini')
+    cleanup()
+    renderCard({
+      data: { ...history(), inflation: '0.100000', inflation_estimated_from: '2026-09-01' },
+    })
+    expect(screen.getByTestId('real-return')).toHaveTextContent('Reel getiri +%9,1 (tahmini)')
+  })
+
+  it('leaves the real return line to the pill with TÜFE selected, and omits it without inflation', () => {
+    renderCard({
+      data: { ...history({ code: 'TUFE', mwr: '0.400000' }), inflation: '0.400000' },
+      benchmark: 'TUFE',
+    })
+    expect(screen.queryByTestId('real-return')).toBeNull()
+    cleanup()
+    renderCard({ data: { ...history(), inflation: null } })
+    expect(screen.queryByTestId('real-return')).toBeNull()
   })
 
   it('says so in place of the pill when the benchmark has no values in the range', () => {
