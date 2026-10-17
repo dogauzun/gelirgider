@@ -73,6 +73,7 @@ export function useCreatePortfolio() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (name: string) => createPortfolio(name),
+    // eslint-disable-next-line no-restricted-syntax -- invalidates the list key only
     onSuccess: () => queryClient.invalidateQueries({ queryKey: portfoliosQueryKey }),
   })
 }
@@ -81,6 +82,7 @@ export function useRenamePortfolio() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, name }: { id: number; name: string }) => renamePortfolio(id, name),
+    // eslint-disable-next-line no-restricted-syntax -- invalidates the list key only
     onSuccess: () => queryClient.invalidateQueries({ queryKey: portfoliosQueryKey }),
   })
 }
@@ -97,6 +99,7 @@ export function useDeletePortfolio() {
     // fetch them again on its next render; they go once unused.
     onSuccess: (_, { id }) => {
       toast(t('portfolios.deleted'))
+      // eslint-disable-next-line no-restricted-syntax -- invalidates the list key only
       return queryClient.invalidateQueries({
         queryKey: portfoliosQueryKey,
         predicate: (query) => query.queryKey[1] !== id,

@@ -151,6 +151,7 @@ function deleteTransaction(id: number): Promise<void> {
 // flattenPages is useTransactions' select. Module level, not inline: the
 // observer reuses the selected rows only while select is the same function.
 const flattenPages = (data: InfiniteData<TransactionPage>) =>
+  // eslint-disable-next-line no-restricted-syntax -- the hook itself, which returns the rows
   data.pages.flatMap((page) => page.transactions)
 
 // Pages arrive newest first. Each mutation still invalidates the query, which
@@ -243,13 +244,16 @@ export function invalidatePortfolio(
   portfolioId: number,
 ) {
   return Promise.all([
+    // eslint-disable-next-line no-restricted-syntax -- the helper itself
     queryClient.invalidateQueries({ queryKey: portfoliosQueryKey, exact: true }),
+    // eslint-disable-next-line no-restricted-syntax -- the helper itself
     queryClient.invalidateQueries({ queryKey: [...portfoliosQueryKey, portfolioId] }),
   ])
 }
 
 // Prefix match: also hits ['portfolios', 'all', ...] and every per-portfolio key.
 export const invalidatePortfolios = (queryClient: QueryClient) =>
+  // eslint-disable-next-line no-restricted-syntax -- the helper itself
   queryClient.invalidateQueries({ queryKey: portfoliosQueryKey })
 
 export function useInvalidatePortfolios() {

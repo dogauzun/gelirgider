@@ -97,6 +97,7 @@ export function useSetRegistrationOpen() {
 // included, else home. Only an in-app path: "//host" and "/\host" are read by
 // the browser as another origin, and the auth pages would just bounce.
 export function loginRedirectPath(state: unknown): string {
+  // eslint-disable-next-line no-restricted-syntax -- login state is unknown until narrowed here
   const from = (state as { from?: { pathname?: unknown; search?: unknown; hash?: unknown } } | null)
     ?.from
   const pathname = from?.pathname
@@ -229,6 +230,7 @@ export function useUpdateReportingCurrency(onSaved: () => void) {
     mutationFn: (currency: string) => updateReportingCurrency(currency),
     onSuccess: (updated) => {
       queryClient.setQueryData(meQueryKey, updated)
+      // eslint-disable-next-line no-restricted-syntax -- the list only, not the portfolios under it
       void queryClient.invalidateQueries({ queryKey: portfoliosQueryKey, exact: true })
       onSaved()
     },

@@ -12,6 +12,9 @@ const inputClassClash =
 
 export default tseslint.config(
   { ignores: ['dist'] },
+  // A disable comment that silences nothing is stale: an error, not the
+  // default warning, which npm run lint passes.
+  { linterOptions: { reportUnusedDisableDirectives: 'error' } },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -137,16 +140,7 @@ export default tseslint.config(
   // and Intl formatters are built once, not per call.
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: [
-      'src/**/*.test.{ts,tsx}',
-      'src/api/transactions.ts',
-      'src/api/portfolios.ts',
-      'src/api/auth.ts',
-      'src/lib/useRange.ts',
-      'src/lib/decimal.ts',
-      'src/components/CreatePortfolioDialog.tsx',
-      'src/lib/navState.ts',
-    ],
+    ignores: ['src/**/*.test.{ts,tsx}'],
     rules: {
       'no-restricted-syntax': [
         'error',

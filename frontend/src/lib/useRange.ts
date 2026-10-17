@@ -94,5 +94,6 @@ export function rangeSearch(search: string): string {
 export function usePositionPath(): (scope: number | 'all', instrumentId: number) => string {
   const { search } = useLocation()
   return (scope, instrumentId) =>
+    // eslint-disable-next-line no-restricted-syntax -- the one position path
     `/portfolios/${scope}/positions/${instrumentId}${rangeSearch(search)}`
 }
