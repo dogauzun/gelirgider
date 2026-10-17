@@ -1277,7 +1277,8 @@ func TestPortfolioSummaryPositionFXPL(t *testing.T) {
 //	      after it => quantity 20 valued at 100 / 2 = 50, market_value 1000,
 //	      prev_close 98 / 2 = 49, day_change 20 x (50 - 49) = 20
 //	LATE: as GAP, but 20 first bought on the Mon ex-date, so the split never
-//	      touches the position => the same five values
+//	      touches the position => the same values but day_change 0: the
+//	      shares were not held on the Fri price date
 func TestPortfolioSummaryDayChange(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
@@ -1369,7 +1370,7 @@ func TestPortfolioSummaryDayChange(t *testing.T) {
 		"SPLT": {"50", "2024-01-05", "40.00", "40.00"},
 		"NEW":  {"50", "2024-01-05", "40.00", "40.00"},
 		"GAP":  {"49", "2024-01-04", "20.00", "20.00"},
-		"LATE": {"49", "2024-01-04", "20.00", "20.00"},
+		"LATE": {"49", "2024-01-04", "0.00", "0.00"},
 	} {
 		p := bySymbol[symbol]
 		if fields := [4]string{str(p.PrevClose), str(p.PrevPriceDate), str(p.DayChange), str(p.DayChangeReporting)}; fields != want {
@@ -1397,6 +1398,10 @@ func TestPortfolioSummaryDayChange(t *testing.T) {
 //	      => 20 x (53 - 50) + 5 x (53 - 52) = 65
 //	GAP:  buy 5 @ 99 Fri, 2-for-1 split Mon with no close after it, 98 Thu
 //	      (49), 100 Fri (50) => 20 x (50 - 49) + 10 x (50 - 99 / 2) = 25
+//	POSB: buy 5 @ 108 Tue, after the price date, same prices as ONLY
+//	      => the 5 never moved with it, 10 x (105 - 100) = 50
+//	POSS: sell 4 @ 110 Tue, same prices => the 4 sold still moved Mon,
+//	      10 x (105 - 100) = 50
 func TestPortfolioSummaryDayChangeSameDayTrades(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
@@ -1421,7 +1426,7 @@ func TestPortfolioSummaryDayChangeSameDayTrades(t *testing.T) {
 
 	ctx := context.Background()
 	ids := map[string]int64{}
-	for _, symbol := range []string{"ONLY", "MIX", "SELL", "SPLT", "GAP"} {
+	for _, symbol := range []string{"ONLY", "MIX", "SELL", "SPLT", "GAP", "POSB", "POSS"} {
 		res, err := conn.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES (?, 'BIST', ?, 'TRY')`, symbol, symbol)
 		if err != nil {
 			t.Fatalf("insert instrument: %v", err)
@@ -1436,6 +1441,8 @@ func TestPortfolioSummaryDayChangeSameDayTrades(t *testing.T) {
 		{"ONLY", "buy", "2024-01-08", "10", "102"}, {"MIX", "buy", "2024-01-08", "10", "102"},
 		{"SELL", "sell", "2024-01-08", "4", "104"}, {"SPLT", "buy", "2024-01-08", "5", "52"},
 		{"GAP", "buy", "2024-01-05", "5", "99"},
+		{"POSB", "buy", "2024-01-02", "10", "90"}, {"POSS", "buy", "2024-01-02", "10", "90"},
+		{"POSB", "buy", "2024-01-09", "5", "108"}, {"POSS", "sell", "2024-01-09", "4", "110"},
 	} {
 		qty, px, id := decimal.RequireFromString(tr.quantity), decimal.RequireFromString(tr.price), ids[tr.symbol]
 		tx := transaction.Transaction{PortfolioID: pf.ID, InstrumentID: &id, Type: tr.typ, Date: tr.date, Quantity: qty, Price: px, Amount: qty.Mul(px), Fee: decimal.Zero, Currency: "TRY"}
@@ -1450,6 +1457,8 @@ func TestPortfolioSummaryDayChangeSameDayTrades(t *testing.T) {
 		{"SELL", "2024-01-05", "100"}, {"SELL", "2024-01-08", "105"},
 		{"SPLT", "2024-01-05", "100"}, {"SPLT", "2024-01-08", "53"},
 		{"GAP", "2024-01-04", "98"}, {"GAP", "2024-01-05", "100"},
+		{"POSB", "2024-01-05", "100"}, {"POSB", "2024-01-08", "105"},
+		{"POSS", "2024-01-05", "100"}, {"POSS", "2024-01-08", "105"},
 	} {
 		if err := prices.Upsert(ctx, ids[p.symbol], p.date, p.close, "bist"); err != nil {
 			t.Fatalf("prices.Upsert: %v", err)
@@ -1479,13 +1488,13 @@ func TestPortfolioSummaryDayChangeSameDayTrades(t *testing.T) {
 		return *s
 	}
 	for _, p := range got.Positions {
-		want := map[string]string{"ONLY": "30.00", "MIX": "80.00", "SELL": "46.00", "SPLT": "65.00", "GAP": "25.00"}[p.Symbol]
+		want := map[string]string{"ONLY": "30.00", "MIX": "80.00", "SELL": "46.00", "SPLT": "65.00", "GAP": "25.00", "POSB": "50.00", "POSS": "50.00"}[p.Symbol]
 		if p.DayChange == nil || *p.DayChange != want || p.DayChangeReporting == nil || *p.DayChangeReporting != want {
 			t.Errorf("%s day_change = %s, reporting %s, want %s", p.Symbol, str(p.DayChange), str(p.DayChangeReporting), want)
 		}
 	}
-	if got.DayChange == nil || *got.DayChange != "246.00" {
-		t.Errorf("total day_change = %s, want 246.00", str(got.DayChange))
+	if got.DayChange == nil || *got.DayChange != "346.00" {
+		t.Errorf("total day_change = %s, want 346.00", str(got.DayChange))
 	}
 }
 

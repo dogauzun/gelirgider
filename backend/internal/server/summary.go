@@ -366,9 +366,10 @@ func (h *summaryHandler) get(w http.ResponseWriter, r *http.Request) {
 }
 
 // prevClose is an instrument's previous close in today's terms and the date
-// it was recorded on. tradeAdj is what the buys and sells dated on the price
-// date change its day change by, over current quantity × (last − prev): a
-// share bought that day moves from its price, not from prev.
+// it was recorded on. tradeAdj is what the buys and sells dated on or after
+// the price date change its day change by, over current quantity × (last −
+// prev): a share bought that day moves from its price, one bought later did
+// not move at all, and one sold later still moved with the price date.
 type prevClose struct {
 	close    decimal.Decimal
 	date     string
@@ -410,7 +411,7 @@ func (h *summaryHandler) prevCloses(ctx context.Context, userID int64, v valuati
 		pc, ok := out[*t.InstrumentID]
 		// A zero-price buy is a bonus share (ADR 0008), held at prev like the
 		// shares it came with, not a purchase at 0.
-		if !ok || t.Date != v.winner[*t.InstrumentID].Date || t.Price.IsZero() {
+		if !ok || t.Date < v.winner[*t.InstrumentID].Date || t.Price.IsZero() {
 			continue
 		}
 		// In today's terms like prev: the splits after the trade scale its
@@ -421,7 +422,12 @@ func (h *summaryHandler) prevCloses(ctx context.Context, userID int64, v valuati
 				qty = qty.Mul(s.Ratio)
 			}
 		}
-		adj := qty.Mul(pc.close).Sub(t.Quantity.Mul(t.Price))
+		// A trade after the price date is priced at last: it contributes
+		// nothing to the move.
+		adj := qty.Mul(pc.close.Sub(v.latest[*t.InstrumentID]))
+		if t.Date == v.winner[*t.InstrumentID].Date {
+			adj = qty.Mul(pc.close).Sub(t.Quantity.Mul(t.Price))
+		}
 		if t.Type == transaction.TypeSell {
 			adj = adj.Neg()
 		}
@@ -471,7 +477,8 @@ func positionRow(p holdings.Position, closed bool, v valuation, prev map[int64]p
 		}
 	}
 	// Current quantity moves from prev; tradeAdj moves the shares traded on
-	// price_date to their own prices.
+	// price_date to their own prices and takes out the move of those traded
+	// after it.
 	var dayChange *decimal.Decimal
 	if pc, ok := prev[p.InstrumentID]; ok && p.HasPrice && !p.Quantity.IsZero() {
 		pd := pc.date
