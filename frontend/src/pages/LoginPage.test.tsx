@@ -225,4 +225,93 @@ describe('LoginPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Şifreyi gizle' }))
     expect(password).toHaveAttribute('type', 'password')
   })
+
+  describe('two-step verification', () => {
+    function mockLogin(totp: () => Response) {
+      let signedIn = false
+      const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+        const path = String(url)
+        if (path === '/api/auth/login') {
+          return new Response(JSON.stringify({ totp_required: true, token: 'tok' }), {
+            status: 200,
+          })
+        }
+        if (path === '/api/auth/login/totp') {
+          const res = totp()
+          signedIn = res.ok
+          return res
+        }
+        if (path === '/api/me' && !signedIn) return new Response(null, { status: 401 })
+        return new Response(JSON.stringify({ id: 1, email: 'a@b.com' }), { status: 200 })
+      })
+      render(
+        <QueryClientProvider
+          client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+        >
+          <MemoryRouter initialEntries={['/login']}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/" element={<div>home page</div>} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      )
+      fireEvent.change(screen.getByLabelText(/e-posta/i), { target: { value: 'a@b.com' } })
+      fireEvent.change(screen.getByLabelText('Şifre'), { target: { value: 'password123' } })
+      fireEvent.click(screen.getByRole('button', { name: /giriş yap/i }))
+      return fetchMock
+    }
+
+    const wrongCode = () => new Response(JSON.stringify({ error: 'invalid code' }), { status: 401 })
+
+    async function submitCode(code: string) {
+      fireEvent.change(await screen.findByLabelText('Doğrulama kodu'), { target: { value: code } })
+      fireEvent.click(screen.getByRole('button', { name: 'Doğrula' }))
+    }
+
+    it('asks for the code instead of navigating when login answers totp_required', async () => {
+      mockLogin(wrongCode)
+
+      const code = await screen.findByLabelText('Doğrulama kodu')
+      expect(code).toHaveAttribute('inputmode', 'numeric')
+      expect(code).toHaveAttribute('autocomplete', 'one-time-code')
+      expect(code).not.toHaveAttribute('maxlength')
+      expect(screen.queryByLabelText('Şifre')).not.toBeInTheDocument()
+      expect(screen.queryByText('home page')).not.toBeInTheDocument()
+    })
+
+    it('shows a wrong code as an error and keeps the field', async () => {
+      mockLogin(wrongCode)
+
+      await submitCode('000000')
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Kod hatalı.')
+      expect(screen.getByLabelText('Doğrulama kodu')).toHaveValue('000000')
+      expect(screen.queryByLabelText('Şifre')).not.toBeInTheDocument()
+    })
+
+    it('posts the token and code, then navigates like a normal login', async () => {
+      const fetchMock = mockLogin(
+        () => new Response(JSON.stringify({ id: 1, email: 'a@b.com' }), { status: 200 }),
+      )
+
+      await submitCode('123456')
+
+      expect(await screen.findByText('home page')).toBeInTheDocument()
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/auth/login/totp',
+        expect.objectContaining({ body: JSON.stringify({ token: 'tok', code: '123456' }) }),
+      )
+    })
+
+    it('returns to the password form when the login expired', async () => {
+      mockLogin(() => new Response(JSON.stringify({ error: 'login expired' }), { status: 401 }))
+
+      await submitCode('123456')
+
+      expect(await screen.findByLabelText('Şifre')).toBeInTheDocument()
+      expect(screen.getByRole('alert')).toHaveTextContent('Süre doldu, yeniden giriş yap.')
+      expect(screen.queryByLabelText('Doğrulama kodu')).not.toBeInTheDocument()
+    })
+  })
 })

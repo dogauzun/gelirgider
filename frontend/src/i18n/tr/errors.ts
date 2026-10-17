@@ -32,6 +32,7 @@ export const trErrors = {
   'error.tooManyRequests': 'Çok fazla istek. Bir dakika bekleyip tekrar dene.',
   'error.currentPasswordIncorrect': 'Mevcut şifre hatalı.',
   'error.invalidCode': 'Kod hatalı.',
+  'error.loginExpired': 'Süre doldu, yeniden giriş yap.',
   'error.portfolioNotFound': 'Portföy bulunamadı.',
   'error.portfolioHasTransactions': 'İşlemi olan portföy silinemez. Önce işlemleri sil.',
   'error.portfolioName': 'Portföy adı 1-100 karakter olmalı.',

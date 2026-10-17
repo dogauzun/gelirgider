@@ -34,6 +34,7 @@ const messageKeys: Record<string, StringKey> = {
   'too many requests': 'error.tooManyRequests',
   'current password is incorrect': 'error.currentPasswordIncorrect',
   'invalid code': 'error.invalidCode',
+  'login expired': 'error.loginExpired',
   'portfolio not found': 'error.portfolioNotFound',
   'portfolio has transactions': 'error.portfolioHasTransactions',
   'name must be 1-100 characters': 'error.portfolioName',
