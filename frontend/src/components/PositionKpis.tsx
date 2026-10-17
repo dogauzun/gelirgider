@@ -7,6 +7,15 @@ import { formatMoney, formatNumber, formatUnitPrice, plTone, signedMoney } from 
 import { holdingsTotal, unrealized as unrealizedOf, weightOf } from '../lib/positions'
 import { FitFigure, KPI_FIGURE, KPI_WIDE, KpiCell, KpiStrip } from './ui/Kpi'
 
+// A closed position keeps what it left behind: its total, its realized
+// P/L and its dividends. On a phone the total and the last cell span both
+// columns; without the dividends cell the average cost pairs with the
+// realized one instead.
+function kpiColumns(closed: boolean, withDividends: boolean) {
+  if (closed) return withDividends ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'
+  return withDividends ? 'grid-cols-2 lg:grid-cols-6' : 'grid-cols-2 lg:grid-cols-5'
+}
+
 // One position's figures, in the summary's reporting currency. `dividends`
 // is the dividends timeline: undefined while it loads, null to leave the
 // dividends cell out (the read-only `all` scope has no dividends route,
@@ -47,17 +56,7 @@ export function PositionKpis({
   const dividendNet = dividends ? (dividendRow?.net ?? '0') : null
   const weight = weightOf(position, holdingsTotal(summary))
 
-  // A closed position keeps what it left behind: its total, its realized
-  // P/L and its dividends. On a phone the total and the last cell span both
-  // columns; without the dividends cell the average cost pairs with the
-  // realized one instead.
-  const columns = closed
-    ? withDividends
-      ? 'grid-cols-1 sm:grid-cols-3'
-      : 'grid-cols-1 sm:grid-cols-2'
-    : withDividends
-      ? 'grid-cols-2 lg:grid-cols-6'
-      : 'grid-cols-2 lg:grid-cols-5'
+  const columns = kpiColumns(closed, withDividends)
   return (
     <KpiStrip className={className} columns={columns}>
       <KpiCell label={t('position.total')} className={closed ? '' : KPI_WIDE}>

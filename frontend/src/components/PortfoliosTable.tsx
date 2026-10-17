@@ -64,7 +64,8 @@ function PortfolioRow({
   const current = history.data && !history.isPlaceholderData ? history.data : undefined
   const ret = current?.returns[method] ?? null
   const day = summary.data?.day_change ?? null
-  const settled = (q: { isError: boolean; data?: unknown }) => q.isError || q.data !== undefined
+  const missing = (q: { isError: boolean; data?: unknown }) =>
+    q.isError || q.data !== undefined ? MISSING : ''
 
   return (
     <tr
@@ -99,13 +100,13 @@ function PortfolioRow({
         {share === null ? MISSING : <WeightBar share={share} largest={largest} />}
       </td>
       <td className={`${TD_NUM} ${plTone(ret)}`}>
-        {ret !== null ? signedPercent(Number(ret)) : settled(history) ? MISSING : ''}
+        {ret !== null ? signedPercent(Number(ret)) : missing(history)}
       </td>
       <td className={`${TD} w-0 max-md:hidden ${plTone(ret)}`}>
         {current && <Sparkline points={current.points} />}
       </td>
       <td className={`${TD_NUM} max-sm:hidden ${plTone(day)}`}>
-        {day !== null ? signedMoney(day, portfolio.currency) : settled(summary) ? MISSING : ''}
+        {day !== null ? signedMoney(day, portfolio.currency) : missing(summary)}
       </td>
     </tr>
   )

@@ -54,6 +54,12 @@ const dividendKey = (item: AttentionItem & { kind: 'dividend' }) =>
 const named = (item: AttentionItem, label: string) =>
   item.portfolio ? t('attention.inPortfolio', { portfolio: item.portfolio, label }) : label
 
+function concentrationLabel(item: AttentionItem & { kind: 'concentration' }) {
+  if (item.subject === 'cash') return t('summary.cash')
+  if (item.subject === 'currency') return t('attention.currencyAssets', { currency: item.label })
+  return item.label
+}
+
 // The line of one item: its text, under the portfolio's name on Tüm
 // portföyler. The name has a line of its own, so a long one never hides the
 // item's own facts; it truncates and carries its full text as a title.
@@ -296,13 +302,7 @@ export function AttentionCard({
               <span className="shrink-0 text-muted">{formatNumber(item.share, SHARE_FORMAT)}</span>
             }
           >
-            <Label item={item}>
-              {item.subject === 'cash'
-                ? t('summary.cash')
-                : item.subject === 'currency'
-                  ? t('attention.currencyAssets', { currency: item.label })
-                  : item.label}
-            </Label>
+            <Label item={item}>{concentrationLabel(item)}</Label>
           </Row>
         )
     }

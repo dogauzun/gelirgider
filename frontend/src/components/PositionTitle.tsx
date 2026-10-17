@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { Position } from '../api/summary'
 import { marketLabel, t } from '../i18n/strings'
 import { formatShortMarketDate } from '../lib/date'
-import { formatUnitPrice, signedPercent } from '../lib/format'
+import { formatUnitPrice, signedPercent, signTone } from '../lib/format'
 import { dayRatio } from '../lib/positions'
 import { Pill } from './ui/Pill'
 
@@ -31,9 +31,7 @@ export function PositionTitle({ position, children }: { position: Position; chil
             to: formatShortMarketDate(position.price_date),
           })}
         >
-          <Pill tone={day > 0 ? 'gain' : day < 0 ? 'loss' : 'cash'}>
-            {t('position.today', { change: signedPercent(day) })}
-          </Pill>
+          <Pill tone={signTone(day)}>{t('position.today', { change: signedPercent(day) })}</Pill>
         </span>
       )}
     </div>

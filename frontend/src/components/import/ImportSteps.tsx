@@ -32,6 +32,9 @@ export function ImportSteps({
         const n = i + 1
         const done = n < step
         const current = n === step
+        let dot = 'bg-chip text-muted'
+        if (current) dot = 'bg-accent text-on-ink'
+        else if (done) dot = 'bg-gain-soft text-gain'
         return (
           <li
             key={n}
@@ -41,13 +44,7 @@ export function ImportSteps({
             {i > 0 && <span aria-hidden className="mr-1.5 h-px w-3 bg-line sm:w-8" />}
             <span
               aria-hidden
-              className={`inline-grid size-5 place-items-center rounded-full text-[11px] font-semibold ${
-                current
-                  ? 'bg-accent text-on-ink'
-                  : done
-                    ? 'bg-gain-soft text-gain'
-                    : 'bg-chip text-muted'
-              }`}
+              className={`inline-grid size-5 place-items-center rounded-full text-[11px] font-semibold ${dot}`}
             >
               {done ? <Icon name="check" className="size-3" /> : n}
             </span>

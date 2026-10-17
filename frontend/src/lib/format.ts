@@ -130,6 +130,13 @@ export function plTone(value: string | number | null): string {
   return 'text-ink'
 }
 
+// signTone is plTone for a Pill: gain when positive, loss when negative,
+// cash for zero or an unknown value.
+export function signTone(value: number | null): 'gain' | 'loss' | 'cash' {
+  if (value === null || value === 0) return 'cash'
+  return value > 0 ? 'gain' : 'loss'
+}
+
 // Unit prices (avg cost, last price, a transaction's price) keep source
 // precision: TEFAS NAVs carry 6 decimals and often sit below 1 TL, so 2
 // decimals would misstate them. Money totals stay on formatMoney.

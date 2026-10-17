@@ -5,6 +5,13 @@ import { Pill } from '../ui/Pill'
 import { ParseError } from './ImportQueue'
 import { viewImportClass, type QueueItem } from './shared'
 
+// What a file came to: its row count, the parse error that stopped it, or the reason it was skipped.
+function ItemDetail({ item, portfolioId }: { item: QueueItem; portfolioId: number }) {
+  if (item.status === 'imported') return t('transactions.count', { count: item.count ?? 0 })
+  if (item.error) return <ParseError error={item.error} portfolioId={portfolioId} />
+  return item.reason
+}
+
 // Step 3 of a multi-file import, "Bitti": each imported statement
 // with its rows and a link to İşlemler filtered to it, each skipped or failed
 // file with its reason. With nothing imported there is no success line.
@@ -36,13 +43,7 @@ export function ImportDone({
                 {item.file.name}
               </span>
               <span className="block text-[12px] text-muted">
-                {item.status === 'imported' ? (
-                  t('transactions.count', { count: item.count ?? 0 })
-                ) : item.error ? (
-                  <ParseError error={item.error} portfolioId={portfolioId} />
-                ) : (
-                  item.reason
-                )}
+                <ItemDetail item={item} portfolioId={portfolioId} />
               </span>
             </span>
             {item.status === 'imported' ? (

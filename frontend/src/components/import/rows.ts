@@ -200,10 +200,12 @@ export function withCashRows(rows: Row[], side: 'opening' | 'closing'): Row[] {
     })
   }
   const cent = 10n ** 16n
-  const cents = (units: bigint) =>
-    unitsToDecimal(
-      (opening ? (units + cent - 1n) / cent : units > 0n ? units / cent : 0n) * 10n ** 7n,
-    )
+  const cents = (units: bigint) => {
+    let whole = 0n
+    if (opening) whole = (units + cent - 1n) / cent
+    else if (units > 0n) whole = units / cent
+    return unitsToDecimal(whole * 10n ** 7n)
+  }
   const type = opening ? 'deposit' : 'withdrawal'
   const cash = (row: Row) => row[side] && row.type === type
   const kept = new Set(rows.filter((row) => cash(row) && row.manual).map((row) => row.currency))

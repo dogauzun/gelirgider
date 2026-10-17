@@ -21,13 +21,13 @@ export function useModal(fallback?: string) {
     return () => {
       // Only when focus was lost with the dialog: never take it back from
       // wherever the closing action already put it.
-      const target =
-        // eslint-disable-next-line no-restricted-syntax -- puts focus back on the opener itself
-        opener instanceof HTMLElement && opener !== document.body && opener.isConnected
-          ? opener
-          : fallback
-            ? document.querySelector<HTMLElement>(fallback)
-            : null
+      let target: HTMLElement | null = null
+      // eslint-disable-next-line no-restricted-syntax -- puts focus back on the opener itself
+      if (opener instanceof HTMLElement && opener !== document.body && opener.isConnected) {
+        target = opener
+      } else if (fallback) {
+        target = document.querySelector<HTMLElement>(fallback)
+      }
       focusIfLost(target)
     }
   }, [fallback])

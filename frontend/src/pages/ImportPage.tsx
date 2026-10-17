@@ -310,11 +310,15 @@ export function ImportPage() {
     })
   }
 
+  let step: 1 | 2 | 3 = 1
+  if (batchDone) step = 3
+  else if (preview || turn !== -1) step = 2
+
   return (
     <PortfolioHeader portfolioId={portfolioId} add="inline">
       <div className="mx-auto max-w-6xl px-6 pt-6 pb-12">
         <ImportSteps
-          step={batchDone ? 3 : preview || turn !== -1 ? 2 : 1}
+          step={step}
           batch={queue && turn !== -1 && !reading ? { index: turn, total: reviewable } : undefined}
         />
         {batchDone && listed && (

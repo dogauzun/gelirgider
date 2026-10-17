@@ -9,7 +9,14 @@ import {
 import { t } from '../i18n/strings'
 import { rangeDelta } from '../lib/chart'
 import { daysBetween, formatMarketDate, todayIstanbul } from '../lib/date'
-import { currencySymbol, MISSING, plTone, signedMoney, signedPercent } from '../lib/format'
+import {
+  currencySymbol,
+  MISSING,
+  plTone,
+  signedMoney,
+  signedPercent,
+  signTone,
+} from '../lib/format'
 import { RANGES, resolveRange, type RangeValue } from '../lib/ranges'
 import { annualize, excessReturn } from '../lib/returns'
 import { useZoom } from '../lib/useRange'
@@ -93,11 +100,11 @@ export function ReturnCard({
   const { from, to } = resolveRange(range, today)
   const preset = RANGES.find((r) => r.key === range.key)
   // A year range reads as the year, a custom one as its two dates.
-  const rangeLabel = preset
-    ? t(preset.deltaKey)
-    : range.key === 'custom'
-      ? `${from ? formatMarketDate(from) : '…'} – ${formatMarketDate(to)}`
-      : range.key
+  let rangeLabel: string = range.key
+  if (preset) rangeLabel = t(preset.deltaKey)
+  else if (range.key === 'custom') {
+    rangeLabel = `${from ? formatMarketDate(from) : '…'} – ${formatMarketDate(to)}`
+  }
 
   // The previous range's chart stays up while a new one loads, but
   // its change and returns would read as the new range's, so they wait.
@@ -161,12 +168,19 @@ export function ReturnCard({
       .join(' · ')
     return (
       <span title={benchmarkHasData ? undefined : t('chart.return.undefined')}>
-        <Pill tone={excess === null || excess === 0 ? 'cash' : excess > 0 ? 'gain' : 'loss'}>
-          {text}
-        </Pill>
+        <Pill tone={signTone(excess)}>{text}</Pill>
       </span>
     )
   }
+
+  const returnLabels =
+    method === 'twr'
+      ? { value: t('chart.return.portfolio'), excess: excessLabel }
+      : {
+          value: t('chart.return.portfolioTwr'),
+          valueHint: t('chart.return.portfolioTwr.hint'),
+          excess: excessLabel,
+        }
 
   return (
     <section className="min-w-0 card">
@@ -268,17 +282,7 @@ export function ReturnCard({
             height={220}
             benchmarkLabel={benchmarkLabel}
             estimatedFrom={historyBenchmark?.estimated_from}
-            labels={
-              chartMode === 'money'
-                ? undefined
-                : method === 'twr'
-                  ? { value: t('chart.return.portfolio'), excess: excessLabel }
-                  : {
-                      value: t('chart.return.portfolioTwr'),
-                      valueHint: t('chart.return.portfolioTwr.hint'),
-                      excess: excessLabel,
-                    }
-            }
+            labels={chartMode === 'money' ? undefined : returnLabels}
             onZoom={zoom.onZoom}
           />
         </ChartFrame>
