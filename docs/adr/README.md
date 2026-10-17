@@ -32,6 +32,7 @@ of a phase epic, or a workflow rule.
 | 0022 | [PR review by a subagent of the merger](0022-pr-review-agent.md)                                                   | accepted 2026-10-02                               |
 | 0023 | [UI design system v2 ("soft depth") — Inter, shadow tokens, Base UI, sidebar shell](0023-ui-design-system-v2.md)   | accepted 2026-10-04                               |
 | 0024 | [Term deposits valued by a computed price source](0024-term-deposits.md)                                           | accepted 2026-10-18                               |
+| 0025 | [Two-step login with TOTP](0025-two-step-login.md)                                                                 | accepted 2026-10-18                               |
 
 ## Convention
 

@@ -33,7 +33,8 @@ touches it from the host runs as root, shown with `sudo`.
    a second `SECRET_KEY` line, and do not generate a new key on a host that
    already has one: a new key works like a lost one, below. Compose and the
    backend refuse to start without it. It encrypts the provider API keys
-   (Finnhub, Tiingo and TCMB EVDS) in the database, and nothing else. Keep a
+   (Finnhub, Tiingo and TCMB EVDS) and the users' two-step login secrets in the
+   database, and nothing else. Keep a
    copy off the host, next to the backups. To keep the key out of the
    environment, store it in a file instead, mount it as a Docker secret and
    set `SECRET_KEY_FILE` to its path; the commented example in
@@ -54,13 +55,22 @@ touches it from the host runs as root, shown with `sudo`.
 
 **Lost or changed `SECRET_KEY`.** A backup can be restored with any valid
 `SECRET_KEY`: users, portfolios, transactions and prices do not depend on
-it. Only the stored provider API keys do. With a different key the backend
-starts normally, the provider rows in Yönetim / Administration show that the
+it. Only the stored provider API keys and the users' two-step login secrets
+do (the last paragraph of this section says what that costs). With a different
+key the backend starts normally, the provider rows in Yönetim / Administration show that the
 stored key cannot be read, and the US and BIST 100 fetches fail until the
 keys are entered again there. To recover, generate a new key as above, put
 it in the `SECRET_KEY=` line (or the secret file `SECRET_KEY_FILE` names),
 restart the backend, and enter the three
 provider keys again.
+
+The key also seals each user's two-step login (TOTP) secret
+([ADR 0025](../docs/adr/0025-two-step-login.md)). With a different key those
+secrets cannot be read, and every user who turned two-step login on is locked
+out of login, with no fallback to the password alone, until an admin or the
+operator resets that user's password (Yönetim / Administration or
+`-set-password`, §9), which also turns two-step login off. Those users then
+enrol again. Users without two-step login are not affected.
 
 ## 2. First deploy
 
@@ -374,7 +384,8 @@ copy of the current state, and step 2 picks the older file instead.
 7. Log in at `https://DOMAIN` and confirm the restored data looks right.
    With a different `SECRET_KEY` than the backup was taken with, the data
    is all there, but the stored provider keys cannot be decrypted and must
-   be entered again (see Lost or changed `SECRET_KEY` in §1).
+   be entered again, and users with two-step login are locked out until
+   an admin resets their password (see Lost or changed `SECRET_KEY` in §1).
 8. Once confirmed, delete the `.bak` files moved aside in step 4 (`sudo rm`). The fresh
    backup from step 1 stays in `deploy/data/backups/`.
 

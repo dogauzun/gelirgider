@@ -22,6 +22,8 @@ bugs, negative positions and cash overdraft first among them. The code is under
   lasts 30 days from login and is never extended. The table stores only the
   sha256 of the token, so a database copy or a `-backup` file carries no
   usable login. Expired rows are deleted on every login and once at startup.
+- **Two-step login is optional**, a TOTP code after the password, see
+  [ADR 0025](0025-two-step-login.md).
 - **One `RequireUser` wrap** guards every `/api/*` route except the public
   auth, setup and health ones. `RequireAdmin` reads `is_admin` per request.
 - **A password change signs out every other session** but the current one.
