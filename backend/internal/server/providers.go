@@ -1,9 +1,7 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -48,125 +46,135 @@ type providerStatus struct {
 // it is set and its last 4 characters. fetcher runs the Finnhub and Tiingo
 // key tests, evdsFetcher the EVDS one.
 func registerProviderRoutes(mux *http.ServeMux, secrets *settings.Repo, fetcher *us.Fetcher, evdsFetcher *evds.Fetcher) {
-	// Whether each provider has a key and its last 4 characters, never the
-	// key itself.
-	//
-	//	@Summary	List data providers
-	//	@Description	Each provider's key status: whether it is set and its last 4 characters, never the key. error is "undecryptable" when the stored key cannot be read.
-	//	@Tags		admin
-	//	@Produce	json
-	//	@Success	200	{array}		server.providerStatus
-	//	@Failure	500	{object}	object{error=string}	"internal error"
-	//	@Router		/admin/providers [get]
-	mux.HandleFunc("GET /api/admin/providers", func(w http.ResponseWriter, r *http.Request) {
-		out := make([]providerStatus, 0, len(providerKeys))
-		for _, p := range providerKeys {
-			key, ok, err := secrets.GetSecret(r.Context(), p.setting)
-			if errors.Is(err, settings.ErrUndecryptable) {
-				out = append(out, providerStatus{Name: p.name, Configured: true, Error: "undecryptable"})
-				continue
-			}
-			if err != nil {
-				auth.WriteInternalError(w, r, err)
-				return
-			}
-			s := providerStatus{Name: p.name, Configured: ok}
-			if len(key) > 4 {
-				s.Last4 = key[len(key)-4:]
-			}
-			out = append(out, s)
-		}
-		auth.WriteJSON(w, http.StatusOK, out)
-	})
+	h := &providerHandler{secrets, fetcher, evdsFetcher}
+	mux.HandleFunc("GET /api/admin/providers", h.list)
+	mux.HandleFunc("PUT /api/admin/providers/{name}", h.put)
+	mux.Handle("POST /api/admin/providers/{name}/test", ratelimit.Limit(10, time.Minute)(http.HandlerFunc(h.test)))
+}
 
-	// Stores a provider's API key; an empty key clears it.
-	//
-	//	@Summary	Set a provider API key
-	//	@Tags		admin
-	//	@Accept		json
-	//	@Produce	json
-	//	@Param		name	path	string					true	"provider name"	Enums(finnhub, tiingo, evds)
-	//	@Param		body	body	object{api_key=string}	true	"API key; empty clears it"
-	//	@Success	204
-	//	@Failure	400	{object}	object{error=string}	"invalid request body"
-	//	@Failure	404	{object}	object{error=string}	"unknown provider"
-	//	@Failure	500	{object}	object{error=string}	"internal error"
-	//	@Router		/admin/providers/{name} [put]
-	mux.HandleFunc("PUT /api/admin/providers/{name}", func(w http.ResponseWriter, r *http.Request) {
-		setting := providerSetting(r.PathValue("name"))
-		if setting == "" {
-			auth.WriteError(w, http.StatusNotFound, "unknown provider")
-			return
+type providerHandler struct {
+	secrets     *settings.Repo
+	fetcher     *us.Fetcher
+	evdsFetcher *evds.Fetcher
+}
+
+// list answers whether each provider has a key and its last 4 characters,
+// never the key itself.
+//
+//	@Summary	List data providers
+//	@Description	Each provider's key status: whether it is set and its last 4 characters, never the key. error is "undecryptable" when the stored key cannot be read.
+//	@Tags		admin
+//	@Produce	json
+//	@Success	200	{array}		server.providerStatus
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/admin/providers [get]
+func (h *providerHandler) list(w http.ResponseWriter, r *http.Request) {
+	out := make([]providerStatus, 0, len(providerKeys))
+	for _, p := range providerKeys {
+		key, ok, err := h.secrets.GetSecret(r.Context(), p.setting)
+		if errors.Is(err, settings.ErrUndecryptable) {
+			out = append(out, providerStatus{Name: p.name, Configured: true, Error: "undecryptable"})
+			continue
 		}
-		var body struct {
-			APIKey string `json:"api_key"`
-		}
-		if !auth.DecodeJSON(w, r, &body) {
-			return
-		}
-		// An empty key clears the setting.
-		if err := secrets.SetSecret(r.Context(), setting, strings.TrimSpace(body.APIKey)); err != nil {
+		if err != nil {
 			auth.WriteInternalError(w, r, err)
 			return
 		}
-		w.WriteHeader(http.StatusNoContent)
-	})
+		s := providerStatus{Name: p.name, Configured: ok}
+		if len(key) > 4 {
+			s.Last4 = key[len(key)-4:]
+		}
+		out = append(out, s)
+	}
+	auth.WriteJSON(w, http.StatusOK, out)
+}
 
-	// POST .../test makes one request to the provider with the body's
-	// api_key, or the stored key when the body has none. Rate
-	// limited like login, so it cannot be used to hammer the providers.
-	//
-	//	@Summary	Test a provider API key
-	//	@Description	Makes one request to the provider with the body's api_key, or the stored key when the body has none. ok is false with the provider's reason in error when the key does not work. Rate limited to 10 requests per minute.
-	//	@Tags		admin
-	//	@Accept		json
-	//	@Produce	json
-	//	@Param		name	path	string					true	"provider name"	Enums(finnhub, tiingo, evds)
-	//	@Param		body	body	object{api_key=string}	false	"key to test; empty tests the stored key"
-	//	@Success	200	{object}	object{ok=bool,error=string}
-	//	@Failure	400	{object}	object{error=string}	"invalid request body; stored key unreadable; not configured"
-	//	@Failure	404	{object}	object{error=string}	"unknown provider"
-	//	@Failure	500	{object}	object{error=string}	"internal error"
-	//	@Router		/admin/providers/{name}/test [post]
-	mux.Handle("POST /api/admin/providers/{name}/test", ratelimit.Limit(10, time.Minute)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setting := providerSetting(r.PathValue("name"))
-		if setting == "" {
-			auth.WriteError(w, http.StatusNotFound, "unknown provider")
+// put stores a provider's API key; an empty key clears it.
+//
+//	@Summary	Set a provider API key
+//	@Tags		admin
+//	@Accept		json
+//	@Produce	json
+//	@Param		name	path	string					true	"provider name"	Enums(finnhub, tiingo, evds)
+//	@Param		body	body	object{api_key=string}	true	"API key; empty clears it"
+//	@Success	204
+//	@Failure	400	{object}	object{error=string}	"invalid request body"
+//	@Failure	404	{object}	object{error=string}	"unknown provider"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/admin/providers/{name} [put]
+func (h *providerHandler) put(w http.ResponseWriter, r *http.Request) {
+	setting := providerSetting(r.PathValue("name"))
+	if setting == "" {
+		auth.WriteError(w, http.StatusNotFound, "unknown provider")
+		return
+	}
+	var body struct {
+		APIKey string `json:"api_key"`
+	}
+	if !auth.DecodeJSON(w, r, &body) {
+		return
+	}
+	// An empty key clears the setting.
+	if err := h.secrets.SetSecret(r.Context(), setting, strings.TrimSpace(body.APIKey)); err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// test makes one request to the provider with the body's api_key, or the stored
+// key when the body has none. Rate limited like login, so it cannot be used to
+// hammer the providers.
+//
+//	@Summary	Test a provider API key
+//	@Description	Makes one request to the provider with the body's api_key, or the stored key when the body has none. ok is false with the provider's reason in error when the key does not work. Rate limited to 10 requests per minute.
+//	@Tags		admin
+//	@Accept		json
+//	@Produce	json
+//	@Param		name	path	string					true	"provider name"	Enums(finnhub, tiingo, evds)
+//	@Param		body	body	object{api_key=string}	false	"key to test; empty tests the stored key"
+//	@Success	200	{object}	object{ok=bool,error=string}
+//	@Failure	400	{object}	object{error=string}	"invalid request body; stored key unreadable; not configured"
+//	@Failure	404	{object}	object{error=string}	"unknown provider"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/admin/providers/{name}/test [post]
+func (h *providerHandler) test(w http.ResponseWriter, r *http.Request) {
+	setting := providerSetting(r.PathValue("name"))
+	if setting == "" {
+		auth.WriteError(w, http.StatusNotFound, "unknown provider")
+		return
+	}
+	var body struct {
+		APIKey string `json:"api_key"`
+	}
+	if !auth.DecodeOptionalJSON(w, r, &body) {
+		return
+	}
+	key := strings.TrimSpace(body.APIKey)
+	if key == "" {
+		var err error
+		key, _, err = h.secrets.GetSecret(r.Context(), setting)
+		if errors.Is(err, settings.ErrUndecryptable) {
+			auth.WriteError(w, http.StatusBadRequest, "stored key unreadable")
 			return
 		}
-		var body struct {
-			APIKey string `json:"api_key"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
-			auth.WriteError(w, http.StatusBadRequest, "invalid request body")
+		if err != nil {
+			auth.WriteInternalError(w, r, err)
 			return
 		}
-		key := strings.TrimSpace(body.APIKey)
-		if key == "" {
-			var err error
-			key, _, err = secrets.GetSecret(r.Context(), setting)
-			if errors.Is(err, settings.ErrUndecryptable) {
-				auth.WriteError(w, http.StatusBadRequest, "stored key unreadable")
-				return
-			}
-			if err != nil {
-				auth.WriteInternalError(w, r, err)
-				return
-			}
-		}
-		if key == "" {
-			auth.WriteError(w, http.StatusBadRequest, "not configured")
-			return
-		}
-		var reason string
-		if setting == evds.KeySetting {
-			reason = evdsFetcher.TestKey(r.Context(), key)
-		} else {
-			reason = fetcher.TestKey(r.Context(), setting, key)
-		}
-		auth.WriteJSON(w, http.StatusOK, struct {
-			OK    bool   `json:"ok"`
-			Error string `json:"error,omitempty"`
-		}{reason == "", reason})
-	})))
+	}
+	if key == "" {
+		auth.WriteError(w, http.StatusBadRequest, "not configured")
+		return
+	}
+	var reason string
+	if setting == evds.KeySetting {
+		reason = h.evdsFetcher.TestKey(r.Context(), key)
+	} else {
+		reason = h.fetcher.TestKey(r.Context(), setting, key)
+	}
+	auth.WriteJSON(w, http.StatusOK, struct {
+		OK    bool   `json:"ok"`
+		Error string `json:"error,omitempty"`
+	}{reason == "", reason})
 }

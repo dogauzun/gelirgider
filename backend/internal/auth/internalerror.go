@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 
@@ -75,6 +76,16 @@ func WriteJSON(w http.ResponseWriter, status int, v any) {
 // "invalid request body" and returns false, so the handler just returns.
 func DecodeJSON(w http.ResponseWriter, r *http.Request, v any) bool {
 	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return false
+	}
+	return true
+}
+
+// DecodeOptionalJSON is DecodeJSON for a route whose body may be absent: an
+// empty body leaves v as it is and counts as success.
+func DecodeOptionalJSON(w http.ResponseWriter, r *http.Request, v any) bool {
+	if err := json.NewDecoder(r.Body).Decode(v); err != nil && !errors.Is(err, io.EOF) {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return false
 	}

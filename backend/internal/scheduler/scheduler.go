@@ -16,6 +16,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/price"
@@ -77,6 +78,15 @@ type Source struct {
 	// empty, the same walk as the startup backfill, and returns the rows
 	// written. The admin backfill now runs it. nil: no history to fill.
 	Backfill func(ctx context.Context, from string) (int, error)
+}
+
+// Find returns the source called name.
+func Find(sources []Source, name string) (Source, bool) {
+	i := slices.IndexFunc(sources, func(s Source) bool { return s.Name == name })
+	if i < 0 {
+		return Source{}, false
+	}
+	return sources[i], true
 }
 
 // CatchUpLookbackDays bounds how many calendar days CatchUp walks back

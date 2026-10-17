@@ -601,7 +601,7 @@ func TestBackfillGoldSkipsCompleteRange(t *testing.T) {
 	// Yesterday (UTC) is 2022-07-01.
 	now := time.Date(2022, 7, 2, 12, 0, 0, 0, price.Istanbul)
 	f := sourceFetchers{crypto: &btcturk.Fetcher{BaseURL: srv.URL}, now: fixedNow(now)}
-	gold, _ := findSource(schedulerSources(conn, testLogger(), f), scheduler.NameGold)
+	gold, _ := scheduler.Find(schedulerSources(conn, testLogger(), f), scheduler.NameGold)
 	written, err := gold.Backfill(ctx, "2022-06-30")
 	if err != nil || written != 0 {
 		t.Fatalf("gold Backfill = %d, %v, want 0, nil", written, err)
