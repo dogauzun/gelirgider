@@ -7,10 +7,9 @@ import { DrawdownCard } from '../components/DrawdownCard'
 import { ReturnBars } from '../components/LazyChart'
 import { PeriodReturnsTable } from '../components/PeriodReturnsTable'
 import { PortfolioHeader } from '../components/PortfolioHeader'
-import { LoadError } from '../components/ui/LoadError'
+import { ChartFrame } from '../components/ui/ChartFrame'
 import { Segmented } from '../components/ui/Segmented'
 import { FitSelect } from '../components/ui/Select'
-import { Skeleton } from '../components/ui/Skeleton'
 import { TAP_Y } from '../components/ui/tap'
 import { t } from '../i18n/strings'
 import { useBenchmark, useReturnMethod } from '../lib/useReturnSettings'
@@ -94,13 +93,34 @@ function PeriodReturnsCard({
   const oneDay = buckets.length > 0 && buckets[0].from === buckets[buckets.length - 1].to
   // Against TÜFE the excess is the real return, as on the return card.
   const viewLabel = (option: View) =>
-    t(
-      option === 'portfolio'
-        ? 'performance.periods.portfolio'
-        : benchmark === 'TUFE'
-          ? 'performance.periods.real'
-          : 'performance.periods.excess',
+    option === 'portfolio'
+      ? t('performance.periods.portfolio')
+      : t(benchmark === 'TUFE' ? 'performance.periods.real' : 'performance.periods.excess')
+
+  // What the card's body holds once the periods are in.
+  const body = () => {
+    if (!data) return null
+    if (empty) return <p className="px-1 py-2 text-[13px] text-muted">{t('transactions.empty')}</p>
+    if (undefinedReturns && oneDay)
+      return <p className="px-1 py-2 text-[13px] text-muted">{t('chart.empty')}</p>
+    if (undefinedReturns)
+      return (
+        <div className="px-1 py-2">
+          <CashGapNotice scope={portfolioId} />
+        </div>
+      )
+    if (shape === 'bars')
+      return <ReturnBars buckets={data.months} method={method} benchmarkLabel={benchmarkLabel} />
+    return (
+      <PeriodReturnsTable
+        months={data.months}
+        years={data.years}
+        method={method}
+        excess={excess}
+        labelledBy={headingId}
+      />
     )
+  }
 
   return (
     <section className="card">
@@ -134,36 +154,9 @@ function PeriodReturnsCard({
         )}
       </div>
       <div className="p-3">
-        {query.isError ? (
-          <LoadError
-            title={t('performance.periods.error')}
-            error={query.error}
-            onRetry={() => query.refetch()}
-            retrying={query.isFetching}
-          />
-        ) : !data ? (
-          <Skeleton className="h-[160px] w-full" />
-        ) : empty ? (
-          <p className="px-1 py-2 text-[13px] text-muted">{t('transactions.empty')}</p>
-        ) : undefinedReturns ? (
-          oneDay ? (
-            <p className="px-1 py-2 text-[13px] text-muted">{t('chart.empty')}</p>
-          ) : (
-            <div className="px-1 py-2">
-              <CashGapNotice scope={portfolioId} />
-            </div>
-          )
-        ) : shape === 'bars' ? (
-          <ReturnBars buckets={data.months} method={method} benchmarkLabel={benchmarkLabel} />
-        ) : (
-          <PeriodReturnsTable
-            months={data.months}
-            years={data.years}
-            method={method}
-            excess={excess}
-            labelledBy={headingId}
-          />
-        )}
+        <ChartFrame query={query} height={160} errorTitle={t('performance.periods.error')}>
+          {body()}
+        </ChartFrame>
       </div>
     </section>
   )

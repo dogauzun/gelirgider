@@ -6,8 +6,7 @@ import { formatShortMarketDate, todayIstanbul } from '../lib/date'
 import { drawdown } from '../lib/drawdown'
 import { plTone, signedPercent } from '../lib/format'
 import { DrawdownChart } from './LazyChart'
-import { LoadError } from './ui/LoadError'
-import { Skeleton } from './ui/Skeleton'
+import { ChartFrame } from './ui/ChartFrame'
 
 // The "Zirveden düşüş" card on the Performans tab: how far the
 // return index 1 + twr of the all-time history is below its highest value so
@@ -27,6 +26,25 @@ export function DrawdownCard({ portfolioId }: { portfolioId: PortfolioScope }) {
       {dates && <span className="text-muted tabular-nums">{dates}</span>}
     </span>
   )
+
+  // What the chart's place holds once the history is in.
+  const body = () => {
+    // One day, with twr null: a scope with no transactions (today, all
+    // zero) or the day of its first one, not an undefined return. The
+    // empty text is the periodic returns card's.
+    if (points.length < 2) {
+      const noTransactions = points.every((p) =>
+        [p.total_value, p.cash, p.cost_basis].every((v) => Number(v) === 0),
+      )
+      return (
+        <p className="text-[13px] text-muted">
+          {t(noTransactions ? 'transactions.empty' : 'chart.empty')}
+        </p>
+      )
+    }
+    if (dd) return <DrawdownChart series={dd.series} />
+    return <CashGapNotice scope={portfolioId} />
+  }
 
   return (
     <section className="card">
@@ -49,34 +67,9 @@ export function DrawdownCard({ portfolioId }: { portfolioId: PortfolioScope }) {
         )}
       </div>
       <div className="p-4 pt-3">
-        {query.isError ? (
-          <LoadError
-            title={t('drawdown.error')}
-            error={query.error}
-            onRetry={() => query.refetch()}
-            retrying={query.isFetching}
-          />
-        ) : !query.data ? (
-          // The chart's default height, so nothing moves when it arrives.
-          <Skeleton className="h-[140px] w-full" />
-        ) : points.length < 2 ? (
-          // One day, with twr null: a scope with no transactions (today, all
-          // zero) or the day of its first one, not an undefined return. The
-          // empty text is the periodic returns card's.
-          <p className="text-[13px] text-muted">
-            {t(
-              points.every((p) =>
-                [p.total_value, p.cash, p.cost_basis].every((v) => Number(v) === 0),
-              )
-                ? 'transactions.empty'
-                : 'chart.empty',
-            )}
-          </p>
-        ) : dd ? (
-          <DrawdownChart series={dd.series} />
-        ) : (
-          <CashGapNotice scope={portfolioId} />
-        )}
+        <ChartFrame query={query} height={140} errorTitle={t('drawdown.error')}>
+          {body()}
+        </ChartFrame>
       </div>
     </section>
   )

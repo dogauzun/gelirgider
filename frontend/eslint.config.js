@@ -26,9 +26,47 @@ export default tseslint.config(
       globals: globals.browser,
       parserOptions: { projectService: true },
     },
-    // A promise nobody awaits loses its rejection: await it, or mark the
-    // fire-and-forget call with `void`.
-    rules: { '@typescript-eslint/no-floating-promises': 'error' },
+    rules: {
+      // A promise nobody awaits loses its rejection: await it, or mark the
+      // fire-and-forget call with `void`.
+      '@typescript-eslint/no-floating-promises': 'error',
+      // A chain of conditions is an if/return, a lookup or ui/ChartFrame.
+      'no-nested-ternary': 'error',
+    },
+  },
+  // Chains the rule found when it was adopted: each needs a real refactor (a
+  // helper, an early return or a lookup), not a one-line change. A file leaves
+  // this list once its chains are flat.
+  {
+    files: [
+      'src/components/AttentionCard.tsx',
+      'src/components/InstrumentSearchInput.tsx',
+      'src/components/PortfolioHeader.tsx',
+      'src/components/PortfoliosTable.tsx',
+      'src/components/PositionDialog.tsx',
+      'src/components/PositionKpis.tsx',
+      'src/components/PositionPriceChart.tsx',
+      'src/components/PositionTitle.tsx',
+      'src/components/PositionsTable.tsx',
+      'src/components/ReturnCard.test.tsx',
+      'src/components/ReturnCard.tsx',
+      'src/components/charts/LineChart.tsx',
+      'src/components/import/ImportDone.tsx',
+      'src/components/import/ImportSteps.tsx',
+      'src/components/import/PastImports.tsx',
+      'src/components/import/PreviewTable.tsx',
+      'src/components/import/UploadCard.tsx',
+      'src/components/import/reviewRows.ts',
+      'src/components/import/rows.ts',
+      'src/components/ui/Checkbox.tsx',
+      'src/components/ui/SortHeader.tsx',
+      'src/components/ui/useModal.ts',
+      'src/lib/allocation.test.ts',
+      'src/lib/decimal.ts',
+      'src/lib/sortRows.ts',
+      'src/pages/ImportPage.tsx',
+    ],
+    rules: { 'no-nested-ternary': 'off' },
   },
   // Layer boundary: lib, api and i18n are leaves, components/ sits above them.
   {

@@ -12,19 +12,22 @@ type ChartQuery = Pick<
 // The frame around a history query's chart: the failure with a
 // Retry, a skeleton of the chart's `height` until the first data,
 // then the chart, the previous range's lines dimmed while the new range loads.
+// `errorTitle` names what failed when it is not a chart.
 export function ChartFrame({
   query,
   height = 200,
+  errorTitle = t('chart.error'),
   children,
 }: {
   query: ChartQuery
   height?: number
+  errorTitle?: string
   children: ReactNode
 }) {
   if (query.isError)
     return (
       <LoadError
-        title={t('chart.error')}
+        title={errorTitle}
         error={query.error}
         onRetry={() => query.refetch()}
         retrying={query.isFetching}
