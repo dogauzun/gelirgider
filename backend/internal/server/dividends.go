@@ -267,13 +267,8 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type sums struct{ gross, tax, net, interest decimal.Decimal }
-	type instrumentSums struct {
-		total dividendInstrumentTotal
-		net   decimal.Decimal
-	}
-	months, years := map[string]*sums{}, map[string]*sums{}
-	byInstrument := map[int64]*instrumentSums{}
+	months, years := map[string]*dividendSums{}, map[string]*dividendSums{}
+	byInstrument := map[int64]*dividendInstrumentSums{}
 	missing := map[string]bool{}
 	for _, t := range rows {
 		fxw.advance(t.Date)
@@ -285,12 +280,12 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 		amount, fee := t.Amount.Mul(f), t.Fee.Mul(f)
 		net := amount.Sub(fee)
 		for _, b := range []struct {
-			m      map[string]*sums
+			m      map[string]*dividendSums
 			period string
 		}{{months, t.Date[:7]}, {years, t.Date[:4]}} {
 			s := b.m[b.period]
 			if s == nil {
-				s = &sums{}
+				s = &dividendSums{}
 				b.m[b.period] = s
 			}
 			if t.InstrumentID == nil {
@@ -306,7 +301,7 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 		}
 		e := byInstrument[*t.InstrumentID]
 		if e == nil {
-			e = &instrumentSums{total: dividendInstrumentTotal{InstrumentID: *t.InstrumentID}}
+			e = &dividendInstrumentSums{total: dividendInstrumentTotal{InstrumentID: *t.InstrumentID}}
 			if t.InstrumentSymbol != nil {
 				e.total.Symbol = *t.InstrumentSymbol
 			}
@@ -320,29 +315,49 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 		e.total.LastDate = t.Date
 	}
 
-	buckets := func(m map[string]*sums) []dividendBucket {
-		out := make([]dividendBucket, 0, len(m))
-		for _, period := range slices.Sorted(maps.Keys(m)) {
-			s := m[period]
-			out = append(out, dividendBucket{Period: period, Gross: s.gross.StringFixed(2), Tax: s.tax.StringFixed(2), Net: s.net.StringFixed(2), Interest: s.interest.StringFixed(2)})
-		}
-		return out
+	out.Months, out.Years = dividendBuckets(months), dividendBuckets(years)
+	out.ByInstrument = dividendInstrumentTotals(byInstrument)
+	out.MissingRates = slices.Sorted(maps.Keys(missing))
+	if out.MissingRates == nil {
+		out.MissingRates = []string{}
 	}
-	out.Months, out.Years = buckets(months), buckets(years)
-	entries := slices.Collect(maps.Values(byInstrument))
+	auth.WriteJSON(w, http.StatusOK, out)
+}
+
+// dividendSums is one bucket's running totals.
+type dividendSums struct{ gross, tax, net, interest decimal.Decimal }
+
+// dividendInstrumentSums is one instrument's running total, with its net
+// as a decimal for the sort.
+type dividendInstrumentSums struct {
+	total dividendInstrumentTotal
+	net   decimal.Decimal
+}
+
+// dividendBuckets lists m's periods ascending.
+func dividendBuckets(m map[string]*dividendSums) []dividendBucket {
+	out := make([]dividendBucket, 0, len(m))
+	for _, period := range slices.Sorted(maps.Keys(m)) {
+		s := m[period]
+		out = append(out, dividendBucket{Period: period, Gross: s.gross.StringFixed(2), Tax: s.tax.StringFixed(2), Net: s.net.StringFixed(2), Interest: s.interest.StringFixed(2)})
+	}
+	return out
+}
+
+// dividendInstrumentTotals lists the instruments net descending, then by
+// symbol; never nil.
+func dividendInstrumentTotals(m map[int64]*dividendInstrumentSums) []dividendInstrumentTotal {
+	entries := slices.Collect(maps.Values(m))
 	sort.Slice(entries, func(i, j int) bool {
 		if c := entries[i].net.Cmp(entries[j].net); c != 0 {
 			return c > 0
 		}
 		return entries[i].total.Symbol < entries[j].total.Symbol
 	})
+	out := make([]dividendInstrumentTotal, 0, len(entries))
 	for _, e := range entries {
 		e.total.Net = e.net.StringFixed(2)
-		out.ByInstrument = append(out.ByInstrument, e.total)
+		out = append(out, e.total)
 	}
-	out.MissingRates = slices.Sorted(maps.Keys(missing))
-	if out.MissingRates == nil {
-		out.MissingRates = []string{}
-	}
-	auth.WriteJSON(w, http.StatusOK, out)
+	return out
 }

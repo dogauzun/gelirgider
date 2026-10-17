@@ -49,10 +49,6 @@ Format: `<file>:<line>, <what was simplified>. ceiling: <the limit>. upgrade: <t
 - history.go:559, whole first-price jump removed, including gain on in-range buys before the first price. ceiling: slight understatement. upgrade: none; would need a price at each buy. `no-trigger`
 - history.go:684, loads every stored CPI month. ceiling: a few hundred rows since 2003. upgrade: none named. `no-trigger`
 
-## backend/internal/server/position_history.go
-
-- position_history.go:85, from/to rules copied from historyHandler.get. ceiling: two copies. upgrade: extract a helper if a third copy appears.
-
 ## backend/internal/server/scope.go
 
 - scope.go:38, one List query per portfolio. ceiling: a handful of portfolios. upgrade: one UNION query if portfolio counts grow.
@@ -130,6 +126,6 @@ Format: `<file>:<line>, <what was simplified>. ceiling: <the limit>. upgrade: <t
 
 ## Totals
 
-35 markers, 14 with no trigger.
+34 markers, 14 with no trigger.
 
-34 of 35 still use the old `ponytail:` prefix. A grep for `shortcut:` alone misses them.
+33 of 34 still use the old `ponytail:` prefix. A grep for `shortcut:` alone misses them.

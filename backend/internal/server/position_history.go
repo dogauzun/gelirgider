@@ -55,8 +55,6 @@ type positionHistoryResponse struct {
 //	@Failure	404	{object}	object{error=string}	"portfolio not found; instrument not found"
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/instruments/{instrument_id}/history [get]
-//
-//nolint:dupl // the from/to rules are copied from historyHandler.get on purpose, see the ponytail comment below
 func (h *positionHistoryHandler) get(w http.ResponseWriter, r *http.Request) {
 	userID, portfolioID, ok := portfolio.Owned(w, r, h.portfolios)
 	if !ok {
@@ -82,63 +80,11 @@ func (h *positionHistoryHandler) get(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// ponytail: the from/to rules below are copied from historyHandler.get
-	// rather than shared, to keep history.go untouched; extract a helper if
-	// a third copy appears.
-	today := istanbulToday()
-	to := today
-	if q := r.URL.Query().Get("to"); q != "" {
-		var err error
-		to, err = time.Parse(time.DateOnly, q)
-		if err != nil {
-			auth.WriteError(w, http.StatusBadRequest, "to must be YYYY-MM-DD")
-			return
-		}
-		if to.After(today) {
-			to = today
-		}
-	}
-
-	var from time.Time
-	explicitFrom := r.URL.Query().Get("from") != ""
-	if explicitFrom {
-		from, err = time.Parse(time.DateOnly, r.URL.Query().Get("from"))
-		if err != nil {
-			auth.WriteError(w, http.StatusBadRequest, "from must be YYYY-MM-DD")
-			return
-		}
-	}
-	var first time.Time
-	if len(txs) > 0 {
-		first, err = time.Parse(time.DateOnly, txs[0].Date)
-		if err != nil {
-			auth.WriteInternalError(w, r, err)
-			return
-		}
-	}
-	switch {
-	case explicitFrom:
-		if len(txs) > 0 && first.After(from) && !first.After(to) {
-			from = first
-		}
-	case len(txs) > 0:
-		from = first
-		if earliest := to.AddDate(0, 0, -maxHistoryDays); from.Before(earliest) {
-			from = earliest
-		}
-	default:
-		from = to
-	}
-
-	if from.After(to) {
-		auth.WriteError(w, http.StatusBadRequest, "from must not be after to")
+	from, to, ok := historyRange(w, r, txs)
+	if !ok {
 		return
 	}
 	days := int(to.Sub(from).Hours()/24) + 1
-	if explicitFrom && days > maxHistoryDays {
-		auth.WriteError(w, http.StatusBadRequest, "range exceeds 3660 days")
-		return
-	}
 
 	// Same series as history.go builds per instrument (holdings.MergedSeries).
 	merged, err := holdings.MergedSeries(r.Context(), holdings.PriceSources{Prices: h.prices, Manual: h.manualPrices}, userID, []int64{instrumentID}, from, to)
