@@ -7,7 +7,7 @@ import {
 } from '../api/dividends'
 import { t } from '../i18n/strings'
 import { formatMarketDate } from '../lib/date'
-import { formatQuantity, decimalUnits, unitsToDecimal } from '../lib/decimal'
+import { formatQuantity, moneyByCurrency } from '../lib/decimal'
 import { formatMoney, formatUnitPrice } from '../lib/format'
 import { useIsDesktop } from '../lib/useIsDesktop'
 import { useOneAtATime } from '../lib/useOneAtATime'
@@ -36,15 +36,8 @@ const rowKey = (row: ExpectedDividend) => `${row.instrument_id}-${row.date}`
 // The rows' net total, added exactly per currency: "₺1.264,79", or
 // "₺1.264,79 + $12,34" when BIST and US dividends mix, since the panel has no
 // FX rate to put them in one currency.
-function netTotal(rows: ExpectedDividend[]): string {
-  const totals = new Map<string, bigint>()
-  for (const row of rows) {
-    totals.set(row.currency, (totals.get(row.currency) ?? 0n) + decimalUnits(row.net))
-  }
-  return [...totals]
-    .map(([currency, units]) => formatMoney(unitsToDecimal(units), currency))
-    .join(' + ')
-}
+const netTotal = (rows: ExpectedDividend[]) =>
+  moneyByCurrency(rows.map((row) => ({ currency: row.currency, amount: row.net }))).join(' + ')
 
 // Dividends to confirm, the first card on the Temettü tab. Renders nothing
 // while the list is empty, which is most of the time; the header carries the

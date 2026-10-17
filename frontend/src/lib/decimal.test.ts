@@ -7,6 +7,7 @@ import {
   formatQuantity,
   unitsToDecimal,
   isAmbiguousThousands,
+  moneyByCurrency,
   parseDecimalInput,
   subDecimal,
 } from './decimal'
@@ -108,6 +109,20 @@ describe('unitsToDecimal', () => {
     expect(unitsToDecimal(100_000_000_000_000_010_000_000n)).toBe('100000000000000.01')
     expect(unitsToDecimal(-1_500_000_000n)).toBe('-1.5')
     expect(unitsToDecimal(0n)).toBe('0')
+  })
+})
+
+describe('moneyByCurrency', () => {
+  it('adds each currency exactly across rows, in first-seen order', () => {
+    setLocale('en')
+    expect(
+      moneyByCurrency([
+        { currency: 'TRY', amount: '0.1' },
+        { currency: 'USD', amount: '12.34' },
+        { currency: 'TRY', amount: '0.2' },
+      ]),
+    ).toEqual(['₺0.30', '$12.34'])
+    expect(moneyByCurrency([])).toEqual([])
   })
 })
 

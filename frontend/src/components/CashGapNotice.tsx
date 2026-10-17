@@ -5,7 +5,7 @@ import type { PortfolioScope } from '../api/summary'
 import { useFillCashGaps } from '../api/transactions'
 import { t } from '../i18n/strings'
 import { formatMarketDate } from '../lib/date'
-import { decimalUnits, unitsToDecimal } from '../lib/decimal'
+import { moneyByCurrency } from '../lib/decimal'
 import { formatMoney } from '../lib/format'
 import { useOneAtATime } from '../lib/useOneAtATime'
 import { Button } from './ui/Button'
@@ -51,7 +51,7 @@ export function CashGapNotice({ scope }: { scope: PortfolioScope }) {
             {scope === 'all' && <b className="font-semibold text-ink">{name(id)}: </b>}
             {t('performance.cashGaps.line', {
               date: formatMarketDate(rows[0].date),
-              amounts: shortfalls(rows).join(', '),
+              amounts: moneyByCurrency(rows).join(', '),
             })}
           </li>
         ))}
@@ -69,16 +69,6 @@ export function CashGapNotice({ scope }: { scope: PortfolioScope }) {
 
 function Text({ children }: { children: string }) {
   return <p className="text-[13px] text-muted">{children}</p>
-}
-
-// One portfolio's shortfall per currency, the exact sum of that currency's
-// gaps, in the order the currencies first fall short.
-function shortfalls(rows: CashGap[]): string[] {
-  const sums = new Map<string, bigint>()
-  for (const { currency, amount } of rows) {
-    sums.set(currency, (sums.get(currency) ?? 0n) + decimalUnits(amount))
-  }
-  return [...sums].map(([currency, units]) => formatMoney(unitsToDecimal(units), currency))
 }
 
 // Lists the deposits the server will write; confirm sends only the note, as
