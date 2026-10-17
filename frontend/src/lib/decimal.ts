@@ -123,6 +123,22 @@ export function subDecimal(a: string, b: string): string {
   return unitsToDecimal(decimalUnits(a) - decimalUnits(b))
 }
 
+// a × b of two API decimal strings, exact at any number of fraction digits:
+// the product's scale is the sum of the two scales ("0.1" × "3" = "0.3").
+export function mulDecimal(a: string, b: string): string {
+  const scale = (text: string) => (text.split('.')[1] ?? '').length
+  const digits = (text: string) => BigInt(text.replace('-', '').replace('.', ''))
+  const places = scale(a) + scale(b)
+  const product = digits(a) * digits(b)
+  const padded = String(product).padStart(places + 1, '0')
+  const fraction = padded
+    .slice(padded.length - places)
+    // eslint-disable-next-line no-restricted-syntax -- the one trailing-zero trim
+    .replace(/0+$/, '')
+  const sign = a.startsWith('-') !== b.startsWith('-') && product !== 0n ? '-' : ''
+  return `${sign}${padded.slice(0, padded.length - places)}${fraction ? `.${fraction}` : ''}`
+}
+
 // compareDecimal orders two API decimal strings exactly: -1, 0 or 1, as a
 // sort comparator expects.
 export function compareDecimal(a: string, b: string): number {
