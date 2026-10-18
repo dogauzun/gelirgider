@@ -65,6 +65,14 @@ describe('AttentionCard', () => {
     ])
   })
 
+  it('words an allocation drift item under Yoğunlaşma, signed', () => {
+    renderCard([{ kind: 'allocation-drift', assetClass: 'Hisse senedi', drift: -6.04 }])
+    expect(screen.getByText('Hisse senedi -6,0 p')).toBeTruthy()
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+      'Yoğunlaşma',
+    ])
+  })
+
   it('lists a due deposit with its net, gross and stopaj under its own group', () => {
     const deposit = {
       id: 5,

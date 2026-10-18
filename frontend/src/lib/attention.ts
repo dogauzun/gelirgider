@@ -1,6 +1,8 @@
+import type { AllocationTarget } from '../api/allocationTargets'
 import type { DueDeposit } from '../api/deposits'
 import type { ExpectedDividend } from '../api/dividends'
 import type { Summary } from '../api/summary'
+import { allocationRows, driftRows } from './allocation'
 import { daysBetween } from './date'
 import { compareDecimal, decimalUnits } from './decimal'
 import { currencyTotals, dayRatio, holdingsTotal, shareOf } from './positions'
@@ -14,6 +16,7 @@ export const ATTENTION = {
   tryCashShare: 0.4,
   currencyShare: 0.5,
   movers: 2,
+  allocationDrift: 5,
 } as const
 
 // The JSON shape of GET /api/me/attention-rules: per rule an optional on/off
@@ -27,7 +30,8 @@ export type AttentionRules = Partial<
     | 'try_cash_share'
     | 'no_hedge'
     | 'currency_share'
-    | 'movers',
+    | 'movers'
+    | 'allocation_drift',
     Rule
   >
 >
@@ -83,6 +87,8 @@ export type AttentionItem = { portfolio?: string } & (
   // USD, EUR, gold or US stock at all.
   | { kind: 'try-cash-share'; share: number }
   | { kind: 'no-hedge' }
+  // assetClass is the row's label; drift is in points, signed.
+  | { kind: 'allocation-drift'; assetClass: string; drift: number }
 )
 
 // Whether part / whole is above share, exactly: the amounts go in as 1e-9
@@ -106,6 +112,7 @@ export function attentionItems(input: {
   today: string
   portfolioName?: string
   rules?: AttentionRules
+  targets?: AllocationTarget[]
 }): AttentionItem[] {
   const {
     summary,
@@ -115,6 +122,7 @@ export function attentionItems(input: {
     today,
     portfolioName,
     rules = {},
+    targets = [],
   } = input
   const staleDays = threshold(rules, 'stale_manual_days', ATTENTION.staleManualDays)
   const positionShare = threshold(rules, 'position_share', ATTENTION.positionShare)
@@ -123,6 +131,7 @@ export function attentionItems(input: {
     summary.currency === 'TRY' ? threshold(rules, 'try_cash_share', ATTENTION.tryCashShare) : null
   const noHedge = summary.currency === 'TRY' && rules.no_hedge?.enabled !== false
   const currencyShare = threshold(rules, 'currency_share', ATTENTION.currencyShare)
+  const allocationDrift = threshold(rules, 'allocation_drift', ATTENTION.allocationDrift)
   const open = summary.positions.filter((p) => !p.closed)
   const priced = open.filter((p) => p.has_price)
   const items: AttentionItem[] = []
@@ -243,6 +252,21 @@ export function attentionItems(input: {
         (currency === 'USD' || currency === 'EUR') && decimalUnits(amount) > 0n,
     )
   if (noHedge && total > 0n && !hedged) items.push({ kind: 'no-hedge' })
+
+  // Rounded so that exactly the threshold, whose float drift can land a hair above it, is not above it.
+  if (allocationDrift !== null && targets.length > 0) {
+    const { rows } = allocationRows({
+      positions: summary.positions,
+      cash: summary.cash,
+      cashByCurrencyReporting: summary.cash_by_currency_reporting,
+      view: 'assetClass',
+    })
+    for (const row of driftRows(rows, targets)) {
+      if (row.drift !== null && Number(Math.abs(row.drift).toFixed(6)) > allocationDrift) {
+        items.push({ kind: 'allocation-drift', assetClass: row.label, drift: row.drift })
+      }
+    }
+  }
 
   return portfolioName ? items.map((item) => ({ ...item, portfolio: portfolioName })) : items
 }

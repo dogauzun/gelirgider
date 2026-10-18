@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { AllocationTarget } from '../api/allocationTargets'
 import type { ExpectedDividend } from '../api/dividends'
 import type { Position, Summary } from '../api/summary'
 import { attentionItems, type AttentionRules } from './attention'
@@ -414,5 +415,33 @@ describe('TRY cash share and no-hedge rules', () => {
     expect(all(s)).toEqual([
       { kind: 'concentration', subject: 'cash', label: 'USD', share: 500 / 700 },
     ])
+  })
+})
+
+describe('allocation drift rule', () => {
+  // 50% equity, 50% cash.
+  const half = summary([position(1, 'A', '500')], '500')
+  const drift = (targets: AllocationTarget[], rules: AttentionRules = {}) =>
+    attentionItems({ summary: half, expected: [], today: TODAY, rules, targets }).filter(
+      (item) => item.kind === 'allocation-drift',
+    )
+  const split = (equity: string, cash: string) => [
+    { asset_class: 'equity', weight: equity },
+    { asset_class: 'cash', weight: cash },
+  ]
+
+  it('flags each class drifting above the threshold, signed, and not one at it or below', () => {
+    expect(drift(split('44', '56'))).toEqual([
+      { kind: 'allocation-drift', assetClass: 'Hisse senedi', drift: expect.closeTo(6) },
+      { kind: 'allocation-drift', assetClass: 'Nakit', drift: expect.closeTo(-6) },
+    ])
+    expect(drift(split('45', '55'))).toEqual([])
+    expect(drift(split('46', '54'))).toEqual([])
+  })
+
+  it('uses the rule value, and nothing when the rule is off or there are no targets', () => {
+    expect(drift(split('46', '54'), { allocation_drift: { value: 3 } })).toHaveLength(2)
+    expect(drift(split('44', '56'), { allocation_drift: { enabled: false } })).toEqual([])
+    expect(drift([])).toEqual([])
   })
 })

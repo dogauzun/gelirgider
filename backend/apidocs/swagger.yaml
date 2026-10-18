@@ -20,6 +20,8 @@ definitions:
     type: object
   auth.attentionRules:
     properties:
+      allocation_drift:
+        $ref: '#/definitions/auth.attentionRule'
       cash_share:
         $ref: '#/definitions/auth.attentionRule'
       currency_share:
@@ -3243,8 +3245,8 @@ paths:
       - application/json
       description: Needs a session. Replaces the whole object; keys are optional,
         and so are `enabled` and `value` inside a key. `no_hedge` takes `enabled`
-        only. Shares are 0-1, `stale_manual_days` an integer 1-365, `movers` an integer
-        0-10.
+        only. Shares are 0-1, `allocation_drift` is points 0-100, `stale_manual_days`
+        an integer 1-365, `movers` an integer 0-10.
       parameters:
       - description: overrides only
         in: body

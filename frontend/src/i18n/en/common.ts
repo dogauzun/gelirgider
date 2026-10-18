@@ -60,6 +60,7 @@ export const enCommon: AreaStrings<typeof trCommon> = {
   'attention.currencyAssets': '{currency} assets',
   'attention.tryCashShare': '{share} of your wealth is TRY cash, which loses value to inflation',
   'attention.noHedge': 'No USD, EUR, gold or US stock',
+  'attention.allocationDrift': '{assetClass} {drift} pp',
   'prices.enter': 'Enter price',
   'prices.enterLabel': 'Enter price for {symbol}',
   'prices.error.invalid': 'Price must be a number greater than 0.',
