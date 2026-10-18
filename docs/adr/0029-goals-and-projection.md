@@ -21,7 +21,8 @@ decimal text, `unit`, `target_date` as a market date
 (`Europe/Istanbul`) and `created_at`. `portfolio_id` NULL is the
 all-portfolios goal. A scope has at most one goal and a new goal replaces the
 old one. Like the other per-user tables, every query filters by `user_id`.
-The target date must be after today.
+The target date must fall in a later calendar month than today, so the
+projection always has at least one month to run.
 
 ### Units are relative to the reporting currency
 
@@ -37,10 +38,13 @@ reporting currency is out of v1: the app holds no price index for it.
 ### Routes
 
 `GET`, `PUT` and `DELETE /api/portfolios/{id}/goal` and
-`GET /api/portfolios/{id}/projection`. `{id}` is a number or `all`, as on every
-portfolio route ([ADR 0014](0014-all-portfolios-view.md)), so the scope
-resolver serves them and the all-portfolios goal costs no extra route. Only the
-owner reads or writes a goal.
+`GET /api/portfolios/{id}/projection`. `{id}` is a number or `all`. The goal
+routes are a deliberate exception to the read-only `all` view of
+[ADR 0014](0014-all-portfolios-view.md): `PUT` and `DELETE` on `all` write the
+goal whose `portfolio_id` is NULL. These routes resolve `{id}` to a nullable
+portfolio id themselves, since the scope resolver of ADR 0014 yields only
+transaction lists. The all-portfolios goal costs no extra route. Only the owner
+reads or writes a goal.
 
 ### The projection reuses the history sweep
 
@@ -97,9 +101,10 @@ The answer comes from the median path, in the goal's unit:
   that already is at the amount answers with month 0.
 - Otherwise the answer is the extra monthly flow `x` that makes it: the
   smallest `x` for which the median path, run with `f + x` in place of `f`,
-  reaches the amount in the target month. The value at the target month grows
-  with `x`, so `x` is found by bisection on the same recurrence, the upper
-  bound doubling until the amount is reached. The line reads "the goal needs
+  reaches the amount in the target month. The target month is at least month 1,
+  so at least one step adds `f + x` and the value there grows without bound
+  with `x`. `x` is found by bisection on the same recurrence, the upper bound
+  doubling until the amount is reached, which therefore always ends. The line reads "the goal needs
   <x> more per month", in the reporting currency.
 
 ### Progress

@@ -127,7 +127,8 @@ buttons, no links to transactions or imports, and no position page (ADR 0016).
 The "Dikkat" card still books or dismisses an expected dividend and enters a
 manual price, each through the owning portfolio's own route
 (`/api/portfolios/{n}/...`) or the user's price route; the `all` routes stay
-read-only.
+read-only. The one exception is the goal routes of ADR 0029, which accept `all`
+for writing too.
 
 Per portfolio: transactions (listing, adding, editing, deleting), statement
 imports, expected dividends and their dismissal. Manual prices are stored per
