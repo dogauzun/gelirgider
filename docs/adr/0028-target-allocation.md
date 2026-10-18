@@ -22,7 +22,9 @@ and per-sector targets are out of v1.
 
 Table `allocation_targets` holds `user_id`, a nullable `portfolio_id`,
 `asset_class` and `weight`. `weight` is an exact decimal text in percent, and a
-set sums to 100. A set belongs to one portfolio; `portfolio_id` NULL is the
+set sums to 100 (the header comment of `037_allocation_targets.sql` says
+"a fraction"; that is wrong, and the file is not edited because the checksum
+guard of ADR 0002 would fail startup on every database that applied it). A set belongs to one portfolio; `portfolio_id` NULL is the
 all-portfolios set. Like the term deposits of [ADR 0024](0024-term-deposits.md),
 the table is per-user data and every query filters by `user_id`.
 
