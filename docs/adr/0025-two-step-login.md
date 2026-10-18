@@ -46,9 +46,10 @@ path ([ADR 0010](0010-setup-and-admin.md)).
   from it, and only then are the recovery codes issued. A new setup replaces
   the pending secret.
 - **Ten recovery codes**, random, shown once. Only a hash is stored, a code
-  works once and is deleted when used. A used code goes through the same
-  attempt caps as a TOTP code. Making new codes needs the current password
-  and replaces the old ones.
+  works once: using it sets its `used_at`, and the row stays until new codes
+  replace the set or two-step login is turned off or reset. A used code goes
+  through the same attempt caps as a TOTP code. Making new codes needs the
+  current password and replaces the old ones.
 - **Turning it off needs the current password and a valid code** (TOTP or
   recovery), and deletes the secret, the last step and the recovery codes.
 - **`SetPassword` clears two-step login.** The operator flag and the admin API
