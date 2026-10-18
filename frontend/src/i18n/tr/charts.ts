@@ -91,6 +91,11 @@ export const trCharts = {
   'drawdown.current': 'Şu an',
   'drawdown.error': 'Zirveden düşüş yüklenemedi',
   'drawdown.chart.summary': '{from} – {to} zirveden düşüş, en büyük {value}',
+  // The goal projection chart: the 75th, 50th and 25th percentile paths.
+  'projection.high': 'İyi senaryo',
+  'projection.mid': 'Orta senaryo',
+  'projection.low': 'Kötü senaryo',
+  'projection.chart.summary': '{from} – {to} hedef tahmini, sonunda {value}',
   'chart.totalValue': 'Toplam değer',
   'chart.costBasis': 'Maliyet',
   'chart.empty': 'Grafik için yeterli veri yok.',

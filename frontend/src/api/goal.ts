@@ -18,9 +18,10 @@ const path = (portfolioId: PortfolioScope) => `/api/portfolios/${portfolioId}/go
 
 // A scope with no goal answers 404 "goal not found": that is null, not an
 // error. A 404 for a missing portfolio stays an error.
-export function useGoal(portfolioId: PortfolioScope) {
+export function useGoal(portfolioId: PortfolioScope, enabled = true) {
   return useQuery({
     queryKey: goalQueryKey(portfolioId),
+    enabled,
     queryFn: async () => {
       try {
         return await apiFetch<Goal>(path(portfolioId))

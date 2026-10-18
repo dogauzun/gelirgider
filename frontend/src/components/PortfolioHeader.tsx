@@ -9,7 +9,9 @@ import {
 import { flushSync } from 'react-dom'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 import { ApiError } from '../api'
+import { useGoal } from '../api/goal'
 import { useDeletePortfolio, usePortfolios, useRenamePortfolio } from '../api/portfolios'
+import { progressPercent, useProjection } from '../api/projection'
 import type { PortfolioScope } from '../api/summary'
 import { t } from '../i18n/strings'
 import { useNavState, type NavState } from '../lib/navState'
@@ -24,6 +26,7 @@ import { NotFound } from './NotFound'
 import { inputClass } from './ui/inputClass'
 import { Icon } from './ui/Icon'
 import { Menu, MenuItem } from './ui/Menu'
+import { Pill } from './ui/Pill'
 import { Skeleton } from './ui/Skeleton'
 import { TAP_ICON } from './ui/tap'
 
@@ -173,6 +176,11 @@ export function PortfolioHeader({
   const { remove, dialog, error: deleteError, isPending } = useDeletePortfolioFlow()
 
   const portfolio = data?.find((p) => p.id === portfolioId)
+  // The goal's progress next to the name, a link to the goal card, which only
+  // the Özet tab has.
+  const onSummary = pathname === `/portfolios/${portfolioId}`
+  const hasGoal = Boolean(useGoal(portfolioId, onSummary).data)
+  const progress = useProjection(portfolioId, hasGoal && onSummary).data?.progress
   const isAll = portfolioId === 'all'
   const onPosition = pathname.startsWith(`/portfolios/${portfolioId}/positions/`)
   // The Özet tab keeps the chart range from Özet and its position pages, as
@@ -338,7 +346,7 @@ export function PortfolioHeader({
             named ? 'lg:gap-3' : 'gap-3'
           } ${floatAdd || isAll ? 'flex-row items-center justify-between' : 'flex-col'}`}
         >
-          <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             {(named || !ownHeading) && (
               <Title
                 // Below lg the top bar shows the title, so the page's own is
@@ -352,6 +360,15 @@ export function PortfolioHeader({
               </Title>
             )}
             {nameSlot}
+            {named && onSummary && progress !== undefined && (
+              <a
+                href="#projection"
+                aria-label={`${t('projection.title')} ${progressPercent(progress)}`}
+                className="shrink-0"
+              >
+                <Pill tone={progress < 1 ? 'cash' : 'gain'}>{progressPercent(progress)}</Pill>
+              </a>
+            )}
           </div>
 
           {isAll && (

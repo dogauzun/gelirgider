@@ -32,6 +32,7 @@ import { PortfolioHeader } from '../components/PortfolioHeader'
 import { PortfoliosTable } from '../components/PortfoliosTable'
 import { PositionsTable } from '../components/PositionsTable'
 import { PriceDialog } from '../components/PriceDialog'
+import { ProjectionCard } from '../components/ProjectionCard'
 import { ReturnCard } from '../components/ReturnCard'
 import { ReturnSplitCard } from '../components/ReturnSplitCard'
 import { toInput } from '../components/transactionForm'
@@ -609,6 +610,8 @@ export function SummaryPage() {
                       dayChange={data.day_change ?? null}
                     />
                   </div>
+
+                  <ProjectionCard portfolioId={portfolioId} />
                 </div>
               ))}
           </>
