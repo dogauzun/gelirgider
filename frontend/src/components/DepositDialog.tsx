@@ -11,11 +11,16 @@ import {
   textBinding,
   useDepositSubmit,
 } from './depositForm'
-import { DateInput, DecimalInput, DepositFormDialog, RateFields } from './DepositFormDialog'
+import {
+  DateInput,
+  DecimalInput,
+  DepositFormDialog,
+  NoteField,
+  RateFields,
+} from './DepositFormDialog'
 import { CURRENCIES } from './transactionForm'
 import { Checkbox } from './ui/Checkbox'
 import { Field } from './ui/Field'
-import { inputClass } from './ui/inputClass'
 import { Select } from './ui/Select'
 
 type Form = {
@@ -124,11 +129,7 @@ export function DepositDialog({
         <Field label={t('deposits.maturity')} error={fieldError('maturity')}>
           <DateInput {...bind('maturity')} min={form.start} />
         </Field>
-        <div className="sm:col-span-2">
-          <Field label={`${t('transactions.note')} · ${t('transactions.optional')}`}>
-            <input type="text" maxLength={500} className={inputClass()} {...bind('note')} />
-          </Field>
-        </div>
+        <NoteField {...bind('note')} />
         <div className="sm:col-span-2">
           <Checkbox
             checked={form.fund}

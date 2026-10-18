@@ -188,7 +188,7 @@ describe('PortfolioHeader', () => {
       'Emeklilik',
     )
     expect(screen.getByRole('link', { name: 'İşlemler' })).toHaveTextContent(/^İşlemler$/)
-    // The Temettü and Mevduat tabs sit between İşlemler and İçe aktar; the
+    // The Temettü, Mevduat and Planlar tabs sit between İşlemler and İçe aktar; the
     // Performans tab between Özet and İşlemler.
     expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual([
       t('summary.title'),
@@ -196,6 +196,7 @@ describe('PortfolioHeader', () => {
       t('transactions.title'),
       t('dividends.page.title'),
       t('deposits.tab'),
+      t('plans.tab'),
       t('import.title'),
     ])
     expect(screen.getByRole('link', { name: t('dividends.page.title') })).toHaveAttribute(

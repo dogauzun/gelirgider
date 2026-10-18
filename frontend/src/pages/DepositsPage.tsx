@@ -2,15 +2,12 @@ import { useState } from 'react'
 import { Navigate, useParams } from 'react-router'
 import { useDeleteDeposit, useDeposits, type Deposit } from '../api/deposits'
 import { DepositDialog } from '../components/DepositDialog'
-import { PortfolioHeader } from '../components/PortfolioHeader'
+import { ListCard, PortfolioListFrame } from '../components/PortfolioListFrame'
 import { RenewDepositDialog } from '../components/RenewDepositDialog'
-import { ActionsTh } from '../components/ui/ActionsTh'
 import { Button } from '../components/ui/Button'
 import { Icon } from '../components/ui/Icon'
-import { LoadError } from '../components/ui/LoadError'
 import { Pill } from '../components/ui/Pill'
-import { SkeletonRows } from '../components/ui/Skeleton'
-import { ROW_44, TABLE, TD, TD_NUM, TH } from '../components/ui/table'
+import { ROW_44, TD, TD_NUM } from '../components/ui/table'
 import { useConfirm } from '../components/ui/useConfirm'
 import { t, type StringKey } from '../i18n/strings'
 import { formatMarketDate } from '../lib/date'
@@ -117,7 +114,8 @@ export function DepositsPage() {
 
 function DepositsBody({ portfolioId }: { portfolioId: number }) {
   usePortfolioTitle(t('deposits.title'), portfolioId)
-  const { data, isLoading, isError, error, refetch, isFetching } = useDeposits(portfolioId)
+  const query = useDeposits(portfolioId)
+  const { data } = query
   const deleteMutation = useDeleteDeposit(portfolioId)
   const { confirm, dialog } = useConfirm()
   const [opening, setOpening] = useState(false)
@@ -153,63 +151,39 @@ function DepositsBody({ portfolioId }: { portfolioId: number }) {
     )
   } else if (data) {
     body = (
-      <section className="mb-6 overflow-x-auto card">
-        <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
-          <h2 className="text-[14px] font-semibold text-ink">{t('deposits.title')}</h2>
-          <Button onClick={() => setOpening(true)}>
-            <Icon name="plus" />
-            {t('deposits.open')}
-          </Button>
-        </div>
-        <table className={TABLE}>
-          <thead>
-            <tr>
-              {COLUMNS.map(({ labelKey, className }) => (
-                <th key={labelKey} className={`${TH} ${className}`}>
-                  {t(labelKey)}
-                </th>
-              ))}
-              <ActionsTh />
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((deposit) => (
-              <DepositRow
-                key={deposit.id}
-                deposit={deposit}
-                onRenew={
-                  deposit.status !== 'active' && !renewed.has(deposit.id)
-                    ? () => setRenewing(deposit)
-                    : undefined
-                }
-                onDelete={() => void remove(deposit)}
-              />
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <ListCard
+        title={t('deposits.title')}
+        addLabel={t('deposits.open')}
+        onAdd={() => setOpening(true)}
+        columns={COLUMNS}
+      >
+        {data.map((deposit) => (
+          <DepositRow
+            key={deposit.id}
+            deposit={deposit}
+            onRenew={
+              deposit.status !== 'active' && !renewed.has(deposit.id)
+                ? () => setRenewing(deposit)
+                : undefined
+            }
+            onDelete={() => void remove(deposit)}
+          />
+        ))}
+      </ListCard>
     )
   }
 
   return (
-    // The page's own button leads, so the header's add-transaction one is quiet.
-    <PortfolioHeader portfolioId={portfolioId} add="quiet">
-      <div className="mx-auto max-w-6xl px-6 pt-6 pb-12">
-        {opening && <DepositDialog portfolioId={portfolioId} onClose={() => setOpening(false)} />}
-        {renewing && <RenewDepositDialog deposit={renewing} onClose={() => setRenewing(null)} />}
-        {isLoading && <SkeletonRows label={t('deposits.loading')} />}
-        {isError && (
-          <LoadError
-            title={t('deposits.loadError')}
-            error={error}
-            onRetry={() => refetch()}
-            retrying={isFetching}
-            className="mb-6"
-          />
-        )}
-        {body}
-        {dialog}
-      </div>
-    </PortfolioHeader>
+    <PortfolioListFrame
+      portfolioId={portfolioId}
+      query={query}
+      loadingLabel={t('deposits.loading')}
+      errorTitle={t('deposits.loadError')}
+    >
+      {opening && <DepositDialog portfolioId={portfolioId} onClose={() => setOpening(false)} />}
+      {renewing && <RenewDepositDialog deposit={renewing} onClose={() => setRenewing(null)} />}
+      {body}
+      {dialog}
+    </PortfolioListFrame>
   )
 }

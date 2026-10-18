@@ -19,7 +19,14 @@ import { TAP_ICON } from './ui/tap'
 // is the empty suffix, so it is not in the list. A portfolio row keeps the tab
 // the user is on; from a position page it goes to the summary, as
 // the instrument may not be held in the other portfolio.
-const TAB_SUFFIXES = ['/performance', '/transactions', '/dividends', '/deposits', '/import']
+const TAB_SUFFIXES = [
+  '/performance',
+  '/transactions',
+  '/dividends',
+  '/deposits',
+  '/plans',
+  '/import',
+]
 
 const rowClass = ({ isActive }: { isActive: boolean }) =>
   `flex h-8 items-center gap-2 rounded-ctl px-2 text-[13px] font-medium ${

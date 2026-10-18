@@ -39,6 +39,17 @@ export function RateFields({
   )
 }
 
+// The optional note field, across both columns.
+export function NoteField(props: ComponentProps<'input'>) {
+  return (
+    <div className="sm:col-span-2">
+      <Field label={`${t('transactions.note')} · ${t('transactions.optional')}`}>
+        <input type="text" maxLength={500} className={inputClass()} {...props} />
+      </Field>
+    </div>
+  )
+}
+
 // The shell of the open and renew dialogs: title, the fields as children, the
 // server error under them, then Cancel and the submit button. `error` field
 // null is a server error; a field error is shown by its own Field.
