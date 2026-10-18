@@ -25,6 +25,7 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/goal"
 	"github.com/dogauzun/gelirgider/backend/internal/holdings"
 	"github.com/dogauzun/gelirgider/backend/internal/instrument"
+	"github.com/dogauzun/gelirgider/backend/internal/plan"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/dogauzun/gelirgider/backend/internal/ratelimit"
@@ -108,6 +109,7 @@ type deps struct {
 	deposits          *deposit.Repo
 	allocationTargets *allocation.Repo
 	goals             *goal.Repo
+	plans             *plan.Repo
 }
 
 // priceSources is what the valuations read prices from: the fetched closes,
@@ -138,6 +140,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 	d.deposits = deposit.NewRepo(conn)
 	d.allocationTargets = allocation.NewRepo(conn)
 	d.goals = goal.NewRepo(conn)
+	d.plans = plan.NewRepo(conn)
 	cfg, users, portfolios := d.cfg, d.users, d.portfolios
 	sessions := auth.NewRepo(conn)
 
@@ -222,6 +225,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 	registerDepositRoutes(protected, &d, onDemandFetch)
 	registerAllocationTargetRoutes(protected, &d)
 	registerGoalRoutes(protected, &d)
+	registerPlanRoutes(protected, &d)
 	mux.Handle("/api/", sessions.RequireUser(withJSONMiss(protected)))
 
 	return withRecover(logger, withLogging(logger, withCrossOriginProtection(withBodyLimit(mux))))
