@@ -109,9 +109,10 @@ white cards that float on layered shadows, pill chips, a filled chart.
   a position page goes to the portfolio's Özet. The sidebar reads the
   `['portfolios']` query, so a transaction or price change invalidates it. On
   a query error it shows no rows and no values, and its static links stay.
-- `PortfolioHeader` is the page header: title, tabs, `İşlem ekle` and the
-  rename and delete `Menu`. There is no portfolio switcher in it; the sidebar
-  does that job.
+- `PortfolioHeader` is the page header: title (with the goal progress pill on
+  Özet), tabs, `İşlem ekle` and a `Menu` with the goal item and, on a
+  portfolio, rename and delete. There is no portfolio switcher in it; the
+  sidebar does that job.
 - From `lg` (1024 px) the sidebar is fixed. Below `lg` a 48 px top bar holds
   the menu button, the brand mark, the page title (a plain span, never a
   heading), the privacy toggle and the account menu, and the same `Sidebar`
@@ -151,11 +152,13 @@ white cards that float on layered shadows, pill chips, a filled chart.
 
 ### Özet layout
 
-From `lg`, top to bottom: the return card (`ReturnCard.tsx`) beside the
+From `lg`, top to bottom: the return card (`ReturnCard.tsx`) with the return
+split card under it ([ADR 0027](0027-return-attribution.md)), beside the
 "Dikkat" card at 2:1; the KPI strip of five cells (Toplam değer, Günlük,
 Nakit, Gerçekleşmemiş K/Z, Gerçekleşmiş K/Z); İstatistikler (`StatsCard`);
-the positions table; then Dağılım beside Katkı at equal heights. Below `lg`
-the cards stack in that order. Each number is on the page once: the detail
+the positions table; then Dağılım beside Katkı at equal heights; then the
+goal card when the scope has a goal ([ADR 0029](0029-goals-and-projection.md)).
+Below `lg` the cards stack in that order. Each number is on the page once: the detail
 behind a KPI (the cost, the currency gain, cash per currency, the prices'
 date) is a `hint` popover on its cell, and the positions table's footer keeps
 its own Değer and K/Z totals. The attention rules are one pure function,
