@@ -232,12 +232,16 @@ definitions:
       closed:
         description: quantity zero on the last day
         type: boolean
+      currency:
+        type: string
       fx:
         type: string
       income:
         type: string
       instrument_id:
         type: integer
+      market:
+        type: string
       price:
         type: string
       symbol:
@@ -1505,6 +1509,8 @@ definitions:
         type: integer
       instrument_id:
         type: integer
+      instrument_market:
+        type: string
       instrument_name:
         type: string
       instrument_symbol:

@@ -66,6 +66,7 @@ export function asTransaction(
     instrument_id: row?.instrument_id ?? null,
     instrument_symbol: row?.symbol ?? null,
     instrument_name: null,
+    instrument_market: null,
     type: cash ? 'deposit' : (row?.type ?? 'buy'),
     date: row?.date || date || todayIstanbul(),
     quantity: row?.quantity ?? null,

@@ -5817,6 +5817,9 @@
                     "description": "quantity zero on the last day",
                     "type": "boolean"
                 },
+                "currency": {
+                    "type": "string"
+                },
                 "fx": {
                     "type": "string"
                 },
@@ -5825,6 +5828,9 @@
                 },
                 "instrument_id": {
                     "type": "integer"
+                },
+                "market": {
+                    "type": "string"
                 },
                 "price": {
                     "type": "string"
@@ -7443,6 +7449,9 @@
                 },
                 "instrument_id": {
                     "type": "integer"
+                },
+                "instrument_market": {
+                    "type": "string"
                 },
                 "instrument_name": {
                     "type": "string"

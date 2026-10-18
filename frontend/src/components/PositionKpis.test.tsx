@@ -72,6 +72,8 @@ it('shows the range split under the total of a closed USD position', () => {
   const attribution = {
     instrument_id: 7,
     symbol: 'THYAO',
+    market: 'BIST',
+    currency: 'USD',
     closed: true,
     price: '120.00',
     income: null,

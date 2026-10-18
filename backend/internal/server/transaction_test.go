@@ -183,6 +183,7 @@ func TestTransactionsListAndValidation(t *testing.T) {
 		Date             string  `json:"date"`
 		InstrumentSymbol *string `json:"instrument_symbol"`
 		InstrumentName   *string `json:"instrument_name"`
+		InstrumentMarket *string `json:"instrument_market"`
 	}
 	if err := json.NewDecoder(listRec.Body).Decode(&list); err != nil {
 		t.Fatalf("decode list: %v", err)
@@ -206,8 +207,11 @@ func TestTransactionsListAndValidation(t *testing.T) {
 			if tx.InstrumentName == nil || *tx.InstrumentName != "Test A.S." {
 				t.Fatalf("row %d (%s) instrument_name = %v, want \"Test A.S.\"", i, tx.Type, tx.InstrumentName)
 			}
-		} else if tx.InstrumentSymbol != nil || tx.InstrumentName != nil {
-			t.Fatalf("row %d (%s) instrument_symbol/name = %v/%v, want nil/nil", i, tx.Type, tx.InstrumentSymbol, tx.InstrumentName)
+			if tx.InstrumentMarket == nil || *tx.InstrumentMarket != "BIST" {
+				t.Fatalf("row %d (%s) instrument_market = %v, want \"BIST\"", i, tx.Type, tx.InstrumentMarket)
+			}
+		} else if tx.InstrumentSymbol != nil || tx.InstrumentName != nil || tx.InstrumentMarket != nil {
+			t.Fatalf("row %d (%s) instrument_symbol/name/market = %v/%v/%v, want nil/nil/nil", i, tx.Type, tx.InstrumentSymbol, tx.InstrumentName, tx.InstrumentMarket)
 		}
 	}
 

@@ -3,6 +3,7 @@ import { importLabel, type Import } from '../../api/imports'
 import type { Transaction } from '../../api/transactions'
 import { t } from '../../i18n/strings'
 import { formatMarketDate } from '../../lib/date'
+import { positionLabel } from '../../lib/positions'
 import {
   amountTone,
   feeText,
@@ -20,9 +21,19 @@ import { Pill } from '../ui/Pill'
 import { GROUP_ROW, ROW_44, TABLE, TD, TD_NUM, TH } from '../ui/table'
 
 // A row as the shared cells read it: the symbol is the instrument's, `#id`
-// while it is not loaded, and a cash row has none.
+// while it is not loaded, and a cash row has none. A term deposit reads by
+// its label, never its generated symbol (ADR 0024).
 function cellsOf(tx: Transaction): Cells {
   if (tx.instrument_id === null) return tx
+  if (tx.instrument_market === 'DEPOSIT') {
+    const position = {
+      market: tx.instrument_market,
+      symbol: tx.instrument_symbol ?? '',
+      name: tx.instrument_name ?? '',
+      currency: tx.currency,
+    }
+    return { ...tx, symbol: positionLabel(position) }
+  }
   return { ...tx, symbol: tx.instrument_symbol ?? `#${tx.instrument_id}` }
 }
 
@@ -110,11 +121,13 @@ function EditableTransactionRow({
             </span>
           )}
           <span className="min-w-0 truncate">
-            {tx.instrument_id !== null && tx.instrument_name && (
-              <span className="text-muted" title={tx.instrument_name}>
-                {tx.instrument_name}
-              </span>
-            )}
+            {tx.instrument_id !== null &&
+              tx.instrument_market !== 'DEPOSIT' &&
+              tx.instrument_name && (
+                <span className="text-muted" title={tx.instrument_name}>
+                  {tx.instrument_name}
+                </span>
+              )}
             {tx.note && (
               <span className="ml-1.5 text-muted first:ml-0" title={tx.note}>
                 {tx.note}
