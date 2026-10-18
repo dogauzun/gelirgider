@@ -7,6 +7,8 @@ export const enPosition: AreaStrings<typeof trPosition> = {
   'position.avgCost': 'Avg. cost',
   'position.total': 'Total result',
   'position.totalHint': 'P/L + dividends, all time',
+  'position.rangeSplit': 'Selected range',
+  'position.fxSinceCost': 'Currency since cost',
   'position.marketValue': 'Market value',
   'position.units': '{quantity} units',
   'position.units.one': '{quantity} unit',
