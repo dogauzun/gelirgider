@@ -118,7 +118,7 @@ other devices on the LAN cannot reach it directly.
 
 The first `make dev` leaves two files behind: a generated
 `SECRET_KEY` appended to `.env` (keep it, it encrypts the stored provider
-keys; `SECRET_KEY_FILE`, the path of a file holding the key, works too) and the dev database at `backend/gelirgider.db`. Both are gitignored.
+keys and the users' two-step login secrets; `SECRET_KEY_FILE`, the path of a file holding the key, works too) and the dev database at `backend/gelirgider.db`. Both are gitignored.
 
 The API spec in `backend/apidocs/` is committed, so `make dev` serves it as
 is. Only `make swagger` (regenerate it, then commit it) and `make lint`
