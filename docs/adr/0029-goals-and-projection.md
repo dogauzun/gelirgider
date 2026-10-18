@@ -27,8 +27,10 @@ projection always has at least one month to run.
 ### Units are relative to the reporting currency
 
 - `nominal`: the amount is in the reporting currency.
-- `real`: the amount is in the reporting currency at today's prices, deflated
-  by TÜFE. Allowed only when the reporting currency is TRY.
+- `real`: the amount is in the reporting currency at the prices of the month
+  the goal was set (`created_at`), deflated by TÜFE. The anchor is fixed at
+  write time and does not move on a read, so inflation alone never raises
+  progress. Allowed only when the reporting currency is TRY.
 - `usd`: the amount is in US dollars. Allowed only when the reporting
   currency is not USD.
 
@@ -95,16 +97,21 @@ goal's amount stay decimal at the edges.
 ### Real and USD conversions
 
 - `nominal`: the path as it is.
-- `real`: month `k` is divided by `(1 + m)^k`, where `m` is the monthly
-  inflation rate. TÜFE is extended past today at the trailing 12-month rate,
-  so `m = (L_today / L_12ago)^(1/12) − 1` with `L` the TÜFE level of
-  ADR 0012, its estimated part included. Month 0 is today, so today's value is
-  its own real value.
+- `real`: a nominal value at month `k` becomes real by multiplying it with
+  `L_c / (L_today * (1 + m)^k)`. `L` is the TÜFE level of ADR 0012, its
+  estimated part included, `L_c` its level in the month of `created_at` (the
+  earliest level if the series starts later) and `L_today` its level now. TÜFE
+  is extended past today at the trailing 12-month rate, so
+  `m = (L_today / L_12ago)^(1/12) − 1`. Month 0 is today, whose real value is
+  today's value times `L_c / L_today`: it falls below the nominal value as
+  prices rise after `created_at`, and equals it on the day the goal is set.
 - `usd`: every month is divided by today's USD rate, held constant. No
   currency forecast is made.
 
-The conversion is applied to the paths, and the comparison with the goal's
-amount is in the goal's unit.
+The conversion is applied to the paths and to today's value, and the
+comparison with the goal's amount is in the goal's unit. For `real` the
+comparison is the same as asking whether the nominal path reaches
+`amount * L_today * (1 + m)^k / L_c`.
 
 ### The one-line answer
 
@@ -128,7 +135,9 @@ and answers "the target date has passed", with no one-line answer. Otherwise:
 
 ### Progress
 
-Progress is today's value in the goal's unit over the amount. The projection
+Progress is today's value in the goal's unit over the amount; for `real`
+that is today's value times `L_c / L_today`, so a nominal gain that only matches
+inflation leaves progress where it was. The projection
 route serves it, and the portfolio header shows it as a pill. It has no route
 of its own, so the header and the card cannot disagree.
 
