@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useRenewDeposit, type Deposit, type RenewInput } from '../api/deposits'
 import { t } from '../i18n/strings'
+import { daysBetween } from '../lib/date'
+import { formatDecimalInput, mulDecimal } from '../lib/decimal'
 import { formatMoney } from '../lib/format'
 import {
   decimalError,
@@ -24,6 +26,19 @@ const validate = (form: Form, oldMaturity: string) =>
     ['maturity', form.maturity > oldMaturity ? null : t('deposits.error.maturityDate')],
   ])
 
+// The rate, the stopaj and the term of the old deposit, as the form shows
+// them: percents, and a maturity one old term after the old maturity.
+function oldTerms(deposit: Deposit): Form {
+  const term = daysBetween(deposit.start_date, deposit.maturity_date)
+  const maturity = new Date(`${deposit.maturity_date}T00:00:00Z`)
+  maturity.setUTCDate(maturity.getUTCDate() + term)
+  return {
+    rate: formatDecimalInput(mulDecimal(deposit.rate, '100')),
+    stopaj: formatDecimalInput(mulDecimal(deposit.stopaj_rate, '100')),
+    maturity: maturity.toISOString().slice(0, 10),
+  }
+}
+
 // The dialog that renews a due or matured deposit. The new principal is the
 // old one plus its net interest, which is the list item's payout; the server
 // computes it again, so it is shown and not sent.
@@ -34,7 +49,7 @@ export function RenewDepositDialog({
   deposit: Deposit
   onClose: () => void
 }) {
-  const [form, setForm] = useState<Form>({ rate: '', stopaj: '', maturity: '' })
+  const [form, setForm] = useState<Form>(() => oldTerms(deposit))
   const mutation = useRenewDeposit(deposit.id)
   const { error, setError, fieldError, submit } = useDepositSubmit<keyof Form, RenewInput>({
     mutation,
