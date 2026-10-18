@@ -5310,6 +5310,149 @@
                     }
                 }
             }
+        },
+        "/watchlist": {
+            "get": {
+                "description": "Every row of the caller with its instrument, sorted by symbol then id.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "watchlist"
+                ],
+                "summary": "List the watchlist",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/server.watchItemResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Watches the instrument for the caller, one row per user and instrument. Fetches the instrument's price dated 14 days back, best effort, so the row has closes at once. target_price and target_side are null until a target is set.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "watchlist"
+                ],
+                "summary": "Add an instrument to the watchlist",
+                "parameters": [
+                    {
+                        "description": "instrument_id of a non-DEPOSIT instrument; note optional, at most 500 characters",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.watchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/server.watchItemResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; instrument_id: unknown instrument; note: must be at most 500 characters; note: must not contain control characters",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "already on the watchlist",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/watchlist/{id}": {
+            "delete": {
+                "tags": [
+                    "watchlist"
+                ],
+                "summary": "Remove an instrument from the watchlist",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "watchlist item id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "watchlist item not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -6815,6 +6958,52 @@
                 },
                 "unrealized_pl": {
                     "description": "Null when every currency contributing to the total was excluded for\nlack of a rate (see totalKnown): the sum is then 0.00, which reads as\na real zero next to the per-position figures. The caller renders \"-\"\ninstead, the way it already does for a position with no reporting\nvalue. Cash and total value stay plain strings: the page can tell the\nsame thing for those from cash_by_currency and market_value_reporting,\nbut realized P/L also counts closed positions, whose\ncurrencies reach no other field of this response.",
+                    "type": "string"
+                }
+            }
+        },
+        "server.watchItemResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "instrument_id": {
+                    "type": "integer"
+                },
+                "market": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "symbol": {
+                    "type": "string"
+                },
+                "target_price": {
+                    "type": "string"
+                },
+                "target_side": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.watchRequest": {
+            "type": "object",
+            "properties": {
+                "instrument_id": {
+                    "type": "integer"
+                },
+                "note": {
                     "type": "string"
                 }
             }

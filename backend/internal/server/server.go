@@ -45,6 +45,7 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/dogauzun/gelirgider/backend/internal/us"
 	"github.com/dogauzun/gelirgider/backend/internal/user"
+	"github.com/dogauzun/gelirgider/backend/internal/watchlist"
 )
 
 // healthTimeout bounds how long the health check waits on the database.
@@ -110,6 +111,7 @@ type deps struct {
 	allocationTargets *allocation.Repo
 	goals             *goal.Repo
 	plans             *plan.Repo
+	watchlist         *watchlist.Repo
 }
 
 // priceSources is what the valuations read prices from: the fetched closes,
@@ -141,6 +143,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 	d.allocationTargets = allocation.NewRepo(conn)
 	d.goals = goal.NewRepo(conn)
 	d.plans = plan.NewRepo(conn)
+	d.watchlist = watchlist.NewRepo(conn)
 	cfg, users, portfolios := d.cfg, d.users, d.portfolios
 	sessions := auth.NewRepo(conn)
 
@@ -226,6 +229,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 	registerAllocationTargetRoutes(protected, &d)
 	registerGoalRoutes(protected, &d)
 	registerPlanRoutes(protected, &d, onDemandFetch)
+	registerWatchlistRoutes(protected, &d, onDemandFetch)
 	mux.Handle("/api/", sessions.RequireUser(withJSONMiss(protected)))
 
 	return withRecover(logger, withLogging(logger, withCrossOriginProtection(withBodyLimit(mux))))
