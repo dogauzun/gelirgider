@@ -106,3 +106,14 @@ it('disables Kaydet when the due plan has no close', async () => {
   expect(within(row).getByRole('button', { name: t('plans.book') })).toBeDisabled()
   expect(within(row).getByRole('button', { name: t('plans.skip') })).toBeEnabled()
 })
+
+it('disables Kaydet when the due plan buys no unit', async () => {
+  mockApi([{ ...due, price: '310', quantity: '0', booked_amount: '0.00' }])
+  renderPage()
+
+  const row = (await screen.findByText(t('plans.status.due'))).closest('tr') as HTMLElement
+  expect(await within(row).findByText(t('plans.noUnit'))).toBeInTheDocument()
+  expect(within(row).queryByText(/0 adet/)).toBeNull()
+  expect(within(row).getByRole('button', { name: t('plans.book') })).toBeDisabled()
+  expect(within(row).getByRole('button', { name: t('plans.skip') })).toBeEnabled()
+})

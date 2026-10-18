@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useParams } from 'react-router'
 import {
+  canBookPlan,
   useBookPlan,
   useDeletePlan,
   useDuePlansOf,
@@ -43,17 +44,19 @@ const COLUMNS: { labelKey: StringKey; className: string }[] = [
 ]
 
 // What booking a due buy plan would write: the units and the close, or that
-// there is no close to price them at. A deposit plan books its amount, which
-// the Amount column shows.
+// there is no close or the amount buys no unit. A deposit plan books its
+// amount, which the Amount column shows.
 function Proposal({ due }: { due: DuePlan }) {
   if (due.instrument_id === null) return null
-  const text =
-    due.quantity !== null && due.price !== null
+  let text = t('plans.noPrice')
+  if (due.quantity !== null && due.price !== null) {
+    text = canBookPlan(due)
       ? t('plans.proposal', {
           quantity: formatQuantity(due.quantity),
           price: formatUnitPrice(due.price, due.currency),
         })
-      : t('plans.noPrice')
+      : t('plans.noUnit')
+  }
   return <span className="mt-1 block text-[12px] text-muted">{text}</span>
 }
 
@@ -79,8 +82,7 @@ function PlanRow({
   onDelete: () => void
 }) {
   const status = STATUS[plan.status]
-  // A buy needs a close to price its units at; a deposit books its amount.
-  const bookable = due !== undefined && (due.instrument_id === null || due.quantity !== null)
+  const bookable = due !== undefined && canBookPlan(due)
   return (
     <tr className={ROW_44}>
       <td className={TD}>

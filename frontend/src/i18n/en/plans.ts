@@ -22,6 +22,7 @@ export const enPlans: AreaStrings<typeof trPlans> = {
   'plans.status.ended': 'Ended',
   'plans.proposal': '{quantity} units × {price}',
   'plans.noPrice': 'No price',
+  'plans.noUnit': 'The amount buys no unit',
   'plans.book': 'Book',
   'plans.skip': 'Skip',
   'plans.edit': 'Edit',
@@ -38,6 +39,7 @@ export const enPlans: AreaStrings<typeof trPlans> = {
   // The Dikkat card's group of due plans.
   'attention.group.plans': 'Plan bookings',
   'attention.plan.noPrice': 'no price',
+  'attention.plan.noUnit': 'the amount buys no unit',
   'attention.plan.missed': '{count} occurrences waiting',
   'attention.plan.bookLabel': 'Book: {symbol}, {amount}, {date}',
   'attention.plan.skipLabel': 'Skip the occurrence: {symbol}, {amount}, {date}',
