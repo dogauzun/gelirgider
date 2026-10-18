@@ -41,6 +41,17 @@ func TestSectorKey(t *testing.T) {
 		{"bist diacritics folded", "BIST", "BANKACILIK", "financials"},
 		{"bist Diğer", "BIST", "Diğer", "unknown"},
 		{"bist unmapped", "BIST", "Uzay Madenciliği", "unknown"},
+		{"tefas serbest", "TEFAS", "Serbest Şemsiye Fonu", "fund_other"},
+		{"tefas hisse senedi", "TEFAS", "Hisse Senedi Şemsiye Fonu", "fund_equity"},
+		{"tefas değişken", "TEFAS", "Değişken Şemsiye Fonu", "fund_mixed"},
+		{"tefas katılım", "TEFAS", "Katılım Şemsiye Fonu", "fund_other"},
+		{"tefas fon sepeti", "TEFAS", "Fon Sepeti Şemsiye Fonu", "fund_other"},
+		{"tefas borçlanma", "TEFAS", "Borçlanma Araçları Şemsiye Fonu", "fund_debt"},
+		{"tefas para piyasası", "TEFAS", "Para Piyasası Şemsiye Fonu", "fund_money_market"},
+		{"tefas kıymetli madenler", "TEFAS", "Kıymetli Madenler Şemsiye Fonu", "fund_precious_metals"},
+		{"tefas karma", "TEFAS", "Karma Şemsiye Fonu", "fund_mixed"},
+		{"tefas diacritics folded", "TEFAS", " PARA PİYASASI ŞEMSİYE FONU ", "fund_money_market"},
+		{"tefas unlisted", "TEFAS", "Emeklilik Şemsiye Fonu", "unknown"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

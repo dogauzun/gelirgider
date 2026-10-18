@@ -51,7 +51,7 @@ func runBIST(date time.Time) error {
 	}
 
 	names, classes := dedupe(rows, os.Stderr)
-	return writeCSV(bistPath, names, classes)
+	return writeCSV(bistPath, names, classes, nil)
 }
 
 // assetClassByGroup maps a bulletin ENSTRUMAN GRUBU to the instrument's

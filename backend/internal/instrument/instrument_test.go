@@ -873,6 +873,78 @@ func TestSeedFileAssetClass(t *testing.T) {
 	}
 }
 
+// TestSeedFileSector checks the sector column: it fills an existing and a new
+// row, an empty cell and a repeat change nothing, sector_override stays put, a
+// header with asset_class and sector seeds both, and an unknown header errors.
+func TestSeedFileSector(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	ctx := context.Background()
+	if _, err := conn.ExecContext(ctx, `INSERT INTO instruments (symbol, market, name, currency, sector, sector_override)
+		VALUES ('AAA', 'TEFAS', 'Old', 'TRY', NULL, 'energy'),
+		       ('BBB', 'TEFAS', 'Kept', 'TRY', 'Hisse Senedi Şemsiye Fonu', NULL)`); err != nil {
+		t.Fatalf("seed instruments: %v", err)
+	}
+	state := func() map[string]string {
+		t.Helper()
+		rows, err := conn.QueryContext(ctx, `SELECT symbol, COALESCE(sector, '-'), COALESCE(sector_override, '-'), COALESCE(asset_class, '-') FROM instruments`)
+		if err != nil {
+			t.Fatalf("query: %v", err)
+		}
+		defer rows.Close()
+		out := map[string]string{}
+		for rows.Next() {
+			var symbol, sector, override, class string
+			if err := rows.Scan(&symbol, &sector, &override, &class); err != nil {
+				t.Fatalf("scan: %v", err)
+			}
+			out[symbol] = sector + "|" + override + "|" + class
+		}
+		return out
+	}
+
+	data := []byte("symbol,name,sector\nAAA,Old,Para Piyasası Şemsiye Fonu\nBBB,Kept,\nCCC,New,Serbest Şemsiye Fonu\nDDD,Empty,\n")
+	want := map[string]string{
+		"AAA": "Para Piyasası Şemsiye Fonu|energy|-",
+		"BBB": "Hisse Senedi Şemsiye Fonu|-|-",
+		"CCC": "Serbest Şemsiye Fonu|-|-",
+		"DDD": "-|-|-",
+	}
+	for run := 1; run <= 2; run++ {
+		if err := instrument.SeedFile(ctx, conn, data, "TEFAS", "TRY"); err != nil {
+			t.Fatalf("seed run %d: %v", run, err)
+		}
+		got := state()
+		if len(got) != len(want) {
+			t.Fatalf("run %d: state = %v, want %v", run, got, want)
+		}
+		for symbol, w := range want {
+			if got[symbol] != w {
+				t.Fatalf("run %d: %s = %q, want %q", run, symbol, got[symbol], w)
+			}
+		}
+	}
+
+	both := []byte("symbol,name,asset_class,sector\nEEE,Both,fund,Karma Şemsiye Fonu\n")
+	if err := instrument.SeedFile(ctx, conn, both, "TEFAS", "TRY"); err != nil {
+		t.Fatalf("asset_class+sector seed: %v", err)
+	}
+	if got := state()["EEE"]; got != "Karma Şemsiye Fonu|-|fund" {
+		t.Fatalf("EEE = %q, want sector and asset class set", got)
+	}
+
+	if err := instrument.SeedFile(ctx, conn, []byte("symbol,name,category\nFFF,Bad,x\n"), "TEFAS", "TRY"); err == nil {
+		t.Fatal("unknown header: want an error")
+	}
+	if err := instrument.SeedFile(ctx, conn, []byte("symbol,name,sector,asset_class\nFFF,Bad,x,fund\n"), "TEFAS", "TRY"); err == nil {
+		t.Fatal("reordered header: want an error")
+	}
+}
+
 // TestSeedCarriesBISTAssetClass checks the committed bist_symbols.csv: the
 // seed gives a BIST stock equity, a BIST ETF fund and the gold certificate
 // commodity.

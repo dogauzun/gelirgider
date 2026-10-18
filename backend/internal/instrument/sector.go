@@ -25,8 +25,9 @@ const sectorUnknown = "unknown"
 // sectorMaps maps a market's folded, lower-case raw sector strings to a sector
 // key. A market without a map has no sector source yet and answers unknown.
 var sectorMaps = map[string]map[string]string{
-	"US":   finnhubSectors,
-	"BIST": foldKeys(isYatirimSectors),
+	"US":    finnhubSectors,
+	"BIST":  foldKeys(isYatirimSectors),
+	"TEFAS": foldKeys(tefasFundTypes),
 }
 
 // foldKeys returns m with its keys folded the way SectorKey folds a raw
@@ -108,6 +109,22 @@ var isYatirimSectors = map[string]string{
 	"GYO": "real_estate",
 }
 
+// tefasFundTypes maps the fonTurAciklama of TEFAS's fund list
+// (fonGetiriBazliBilgiGetir, ADR 0004), a fund's type, to a fund key. The nine
+// types are the ones the list carried for fonTipi=YAT; a type TEFAS adds later
+// falls to unknown. Katılım and Fon Sepeti funds go to fund_other with Serbest.
+var tefasFundTypes = map[string]string{
+	"Para Piyasası Şemsiye Fonu":      "fund_money_market",
+	"Hisse Senedi Şemsiye Fonu":       "fund_equity",
+	"Borçlanma Araçları Şemsiye Fonu": "fund_debt",
+	"Kıymetli Madenler Şemsiye Fonu":  "fund_precious_metals",
+	"Değişken Şemsiye Fonu":           "fund_mixed",
+	"Karma Şemsiye Fonu":              "fund_mixed",
+	"Serbest Şemsiye Fonu":            "fund_other",
+	"Katılım Şemsiye Fonu":            "fund_other",
+	"Fon Sepeti Şemsiye Fonu":         "fund_other",
+}
+
 // finnhubSectors maps the finnhubIndustry values of Finnhub's company profile
 // (https://finnhub.io/docs/api/company-profile2) to the 11 sector keys. The
 // values are Finnhub's own list; a value it adds later falls to unknown.
@@ -170,7 +187,7 @@ var finnhubSectors = map[string]string{
 }
 
 // SectorKey maps a provider's raw sector string of a market to one of the 11
-// sector keys, or unknown for an empty, unmapped or source-less input. It
+// sector keys (a TEFAS fund type to a fund_* key), or unknown for an empty, unmapped or source-less input. It
 // matches case-insensitively with Turkish diacritics folded. The mapping is
 // code, not data: the stored string stays raw (ADR 0026).
 func SectorKey(market, raw string) string {

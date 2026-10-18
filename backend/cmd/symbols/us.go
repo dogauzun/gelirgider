@@ -39,7 +39,7 @@ func runUS() error {
 	for _, s := range other {
 		byNameSymbol[s.Symbol] = s.Name
 	}
-	return writeCSV(usPath, byNameSymbol, nil)
+	return writeCSV(usPath, byNameSymbol, nil, nil)
 }
 
 // fetchSymbols downloads a pipe-delimited Nasdaq Trader symbol directory

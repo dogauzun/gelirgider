@@ -66,9 +66,9 @@ func main() {
 }
 
 // writeCSV writes bySymbol to path, sorted by symbol. A non-nil classBySymbol
-// adds a third asset_class column (empty for a symbol it lacks); nil keeps
-// the two-column layout.
-func writeCSV(path string, bySymbol, classBySymbol map[string]string) error {
+// adds an asset_class column and a non-nil sectorBySymbol a sector column after
+// it (empty for a symbol the map lacks); nil keeps them out.
+func writeCSV(path string, bySymbol, classBySymbol, sectorBySymbol map[string]string) error {
 	symbols := make([]string, 0, len(bySymbol))
 	for symbol := range bySymbol {
 		symbols = append(symbols, symbol)
@@ -86,6 +86,9 @@ func writeCSV(path string, bySymbol, classBySymbol map[string]string) error {
 	if classBySymbol != nil {
 		header = append(header, "asset_class")
 	}
+	if sectorBySymbol != nil {
+		header = append(header, "sector")
+	}
 	if err := w.Write(header); err != nil {
 		return fmt.Errorf("write header: %w", err)
 	}
@@ -93,6 +96,9 @@ func writeCSV(path string, bySymbol, classBySymbol map[string]string) error {
 		record := []string{symbol, bySymbol[symbol]}
 		if classBySymbol != nil {
 			record = append(record, classBySymbol[symbol])
+		}
+		if sectorBySymbol != nil {
+			record = append(record, sectorBySymbol[symbol])
 		}
 		if err := w.Write(record); err != nil {
 			return fmt.Errorf("write row %s: %w", symbol, err)
