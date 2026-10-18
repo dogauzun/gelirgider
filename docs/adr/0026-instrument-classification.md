@@ -62,6 +62,14 @@ route, and wins over the mapped key.
 The sources: Finnhub's `finnhubIndustry` gives US sectors. A TEFAS fund's type
 is its sector; its map comes with the TEFAS fund type fetch. For BIST, the
 İş Yatırım "Temel Değerler ve Oranlar" page, already fetched for capital
-increases (ADR 0008), lists one Turkish sector per equity for all of them. A
-server sync stores the raw string and the BIST map follows. KAP is rejected: it
-sits behind a bot wall.
+increases (ADR 0008), lists one Turkish sector per equity for all of them. KAP
+is rejected: it sits behind a bot wall.
+
+The daily BIST capital event run reads the page's summary table
+(`summaryBasicData`), finds the "Kod" and "Sektör" columns by header text and
+stores each equity's raw sector, only when it differs from the stored one. An
+instrument with no row (an ETF, the gold certificate) is left untouched, a page
+symbol with no instrument is skipped, and `sector_override` is never written.
+The page's closed list of 53 Turkish names maps onto the 11 keys in
+`isYatirimSectors`; "Diğer" is left out and answers `unknown`. Holdingler and
+Pazarlama map to `industrials`, Perakande - Ticaret to `consumer_staples`.

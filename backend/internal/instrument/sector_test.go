@@ -25,7 +25,22 @@ func TestSectorKey(t *testing.T) {
 		{"diacritic folded", "US", " BANKİNG ", "financials"},
 		{"unmapped", "US", "Space Mining", "unknown"},
 		{"empty", "US", "", "unknown"},
-		{"market without a map", "BIST", "Banking", "unknown"},
+		{"market without a map", "CRYPTO", "Banking", "unknown"},
+		{"bist energy", "BIST", "Petrol", "energy"},
+		{"bist materials", "BIST", "Çimento", "materials"},
+		{"bist industrials", "BIST", "Savunma", "industrials"},
+		{"bist consumer discretionary", "BIST", "Otomotiv", "consumer_discretionary"},
+		{"bist consumer staples", "BIST", "Gıda", "consumer_staples"},
+		{"bist health care", "BIST", "Sağlık ve İlaç", "health_care"},
+		{"bist financials", "BIST", "Bankacılık", "financials"},
+		{"bist information technology", "BIST", "Teknoloji", "information_technology"},
+		{"bist communication services", "BIST", "İletişim", "communication_services"},
+		{"bist utilities", "BIST", "Elektrik Üretim", "utilities"},
+		{"bist real estate", "BIST", "GYO", "real_estate"},
+		{"bist trailing space", "BIST", "Meşrubat / İçecek ", "consumer_staples"},
+		{"bist diacritics folded", "BIST", "BANKACILIK", "financials"},
+		{"bist Diğer", "BIST", "Diğer", "unknown"},
+		{"bist unmapped", "BIST", "Uzay Madenciliği", "unknown"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -33,5 +48,30 @@ func TestSectorKey(t *testing.T) {
 				t.Errorf("SectorKey(%q, %q) = %q, want %q", tt.market, tt.raw, got, tt.want)
 			}
 		})
+	}
+}
+
+// The closed list of the page's sector dropdown (ddlSektor), "Diğer" apart.
+func TestSectorKeyMapsEveryIsYatirimSector(t *testing.T) {
+	names := []string{
+		"Aracı Kurumlar", "Bankacılık", "Bilgisayar Toptancılığı", "Boya", "Cam", "Çimento",
+		"Dayanıklı Tüketim", "Demir-Çelik Döküm", "Demir-Çelik Temel", "Deri Giyim",
+		"Eğlence Hizmetleri", "Elektrik - Doğalgaz Dağıtım", "Elektrik Enerji Ürt.Teçh/Tesis Kurulum",
+		"Elektrik Üretim", "Endüstriyel Makine -Teçhizat Üretim", "Endüstriyel Tekstil",
+		"Fin.Kiralama ve Faktoring", "Gıda", "GYO", "Havayolları ve Hizm.", "Hayvancılık", "Holdingler",
+		"İletişim", "İletişim Cihazları", "İnşaat Malzemeleri", "İnşaat- Taahhüt", "Kablo",
+		"Kağıt Ürünleri", "Kırtasiye", "Kimyasal Ürün", "Madencilik", "Medya", "Meşrubat / İçecek ",
+		"Mobilya", "Otomotiv", "Otomotiv Lastiği", "Otomotiv Parçası", "Pazarlama",
+		"Perakande - Ticaret", "Petrol", "Sağlık ve İlaç", "Savunma", "Seramik", "Sigorta", "Spor",
+		"Tarım Kimyasalları", "Teknoloji", "Tekstil Entegre", "Turizm", "Ulaştırma-Lojistik",
+		"Varlık Yönetim", "Yatırım Ortaklıkları",
+	}
+	if len(names) != 52 {
+		t.Fatalf("test list has %d names, want 52 (53 minus Diğer)", len(names))
+	}
+	for _, n := range names {
+		if got := instrument.SectorKey("BIST", n); got == "unknown" {
+			t.Errorf("SectorKey(BIST, %q) = unknown", n)
+		}
 	}
 }

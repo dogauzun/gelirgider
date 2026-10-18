@@ -473,8 +473,20 @@ func (r *Repo) InsertTx(ctx context.Context, tx *sql.Tx, market, symbol, name, c
 // Rename sets the instrument's display name. The TEFAS fetcher keeps a
 // fund's name in step with TEFAS this way; the code stays.
 func (r *Repo) Rename(ctx context.Context, id int64, name string) error {
-	if _, err := r.db.ExecContext(ctx, "UPDATE instruments SET name = ? WHERE id = ?", name, id); err != nil {
-		return fmt.Errorf("rename instrument %d: %w", id, err)
+	return r.setText(ctx, "name", id, name)
+}
+
+// SetSector stores the provider's raw sector string. It never touches
+// sector_override, which only the admin route writes (ADR 0026).
+func (r *Repo) SetSector(ctx context.Context, id int64, raw string) error {
+	return r.setText(ctx, "sector", id, raw)
+}
+
+// setText writes one text column of an instrument; column is always a literal
+// of this file, never input.
+func (r *Repo) setText(ctx context.Context, column string, id int64, value string) error {
+	if _, err := r.db.ExecContext(ctx, "UPDATE instruments SET "+column+" = ? WHERE id = ?", value, id); err != nil {
+		return fmt.Errorf("set %s of instrument %d: %w", column, id, err)
 	}
 	return nil
 }

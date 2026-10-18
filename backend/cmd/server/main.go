@@ -592,16 +592,27 @@ func (b sourceBuilder) bist() scheduler.Source {
 func (b sourceBuilder) bistSplits() scheduler.Source {
 	return scheduler.Source{
 		// BIST bonus issues (ADR 0008) and cash dividends (ADR
-		// 0009). The page holds the whole current year, so one
+		// 0009), plus each equity's sector (ADR 0026) from the same
+		// page body. The page holds the whole current year, so one
 		// read is the backfill: no Have, and
 		// zero rows means nothing to store, not "not published yet".
 		Name: scheduler.NameBISTSplits,
 		Sync: func(ctx context.Context, date time.Time) (int, error) {
-			n, err := bist.SyncCapitalEvents(ctx, b.f.bist, b.instruments, split.NewRepo(b.conn), dividend.NewRepo(b.conn), date)
-			if err == nil && n == 0 {
+			page, err := b.f.bist.FetchPage(ctx)
+			if err != nil {
+				return 0, err
+			}
+			// Both parts run: a failure of one must not hide the other.
+			n, eventsErr := bist.SyncCapitalEvents(ctx, page, b.instruments, split.NewRepo(b.conn), dividend.NewRepo(b.conn), date)
+			sectors, sectorsErr := bist.SyncSectors(ctx, page, b.instruments)
+			n += sectors
+			if err := errors.Join(eventsErr, sectorsErr); err != nil {
+				return n, err
+			}
+			if n == 0 {
 				return 0, scheduler.ErrNothingToFetch
 			}
-			return n, err
+			return n, nil
 		},
 	}
 }
