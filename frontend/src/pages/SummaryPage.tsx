@@ -22,6 +22,7 @@ import {
   type SummaryStats,
 } from '../api/summary'
 import { useInvalidatePortfolios } from '../api/transactions'
+import { useWatchlist } from '../api/watchlist'
 import { Allocation } from '../components/Allocation'
 import { ContributionCard } from '../components/ContributionCard'
 import { AttentionCard } from '../components/AttentionCard'
@@ -43,7 +44,7 @@ import { LoadError } from '../components/ui/LoadError'
 import { Skeleton } from '../components/ui/Skeleton'
 import { usePositionActions } from '../components/usePositionActions'
 import { t, type StringKey } from '../i18n/strings'
-import { attentionItems, mergeAttention, moverCount } from '../lib/attention'
+import { attentionItems, mergeAttention, moverCount, watchTargetItems } from '../lib/attention'
 import { formatMarketDate, formatShortMarketDate, monthsBetween, todayIstanbul } from '../lib/date'
 import { formatMoney, MISSING, plTone, signedMoney } from '../lib/format'
 import { useNavState } from '../lib/navState'
@@ -152,6 +153,8 @@ function Attention({
   const expected = useExpectedDividendsOf(ids)
   const dueDeposits = useDueDepositsOf(ids)
   const duePlans = useDuePlansOf(ids)
+  // The list belongs to no portfolio: only Tüm portföyler asks for it.
+  const watched = useWatchlist(linkTo === undefined).data ?? []
   const invalidatePortfolios = useInvalidatePortfolios()
   // Undefined while loading or on a failure: attentionItems then uses the defaults.
   const rules = useAttentionRules().data
@@ -185,6 +188,7 @@ function Attention({
         })
       }),
       drift,
+      ...(linkTo === undefined ? [watchTargetItems(watched)] : []),
     ],
     estimatedFrom,
     moverCount(rules),

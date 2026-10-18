@@ -19,6 +19,7 @@ import {
 import { focusIfLost, neighbourOf } from '../lib/useFocusLater'
 import { usePositionPath } from '../lib/useRange'
 import { Button } from './ui/Button'
+import { buttonClass } from './ui/buttonClass'
 import { Pill } from './ui/Pill'
 
 const GROUPS: [StringKey, AttentionItem['kind'][]][] = [
@@ -29,6 +30,7 @@ const GROUPS: [StringKey, AttentionItem['kind'][]][] = [
   ['attention.group.dividends', ['dividend']],
   ['attention.group.deposits', ['due-deposit']],
   ['attention.group.plans', ['due-plan']],
+  ['attention.group.watchlist', ['watch-target']],
   ['attention.group.today', ['mover']],
   [
     'attention.group.concentration',
@@ -109,7 +111,10 @@ function Label({ item, children }: { item: AttentionItem; children: ReactNode })
         item.kind !== 'allocation-drift' && (
           <Dot
             tone={
-              item.kind === 'dividend' || item.kind === 'due-deposit' || item.kind === 'due-plan'
+              item.kind === 'dividend' ||
+              item.kind === 'due-deposit' ||
+              item.kind === 'due-plan' ||
+              item.kind === 'watch-target'
                 ? 'accent'
                 : 'warn'
             }
@@ -228,6 +233,32 @@ function PlanLine({
         <span className="font-semibold">{symbol}</span> · {amount} · {formatShortMarketDate(d.date)}
         {d.instrument_id !== null && ` · ${detail}`}
         {d.missed > 1 && ` · ${t('attention.plan.missed', { count: d.missed })}`}
+      </Label>
+    </Row>
+  )
+}
+
+// A reached watchlist target's line: the symbol, which side of its target the
+// close is on, and a link to the list. It asks for no click, so it stays out of `asking`.
+function WatchLine({ item }: { item: AttentionItem & { kind: 'watch-target' } }) {
+  const w = item.item
+  return (
+    <Row
+      action={
+        <Link
+          to="/watchlist"
+          className={buttonClass({ variant: 'secondary', size: 'sm', className: 'shrink-0' })}
+        >
+          {t('attention.watch.open')}
+        </Link>
+      }
+    >
+      <Label item={item}>
+        <span className="font-semibold">{w.symbol}</span>{' '}
+        {t(w.target_side === 'below' ? 'attention.watch.below' : 'attention.watch.above', {
+          target: formatUnitPrice(w.target_price!, w.currency),
+          last: formatUnitPrice(w.last_price!, w.currency),
+        })}
       </Label>
     </Row>
   )
@@ -454,6 +485,8 @@ export function AttentionCard({
         return <DepositLine item={item} busy={busy} onClose={() => close(item)} />
       case 'due-plan':
         return <PlanLine item={item} busy={busy} onSettle={(action) => settle(item, action)} />
+      case 'watch-target':
+        return <WatchLine item={item} />
       case 'mover':
         return (
           <Row

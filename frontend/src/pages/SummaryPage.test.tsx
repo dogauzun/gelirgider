@@ -78,8 +78,10 @@ describe('SummaryPage', () => {
   })
 
   it('renders both position symbols and the total value', async () => {
+    const urls: string[] = []
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
+      urls.push(url)
 
       if (url === '/api/portfolios') {
         return new Response(
@@ -212,6 +214,8 @@ describe('SummaryPage', () => {
     // The footer sums the reporting values of all three positions.
     expect(table.getByText('Toplam · 3 pozisyon, TRY olarak')).toBeInTheDocument()
     expect(table.getByText('₺13.250,00')).toBeInTheDocument()
+    // The watchlist belongs to no portfolio: one portfolio's page never asks for it.
+    expect(urls).not.toContain('/api/watchlist')
   })
 
   it("shows the API's cost and positions value, not totals less cash (GLG-976)", async () => {
@@ -674,6 +678,29 @@ describe('SummaryPage', () => {
       if (/^\/api\/portfolios\/1\//.test(url)) {
         return Response.json({ error: 'boom' }, { status: 500 })
       }
+      if (url === '/api/watchlist') {
+        return Response.json([
+          {
+            id: 1,
+            instrument_id: 7,
+            symbol: 'THYAO',
+            name: 'Türk Hava Yolları',
+            market: 'BIST',
+            currency: 'TRY',
+            last_price: '312.50',
+            price_date: '2026-10-16',
+            price_source: 'bist',
+            prev_close: null,
+            prev_price_date: null,
+            day_change: null,
+            target_price: '300.00',
+            target_side: 'above',
+            target_reached: true,
+            note: '',
+            created_at: '2026-10-01T00:00:00Z',
+          },
+        ])
+      }
       if (url === '/api/portfolios/all/summary') {
         return new Response(
           JSON.stringify({
@@ -739,6 +766,10 @@ describe('SummaryPage', () => {
     expect(table.getByText('₺125,00')).toBeInTheDocument()
     expect(screen.queryByText(/Fiyat gir/)).toBeNull()
     expect(urls).toContain('/api/portfolios/all/summary')
+    // The reached target shows on the Dikkat card of Tüm portföyler only.
+    const attention = within(await screen.findByRole('region', { name: 'Dikkat' }))
+    expect(await attention.findByRole('heading', { name: 'İzleme listesi' })).toBeInTheDocument()
+    expect(attention.getByText(/hedefinin üstünde: ₺312,50/)).toBeInTheDocument()
     expect(urls.some((u) => u.startsWith('/api/portfolios/all/history?'))).toBe(true)
 
     await chooseOption(screen.getByLabelText('Karşılaştır'), 'Dolar')
