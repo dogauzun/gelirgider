@@ -27,6 +27,7 @@ function position(id: number, symbol: string, value: string, extra: Partial<Posi
     prev_price_date: null,
     day_change: null,
     day_change_reporting: null,
+    day_change_base: null,
     market_value: value,
     unrealized_pl: '0',
     realized_pl: '0',
@@ -208,6 +209,7 @@ describe('attentionItems', () => {
         prev_close: '50',
         prev_price_date: '2026-10-02',
         day_change: '50',
+        day_change_base: '50',
         day_change_reporting: change,
       })
     const items = run(
@@ -251,6 +253,7 @@ describe('attentionItems', () => {
       prev_close: '100',
       prev_price_date: '2026-10-02',
       day_change: '5',
+      day_change_base: '-100',
       day_change_reporting: '5',
     })
     expect(run(summary([short, ...spread(6)]))).toEqual([

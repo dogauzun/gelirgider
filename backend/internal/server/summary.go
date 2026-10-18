@@ -58,9 +58,9 @@ type positionResponse struct {
 	Sector       string  `json:"sector"`      // a sector key (financials, ...); "unknown" when there is no data
 	// The latest close dated before price_date (manual winning on a date,
 	// like last_price), scaled by any split after its date up to today. It,
-	// prev_price_date, day_change and day_change_reporting are null when
-	// either price is missing or the position is closed (a closed
-	// position's move still counts in the summary's day_change).
+	// prev_price_date, day_change, day_change_reporting and day_change_base
+	// are null when either price is missing or the position is closed (a
+	// closed position's move still counts in the summary's day_change).
 	PrevClose *string `json:"prev_close"`
 	// The date of prev_close.
 	PrevPriceDate *string `json:"prev_price_date"`
@@ -70,6 +70,13 @@ type positionResponse struct {
 	DayChange *string `json:"day_change"`
 	// day_change in the reporting currency; also null without a rate.
 	DayChangeReporting *string `json:"day_change_reporting"`
+	// What day_change is a percentage of, in the position's currency: the
+	// value of the shares it counts, at prev_close for those held before
+	// price_date (also those sold on or after it) and at their own price for
+	// those bought on price_date. Shares bought after price_date are left
+	// out. Null whenever day_change is null; "0.00" when no counted share was
+	// held or bought by price_date, so there is no percentage.
+	DayChangeBase *string `json:"day_change_base"`
 	// Where last_price came from ("manual" for the caller's own entry, else
 	// the fetching provider) and the date it is dated. Null when there is no
 	// price. The page needs both to tag a manual price and to address it for
@@ -394,6 +401,11 @@ type prevClose struct {
 	close    decimal.Decimal
 	date     string
 	tradeAdj decimal.Decimal
+	// baseAdj is what the same trades change the day change's base by, over
+	// current quantity × prev: shares bought after the price date were not
+	// held at prev, shares bought on it enter at their price, shares sold on
+	// or after it were held at prev.
+	baseAdj decimal.Decimal
 }
 
 // prevCloses finds the previous close per priced instrument of v: the same
@@ -452,6 +464,14 @@ func (h *summaryHandler) prevCloses(ctx context.Context, userID int64, v valuati
 			adj = adj.Neg()
 		}
 		pc.tradeAdj = pc.tradeAdj.Add(adj)
+		switch {
+		case t.Type == transaction.TypeSell:
+			pc.baseAdj = pc.baseAdj.Add(qty.Mul(pc.close))
+		case t.Date == v.winner[*t.InstrumentID].Date:
+			pc.baseAdj = pc.baseAdj.Add(t.Quantity.Mul(t.Price).Sub(qty.Mul(pc.close)))
+		default:
+			pc.baseAdj = pc.baseAdj.Sub(qty.Mul(pc.close))
+		}
 		out[*t.InstrumentID] = pc
 	}
 	return out, nil
@@ -505,7 +525,8 @@ func positionRow(p holdings.Position, closed bool, v valuation, prev map[int64]p
 	}
 	// Current quantity moves from prev; tradeAdj moves the shares traded on
 	// price_date to their own prices and takes out the move of those traded
-	// after it. A closed position has no price of its own and its row shows
+	// after it. baseAdj does the same for the base the percent divides by.
+	// A closed position has no price of its own and its row shows
 	// no day change, but the shares it traded out on or after price_date
 	// moved with it, so its move still counts toward the total.
 	var dayChange *decimal.Decimal
@@ -523,7 +544,8 @@ func positionRow(p holdings.Position, closed bool, v valuation, prev map[int64]p
 			pd := pc.date
 			prevStr := pc.close.Round(9).String()
 			change := dc.StringFixed(2)
-			pr.PrevClose, pr.PrevPriceDate, pr.DayChange = &prevStr, &pd, &change
+			base := p.Quantity.Mul(pc.close).Add(pc.baseAdj).StringFixed(2)
+			pr.PrevClose, pr.PrevPriceDate, pr.DayChange, pr.DayChangeBase = &prevStr, &pd, &change, &base
 			if dayChange != nil {
 				changeReporting := dayChange.StringFixed(2)
 				pr.DayChangeReporting = &changeReporting

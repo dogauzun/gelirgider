@@ -34,6 +34,9 @@ export interface Position {
   prev_price_date: string | null
   day_change: string | null
   day_change_reporting: string | null
+  // The value of the shares day_change counts, in the position's currency:
+  // what day_change is a percentage of. Null when day_change is null.
+  day_change_base: string | null
   market_value: string
   unrealized_pl: string
   realized_pl: string

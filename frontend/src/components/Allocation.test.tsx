@@ -65,6 +65,7 @@ function position(
     prev_price_date: null,
     day_change: null,
     day_change_reporting: null,
+    day_change_base: null,
     market_value: marketValue,
     unrealized_pl: '0',
     realized_pl: '0',

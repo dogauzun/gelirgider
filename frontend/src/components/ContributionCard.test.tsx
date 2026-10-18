@@ -31,6 +31,7 @@ function position(instrumentId: number, symbol: string, pl: string | null, day: 
     prev_price_date: null,
     day_change: day,
     day_change_reporting: day,
+    day_change_base: null,
     market_value: '0',
     unrealized_pl: pl ?? '0',
     realized_pl: '0',

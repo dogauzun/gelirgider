@@ -35,16 +35,21 @@ export function returnPercent(pl: string | null, cost: string | null | undefined
   return ratio === null ? null : signedPercent(ratio)
 }
 
-// A position's move since the previous close over its value at that
-// close: what the Günlük cell shows, and so what it sorts by. Null without a
-// previous close, or with no value then. `== null` because a payload without
-// the fields must not render a NaN. The base is taken absolute, as in
-// returnRatio. The position page's day pill shows it too.
+// A position's move since the previous close over the value that move is
+// earned on (day_change_base): what the Günlük cell shows, and so what it
+// sorts by. Null without a previous close, or with no value then. `== null`
+// because a payload without the fields must not render a NaN. The base is
+// taken absolute, as in returnRatio. The position page's day pill and the
+// Dikkat card's movers show it too.
 export function dayRatio(position: Position): number | null {
-  const { day_change: change, prev_price_date: from, price_date: to } = position
-  if (change == null || from == null || to == null) return null
-  const base = Number(position.market_value) - Number(change)
-  return base === 0 ? null : Number(change) / Math.abs(base)
+  const {
+    day_change: change,
+    day_change_base: base,
+    prev_price_date: from,
+    price_date: to,
+  } = position
+  if (change == null || base == null || from == null || to == null) return null
+  return Number(base) === 0 ? null : Number(change) / Math.abs(Number(base))
 }
 
 // The unrealized P/L in the reporting currency, the column's sort key and
