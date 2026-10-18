@@ -123,8 +123,9 @@ func (r backfillRun) backfillDates(ctx context.Context, src bist.BackfillSource,
 }
 
 // backfillTracked runs sync once for every tracked instrument in market,
-// from its own earliest transaction date (or r.from; "" when it has none),
-// and returns the rows written. sync reports skipped when it made no
+// from its own earliest transaction date (or r.from), and returns the rows
+// written. An instrument with neither, a watched one nobody holds, is
+// skipped without calling sync. sync reports skipped when it made no
 // request because the range is already stored. The loop is
 // instrument.EachTracked: it pauses for pause between requests, logs a
 // failing instrument and continues, makes the run a failed one when every
@@ -143,6 +144,9 @@ func (r backfillRun) backfillTracked(ctx context.Context, market, noun string, p
 		start := earliest[in.ID]
 		if r.from != "" {
 			start = r.from
+		}
+		if start == "" {
+			return 0, true, nil // watched, never held: the on-demand fetch and daily sync cover it
 		}
 		n, skipped, err := sync(in, start)
 		if !skipped && err == nil {
@@ -177,14 +181,11 @@ func backfillTEFAS(ctx context.Context, r backfillRun, s *tefas.Syncer) (int, er
 // range in one call, weekends included, so there is no per-date walk and
 // no bist.BackfillRange (it skips weekends). The request runs up to now;
 // the fetcher itself drops the unfinished current day, so the newest row
-// is yesterday's (UTC, the candle date). A pair without a start date, or
-// that already has a row for every day of that range, is skipped.
+// is yesterday's (UTC, the candle date). A pair that already has a row for
+// every day of that range is skipped.
 func backfillCrypto(ctx context.Context, r backfillRun, f *btcturk.Fetcher) (int, error) {
 	last := btcturk.LastCandleDay(r.now)
 	return r.backfillTracked(ctx, "CRYPTO", "pairs", btcturk.RequestPause, func(in instrument.Instrument, startStr string) (int, bool, error) {
-		if startStr == "" {
-			return 0, true, nil
-		}
 		start, err := time.Parse(time.DateOnly, startStr)
 		if err != nil {
 			return 0, false, fmt.Errorf("parse crypto start date %q: %w", startStr, err)
