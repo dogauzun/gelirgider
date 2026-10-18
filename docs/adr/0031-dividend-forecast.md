@@ -33,9 +33,10 @@ covers the twelve months starting next month.
 A row's per-share amount is its `amount` over the quantity held at the start of
 its date, the holdings state after the rows dated before it. A row with no
 holding then is skipped. A split of the instrument dated after the row's date
-and on or before today divides the per-share amount by its ratio, so the
-projected gross stays the recorded amount when the holding did not change
-otherwise ([ADR 0008](0008-splits.md)). The projected gross is the per-share
+and on or before today divides the per-share amount by its ratio, and a bonus
+issue booked as a zero-price buy divides it by the growth that buy adds to the
+holding, so the projected gross stays the recorded amount when the holding did
+not change otherwise ([ADR 0008](0008-splits.md)). The projected gross is the per-share
 amount times the quantity held now, after every row dated on or before today,
 rounded to 2 decimals. A current quantity of zero projects nothing. All
 arithmetic is `decimal` ([PRINCIPLES](../PRINCIPLES.md) #3).

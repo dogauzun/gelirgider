@@ -24,6 +24,14 @@ func TestForecast(t *testing.T) {
 		return transaction.Transaction{InstrumentID: &id, Type: transaction.TypeDividend, Date: date, Amount: d(amount), Currency: "TRY"}
 	}
 	planned := dividend.Dividend{InstrumentID: id, Date: "2026-11-20", Amount: d("0.3"), Currency: "TRY"}
+	// The bonus buy books the split on 2026-10-14: DropBookedSplits drops the
+	// split row and marks the buy in its place.
+	bonus := tx(transaction.TypeBuy, "2026-10-14", "90")
+	bonus.Price = decimal.Zero
+	booked, err := transaction.DropBookedSplits([]transaction.Transaction{tx(transaction.TypeBuy, "2026-10-02", "90"), paid("2026-10-12", "450.00"), tx(transaction.TypeSplit, "2026-10-14", "2"), bonus})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	for _, c := range []struct {
 		name string
@@ -58,6 +66,16 @@ func TestForecast(t *testing.T) {
 			name: "a split before the dividend leaves the per-share as it is",
 			rows: []transaction.Transaction{tx(transaction.TypeBuy, "2026-10-02", "90"), tx(transaction.TypeSplit, "2026-10-05", "2"), paid("2026-10-12", "450.00")},
 			want: []string{"2027-10 - false 180 2.5 450.00"},
+		},
+		{
+			name: "a booked bonus buy after the dividend scales the per-share down and keeps the gross",
+			rows: booked,
+			want: []string{"2027-10 - false 180 2.5 450.00"},
+		},
+		{
+			name: "a zero-price buy that books no split leaves the per-share as it is",
+			rows: []transaction.Transaction{tx(transaction.TypeBuy, "2026-10-02", "90"), paid("2026-10-12", "450.00"), bonus},
+			want: []string{"2027-10 - false 180 5 900.00"},
 		},
 		{
 			name: "a planned ex-date replaces the projected row of its period",
