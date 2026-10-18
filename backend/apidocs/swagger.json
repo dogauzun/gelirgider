@@ -3706,6 +3706,57 @@
                 }
             }
         },
+        "/portfolios/{id}/dividends/forecast": {
+            "get": {
+                "description": "Expected dividends of the twelve months from next month: each dividend recorded since the first day of the month eleven months ago, repeated a year later at its per-share amount times the quantity held now, replaced by the stored ex-dates (planned) that fall in the same period. Stopaj is pre-filled per market like the expected list. net_reporting is the net in the reporting currency at today's rate (null, and the currency listed in missing_rates, when it has no rate); months sums it per period, zero-filled, rows without a rate left out. Rows are ordered by period, date, instrument id; date is null for a projected row. The all scope is not supported.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dividends"
+                ],
+                "summary": "Dividend forecast",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "portfolio id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.dividendForecastResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/portfolios/{id}/dividends/timeline": {
             "get": {
                 "description": "Dividends received bucketed by month and year (only non-empty buckets, ascending) and totaled per instrument (net descending, then symbol), in the reporting currency at each transaction's own-date rate. A dividend with an instrument adds to gross (amount), tax (fee) and net; one without adds amount minus fee to interest only. A row whose currency has no rate on or before its date is left out and its currency listed in missing_rates. Amounts are 2-decimal strings.",
@@ -5384,6 +5435,87 @@
                     "type": "string"
                 },
                 "tax": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.dividendForecastMonth": {
+            "type": "object",
+            "properties": {
+                "net": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.dividendForecastResponse": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "missing_rates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "months": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.dividendForecastMonth"
+                    }
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.dividendForecastRow"
+                    }
+                }
+            }
+        },
+        "server.dividendForecastRow": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "gross": {
+                    "type": "string"
+                },
+                "instrument_id": {
+                    "type": "integer"
+                },
+                "market": {
+                    "type": "string"
+                },
+                "net": {
+                    "type": "string"
+                },
+                "net_reporting": {
+                    "type": "string"
+                },
+                "per_share": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "planned": {
+                    "type": "boolean"
+                },
+                "quantity": {
+                    "type": "string"
+                },
+                "stopaj": {
+                    "type": "string"
+                },
+                "symbol": {
                     "type": "string"
                 }
             }

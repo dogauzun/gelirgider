@@ -12,12 +12,14 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
 	"github.com/dogauzun/gelirgider/backend/internal/db"
 	"github.com/dogauzun/gelirgider/backend/internal/dividend"
 	"github.com/dogauzun/gelirgider/backend/internal/fx"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
+	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/dogauzun/gelirgider/backend/internal/settings"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/dogauzun/gelirgider/backend/internal/user"
@@ -358,5 +360,115 @@ func TestDividendTimeline(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got  %+v\nwant %+v", got, want)
+	}
+}
+
+// TestDividendForecast covers the dividend forecast. A buy of 10 BIST shares
+// a year ago and a recorded dividend of 25.00 eight months ago project 25.00
+// gross four months from now: stopaj 15% (stopaj_rates) 3.75, net 21.25, per
+// share 2.5, in a month of the twelve and 0.00 in the others.
+func TestDividendForecast(t *testing.T) {
+	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+	ctx := context.Background()
+
+	res, err := conn.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES ('THYAO', 'BIST', 'THYAO name', 'TRY')`)
+	if err != nil {
+		t.Fatalf("insert instrument: %v", err)
+	}
+	thyao, err := res.LastInsertId()
+	if err != nil {
+		t.Fatalf("instrument id: %v", err)
+	}
+
+	handler := New(logger, conn, false, settings.NewRepo(conn, nil), nil)
+	users := user.NewRepo(conn)
+	sessions := auth.NewRepo(conn)
+	usr, err := users.Create(ctx, "alice@example.com", "hash")
+	if err != nil {
+		t.Fatalf("users.Create: %v", err)
+	}
+	session, err := sessions.CreateSession(ctx, usr.ID)
+	if err != nil {
+		t.Fatalf("sessions.CreateSession: %v", err)
+	}
+	intruder, err := users.Create(ctx, "intruder@example.com", "hash")
+	if err != nil {
+		t.Fatalf("users.Create intruder: %v", err)
+	}
+	intruderSession, err := sessions.CreateSession(ctx, intruder.ID)
+	if err != nil {
+		t.Fatalf("sessions.CreateSession intruder: %v", err)
+	}
+	pf, err := portfolio.NewRepo(conn).Create(ctx, usr.ID, "Test")
+	if err != nil {
+		t.Fatalf("portfolios.Create: %v", err)
+	}
+
+	d := decimal.RequireFromString
+	now := time.Now().In(price.Istanbul)
+	monthsAgo := func(n int) string {
+		return time.Date(now.Year(), now.Month()-time.Month(n), 10, 0, 0, 0, 0, time.UTC).Format(time.DateOnly)
+	}
+	wantPeriod := monthsAgo(-4)[:7]
+	transactions := transaction.NewRepo(conn)
+	for _, tx := range []transaction.Transaction{
+		{InstrumentID: &thyao, Type: transaction.TypeBuy, Date: monthsAgo(12), Quantity: d("10"), Price: d("1"), Amount: d("10"), Currency: "TRY"},
+		{InstrumentID: &thyao, Type: transaction.TypeDividend, Date: monthsAgo(8), Amount: d("25.00"), Fee: d("3.75"), Currency: "TRY"},
+	} {
+		tx.PortfolioID = pf.ID
+		if _, err := transactions.Create(ctx, usr.ID, tx); err != nil {
+			t.Fatalf("transactions.Create: %v", err)
+		}
+	}
+
+	get := func(sessionID, id string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(http.MethodGet, "/api/portfolios/"+id+"/dividends/forecast", nil)
+		r.AddCookie(&http.Cookie{Name: "session", Value: sessionID})
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, r)
+		return rec
+	}
+	id := fmt.Sprint(pf.ID)
+	if rec := get(intruderSession.ID, id); rec.Code != http.StatusNotFound {
+		t.Errorf("intruder status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+	if rec := get(session.ID, "all"); rec.Code != http.StatusNotFound {
+		t.Errorf("all status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+
+	rec := get(session.ID, id)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	var got dividendForecastResponse
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(got.Months) != 12 {
+		t.Fatalf("months = %+v, want 12", got.Months)
+	}
+	for _, m := range got.Months {
+		want := "0.00"
+		if m.Period == wantPeriod {
+			want = "21.25"
+		}
+		if m.Net != want {
+			t.Errorf("month %s net = %s, want %s", m.Period, m.Net, want)
+		}
+	}
+	net := "21.25"
+	wantRows := []dividendForecastRow{
+		{InstrumentID: thyao, Symbol: "THYAO", Market: "BIST", Period: wantPeriod, Quantity: "10", PerShare: "2.5", Gross: "25.00", Stopaj: "3.75", Net: net, Currency: "TRY", NetReporting: &net},
+	}
+	if !reflect.DeepEqual(got.Rows, wantRows) {
+		t.Errorf("rows got  %+v\nwant %+v", got.Rows, wantRows)
+	}
+	if len(got.MissingRates) != 0 || got.Currency != "TRY" {
+		t.Errorf("currency = %q, missing_rates = %v, want TRY and none", got.Currency, got.MissingRates)
 	}
 }
