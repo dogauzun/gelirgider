@@ -2,6 +2,7 @@ package evds
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -131,7 +132,7 @@ func TestSyncXU100(t *testing.T) {
 				if err == nil || n != 0 || len(rows) != 0 {
 					t.Fatalf("SyncXU100 = %d, %v with %d rows, want an error and none", n, err, len(rows))
 				}
-				if tc.key == "" && (requests != 0 || !strings.Contains(err.Error(), "EVDS API key not configured")) {
+				if tc.key == "" && (requests != 0 || !errors.Is(err, ErrNotConfigured) || !strings.Contains(err.Error(), "EVDS API key not configured")) {
 					t.Fatalf("empty key: %d requests, error %q; want none and the not-configured error", requests, err)
 				}
 				return

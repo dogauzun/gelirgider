@@ -28,6 +28,7 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/httpbody"
 	"github.com/dogauzun/gelirgider/backend/internal/instrument"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
+	"github.com/dogauzun/gelirgider/backend/internal/scheduler"
 	"github.com/dogauzun/gelirgider/backend/internal/settings"
 	"github.com/dogauzun/gelirgider/backend/internal/split"
 )
@@ -45,6 +46,9 @@ const (
 	FinnhubKeySetting = "provider.finnhub.api_key"
 	TiingoKeySetting  = "provider.tiingo.api_key"
 )
+
+// ErrNotConfigured is what FetchClose and FetchProfile return with no Finnhub key.
+var ErrNotConfigured = fmt.Errorf("finnhub: %w, set it in the admin area", scheduler.ErrNotConfigured)
 
 // SourceFinnhub is the price.Repo source value written by Sync.
 const SourceFinnhub = "finnhub"
@@ -81,7 +85,7 @@ func (f *Fetcher) FetchProfile(ctx context.Context, symbol string) (string, erro
 		return "", err
 	}
 	if key == "" {
-		return "", fmt.Errorf("finnhub: API key not configured, set it in the admin area")
+		return "", ErrNotConfigured
 	}
 
 	u, err := url.Parse(cmp.Or(f.BaseURL, defaultBaseURL) + "/stock/profile2")
@@ -219,7 +223,7 @@ func (f *Fetcher) FetchClose(ctx context.Context, symbol string, now time.Time) 
 		return Close{}, false, err
 	}
 	if key == "" {
-		return Close{}, false, fmt.Errorf("finnhub: API key not configured, set it in the admin area")
+		return Close{}, false, ErrNotConfigured
 	}
 
 	base := cmp.Or(f.BaseURL, defaultBaseURL)

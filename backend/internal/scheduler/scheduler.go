@@ -37,6 +37,21 @@ type SyncFunc func(ctx context.Context, date time.Time) (int, error)
 // retrying, both without logging: the source logs its own reason.
 var ErrNothingToFetch = errors.New("nothing to fetch")
 
+// ErrNotConfigured is wrapped by a provider whose API key is unset. A
+// source that cannot run until an admin sets its key has not failed:
+// LogFetchFailed reports it at WARN, the admin area at "not configured".
+var ErrNotConfigured = errors.New("API key not configured")
+
+// LogFetchFailed logs a failed fetch at ERROR, or at WARN when the
+// provider's key is unset (ErrNotConfigured). args precede the error.
+func LogFetchFailed(logger *slog.Logger, err error, msg string, args ...any) {
+	if errors.Is(err, ErrNotConfigured) {
+		logger.Warn(msg, append(args, "error", err)...)
+		return
+	}
+	logger.Error(msg, append(args, "error", err)...)
+}
+
 // The scheduler source names: each Source's Name, the <name> in its
 // source.<name>.* settings keys, and the source column of its source_runs
 // rows, which the admin sources page reads by this name. A provider's
@@ -158,7 +173,7 @@ func catchUpSource(ctx context.Context, src Source, lookbackDays int, today time
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return written, err
 			}
-			logger.Error(prefix+": fetch failed", "source", src.Name, "date", date, "error", err)
+			LogFetchFailed(logger, err, prefix+": fetch failed", "source", src.Name, "date", date)
 			return written, err
 		}
 		if written > 0 {
@@ -275,7 +290,7 @@ func (r *runner) attempt(ctx context.Context, src Source, now, atToday time.Time
 		// decides, not err: net/http returns signal.NotifyContext's cancel
 		// cause, which does not wrap context.Canceled.
 	case err != nil:
-		r.logger.Error("fetch failed", "source", src.Name, "date", st.day, "error", err)
+		LogFetchFailed(r.logger, err, "fetch failed", "source", src.Name, "date", st.day)
 		st.done = true
 	case written > 0:
 		r.logger.Info("fetch complete", "source", src.Name, "date", st.day, "written", written)

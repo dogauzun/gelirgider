@@ -252,10 +252,11 @@ GLG-315). A malformed value logs a warning once and uses its default.
 
 The Finnhub (latest US close), Tiingo (US daily-close history) and TCMB
 EVDS (BIST 100 index closes) API keys are set in Yönetim / Administration,
-not in env vars. Without the Finnhub key US price fetches fail; without the
-Tiingo key US history is skipped with one log line. Without the EVDS key the
-`xu100` source fails with
-`xu100: EVDS API key not configured, set it in the admin area` and the BIST
+not in env vars. Without the Finnhub key US price fetches are skipped and
+logged at WARN (`finnhub: API key not configured, set it in the admin area`);
+without the Tiingo key US history is skipped with one log line. Without the
+EVDS key the `xu100` source is skipped and logged at WARN
+(`xu100: EVDS API key not configured, set it in the admin area`) and the BIST
 100 benchmark stays empty; the backfill skips it with one log line. The EVDS
 key comes with a free account at <https://evds3.tcmb.gov.tr>: sign up, then
 copy the API key from the account's profile page into the TCMB EVDS row.

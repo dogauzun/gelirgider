@@ -143,7 +143,7 @@ func (l *RunLog) Go(ctx context.Context, source, kind string, fn func() (int, er
 		defer release()
 		rows, err := l.record(ctx, source, kind, fn)
 		if err != nil && !errors.Is(err, ErrNothingToFetch) {
-			slog.Default().Error("fetch failed", "source", source, "kind", kind, "error", err)
+			LogFetchFailed(slog.Default(), err, "fetch failed", "source", source, "kind", kind)
 			return
 		}
 		slog.Default().Info("fetch complete", "source", source, "kind", kind, "written", rows)
