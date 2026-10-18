@@ -19,11 +19,11 @@ Read CLAUDE.md, docs/PRINCIPLES.md, docs/ROADMAP.md (the Next list and the Non-g
 
 ## 3. Guard
 
-Count the scout's open epics: `project = GLG AND issuetype = Epic AND labels = scout AND statusCategory != Done`. When six or more of them have no child ticket Done, the board has more scouted work than it can absorb: end the run with a one-line summary saying so and change nothing. Otherwise continue.
+Count the scout's open epics: `project = GLG AND issuetype = Epic AND labels = scout AND statusCategory != Done`. When six or more of them have no child ticket Done (the roadmap ticket of section 7 has no parent, so it never counts), the board has more scouted work than it can absorb: end the run with a one-line summary saying so and change nothing. Otherwise continue.
 
 ## 4. Research
 
-1. Inventory what gelirgider has: the Done epics (titles only, from the query above), the Next list and the Non-goals in docs/ROADMAP.md, the ADR index, and the open epics with their child tickets (so a half-built area is not proposed again). Write the inventory down in a scratch file; it is the checklist for step 5.
+1. Inventory what gelirgider has: every epic with its status (`project = GLG AND issuetype = Epic ORDER BY created DESC`, titles only), the Next list and the Non-goals in docs/ROADMAP.md, the ADR index, and the open epics with their child tickets (so a half-built area is not proposed again). Write the inventory down in a scratch file; it is the checklist for step 5.
 2. Read what the comparable products ship, from their own sources (a project README, CHANGELOG or releases page; a vendor's feature or pricing page; a changelog post), not from aggregator directories. The standing set: Ghostfolio, Wealthfolio, Portfolio Performance, Parqet, getquin, Snowball Analytics, Sharesight, Finary, Kubera. Add one or two that a search for portfolio trackers used by Turkish investors (BIST, TEFAS, vadeli mevduat) turns up. Use WebSearch to find the page and WebFetch to read it; note the URL of every page you used.
 3. For each feature you see, note in the scratch file whether gelirgider has it (shipped, planned, non-goal, or missing), in one line.
 
@@ -61,14 +61,14 @@ Each ticket (issue type Task, parent the epic, no label), in this shape:
 
 **Context:** the code the implementer reads first: the model file to copy (the latest handler, form, card, chart, repository or test env of the same kind), the helpers it calls, the conventions that apply (exact decimal money, user_id on every query, i18n in tr and en, swag annotations, forward-only schema files with the next free number).
 
-**What to do:** numbered or bulleted steps with the exact route paths and JSON shapes, error messages, validation ranges, function signatures, table columns and indexes, i18n keys with both locale strings, and the named test cases (which file, which cases). A docs-only ticket says it is exempt from review.
+**What to do:** numbered or bulleted steps with the exact route paths and JSON shapes, error messages, validation ranges, function signatures, table columns and indexes, i18n keys with both locale strings, and the named test cases (which file, which cases). A ticket whose diff touches only the exempt paths of ADR 0022 says so; `docs/adr/` is not exempt, so an ADR ticket is reviewed like code.
 ```
 
 Rules for the set: five to eight tickets per epic; the first is the ADR (`docs/adr/<next free number>-<slug>.md` plus its index row, docs-only); a schema ticket adds no Go function without a caller (`make lint` runs `deadcode`); every new or changed route carries swag annotations and `make swagger`; non-trivial logic names its test; no ticket needs more than a day. Create the tickets, then edit each `Depends on` line to the real keys. Two tickets that edit the same function say so in both.
 
 ## 7. The roadmap ticket and its pull request
 
-docs/ROADMAP.md and the epics change together. Create one Task under the first epic, `List Phases N and M in docs/ROADMAP.md`, in the shape of GLG-1568: one bullet per phase at the end of the Next list, in the existing style (`- Phase N, <name> (GLG-<epic>): <one clause>.`), nothing else. Then implement it the way kanban-worker.md section 5 dispatches a ticket (the `ticket-implementer` subagent, a branch `GLG-<n>-roadmap-phases-<N>-<M>`, the PR title `docs: list phases N and M in the roadmap (GLG-<n>)`), with the transitions of section 7. The diff touches only docs/ROADMAP.md, so it is exempt from review (ADR 0022); merge it as section 6 describes once the required checks are green, and close the ticket with the cost line. If the merge is blocked by something you cannot fix from here, leave the PR open, say so in the summary, and still finish the rest of the run.
+docs/ROADMAP.md and the epics change together. Create one Task with no parent and the label `scout`, `List Phases N and M in docs/ROADMAP.md`, in the shape of GLG-1568: one bullet per phase at the end of the Next list, in the existing style (`- Phase N, <name> (GLG-<epic>): <one clause>.`), nothing else. Claim it as kanban-worker.md section 4 describes (In Progress before dispatch, so the hourly worker cannot take it), implement it the way section 5 dispatches a ticket (the `ticket-implementer` subagent, a branch `GLG-<n>-roadmap-phases-<N>-<M>`, the PR title `docs: list phases N and M in the roadmap (GLG-<n>)`, In Review when the PR opens), and merge it as section 6 describes once the required checks are green, closing the ticket Done with the cost line as section 6 step 6 says. The diff touches only docs/ROADMAP.md, so it is exempt from review (ADR 0022). If the merge is blocked by something you cannot fix from here, leave the PR open, say so in the summary, and still finish the rest of the run.
 
 ## 8. End of run
 
