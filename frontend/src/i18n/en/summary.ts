@@ -104,5 +104,6 @@ export const enSummary: AreaStrings<typeof trSummary> = {
   'projection.reached': 'At this pace the goal is reached in {month}.',
   'projection.gap': 'The goal needs {amount} more a month.',
   'projection.tooLittleHistory': 'A projection needs at least 6 months of history.',
+  'projection.targetPassed': 'The target date has passed. Set a new goal to see a projection.',
   'projection.error': 'Could not load the goal projection',
 }

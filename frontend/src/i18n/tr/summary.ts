@@ -122,5 +122,6 @@ export const trSummary = {
   'projection.reached': 'Bu hızla hedefe {month} içinde ulaşılır.',
   'projection.gap': 'Hedef için ayda {amount} daha gerekiyor.',
   'projection.tooLittleHistory': 'Tahmin için en az 6 aylık geçmiş gerekir.',
+  'projection.targetPassed': 'Hedef tarih geçti. Tahmin görmek için yeni bir hedef koy.',
   'projection.error': 'Hedef tahmini yüklenemedi',
 } as const
