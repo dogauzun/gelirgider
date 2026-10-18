@@ -20,8 +20,8 @@ type periodBucket struct {
 	// without ?benchmark= or when the benchmark has no level on some day of
 	// the range (ADR 0012).
 	Benchmark *returnsResponse `json:"benchmark"`
-	// flow is the sum of the bucket's days' external flows, for the goal
-	// projection.
+	// flow is the bucket's net external flow for the goal projection: the
+	// sum of rangeInputs' flows plus its first day's, which rangeInputs drops.
 	flow float64
 }
 
@@ -118,7 +118,7 @@ func (s *historySweep) buckets(n int) []periodBucket {
 			j++
 		}
 		values, flows, _, negativeCash := s.rangeInputs(i, j)
-		b := periodBucket{Period: period, From: s.entries[i].Date, To: s.entries[j].Date, Returns: periodReturns(values, flows, negativeCash), flow: sum(flows)}
+		b := periodBucket{Period: period, From: s.entries[i].Date, To: s.entries[j].Date, Returns: periodReturns(values, flows, negativeCash), flow: sum(flows) + s.flows[i].InexactFloat64()}
 		if _, returns, ok := s.rangeBenchmark(i, j, flows, negativeCash); ok {
 			b.Benchmark = &returns
 		}

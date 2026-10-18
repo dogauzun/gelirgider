@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	"strings"
 	"testing"
@@ -233,6 +234,9 @@ func TestGoalProjection(t *testing.T) {
 	got := project(long)
 	if got.HistoryMonths < 8 || len(got.Months) == 0 || got.Unit != "nominal" || got.Currency != "TRY" || got.Amount != "100000" {
 		t.Errorf("long history = %+v, want 8 or more history months and a fan", got)
+	}
+	if len(got.Months) > 0 && math.Abs(got.Months[0].Mid-10000) > 0.01 {
+		t.Errorf("first month mid = %v, want 10000: the 9000 held plus the 1000 deposited on each month's first day", got.Months[0].Mid)
 	}
 	if got.MonthlyGap == nil || got.ReachedAt != nil || got.Progress <= 0 {
 		t.Errorf("long history = %+v, want a gap and no reached_at", got)
