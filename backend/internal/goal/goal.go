@@ -16,6 +16,9 @@ import (
 // value, its real (inflation-adjusted) value, or USD.
 var Units = []string{"nominal", "real", "usd"}
 
+// MaxYears is how far ahead a target date may fall, counted from the current calendar month.
+const MaxYears = 50
+
 // ErrNotFound is returned when the scope has no goal.
 var ErrNotFound = errors.New("goal not found")
 

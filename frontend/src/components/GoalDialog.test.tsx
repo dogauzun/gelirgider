@@ -75,6 +75,20 @@ it('keeps Save disabled for an empty amount and for a date in the current month'
   expect(save()).toBeDisabled()
 })
 
+it('refuses a date more than 50 years ahead and takes the same month 50 years ahead', async () => {
+  await renderDialog('TRY')
+  fill(t('goal.amount'), '500000')
+  const today = todayIstanbul()
+  const capMonth = `${Number(today.slice(0, 4)) + 50}${today.slice(4, 7)}`
+
+  fill(t('goal.date'), `${capMonth}-28`)
+  expect(save()).toBeEnabled()
+
+  fill(t('goal.date'), '5000-12-01')
+  expect(save()).toBeDisabled()
+  expect(screen.getByText(t('goal.error.targetDateFar'))).toBeInTheDocument()
+})
+
 it('offers no usd unit for a USD reporting currency, and real only for TRY', async () => {
   await renderDialog('USD')
   fireEvent.click(screen.getByRole('combobox', { name: t('goal.unit') }))

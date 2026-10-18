@@ -24,7 +24,10 @@ scope, and a new goal replaces the old one in one transaction, with a new
 `created_at`. Like the other per-user tables, every query filters by `user_id`.
 The amount must be positive and the target date must fall in a later calendar
 month than today (`Europe/Istanbul`), so a goal is never written with a target
-month that has no month to project. The target month then arrives with time:
+month that has no month to project, and at most 50 years after the current
+month (the same calendar month 50 years ahead is the latest), because the fan
+holds one entry per month and compounds, so a target centuries ahead answers
+megabytes or overflows `float64`. The target month then arrives with time:
 a goal whose target month is the current one or an earlier one stays stored and
 the projection answers an empty fan (see "The projection reuses the history
 sweep").

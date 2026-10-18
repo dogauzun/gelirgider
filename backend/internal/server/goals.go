@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"net/http"
 	"slices"
@@ -87,8 +88,14 @@ func parseGoal(req goalBody, reportingCurrency string) (goal.Goal, error) {
 		return goal.Goal{}, errors.New("unit: usd needs a non-USD reporting currency")
 	}
 	// YYYY-MM-DD sorts lexically, so comparing the YYYY-MM prefixes compares the months.
-	if !price.ValidDate(req.TargetDate) || req.TargetDate[:7] <= price.Today()[:7] {
+	today := price.Today()
+	if !price.ValidDate(req.TargetDate) || req.TargetDate[:7] <= today[:7] {
 		return goal.Goal{}, errors.New("target_date: must be in a later month than today")
+	}
+	// The same calendar month goal.MaxYears ahead is the latest: the fan has one entry per month and compounds, so a far target answers megabytes or overflows float64.
+	year, _ := strconv.Atoi(today[:4])
+	if req.TargetDate[:7] > strconv.Itoa(year+goal.MaxYears)+today[4:7] {
+		return goal.Goal{}, fmt.Errorf("target_date: must be at most %d years after today", goal.MaxYears)
 	}
 	return goal.Goal{Amount: amount, Unit: req.Unit, TargetDate: req.TargetDate}, nil
 }
@@ -120,14 +127,14 @@ func (h *goalHandler) get(w http.ResponseWriter, r *http.Request) {
 // put replaces the goal of the scope.
 //
 //	@Summary	Set a portfolio's goal
-//	@Description	Replaces the goal of the scope and answers the stored goal. unit is nominal (the reporting currency), real (the amount at the prices of the day the goal is set, only with a TRY reporting currency) or usd (only with a non-USD reporting currency). target_date is YYYY-MM-DD and in a later calendar month than today (Europe/Istanbul).
+//	@Description	Replaces the goal of the scope and answers the stored goal. unit is nominal (the reporting currency), real (the amount at the prices of the day the goal is set, only with a TRY reporting currency) or usd (only with a non-USD reporting currency). target_date is YYYY-MM-DD, in a later calendar month than today and at most 50 years ahead (Europe/Istanbul).
 //	@Tags		portfolios
 //	@Accept		json
 //	@Produce	json
 //	@Param		id		path		string			true	"numeric id or `all`"
 //	@Param		body	body		server.goalBody	true	"amount a positive decimal; unit one of nominal, real, usd"
 //	@Success	200		{object}	server.goalBody
-//	@Failure	400		{object}	object{error=string}	"invalid request body; amount: must be a positive number; unit: must be one of nominal, real, usd; unit: real needs a TRY reporting currency; unit: usd needs a non-USD reporting currency; target_date: must be in a later month than today"
+//	@Failure	400		{object}	object{error=string}	"invalid request body; amount: must be a positive number; unit: must be one of nominal, real, usd; unit: real needs a TRY reporting currency; unit: usd needs a non-USD reporting currency; target_date: must be in a later month than today; target_date: must be at most 50 years after today"
 //	@Failure	404		{object}	object{error=string}	"portfolio not found"
 //	@Failure	500		{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/goal [put]
