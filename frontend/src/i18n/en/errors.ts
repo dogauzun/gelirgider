@@ -36,6 +36,8 @@ export const enErrors: AreaStrings<typeof trErrors> = {
   'error.currentPasswordIncorrect': 'Current password is wrong.',
   'error.invalidCode': 'Wrong code.',
   'error.loginExpired': 'Expired, sign in again.',
+  'error.totpSecretUnreadable':
+    'The two-step login secret cannot be read. Ask an admin to reset your password.',
   'error.portfolioNotFound': 'Portfolio not found.',
   'error.portfolioHasTransactions':
     'A portfolio with transactions cannot be deleted. Delete the transactions first.',

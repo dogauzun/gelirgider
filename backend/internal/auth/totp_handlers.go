@@ -3,11 +3,13 @@ package auth
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/dogauzun/gelirgider/backend/internal/settings"
 	"github.com/dogauzun/gelirgider/backend/internal/user"
 )
 
@@ -90,7 +92,7 @@ type totpConfirmRequest struct {
 //	@Success	200	{object}	auth.recoveryCodesResponse
 //	@Failure	400	{object}	object{error=string}	"invalid request body; invalid code"
 //	@Failure	401	{object}	object{error=string}	"unauthorized"
-//	@Failure	409	{object}	object{error=string}	"no pending two-factor setup"
+//	@Failure	409	{object}	object{error=string}	"no pending two-factor setup; two-step secret unreadable, ask an admin to reset your password"
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/account/totp/confirm [post]
 func (h *handler) totpConfirm(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +114,7 @@ func (h *handler) totpConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 	secret, err := h.settings.Open(totpAAD(userID), state.Pending)
 	if err != nil {
-		WriteInternalError(w, r, err)
+		writeSecretError(w, r, userID, http.StatusConflict, err)
 		return
 	}
 	step, ok := verifyTOTP(secret, req.Code, time.Now(), state.LastStep)
@@ -148,6 +150,24 @@ func (h *handler) totpConfirm(w http.ResponseWriter, r *http.Request) {
 // their plaintext is shown.
 type recoveryCodesResponse struct {
 	RecoveryCodes []string `json:"recovery_codes"` // 10 codes, "ABCDE-FGHIJ"
+}
+
+// unreadableSecret is the answer for a sealed TOTP secret that does not
+// open under the running SECRET_KEY (ADR 0025): only an admin's password
+// reset, which turns two-step login off, gets the user back in.
+const unreadableSecret = "two-step secret unreadable, ask an admin to reset your password"
+
+// writeSecretError answers err from opening the user's TOTP secret: status
+// with unreadableSecret when it is settings.ErrUndecryptable, logged once at
+// WARN with the user id so the operator sees who is locked out, else the
+// usual 500.
+func writeSecretError(w http.ResponseWriter, r *http.Request, userID int64, status int, err error) {
+	if errors.Is(err, settings.ErrUndecryptable) {
+		slog.Warn("two-step secret unreadable", "path", r.URL.Path, "user_id", userID)
+		WriteError(w, status, unreadableSecret)
+		return
+	}
+	WriteInternalError(w, r, err)
 }
 
 // checkSecondFactor reports whether code is a valid second factor of the
@@ -194,7 +214,7 @@ func (h *handler) authorizeTOTPChange(w http.ResponseWriter, r *http.Request, us
 	}
 	ok, err := h.checkSecondFactor(r.Context(), userID, state, code)
 	if err != nil {
-		WriteInternalError(w, r, err)
+		writeSecretError(w, r, userID, http.StatusConflict, err)
 		return false
 	}
 	if !ok {
@@ -218,7 +238,7 @@ type totpDisableRequest struct {
 //	@Success	204
 //	@Failure	400	{object}	object{error=string}	"invalid request body; invalid code"
 //	@Failure	401	{object}	object{error=string}	"current password is incorrect; unauthorized"
-//	@Failure	409	{object}	object{error=string}	"two-factor authentication is off"
+//	@Failure	409	{object}	object{error=string}	"two-factor authentication is off; two-step secret unreadable, ask an admin to reset your password"
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/account/totp [delete]
 func (h *handler) totpDisable(w http.ResponseWriter, r *http.Request) {
@@ -249,7 +269,7 @@ func (h *handler) totpDisable(w http.ResponseWriter, r *http.Request) {
 //	@Success	200	{object}	auth.recoveryCodesResponse
 //	@Failure	400	{object}	object{error=string}	"invalid request body; invalid code"
 //	@Failure	401	{object}	object{error=string}	"current password is incorrect; unauthorized"
-//	@Failure	409	{object}	object{error=string}	"two-factor authentication is off"
+//	@Failure	409	{object}	object{error=string}	"two-factor authentication is off; two-step secret unreadable, ask an admin to reset your password"
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/account/totp/recovery-codes [post]
 func (h *handler) totpRecoveryCodes(w http.ResponseWriter, r *http.Request) {

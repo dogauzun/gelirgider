@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -8,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/dogauzun/gelirgider/backend/internal/settings"
 )
 
 // loginEnv is a totpEnv whose user has TOTP on, served through the public
@@ -96,6 +99,20 @@ func TestLoginTOTPSecondStep(t *testing.T) {
 	// The challenge is spent, and the code's step with it.
 	wantError(t, e.code(token, good), http.StatusUnauthorized, "login expired")
 	wantError(t, e.code(e.challenge(), good), http.StatusUnauthorized, "invalid code")
+}
+
+// TestLoginTOTPUnreadableSecret serves the login routes under another
+// SECRET_KEY than the one the secret was sealed with (ADR 0025).
+func TestLoginTOTPUnreadableSecret(t *testing.T) {
+	e := newLoginEnv(t)
+	mux := http.NewServeMux()
+	RegisterRoutes(mux, e.users, e.sessions, settings.NewRepo(e.conn, bytes.Repeat([]byte{2}, 32)), false, nil)
+	e.pub = mux
+	rec := e.code(e.challenge(), totpCode(e.key, e.next))
+	wantError(t, rec, http.StatusUnauthorized, "two-step secret unreadable")
+	if len(rec.Result().Cookies()) != 0 {
+		t.Fatalf("unreadable secret set a cookie: %v", rec.Result().Cookies())
+	}
 }
 
 func TestLoginTOTPSixthAttemptFails(t *testing.T) {

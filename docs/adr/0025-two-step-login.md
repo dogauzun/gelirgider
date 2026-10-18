@@ -88,5 +88,9 @@ path ([ADR 0010](0010-setup-and-admin.md)).
   locks every user who turned on two-step login out, until an admin or the
   operator resets that user (`SetPassword`) and the user enrols again. Users,
   portfolios and transactions are not affected, and users without two-step
-  login can still log in. `deploy/RUNBOOK.md` says so where the key is
+  login can still log in. Until the reset, a correct password still returns
+  the challenge token and the code step answers 401, and confirm, turn-off and
+  new recovery codes answer 409, all with "two-step secret unreadable, ask an
+  admin to reset your password", so the user learns what to do.
+  `deploy/RUNBOOK.md` says so where the key is
   described.
