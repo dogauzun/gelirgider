@@ -266,6 +266,18 @@ describe('attentionItems', () => {
     ])
   })
 
+  it('labels a deposit above the share by its currency and maturity, not its symbol', () => {
+    const items = run(
+      summary([
+        position(1, 'TD-1', '25.01', { market: 'DEPOSIT', name: 'Vadeli mevduat TRY 2026-07-01' }),
+        position(2, 'B', '25'),
+        position(3, 'C', '25'),
+        position(4, 'D', '24.99'),
+      ]),
+    )
+    expect(items).toMatchObject([{ kind: 'concentration', label: 'Vadeli mevduat TRY 2026-07-01' }])
+  })
+
   it('flags cash above 40%, not at exactly 40%', () => {
     expect(run(summary(spread(6), '400'))).toEqual([])
     expect(run(summary(spread(6), '400.01'))[0]).toMatchObject({ subject: 'cash' })

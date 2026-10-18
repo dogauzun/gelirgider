@@ -2,6 +2,7 @@ export const trDeposits = {
   // The Mevduat tab (term deposits).
   'deposits.tab': 'Mevduat',
   'deposits.title': 'Vadeli mevduat',
+  'deposits.label': 'Vadeli mevduat {currency} {maturity}',
   'deposits.loading': 'Mevduatlar yükleniyor...',
   'deposits.loadError': 'Mevduatlar yüklenemedi',
   'deposits.empty': 'Henüz vadeli mevduat yok',

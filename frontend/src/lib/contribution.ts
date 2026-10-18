@@ -17,13 +17,15 @@ export interface ContributionRow {
   fraction: number
   // The day mode's remainder row: no position behind it, so no link.
   other?: boolean
+  // A deposit's row: its label is plain text, never a link.
+  plain?: boolean
 }
 
 // What contributionRows takes: one position's amount in the reporting
 // currency, from Position or from the attribution response.
 export type ContributionInput = Pick<
   ContributionRow,
-  'instrumentId' | 'symbol' | 'amount' | 'other'
+  'instrumentId' | 'symbol' | 'amount' | 'other' | 'plain'
 >
 
 // Half a cent, in the API's 1e-9 units: the summary's day_change is rounded

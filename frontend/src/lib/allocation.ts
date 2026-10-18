@@ -2,7 +2,7 @@ import type { AllocationTarget } from '../api/allocationTargets'
 import type { Position } from '../api/summary'
 import { marketLabel, sectorLabel, t } from '../i18n/strings'
 import { compareUnits, decimalUnits, unitsToDecimal } from './decimal'
-import { currencyTotals, holdingsTotal, shareOf, shareUnits } from './positions'
+import { currencyTotals, holdingsTotal, positionLabel, shareOf, shareUnits } from './positions'
 
 // The groupings of the allocation card's toggle: one row per position, per
 // market, per asset class, per sector, or per currency.
@@ -55,7 +55,7 @@ export interface AllocationRow {
 
 // The group key and legend label of a position in the non-currency views.
 function groupOf(position: Position, view: AllocationView): [string, string] {
-  if (view === 'symbol') return [`position-${position.instrument_id}`, position.symbol]
+  if (view === 'symbol') return [`position-${position.instrument_id}`, positionLabel(position)]
   if (view === 'assetClass') {
     const assetClass =
       (position.asset_class as AssetClass | null) ??

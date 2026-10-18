@@ -6,7 +6,7 @@ import type { Summary } from '../api/summary'
 import { allocationRows, driftRows } from './allocation'
 import { daysBetween } from './date'
 import { compareDecimal, decimalUnits } from './decimal'
-import { currencyTotals, dayRatio, holdingsTotal, shareOf } from './positions'
+import { currencyTotals, dayRatio, holdingsTotal, positionLabel, shareOf } from './positions'
 
 // The thresholds of the "Dikkat" card (spec: UI v2 core pages). A share is
 // flagged only above its threshold, never at it.
@@ -190,7 +190,7 @@ export function attentionItems(input: {
     items.push({
       kind: 'mover',
       instrument_id: p.instrument_id,
-      symbol: p.symbol,
+      symbol: positionLabel(p),
       amount: p.day_change_reporting!,
       currency: summary.currency,
       ratio: dayRatio(p),
@@ -210,7 +210,7 @@ export function attentionItems(input: {
       items.push({
         kind: 'concentration',
         subject: 'position',
-        label: p.symbol,
+        label: positionLabel(p),
         instrument_id: p.instrument_id,
         share: shareOf(units, total),
       })

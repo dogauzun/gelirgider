@@ -19,6 +19,7 @@ import {
 import {
   dayRatio,
   holdingsTotal,
+  positionLabel,
   returnPercent,
   returnRatio,
   unrealized,
@@ -86,7 +87,7 @@ type Column = {
   value: (p: Position) => string | number | null
 }
 const COLUMNS: Column[] = [
-  { key: 'symbol', label: 'summary.symbol', value: (p) => p.symbol },
+  { key: 'symbol', label: 'summary.symbol', value: positionLabel },
   { key: 'weight', label: 'summary.weight', value: (p) => p.market_value_reporting },
   { key: 'quantity', label: 'summary.quantity', value: (p) => p.quantity },
   { key: 'avgCost', label: 'summary.avgCost', value: (p) => p.avg_cost },
@@ -105,7 +106,7 @@ const COLUMNS: Column[] = [
 // The closed view's columns. Realized P/L sorts by its reporting
 // amount, as K/Z does: the cells are in each position's own currency.
 const CLOSED_COLUMNS: Column[] = [
-  { key: 'symbol', label: 'summary.symbol', value: (p) => p.symbol },
+  { key: 'symbol', label: 'summary.symbol', value: positionLabel },
   { key: 'realized', label: 'summary.realizedPl', value: (p) => p.realized_pl_reporting },
   {
     key: 'realizedPercent',
@@ -137,7 +138,7 @@ function pricePill(position: Position) {
 // The symbol opens the position page with the chart's range; the
 // read-only `all` scope has no position page, so there it is plain text (ADR
 // 0014). A phone row is plain text too: the row opens the position dialog,
-// whose title links to the page.
+// whose title links to the page. A deposit's label is plain text too.
 function SymbolLink({
   position,
   portfolioId,
@@ -148,15 +149,15 @@ function SymbolLink({
   plain?: boolean
 }) {
   const positionPath = usePositionPath()
-  if (plain || portfolioId === 'all') {
-    return <span className="shrink-0 font-semibold text-ink">{position.symbol}</span>
+  if (plain || portfolioId === 'all' || position.market === 'DEPOSIT') {
+    return <span className="shrink-0 font-semibold text-ink">{positionLabel(position)}</span>
   }
   return (
     <Link
       to={positionPath(portfolioId, position.instrument_id)}
       className="shrink-0 font-semibold text-ink hover:underline"
     >
-      {position.symbol}
+      {positionLabel(position)}
     </Link>
   )
 }
@@ -219,9 +220,11 @@ function Instrument({
   return (
     <div className="flex min-w-0 items-center gap-1.5">
       <SymbolLink position={position} portfolioId={portfolioId} />
-      <span className="min-w-0 truncate text-[12px] text-muted" title={position.name}>
-        {position.name}
-      </span>
+      {position.market !== 'DEPOSIT' && (
+        <span className="min-w-0 truncate text-[12px] text-muted" title={position.name}>
+          {position.name}
+        </span>
+      )}
       <Tags position={position} reporting={reporting} />
     </div>
   )
@@ -378,9 +381,11 @@ function ListItemName({
         <SymbolLink position={position} portfolioId={portfolioId} plain />
         <Tags position={position} reporting={reporting} />
       </div>
-      <p className="truncate text-[12px] text-muted" title={position.name}>
-        {position.name}
-      </p>
+      {position.market !== 'DEPOSIT' && (
+        <p className="truncate text-[12px] text-muted" title={position.name}>
+          {position.name}
+        </p>
+      )}
     </div>
   )
 }
@@ -525,7 +530,8 @@ export function PositionsTable({
   // position.
   const query = searchFold(search.trim())
   const matches = (p: Position) =>
-    searchFold(p.symbol).includes(query) || searchFold(p.name).includes(query)
+    searchFold(positionLabel(p)).includes(query) ||
+    (p.market !== 'DEPOSIT' && searchFold(p.name).includes(query))
   const openRows = query ? open.filter(matches) : open
   const closedRows = query ? closed.filter(matches) : closed
   // The total row is the server's figure for every open position,

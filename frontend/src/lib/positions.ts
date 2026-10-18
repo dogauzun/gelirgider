@@ -2,8 +2,21 @@
 // page, the summary page and the Katkı card share, so they agree.
 import type { PositionHistoryPoint } from '../api/positions'
 import type { Position, Summary } from '../api/summary'
+import { t } from '../i18n/strings'
 import { decimalUnits } from './decimal'
 import { signedPercent } from './format'
+
+// The label the screens print where a position is named by its symbol. A
+// term deposit's symbol is a generated TD-<hex> the user never chose (ADR
+// 0024), so it reads as "Vadeli mevduat <currency> <maturity>" in the user's
+// locale; the maturity date is the last 10 characters of the stored name,
+// which deposits.go writes as "Vadeli mevduat <CUR> <YYYY-MM-DD>".
+export function positionLabel(
+  position: Pick<Position, 'market' | 'symbol' | 'name' | 'currency'>,
+): string {
+  if (position.market !== 'DEPOSIT') return position.symbol
+  return t('deposits.label', { currency: position.currency, maturity: position.name.slice(-10) })
+}
 
 // The one rule for P/L over cost as a ratio, for a position's
 // unrealized P/L, a closed position's realized P/L and the portfolio's total

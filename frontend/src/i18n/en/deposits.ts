@@ -5,6 +5,7 @@ export const enDeposits: AreaStrings<typeof trDeposits> = {
   // The Deposits tab (term deposits).
   'deposits.tab': 'Deposits',
   'deposits.title': 'Term deposits',
+  'deposits.label': 'Term deposit {currency} {maturity}',
   'deposits.loading': 'Loading deposits...',
   'deposits.loadError': 'Could not load the deposits',
   'deposits.empty': 'No term deposits yet',

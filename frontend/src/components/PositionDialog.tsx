@@ -6,6 +6,7 @@ import type { PortfolioScope, Position, Summary } from '../api/summary'
 import { useTransactions } from '../api/transactions'
 import { t } from '../i18n/strings'
 import { todayIstanbul } from '../lib/date'
+import { positionLabel } from '../lib/positions'
 import { resolveRange, type RangeValue } from '../lib/ranges'
 import { usePositionPath } from '../lib/useRange'
 import { PositionActions } from './PositionActions'
@@ -107,10 +108,10 @@ export function PositionDialog({
           <PositionTitle position={position}>
             <h2 id={titleId} className="text-[18px] font-semibold text-ink">
               {scope === 'all' ? (
-                position.symbol
+                positionLabel(position)
               ) : (
                 <Link to={positionPath(scope, position.instrument_id)} className="hover:underline">
-                  {position.symbol}
+                  {positionLabel(position)}
                 </Link>
               )}
             </h2>
