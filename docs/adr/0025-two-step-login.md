@@ -67,11 +67,13 @@ path ([ADR 0010](0010-setup-and-admin.md)).
   with the token and a code creates the session. The token is random and only
   its sha256 is stored, like a session token. A challenge lasts 5 minutes and
   is deleted when used.
-- **Attempt caps.** A challenge allows 5 wrong codes and is then deleted, so
-  the user starts again with the password. A user allows 10 wrong codes in 15
-  minutes across all their challenges; past that, a login with the correct
-  password for that user also gets 429 until the window passes. The second step
-  route is under the per-IP auth rate limit of ADR 0019.
+- **Attempt caps.** A challenge allows 5 wrong codes; a sixth answers 401
+  login expired, so the user starts again with the password. The row stays
+  until the next login purges rows older than 15 minutes, so its attempts count
+  toward the per-user cap. A user allows 10 wrong codes in 15 minutes across
+  all their challenges; past that, a login with the correct password for that
+  user also gets 429 until the window passes. The second step route is under
+  the per-IP auth rate limit of ADR 0019.
 - **The accepted cost of the per-user cap.** Someone who knows a user's
   password can send 10 wrong codes and keep that user out of the code step,
   and so out of their own login (429), for the 15 minute window, and again
