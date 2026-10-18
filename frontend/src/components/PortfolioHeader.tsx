@@ -360,7 +360,7 @@ export function PortfolioHeader({
               </Title>
             )}
             {nameSlot}
-            {named && onSummary && progress !== undefined && (
+            {named && onSummary && hasGoal && progress !== undefined && (
               <a
                 href="#projection"
                 aria-label={`${t('projection.title')} ${progressPercent(progress)}`}

@@ -572,6 +572,33 @@ describe('PortfolioHeader', () => {
     expect(pill.firstElementChild).toHaveClass('text-ink-2')
   })
 
+  it('hides the progress pill once the goal is gone, though the projection is still cached', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === '/api/portfolios') {
+        return Response.json([{ id: 1, name: 'Emeklilik', created_at: '2026-01-01T00:00:00Z' }])
+      }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
+      throw new Error(`unexpected request: ${url}`)
+    })
+    const queryClient = new QueryClient()
+    queryClient.setQueryData(['portfolios', 1, 'projection'], { progress: 0.424 })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/portfolios/1']}>
+          <PortfolioHeader portfolioId={1} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    await screen.findByRole('heading', { level: 1, name: 'Emeklilik' })
+    await waitFor(() => expect(queryClient.getQueryData(['portfolios', 1, 'goal'])).toBeNull())
+    expect(
+      screen.queryByRole('link', { name: `${t('projection.title')} 42%` }),
+    ).not.toBeInTheDocument()
+  })
+
   it('shows a read-only header for all portfolios (GLG-540)', async () => {
     const urls: string[] = []
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
