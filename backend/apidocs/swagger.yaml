@@ -1149,6 +1149,36 @@ definitions:
           currencies reach no other field of this response.
         type: string
     type: object
+  server.watchItemResponse:
+    properties:
+      created_at:
+        type: string
+      currency:
+        type: string
+      id:
+        type: integer
+      instrument_id:
+        type: integer
+      market:
+        type: string
+      name:
+        type: string
+      note:
+        type: string
+      symbol:
+        type: string
+      target_price:
+        type: string
+      target_side:
+        type: string
+    type: object
+  server.watchRequest:
+    properties:
+      instrument_id:
+        type: integer
+      note:
+        type: string
+    type: object
   statement.aliasRequest:
     properties:
       instrument_id:
@@ -5389,4 +5419,102 @@ paths:
       summary: Update a transaction
       tags:
       - transactions
+  /watchlist:
+    get:
+      description: Every row of the caller with its instrument, sorted by symbol then
+        id.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/server.watchItemResponse'
+            type: array
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: List the watchlist
+      tags:
+      - watchlist
+    post:
+      consumes:
+      - application/json
+      description: Watches the instrument for the caller, one row per user and instrument.
+        Fetches the instrument's price dated 14 days back, best effort, so the row
+        has closes at once. target_price and target_side are null until a target is
+        set.
+      parameters:
+      - description: instrument_id of a non-DEPOSIT instrument; note optional, at
+          most 500 characters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/server.watchRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/server.watchItemResponse'
+        "400":
+          description: 'invalid request body; instrument_id: unknown instrument; note:
+            must be at most 500 characters; note: must not contain control characters'
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: already on the watchlist
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Add an instrument to the watchlist
+      tags:
+      - watchlist
+  /watchlist/{id}:
+    delete:
+      parameters:
+      - description: watchlist item id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: watchlist item not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Remove an instrument from the watchlist
+      tags:
+      - watchlist
 swagger: "2.0"
