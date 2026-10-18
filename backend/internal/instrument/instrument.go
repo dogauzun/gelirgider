@@ -447,6 +447,24 @@ func (r *Repo) Insert(ctx context.Context, market, symbol, name, currency string
 	return in.ID, nil
 }
 
+// InsertTx adds an instrument inside tx and returns its id. Unlike Insert it
+// does not look for an existing market+symbol: a duplicate fails on the
+// unique index, for a caller that makes the symbol unique itself.
+func (r *Repo) InsertTx(ctx context.Context, tx *sql.Tx, market, symbol, name, currency string) (int64, error) {
+	res, err := tx.ExecContext(ctx,
+		`INSERT INTO instruments (symbol, market, name, currency) VALUES (?, ?, ?, ?)`,
+		symbol, market, name, currency,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("insert instrument %s: %w", symbol, err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("get inserted instrument id: %w", err)
+	}
+	return id, nil
+}
+
 // Rename sets the instrument's display name. The TEFAS fetcher keeps a
 // fund's name in step with TEFAS this way; the code stays.
 func (r *Repo) Rename(ctx context.Context, id int64, name string) error {
