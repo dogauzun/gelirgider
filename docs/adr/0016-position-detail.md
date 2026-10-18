@@ -87,7 +87,8 @@ labels go through the chart's own formatters, so privacy mode masks them.
 
 ## Recorded simplifications
 
-- No per-position returns: the page shows P/L over cost, as Özet does.
+- The KPI strip shows P/L over cost, as Özet does; the position's returns
+  are [ADR 0033](0033-position-returns.md)'s.
 - Markers come only from the transaction pages already loaded; an old trade on
   an unfetched page has no marker yet.
 - Prices are not adjusted for splits ([ADR 0008](0008-splits.md)): the close
@@ -96,4 +97,5 @@ labels go through the chart's own formatters, so privacy mode masks them.
 
 ### Out of scope
 
-Per-position IRR or TWR, a benchmark on a position.
+Per-position IRR or TWR and a benchmark on a position were out here and are
+now [ADR 0033](0033-position-returns.md)'s.
