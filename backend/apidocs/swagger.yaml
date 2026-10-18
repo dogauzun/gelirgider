@@ -653,6 +653,60 @@ definitions:
           $ref: '#/definitions/server.periodBucket'
         type: array
     type: object
+  server.planRequest:
+    properties:
+      amount:
+        type: string
+      currency:
+        type: string
+      day_of_month:
+        type: integer
+      end_date:
+        type: string
+      fund:
+        description: Fund books the amount as a cash deposit before each buy.
+        type: boolean
+      instrument_id:
+        type: integer
+      note:
+        type: string
+      start_date:
+        type: string
+    type: object
+  server.planResponse:
+    properties:
+      amount:
+        type: string
+      currency:
+        type: string
+      day_of_month:
+        type: integer
+      end_date:
+        type: string
+      fund:
+        type: boolean
+      id:
+        type: integer
+      instrument_id:
+        type: integer
+      market:
+        type: string
+      next_date:
+        type: string
+      note:
+        type: string
+      portfolio_id:
+        type: integer
+      start_date:
+        type: string
+      status:
+        description: |-
+          Status is ended (the next occurrence is past the end date), else due
+          (the next occurrence is today or past), else active.
+        type: string
+      symbol:
+        type: string
+    type: object
   server.portfolioListResponse:
     properties:
       cash:
@@ -4417,6 +4471,106 @@ paths:
       summary: Position history
       tags:
       - portfolios
+  /portfolios/{id}/plans:
+    get:
+      description: Soonest next_date first. status is ended when the next occurrence
+        is past the end date, else due from the next occurrence's date, else active.
+        symbol and market are null for a cash deposit plan.
+      parameters:
+      - description: portfolio id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/server.planResponse'
+            type: array
+        "404":
+          description: portfolio not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: List a portfolio's saving plans
+      tags:
+      - plans
+    post:
+      consumes:
+      - application/json
+      description: 'A monthly plan: a buy of the instrument, or with no instrument
+        a cash deposit, of amount on day_of_month from start_date to end_date (open-ended
+        when omitted). A day past the month''s end falls on its last day. next_date,
+        the first occurrence on or after start_date, is where the plan stands. A buy
+        plan''s amount is in the instrument''s currency; a deposit plan takes currency
+        from the body. With fund true the amount is booked as a cash deposit before
+        each buy. Decimals are strings with at most 15 integer and 9 fraction digits.'
+      parameters:
+      - description: portfolio id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: instrument_id of a non-DEPOSIT instrument or none; currency required
+          without an instrument; amount > 0; day_of_month 1 to 31; start_date from
+          1990-01-01 to one year after today; end_date on or after start_date or omitted
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/server.planRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/server.planResponse'
+        "400":
+          description: 'invalid request body; instrument_id: unknown instrument; currency:
+            must match instrument currency (<currency>); currency: must be one of
+            TRY, USD, EUR; amount: required; amount: must be a non-negative number
+            with at most 15 integer and 9 fraction digits; amount: must be a positive
+            number; day_of_month: must be between 1 and 31; start_date: must be YYYY-MM-DD;
+            start_date: must be on or after 1990-01-01; start_date: must be at most
+            1 year after today; end_date: must be YYYY-MM-DD; end_date: must be on
+            or after start_date; note: must be at most 500 characters; note: must
+            not contain control characters'
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: portfolio not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Create a saving plan
+      tags:
+      - plans
   /portfolios/{id}/projection:
     get:
       description: 'Projects the scope''s value month by month from the next month
