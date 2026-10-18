@@ -99,4 +99,12 @@ export const trAdmin = {
   'admin.instruments.currency': 'Para birimi',
   'admin.instruments.submit': 'Ekle',
   'admin.instruments.saved': 'Kaydedildi: {symbol} · {name} · {market} · {currency}',
+  'admin.instruments.sectorTitle': 'Sektör düzeltmesi',
+  'admin.instruments.sectorDescription':
+    'Bir enstrümanın sektörünü sabitle ya da düzeltmeyi kaldırmak için sağlayıcı değerini seç.',
+  'admin.instruments.sectorInstrument': 'Enstrüman',
+  'admin.instruments.sector': 'Sektör',
+  'admin.instruments.sectorProvider': 'Sağlayıcı değeri',
+  'admin.instruments.sectorSubmit': 'Sektörü kaydet',
+  'admin.instruments.sectorSaved': 'Kaydedildi: {symbol} · {sector}',
 } as const

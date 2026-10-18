@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { useCreateInstrument } from '../../api/instruments'
-import { marketLabel, t } from '../../i18n/strings'
+import { useCreateInstrument, useUpdateInstrument, type Instrument } from '../../api/instruments'
+import { marketLabel, sectorLabel, t } from '../../i18n/strings'
+import { SECTOR_KEYS } from '../../lib/sectors'
 import { useOneAtATime } from '../../lib/useOneAtATime'
+import { InstrumentSearchInput } from '../InstrumentSearchInput'
 import { Button } from '../ui/Button'
 import { Field } from '../ui/Field'
 import { inputClass } from '../ui/inputClass'
@@ -109,7 +111,87 @@ export function InstrumentsSection() {
             })}
           </p>
         )}
+        <SectorForm />
       </div>
     </section>
+  )
+}
+
+// "Provider value" is the empty key: it sends null and clears the override.
+const PROVIDER_VALUE = ''
+
+// Pins an instrument's sector over the provider's, or clears the pin.
+function SectorForm() {
+  const [text, setText] = useState('')
+  const [picked, setPicked] = useState<Instrument | null>(null)
+  const [sector, setSector] = useState(PROVIDER_VALUE)
+  const update = useUpdateInstrument()
+  const once = useOneAtATime()
+  const saved = update.data
+
+  return (
+    <div className="border-line mt-6 border-t pt-4">
+      <h3 className="text-ink text-[14px] font-semibold">{t('admin.instruments.sectorTitle')}</h3>
+      <p className="text-muted mt-1 text-[13px]">{t('admin.instruments.sectorDescription')}</p>
+      <form
+        className="mt-4 grid max-w-2xl gap-3 sm:grid-cols-2"
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (!picked) return
+          once(() =>
+            update.mutateAsync({
+              id: picked.id,
+              sector: sector === PROVIDER_VALUE ? null : sector,
+            }),
+          )
+        }}
+      >
+        <Field label={t('admin.instruments.sectorInstrument')}>
+          <InstrumentSearchInput
+            value={text}
+            selected={picked !== null}
+            onChange={(next) => {
+              setText(next)
+              setPicked(null)
+            }}
+            onSelect={(instrument) => {
+              setPicked(instrument)
+              setText(`${instrument.symbol} · ${instrument.name}`)
+              setSector(instrument.sector_override ?? PROVIDER_VALUE)
+            }}
+          />
+        </Field>
+        <Field label={t('admin.instruments.sector')}>
+          <Select
+            value={sector}
+            onChange={setSector}
+            options={[
+              { value: PROVIDER_VALUE, label: t('admin.instruments.sectorProvider') },
+              ...SECTOR_KEYS.map((key) => ({ value: key as string, label: sectorLabel(key) })),
+            ]}
+          />
+        </Field>
+        <div className="sm:col-span-2">
+          <Button type="submit" disabled={!picked} pending={update.isPending}>
+            {t('admin.instruments.sectorSubmit')}
+          </Button>
+        </div>
+      </form>
+      {update.isError && (
+        <p role="alert" className="text-loss mt-3 text-[13px]">
+          {update.error.message}
+        </p>
+      )}
+      {saved && (
+        <p role="status" className="text-ink-2 mt-3 text-[13px]">
+          {t('admin.instruments.sectorSaved', {
+            symbol: saved.symbol,
+            sector: saved.sector_override
+              ? sectorLabel(saved.sector_override)
+              : t('admin.instruments.sectorProvider'),
+          })}
+        </p>
+      )}
+    </div>
   )
 }
