@@ -20,6 +20,9 @@ type periodBucket struct {
 	// without ?benchmark= or when the benchmark has no level on some day of
 	// the range (ADR 0012).
 	Benchmark *returnsResponse `json:"benchmark"`
+	// flow is the sum of the bucket's days' external flows, for the goal
+	// projection.
+	flow float64
 }
 
 // periodsResponse is every calendar month and year from the first
@@ -94,6 +97,14 @@ func (h *historyHandler) periods(w http.ResponseWriter, r *http.Request) {
 	auth.WriteJSON(w, http.StatusOK, resp)
 }
 
+func sum(xs []float64) float64 {
+	total := 0.0
+	for _, x := range xs {
+		total += x
+	}
+	return total
+}
+
 // buckets cuts the sweep into calendar periods by the first n characters
 // of each date (7 for months, 4 for years). Each bucket's returns come from
 // the same rangeInputs and periodReturns as a history range over the same
@@ -107,7 +118,7 @@ func (s *historySweep) buckets(n int) []periodBucket {
 			j++
 		}
 		values, flows, _, negativeCash := s.rangeInputs(i, j)
-		b := periodBucket{Period: period, From: s.entries[i].Date, To: s.entries[j].Date, Returns: periodReturns(values, flows, negativeCash)}
+		b := periodBucket{Period: period, From: s.entries[i].Date, To: s.entries[j].Date, Returns: periodReturns(values, flows, negativeCash), flow: sum(flows)}
 		if _, returns, ok := s.rangeBenchmark(i, j, flows, negativeCash); ok {
 			b.Benchmark = &returns
 		}

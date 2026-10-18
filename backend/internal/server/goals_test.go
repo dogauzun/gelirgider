@@ -194,3 +194,57 @@ func TestGoalAllScopeIsIndependent(t *testing.T) {
 		t.Errorf("all goal after delete = %d, want 404", rec.Code)
 	}
 }
+
+// TestGoalProjection checks the projection route: 404 without a goal, a fan
+// from 8 full months of history, an empty fan from one transaction and an
+// empty 200 for a real goal without a TUFE level.
+func TestGoalProjection(t *testing.T) {
+	e := newTransactionTestEnv(t)
+	session := e.login("a@example.com")
+	now := time.Now().In(price.Istanbul)
+	monthStart := func(ago int) string {
+		return time.Date(now.Year(), now.Month()-time.Month(ago), 1, 0, 0, 0, 0, time.UTC).Format(time.DateOnly)
+	}
+	project := func(portfolioID int64) projectionResponse {
+		t.Helper()
+		rec := e.do(session, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/projection", portfolioID), nil)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("projection = %d %s, want 200", rec.Code, rec.Body.String())
+		}
+		return decodeJSON[projectionResponse](t, rec.Body.Bytes())
+	}
+
+	long, short := e.createPortfolio(session, "Long"), e.createPortfolio(session, "Short")
+	rec := e.do(session, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/projection", long), nil)
+	if got := strings.TrimSpace(rec.Body.String()); rec.Code != http.StatusNotFound || got != `{"error":"goal not found"}` {
+		t.Fatalf("projection without goal = %d %s, want 404 goal not found", rec.Code, got)
+	}
+
+	for ago := 9; ago >= 1; ago-- {
+		e.createTransaction(session, long, map[string]any{"type": "deposit", "date": monthStart(ago), "amount": "1000"})
+	}
+	e.createTransaction(session, short, map[string]any{"type": "deposit", "date": monthStart(1), "amount": "1000"})
+	for _, id := range []int64{long, short} {
+		if rec := e.do(session, http.MethodPut, goalPath(id), goalReq("100000", "nominal", futureDate())); rec.Code != http.StatusOK {
+			t.Fatalf("put goal = %d %s", rec.Code, rec.Body.String())
+		}
+	}
+
+	got := project(long)
+	if got.HistoryMonths < 8 || len(got.Months) == 0 || got.Unit != "nominal" || got.Currency != "TRY" || got.Amount != "100000" {
+		t.Errorf("long history = %+v, want 8 or more history months and a fan", got)
+	}
+	if got.MonthlyGap == nil || got.ReachedAt != nil || got.Progress <= 0 {
+		t.Errorf("long history = %+v, want a gap and no reached_at", got)
+	}
+	if got := project(short); got.HistoryMonths != 0 || len(got.Months) != 0 || got.Months == nil {
+		t.Errorf("one transaction = %+v, want an empty fan", got)
+	}
+
+	if rec := e.do(session, http.MethodPut, goalPath(long), goalReq("100000", "real", futureDate())); rec.Code != http.StatusOK {
+		t.Fatalf("put real goal = %d %s", rec.Code, rec.Body.String())
+	}
+	if got := project(long); got.HistoryMonths != 0 || len(got.Months) != 0 || got.Months == nil {
+		t.Errorf("real without TUFE = %+v, want an empty fan", got)
+	}
+}

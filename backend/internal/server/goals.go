@@ -1,24 +1,33 @@
 package server
 
 import (
+	"context"
 	"errors"
+	"math"
 	"net/http"
 	"slices"
+	"strconv"
+	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
+	"github.com/dogauzun/gelirgider/backend/internal/benchmark"
 	"github.com/dogauzun/gelirgider/backend/internal/db"
 	"github.com/dogauzun/gelirgider/backend/internal/goal"
+	"github.com/dogauzun/gelirgider/backend/internal/holdings"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
+	"github.com/shopspring/decimal"
 )
 
-// registerGoalRoutes wires GET, PUT and DELETE /api/portfolios/{id}/goal.
+// registerGoalRoutes wires GET, PUT and DELETE /api/portfolios/{id}/goal and
+// GET /api/portfolios/{id}/projection.
 func registerGoalRoutes(mux *http.ServeMux, d *deps) {
 	h := &goalHandler{deps: d}
 	mux.HandleFunc("GET /api/portfolios/{id}/goal", h.get)
 	mux.HandleFunc("PUT /api/portfolios/{id}/goal", h.put)
 	mux.HandleFunc("DELETE /api/portfolios/{id}/goal", h.delete)
+	mux.HandleFunc("GET /api/portfolios/{id}/projection", h.projection)
 }
 
 type goalHandler struct{ *deps }
@@ -174,4 +183,171 @@ func (h *goalHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+const (
+	projectionReturnMonths = 36
+	projectionFlowMonths   = 12
+)
+
+type projectionMonth struct {
+	Month string  `json:"month"`
+	Low   float64 `json:"low"`
+	Mid   float64 `json:"mid"`
+	High  float64 `json:"high"`
+}
+
+// projectionResponse is the fan of the goal's scope: the 25th, 50th and 75th
+// percentile paths per month up to the target month, in the goal's unit.
+// Floats, because a projection is an estimate, not money.
+type projectionResponse struct {
+	Unit       string            `json:"unit"`
+	Currency   string            `json:"currency"`
+	Amount     string            `json:"amount"`
+	TargetDate string            `json:"target_date"`
+	Months     []projectionMonth `json:"months"`
+	// ReachedAt is the first month of the median path at or above the
+	// amount, null when none is.
+	ReachedAt *string `json:"reached_at"`
+	// MonthlyGap is the smallest extra monthly flow, in the reporting
+	// currency and rounded up, that lets the median path reach the amount by
+	// the target month, null when it reaches it anyway.
+	MonthlyGap    *float64 `json:"monthly_gap"`
+	Progress      float64  `json:"progress"`
+	HistoryMonths int      `json:"history_months"`
+}
+
+// projection answers the projection fan of the scope's goal.
+//
+//	@Summary	Projection of a portfolio's goal
+//	@Description	Projects the scope's value month by month from the next month through the target month, with the 25th, 50th and 75th percentile of the monthly time-weighted returns of the last 36 full calendar months (nearest rank) and the median net external flow of the last 12 full months. Month values are in the goal's unit: real is divided by the TUFE rate of the last 12 months compounded, usd by today's USD rate. months is empty, with history_months counting the usable months, when fewer than 6 full months have a return, and empty with history_months 0 when the scope has no history or the unit lacks its TUFE level or USD rate. reached_at is the first month of the median path at or above the amount; monthly_gap is the extra monthly flow in the reporting currency, rounded up, that the median path needs to reach the amount by the target month, null when reached_at is set. progress is today's value in the unit divided by the amount.
+//	@Tags		portfolios
+//	@Produce	json
+//	@Param		id	path		string	true	"numeric id or `all`"
+//	@Success	200	{object}	server.projectionResponse
+//	@Failure	404	{object}	object{error=string}	"portfolio not found; goal not found"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/portfolios/{id}/projection [get]
+func (h *goalHandler) projection(w http.ResponseWriter, r *http.Request) {
+	userID, portfolioID, ok := h.scope(w, r)
+	if !ok {
+		return
+	}
+	g, err := h.goals.Get(r.Context(), userID, portfolioID)
+	if err != nil {
+		writeGoalError(w, r, err)
+		return
+	}
+	usr, err := h.users.GetByID(r.Context(), userID)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	resp := projectionResponse{Unit: g.Unit, Currency: usr.ReportingCurrency, Amount: g.Amount.String(), TargetDate: g.TargetDate, Months: []projectionMonth{}}
+	in, found, err := h.projectionInput(r.Context(), userID, r.PathValue("id"), g, usr.ReportingCurrency)
+	if errors.Is(err, portfolio.ErrNotFound) {
+		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
+		return
+	}
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	if found {
+		p := goal.Project(in)
+		for _, m := range p.Months {
+			resp.Months = append(resp.Months, projectionMonth(m))
+		}
+		resp.ReachedAt, resp.MonthlyGap, resp.Progress, resp.HistoryMonths = p.ReachedAt, p.MonthlyGap, p.Progress, p.HistoryMonths
+	}
+	auth.WriteJSON(w, http.StatusOK, resp)
+}
+
+// projectionInput builds the input of goal.Project from the history sweep
+// of the scope. found is false when there is nothing to project from: no
+// history, or a unit whose TUFE level or USD rate is missing.
+func (h *goalHandler) projectionInput(ctx context.Context, userID int64, id string, g goal.Goal, reporting string) (in goal.ProjectionInput, found bool, err error) {
+	lists, err := scopeTransactions(ctx, h.portfolios, h.transactions, userID, id)
+	if err != nil {
+		return in, false, err
+	}
+	txs := flatByDate(lists)
+	if len(txs) == 0 {
+		return in, false, nil
+	}
+	today := istanbulToday()
+	from, err := defaultHistoryFrom(txs, today)
+	if err != nil || from.After(today) {
+		return in, false, err
+	}
+	in = goal.ProjectionInput{Amount: g.Amount.InexactFloat64(), Unit: g.Unit}
+	if found, err = h.unitRate(ctx, &in, reporting, today); !found || err != nil {
+		return in, false, err
+	}
+	s, err := (&historyHandler{h.deps}).sweep(ctx, userID, txs, from, today, sweepOpts{})
+	if err != nil {
+		return in, false, err
+	}
+	var flows []float64
+	for _, b := range s.buckets(len("2006-01")) {
+		if b.Partial {
+			continue
+		}
+		flows = append(flows, b.flow)
+		if b.Returns.TWR == nil {
+			continue
+		}
+		twr, err := strconv.ParseFloat(*b.Returns.TWR, 64)
+		if err != nil {
+			return in, false, err
+		}
+		in.MonthlyReturns = append(in.MonthlyReturns, twr)
+	}
+	in.MonthlyReturns = lastN(in.MonthlyReturns, projectionReturnMonths)
+	in.MonthlyFlows = lastN(flows, projectionFlowMonths)
+	in.Value = s.values[len(s.values)-1]
+	thisMonth := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, time.UTC)
+	in.FirstMonth = thisMonth.AddDate(0, 1, 0).Format("2006-01")
+	target, err := time.Parse(time.DateOnly, g.TargetDate)
+	if err != nil {
+		return in, false, err
+	}
+	in.Months = (target.Year()-today.Year())*12 + int(target.Month()-today.Month())
+	return in, true, nil
+}
+
+// unitRate sets the CPI rate or the USD rate the goal's unit divides by.
+// found is false when the level or rate is missing, or the unit does not fit
+// the reporting currency (a goal set before the currency changed).
+func (h *goalHandler) unitRate(ctx context.Context, in *goal.ProjectionInput, reporting string, today time.Time) (found bool, err error) {
+	switch in.Unit {
+	case "real":
+		if reporting != "TRY" {
+			return false, nil
+		}
+		levels, _, err := benchmarkLevels(ctx, h.benchmarks, benchmark.CodeTUFE, today.AddDate(-1, 0, 0), today)
+		if err != nil || len(levels) == 0 || levels[0] <= 0 || levels[len(levels)-1] <= 0 {
+			return false, err
+		}
+		in.MonthlyCPIRate = math.Pow(levels[len(levels)-1]/levels[0], 1.0/12) - 1
+	case "usd":
+		rates, err := h.fx.Latest(ctx, []string{"USD", reporting}, today.Format(time.DateOnly))
+		if err != nil {
+			return false, err
+		}
+		byCurrency := make(map[string]decimal.Decimal, len(rates))
+		for c, r := range rates {
+			byCurrency[c] = r.Rate
+		}
+		factor, ok := holdings.Factor(byCurrency, "USD", reporting)
+		if !ok || !factor.IsPositive() {
+			return false, nil
+		}
+		in.USDRate = factor.InexactFloat64()
+	}
+	return true, nil
+}
+
+func lastN(xs []float64, n int) []float64 {
+	return xs[max(0, len(xs)-n):]
 }
