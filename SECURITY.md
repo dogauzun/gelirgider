@@ -13,8 +13,8 @@ report.
 
 ## Supported versions
 
-Only `main` is supported. There are no releases or maintained older branches,
-so fixes land on `main`.
+Only `main` is supported. Fixes land on `main` and ship in the next release;
+older releases and branches are not patched.
 
 ## What counts
 
