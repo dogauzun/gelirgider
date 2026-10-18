@@ -42,13 +42,22 @@ function position(instrumentId: number, symbol: string, pl: string | null, day: 
   } satisfies Position
 }
 
-function renderCard(positions: Position[], portfolioId: number | 'all' = 7) {
+function renderCard(
+  positions: Position[],
+  portfolioId: number | 'all' = 7,
+  dayChange: string | null = null,
+) {
   render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
       <MemoryRouter initialEntries={['/portfolios/7?range=1y']}>
-        <ContributionCard positions={positions} currency="TRY" portfolioId={portfolioId} />
+        <ContributionCard
+          positions={positions}
+          currency="TRY"
+          portfolioId={portfolioId}
+          dayChange={dayChange}
+        />
       </MemoryRouter>
     </QueryClientProvider>,
   )
@@ -88,6 +97,25 @@ describe('ContributionCard', () => {
     fireEvent.click(today)
     expect(today).toHaveAttribute('aria-checked', 'true')
     expect(items(card)).toEqual(['AKBNK+₺3,00'])
+  })
+
+  it('adds a row for the move of positions sold out, so today adds up to the summary day change', () => {
+    // A was sold out on the price date: its closed row has no day_change_reporting.
+    const sold = { ...position(1, 'AKBNK', '0.00', null), closed: true, quantity: '0' }
+    const card = renderCard([sold, position(2, 'THYAO', '100.00', '3.00')], 7, '5.00')
+    fireEvent.click(within(card).getByRole('radio', { name: 'Bugün' }))
+    expect(items(card)).toEqual(['THYAO+₺3,00', 'Diğer / satılan+₺2,00'])
+    expect(
+      within(card)
+        .getAllByRole('link')
+        .map((a) => a.textContent),
+    ).toEqual(['THYAO'])
+  })
+
+  it('adds no remainder row when the rows differ from the day change by a cent or less', () => {
+    const card = renderCard([position(2, 'THYAO', '100.00', '3.00')], 7, '3.01')
+    fireEvent.click(within(card).getByRole('radio', { name: 'Bugün' }))
+    expect(items(card)).toEqual(['THYAO+₺3,00'])
   })
 
   it('shows the best four and the worst four and expands to all', () => {

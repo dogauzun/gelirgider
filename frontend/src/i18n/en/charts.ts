@@ -73,6 +73,7 @@ export const enCharts: AreaStrings<typeof trCharts> = {
   'contribution.mode.range': 'Range',
   'contribution.showAll': 'Show all',
   'contribution.empty': 'No profit or loss to show',
+  'contribution.other': 'Other / sold',
   'drawdown.title': 'Drawdown',
   'drawdown.subtitle': 'net of deposits and withdrawals',
   'drawdown.max': 'Largest',
