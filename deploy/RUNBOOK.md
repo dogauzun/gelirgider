@@ -510,3 +510,55 @@ tool on the host.
 
 It is also the escape hatch if every admin is locked out: reset an admin's
 password from the host and log in again. It does not change the admin flag.
+
+## 10. Change a stopaj rate
+
+The stopaj (withholding tax) pre-filled on an expected dividend comes from
+the `stopaj_rates` table, one row per market: `BIST` `0.15` and `US` `0.20`
+after the first start ([ADR 0009](../docs/adr/0009-dividends.md)).
+`rate` is an exact decimal fraction in text: `0.175` is 17.5%. When the law
+changes, an operator edits the row. There is no admin page for it, and the
+backend image has no `sqlite3`, so the edit runs on the host against the
+bind-mounted database.
+
+1. Install the `sqlite3` command-line tool once, if the host lacks it
+   (`sqlite3 --version`), for example `sudo apt-get install sqlite3` on
+   Debian or Ubuntu.
+2. Take a backup first (§4):
+   ```
+   sudo deploy/backup.sh
+   ```
+3. Update the row as root (`deploy/data` is mode 700, §1) and read it back.
+   `.timeout 5000` makes `sqlite3` wait up to 5 seconds for a write lock, as
+   the backend does. `SELECT changes()` must print `1`; `0` means no row has
+   that market:
+   ```
+   sudo sqlite3 deploy/data/gelirgider.db ".timeout 5000" \
+     "UPDATE stopaj_rates SET rate = '0.175' WHERE market = 'BIST'; SELECT changes();" \
+     "SELECT market, rate FROM stopaj_rates ORDER BY market;"
+   ```
+   ```
+   1
+   BIST|0.175
+   US|0.20
+   ```
+   A market with no row gets 0. To give one a rate, insert it, with the
+   instrument's market code as `market`:
+   `INSERT INTO stopaj_rates (market, rate) VALUES ('<market>', '<rate>');`.
+   Write the rate as a plain decimal. A value such as `17.5%` makes the
+   expected and upcoming dividend lists fail with an internal error until the
+   row is fixed.
+
+The backend can keep running on a Linux host: SQLite locks the file, the
+`-wal` and `-shm` files next to `gelirgider.db` are the backend's own, and the
+tool leaves them alone. On Docker Desktop (macOS, Windows) the data
+directory is shared with a virtual machine, so stop the backend first
+(`docker compose -f deploy/compose.yml stop backend`), edit, then start it
+(`... start backend`).
+
+No restart is needed. The backend reads the table on every request to the
+expected and upcoming dividend lists, so the next load of those lists
+pre-fills the new rate. A page already open shows the old rate until it
+refreshes. Dividends already added to a portfolio keep the stopaj they were
+saved with; only the pre-fill of new ones changes, and a user can still edit
+the stopaj of any dividend by hand.
