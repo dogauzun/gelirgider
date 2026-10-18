@@ -146,18 +146,22 @@ Benchmarks work unchanged: the shadow portfolio of ADR 0012 takes the summed
 
 On `/portfolios/all` there is no manual-price editing, no buy and sell
 buttons, no links to transactions or imports, and no position page (ADR 0016).
-The "Dikkat" card still books or dismisses an expected dividend and enters a
-manual price, each through the owning portfolio's own route
-(`/api/portfolios/{n}/...`) or the user's price route. The `all` routes read,
+The "Dikkat" card still books or dismisses an expected dividend through the
+owning portfolio's route (`/api/portfolios/{n}/...`), enters a manual price
+through the user's price route, closes a due term deposit (ADR 0024) and books
+or skips a due saving plan (ADR 0030) through their own `/api/deposits/{id}` and
+`/api/plans/{id}` routes; it reads each portfolio's due deposits and due plans.
+The `all` routes read,
 except the three writes listed under "URL and API": the allocation targets
 routes of ADR 0028, the goal routes of ADR 0029 and the cash-gaps `POST`, which
 the performance page offers on `all` as well. The projection is a normal read
 `all` route.
 
 Per portfolio: transactions (listing, adding, editing, deleting), statement
-imports, expected dividends and their dismissal. Manual prices are stored per
-user and instrument, so `all` values an instrument at the same price as every
-portfolio.
+imports, expected dividends and their dismissal, term deposits (creating,
+deleting, renewing) and saving plans (creating, editing, deleting), and the due
+lists the "Dikkat" card reads. Manual prices are stored per user and instrument,
+so `all` values an instrument at the same price as every portfolio.
 
 ## Recorded simplifications
 
