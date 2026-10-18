@@ -187,6 +187,8 @@ func TestAdminDeleteUser(t *testing.T) {
 			VALUES (?, ?, 'deposit', '2026-01-01', '5000', '0', 'TRY', '2026-01-01T00:00:00Z')`, uid, pid)
 		exec("INSERT INTO manual_prices (user_id, instrument_id, date, close) VALUES (?, 1, '2026-01-05', '310')", uid)
 		exec("INSERT INTO dividend_dismissals (user_id, portfolio_id, instrument_id, date) VALUES (?, ?, 1, '2026-01-04')", uid, pid)
+		exec("INSERT INTO allocation_targets (user_id, portfolio_id, asset_class, weight) VALUES (?, ?, 'bist', '0.4')", uid, pid)
+		exec("INSERT INTO allocation_targets (user_id, portfolio_id, asset_class, weight) VALUES (?, NULL, 'bist', '0.4')", uid)
 		exec("INSERT INTO import_aliases (user_id, broker, symbol, instrument_id, created_at) VALUES (?, 'garanti', 'FUND', 1, '2026-02-01T00:00:00Z')", uid)
 		exec("INSERT INTO import_forgotten_names (user_id, broker, symbol, period_end) VALUES (?, 'garanti', 'FUND', '2026-01-31')", uid)
 		exec("INSERT INTO login_challenges (token_hash, user_id, created_at, expires_at) VALUES (?, ?, '2026-01-01T00:00:00Z', '2026-01-01T00:05:00Z')", name, uid)
