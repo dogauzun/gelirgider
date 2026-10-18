@@ -179,9 +179,14 @@ export function attentionItems(input: {
   // Planlı alımlar. Data items too.
   for (const plan of duePlans) items.push({ kind: 'due-plan', plan })
 
-  // Bugün.
+  // Bugün. A deposit's close is its accrued value (ADR 0024): its move is known in advance, never a mover.
   const movers = priced
-    .filter((p) => p.day_change_reporting !== null && Number(p.day_change_reporting) !== 0)
+    .filter(
+      (p) =>
+        p.market !== 'DEPOSIT' &&
+        p.day_change_reporting !== null &&
+        Number(p.day_change_reporting) !== 0,
+    )
     .sort(
       (a, b) => Math.abs(Number(b.day_change_reporting)) - Math.abs(Number(a.day_change_reporting)),
     )
