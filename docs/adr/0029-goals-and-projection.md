@@ -35,6 +35,12 @@ projection always has at least one month to run.
 The backend rejects any other combination with 400. A real unit for another
 reporting currency is out of v1: the app holds no price index for it.
 
+The goal row stores no currency, so a change of the reporting currency would
+silently change what its amount means. `PUT /api/me/reporting-currency`
+therefore deletes all of the user's goals in the same transaction as the
+change, and the response and the settings screen say so. The projection route
+never meets a unit and currency combination that the write path rejects.
+
 ### Routes
 
 `GET`, `PUT` and `DELETE /api/portfolios/{id}/goal` and
@@ -102,18 +108,23 @@ amount is in the goal's unit.
 
 ### The one-line answer
 
-The answer comes from the median path, in the goal's unit:
+The answer comes from the median path, in the goal's unit. The target month
+rule of the write path holds only on the day of the write, so the projection
+route checks the target month on every read. When the target month is the
+current month or a past one, it skips the comparison and the bisection
+and answers "the target date has passed", with no one-line answer. Otherwise:
 
 - When some month up to the target date reaches the amount, the answer is the
   first such month: "at this pace the goal is reached in <month>". A portfolio
   that already is at the amount answers with month 0.
 - Otherwise the answer is the extra monthly flow `x` that makes it: the
   smallest `x` for which the median path, run with `f + x` in place of `f`,
-  reaches the amount in the target month. The target month is at least month 1,
-  so at least one step adds `f + x` and the value there grows without bound
-  with `x`. `x` is found by bisection on the same recurrence, the upper bound
-  doubling until the amount is reached, which therefore always ends. The line reads "the goal needs
-  <x> more per month", in the reporting currency.
+  reaches the amount in the target month. On this path the target month is at
+  least month 1, so at least one step adds `f + x` and the value there grows
+  without bound with `x`. `x` is found by bisection on the same recurrence,
+  the upper bound doubling until the amount is reached, which therefore always
+  ends. The line reads "the goal needs <x> more per month", in the reporting
+  currency.
 
 ### Progress
 
