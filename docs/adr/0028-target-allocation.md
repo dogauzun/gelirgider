@@ -74,6 +74,7 @@ amount, so the 200 is split in proportion: `fund` 40, `commodity` 160.
 - Sell suggestions.
 - Per-instrument and per-sector targets.
 - Tax-aware rebalancing.
-- Scheduled saving plans.
+- Scheduled saving plans are [ADR 0030](0030-saving-plans.md); the planner does
+  not read them.
 - A history of targets.
 - Per-class currencies in the planner.
