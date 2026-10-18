@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import type { Position, Summary } from '../api/summary'
+import { setLocale } from '../i18n/strings'
 import { allocationRows } from './allocation'
 import { attentionItems } from './attention'
-import { holdingsTotal, weightOf } from './positions'
+import { holdingsTotal, positionLabel, weightOf } from './positions'
 
 function position(id: number, symbol: string, value: string): Position {
   return {
@@ -76,5 +77,23 @@ describe('the portfolio share total', () => {
     expect(rows('currency')[0].share).toBe(1)
     const usd = concentration('currency')
     expect(usd && 'share' in usd && usd.share).toBe(1)
+  })
+})
+
+describe('positionLabel', () => {
+  afterEach(() => setLocale('tr'))
+
+  it('names a deposit by its currency and maturity in the locale, and every other position by its symbol', () => {
+    const deposit = {
+      ...position(1, 'TD-1', '1'),
+      market: 'DEPOSIT',
+      currency: 'TRY',
+      name: 'Vadeli mevduat TRY 2026-07-01',
+    }
+    setLocale('tr')
+    expect(positionLabel(deposit)).toBe('Vadeli mevduat TRY 2026-07-01')
+    setLocale('en')
+    expect(positionLabel(deposit)).toBe('Term deposit TRY 2026-07-01')
+    expect(positionLabel({ ...position(2, 'THYAO', '1'), market: 'BIST' })).toBe('THYAO')
   })
 })

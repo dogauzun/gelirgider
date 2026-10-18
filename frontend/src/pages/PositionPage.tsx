@@ -22,7 +22,7 @@ import { TAP_Y } from '../components/ui/tap'
 import { usePositionActions } from '../components/usePositionActions'
 import { t } from '../i18n/strings'
 import { todayIstanbul } from '../lib/date'
-import { isHeld } from '../lib/positions'
+import { isHeld, positionLabel } from '../lib/positions'
 import { resolveRange } from '../lib/ranges'
 import { rangeSearch, useRange, useZoom } from '../lib/useRange'
 import { usePortfolioTitle } from '../lib/useTitle'
@@ -59,8 +59,9 @@ export function PositionPage() {
 
   const position = data?.positions.find((p) => p.instrument_id === instrumentId)
   // A summary without this position is the body's not-found state.
+  const label = position && positionLabel(position)
   usePortfolioTitle(
-    data && !position ? t('notFound.title') : (position?.symbol ?? t('position.title')),
+    data && !position ? t('notFound.title') : (label ?? t('position.title')),
     portfolioId,
   )
 
@@ -118,7 +119,7 @@ export function PositionPage() {
                 >
                   {`${t('position.back')} ›`}
                 </Link>
-                <h1 className="text-[20px] font-semibold text-ink">{position.symbol}</h1>
+                <h1 className="text-[20px] font-semibold text-ink">{positionLabel(position)}</h1>
               </PositionTitle>
               <PositionActions
                 className="flex shrink-0 gap-2"
@@ -181,7 +182,7 @@ export function PositionPage() {
               <div className={CARD_HEAD}>
                 <h2 className="text-[14px] font-semibold text-ink">{t('position.transactions')}</h2>
                 <Link
-                  to={`/portfolios/${portfolioId}/transactions?instrument=${position.instrument_id}&symbol=${encodeURIComponent(position.symbol)}`}
+                  to={`/portfolios/${portfolioId}/transactions?instrument=${position.instrument_id}&symbol=${encodeURIComponent(positionLabel(position))}`}
                   className="text-[13px] font-medium text-accent hover:underline"
                 >
                   {t('position.allTransactions')}

@@ -160,6 +160,17 @@ describe('ContributionCard', () => {
     expect(items(card)).toEqual(['THYAO+₺1,00'])
   })
 
+  it('shows a deposit as plain text with its currency and maturity', () => {
+    const deposit = {
+      ...position(5, 'TD-1', '1.00', null),
+      market: 'DEPOSIT',
+      name: 'Vadeli mevduat TRY 2026-07-01',
+    }
+    const card = renderCard([deposit])
+    expect(within(card).queryByRole('link')).not.toBeInTheDocument()
+    expect(items(card)).toEqual(['Vadeli mevduat TRY 2026-07-01+₺1,00'])
+  })
+
   it('says so in one line when no position has the chosen value', () => {
     const card = renderCard([position(1, 'AKBNK', null, null)])
     expect(within(card).queryByRole('list')).not.toBeInTheDocument()

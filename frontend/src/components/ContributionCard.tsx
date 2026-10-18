@@ -12,7 +12,7 @@ import {
 } from '../lib/contribution'
 import { todayIstanbul } from '../lib/date'
 import { plTone, signedMoney } from '../lib/format'
-import { unrealized } from '../lib/positions'
+import { positionLabel, unrealized } from '../lib/positions'
 import { resolveRange } from '../lib/ranges'
 import { usePositionPath, useRange } from '../lib/useRange'
 import { SignedBar } from './SignedBar'
@@ -26,7 +26,8 @@ const LIMIT = 4
 function positionInputs(positions: Position[], mode: 'total' | 'day'): ContributionInput[] {
   return positions.map((p) => ({
     instrumentId: p.instrument_id,
-    symbol: p.symbol,
+    symbol: positionLabel(p),
+    plain: p.market === 'DEPOSIT',
     amount: mode === 'total' ? unrealized(p).amount : p.day_change_reporting,
   }))
 }
@@ -97,7 +98,7 @@ export function ContributionCard({
           <ul className="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-2 text-xs">
             {rows.map((row) => (
               <li key={row.instrumentId} className="col-span-3 grid grid-cols-subgrid items-center">
-                {portfolioId === 'all' || row.other ? (
+                {portfolioId === 'all' || row.other || row.plain ? (
                   <span className="font-semibold text-ink">{row.symbol}</span>
                 ) : (
                   <Link

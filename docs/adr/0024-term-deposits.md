@@ -23,7 +23,11 @@ Each deposit is one instrument row in market `DEPOSIT`, with the deposit's
 currency (`TRY`, `USD` or `EUR`) and a generated symbol. The user never sees it
 as an instrument: it is not searchable and has no instrument page. The
 holdings engine, the history sweep, the allocation and the position tables see
-an ordinary position, so none of them learns a new asset class.
+an ordinary position, so none of them learns a new asset class. The
+instrument's name is `Vadeli mevduat <currency> <maturity>` with the date as
+YYYY-MM-DD; the frontend never prints the symbol or that name for a deposit
+position but builds a localized label from the currency and the date at the end
+of the name (`positionLabel` in `frontend/src/lib/positions.ts`).
 
 A `term_deposits` table holds the terms: principal, rate, stopaj, start date,
 maturity date, currency and the link to the instrument. It carries `user_id`.

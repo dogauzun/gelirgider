@@ -14,9 +14,11 @@ export function PositionTitle({ position, children }: { position: Position; chil
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
       {children}
-      <span className="max-w-full min-w-0 truncate text-[13px] text-muted" title={position.name}>
-        {position.name}
-      </span>
+      {position.market !== 'DEPOSIT' && (
+        <span className="max-w-full min-w-0 truncate text-[13px] text-muted" title={position.name}>
+          {position.name}
+        </span>
+      )}
       <span className="text-[13px] text-muted">{marketLabel(position.market)}</span>
       {position.closed === true && <Pill tone="cash">{t('position.closed')}</Pill>}
       {position.has_price && position.last_price !== null && (
