@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -162,7 +162,7 @@ describe('TransactionsPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Ekle' }))
 
-    await vi.waitFor(() => expect(createdBody).not.toBeNull())
+    await waitFor(() => expect(createdBody).not.toBeNull())
     expect(createdBody).toMatchObject({
       type: 'buy',
       instrument_id: 7,
@@ -173,7 +173,7 @@ describe('TransactionsPage', () => {
     expect(createdBody).not.toHaveProperty('currency')
 
     // A plain submit closes the dialog; Cmd/Ctrl+Enter is what keeps it open.
-    await vi.waitFor(() => expect(screen.queryByRole('heading', { name: 'İşlem ekle' })).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'İşlem ekle' })).toBeNull())
 
     // Creating a transaction must also invalidate the summary query,
     // so switching to the summary tab doesn't paint stale totals from cache.
@@ -239,7 +239,7 @@ describe('TransactionsPage', () => {
     // Cmd/Ctrl+Enter submits and keeps the dialog open for the next row.
     fireEvent.keyDown(screen.getByLabelText('Tutar'), { key: 'Enter', ctrlKey: true })
 
-    await vi.waitFor(() => expect(createdBody).not.toBeNull())
+    await waitFor(() => expect(createdBody).not.toBeNull())
     expect(createdBody).toMatchObject({
       type: 'deposit',
       amount: '500',
@@ -247,7 +247,7 @@ describe('TransactionsPage', () => {
     })
     expect(createdBody).not.toHaveProperty('instrument_id')
 
-    await vi.waitFor(() => expect(screen.getByLabelText('Tutar')).toHaveValue(''))
+    await waitFor(() => expect(screen.getByLabelText('Tutar')).toHaveValue(''))
     expect(screen.getByRole('heading', { name: 'İşlem ekle' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Yatırma' })).toHaveAttribute('aria-checked', 'true')
   })
@@ -329,7 +329,7 @@ describe('TransactionsPage', () => {
     fireEvent.change(screen.getByLabelText('Tutar'), { target: { value: '25' } })
     fireEvent.click(screen.getByRole('button', { name: 'Ekle' }))
 
-    await vi.waitFor(() => expect(createdBody).not.toBeNull())
+    await waitFor(() => expect(createdBody).not.toBeNull())
     expect(createdBody).toMatchObject({ type: 'dividend', instrument_id: 7, amount: '25' })
     expect(createdBody).not.toHaveProperty('currency')
   })
@@ -514,7 +514,7 @@ describe('TransactionsPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Ekle' }))
 
-    await vi.waitFor(() => expect(createdBody).not.toBeNull())
+    await waitFor(() => expect(createdBody).not.toBeNull())
     expect(updated).toBe(false)
     expect(createdBody).toEqual({
       type: 'buy',
@@ -782,7 +782,7 @@ describe('TransactionsPage', () => {
     const more = screen.getByRole('button', { name: 'Daha fazla yükle' })
     more.focus()
     fireEvent.click(more)
-    await vi.waitFor(() => expect(more).toHaveAttribute('aria-disabled', 'true'))
+    await waitFor(() => expect(more).toHaveAttribute('aria-disabled', 'true'))
     expect(more).toBeEnabled()
     expect(more).toHaveFocus()
     fireEvent.click(more)
@@ -791,7 +791,7 @@ describe('TransactionsPage', () => {
 
     // The second page is appended, not swapped in, and the button goes away
     // once the server stops sending a cursor.
-    await vi.waitFor(() =>
+    await waitFor(() =>
       expect(screen.getAllByRole('button', { name: /işlemini düzenle$/ })).toHaveLength(3),
     )
     expect(screen.queryByRole('button', { name: 'Daha fazla yükle' })).toBeNull()
@@ -943,7 +943,7 @@ describe('TransactionsPage', () => {
 
     // Dismissing the dialog leaves the row alone.
     fireEvent.click(screen.getByRole('button', { name: 'Vazgeç' }))
-    await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'İşlemi sil' })).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'İşlemi sil' })).toBeNull())
     expect(deleted).toBe(false)
 
     fireEvent.click(screen.getAllByRole('button', { name: /işlemini sil$/ })[0])
@@ -953,7 +953,7 @@ describe('TransactionsPage', () => {
     await screen.findByText('Henüz işlem yok.')
     expect(deleted).toBe(false)
     void flushToasts()
-    await vi.waitFor(() => expect(deleted).toBe(true))
+    await waitFor(() => expect(deleted).toBe(true))
   })
 
   // The delete is sent when its toast goes, which may be after the
@@ -1088,14 +1088,14 @@ describe('TransactionsPage', () => {
 
     await screen.findAllByRole('button', { name: '06.01.2026 Para yatırma +₺500,00 işlemini sil' })
     deleteRow('06.01.2026 Para yatırma +₺500,00 işlemini sil')
-    await vi.waitFor(() =>
+    await waitFor(() =>
       expect(document.activeElement).toBe(
         screen.getAllByRole('button', { name: '05.01.2026 Para yatırma +₺500,00 işlemini sil' })[0],
       ),
     )
 
     deleteRow('05.01.2026 Para yatırma +₺500,00 işlemini sil')
-    await vi.waitFor(() =>
+    await waitFor(() =>
       expect(document.activeElement).toBe(screen.getByRole('button', { name: 'İşlem ekle' })),
     )
   })
@@ -1162,7 +1162,7 @@ describe('TransactionsPage', () => {
     // The undo is one key away, and after it focus is back on the
     // restored row's delete button, not on <body>.
     const undo = screen.getByRole('button', { name: 'Geri al' })
-    await vi.waitFor(() => expect(document.activeElement).toBe(undo))
+    await waitFor(() => expect(document.activeElement).toBe(undo))
     fireEvent.click(undo)
     expect(screen.queryByText('Henüz işlem yok.')).toBeNull()
     expect(document.activeElement).toBe(screen.getAllByRole('button', { name: /işlemini sil$/ })[0])
@@ -1500,7 +1500,7 @@ describe('TransactionsPage', () => {
     const filters = screen.getByRole('radiogroup', { name: 'Türe göre filtrele' })
     fireEvent.click(within(filters).getByRole('radio', { name: 'Alış' }))
 
-    await vi.waitFor(() => expect(requested.at(-1)).toContain('type=buy'))
+    await waitFor(() => expect(requested.at(-1)).toContain('type=buy'))
     expect(within(filters).getByRole('radio', { name: 'Alış' })).toHaveAttribute(
       'aria-checked',
       'true',
@@ -1513,7 +1513,7 @@ describe('TransactionsPage', () => {
     expect(screen.getByRole('radio', { name: 'Tümü' })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('radio', { name: 'Nakit' }))
-    await vi.waitFor(() =>
+    await waitFor(() =>
       expect(requested.at(-1)).toContain(`type=${encodeURIComponent('deposit,withdrawal,fee')}`),
     )
 
@@ -1524,7 +1524,7 @@ describe('TransactionsPage', () => {
     cash.focus()
     fireEvent.keyDown(cash, { key: 'ArrowRight' })
     const all = screen.getByRole('radio', { name: 'Tümü' })
-    await vi.waitFor(() => expect(all).toHaveAttribute('aria-checked', 'true'))
+    await waitFor(() => expect(all).toHaveAttribute('aria-checked', 'true'))
     expect(all).toHaveFocus()
     expect(cash).toHaveAttribute('tabindex', '-1')
     expect(screen.getByTestId('search').textContent).toBe('')
@@ -1602,14 +1602,14 @@ describe('TransactionsPage', () => {
     })
     fireEvent.click(await screen.findByRole('option', { name: /THYAO/ }))
 
-    await vi.waitFor(() => expect(requested.at(-1)).toContain('instrument_id=7'))
+    await waitFor(() => expect(requested.at(-1)).toContain('instrument_id=7'))
     expect(screen.getByTestId('search').textContent).toBe('?instrument=7&symbol=THYAO')
 
     const chip = await screen.findByRole('button', { name: 'Enstrüman filtresini kaldır: THYAO' })
     // The search unmounts; focus lands on the chip that replaces it.
     expect(document.activeElement).toBe(chip)
     fireEvent.click(chip)
-    await vi.waitFor(() => expect(requested.at(-1)).not.toContain('instrument_id='))
+    await waitFor(() => expect(requested.at(-1)).not.toContain('instrument_id='))
     expect(screen.getByTestId('search').textContent).toBe('')
     // The chip unmounts; focus lands on the search that replaces it.
     expect(document.activeElement).toBe(
@@ -1734,7 +1734,7 @@ describe('TransactionsPage', () => {
 
     fireEvent.change(from, { target: { value: '2026-01-01' } })
     fireEvent.change(to, { target: { value: '2026-03-31' } })
-    await vi.waitFor(() => expect(requested.at(-1)).toContain('from=2026-01-01&to=2026-03-31'))
+    await waitFor(() => expect(requested.at(-1)).toContain('from=2026-01-01&to=2026-03-31'))
     expect(screen.getByTestId('search').textContent).toBe('?from=2026-01-01&to=2026-03-31')
     expect(exportLink()).toBe('/api/portfolios/1/transactions.csv?from=2026-01-01&to=2026-03-31')
 
@@ -1748,7 +1748,7 @@ describe('TransactionsPage', () => {
     const clear = screen.getByRole('button', { name: 'Tarih filtresini kaldır' })
     clear.focus()
     fireEvent.click(clear)
-    await vi.waitFor(() => expect(requested.at(-1)).not.toContain('from='))
+    await waitFor(() => expect(requested.at(-1)).not.toContain('from='))
     // The clear button unmounts; focus lands on the start date.
     expect(screen.queryByRole('button', { name: 'Tarih filtresini kaldır' })).toBeNull()
     expect(document.activeElement).toBe(from)
@@ -1984,7 +1984,7 @@ describe('TransactionsPage', () => {
     fireEvent.keyDown(listbox, { key: 'Escape' })
 
     await chooseOption(source, 'Midas · Haz 2026')
-    await vi.waitFor(() => expect(requested.at(-1)).toContain('import_id=4'))
+    await waitFor(() => expect(requested.at(-1)).toContain('import_id=4'))
     expect(screen.getByTestId('search').textContent).toBe('?import=4')
     expect(screen.getByRole('link', { name: 'CSV indir' })).toHaveAttribute(
       'href',
@@ -1992,11 +1992,11 @@ describe('TransactionsPage', () => {
     )
 
     await chooseOption(source, 'Elle')
-    await vi.waitFor(() => expect(requested.at(-1)).toContain('import_id=none'))
+    await waitFor(() => expect(requested.at(-1)).toContain('import_id=none'))
     expect(screen.getByTestId('search').textContent).toBe('?import=none')
 
     await chooseOption(source, 'Tümü')
-    await vi.waitFor(() => expect(requested.at(-1)).not.toContain('import_id'))
+    await waitFor(() => expect(requested.at(-1)).not.toContain('import_id'))
     expect(screen.getByTestId('search').textContent).toBe('')
   })
 
@@ -2082,7 +2082,7 @@ describe('TransactionsPage', () => {
     })
 
     const showOnly = await screen.findByRole('button', { name: 'Sadece bunları göster' })
-    await vi.waitFor(() => expect(document.activeElement).toBe(showOnly))
+    await waitFor(() => expect(document.activeElement).toBe(showOnly))
   })
 
   it('leaves focus alone on a plain visit or a reloaded ?import= URL', async () => {
@@ -2094,7 +2094,7 @@ describe('TransactionsPage', () => {
 
     cleanup()
     renderAt('/portfolios/1/transactions?import=4')
-    await vi.waitFor(() =>
+    await waitFor(() =>
       expect(screen.getByRole('combobox', { name: 'Kaynak' }).textContent).toContain(
         'Midas · Haz 2026',
       ),

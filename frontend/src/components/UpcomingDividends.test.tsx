@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, expect, it, vi } from 'vitest'
 import type { DividendForecast } from '../api/dividends'
@@ -74,6 +74,6 @@ it('groups planned and projected rows by period, skipping a month without rows',
 it('renders nothing when the forecast has no rows', async () => {
   const { container } = renderCard([])
 
-  await vi.waitFor(() => expect(globalThis.fetch).toHaveBeenCalled())
+  await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled())
   expect(container).toBeEmptyDOMElement()
 })

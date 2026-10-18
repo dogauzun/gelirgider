@@ -66,7 +66,7 @@ async function hint(label: string): Promise<string> {
   fireEvent.click(trigger)
   const text = (await screen.findByRole('dialog', { name: label })).textContent ?? ''
   fireEvent.click(trigger)
-  await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   return text
 }
 
@@ -742,7 +742,7 @@ describe('SummaryPage', () => {
     expect(urls.some((u) => u.startsWith('/api/portfolios/all/history?'))).toBe(true)
 
     await chooseOption(screen.getByLabelText('Karşılaştır'), 'Dolar')
-    await vi.waitFor(() =>
+    await waitFor(() =>
       expect(
         urls.some(
           (u) => u.startsWith('/api/portfolios/all/history?') && u.includes('benchmark=USD'),
@@ -1630,7 +1630,7 @@ describe('SummaryPage', () => {
       await chooseOption(screen.getByLabelText('Karşılaştır'), 'Karşılaştırma yok')
       expect(screen.getByLabelText('Karşılaştır')).toHaveTextContent('Karşılaştırma yok')
       expect(localStorage.getItem('benchmark')).toBeNull()
-      await vi.waitFor(() =>
+      await waitFor(() =>
         expect(urls.filter((u) => u.includes('/history?')).at(-1)).not.toContain('benchmark='),
       )
     })
@@ -1715,10 +1715,10 @@ describe('SummaryPage', () => {
       ).toEqual(['AFT', 'GJH'])
       expect(urls.some((u) => u.includes('benchmark=instrument%3A7'))).toBe(true)
       fireEvent.keyDown(listbox, { key: 'Escape' })
-      await vi.waitFor(() => expect(screen.queryByRole('listbox')).toBeNull())
+      await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull())
       // The other position's option carries its own code.
       await chooseOption(select, 'AFT')
-      await vi.waitFor(() =>
+      await waitFor(() =>
         expect(urls.some((u) => u.includes('benchmark=instrument%3A3'))).toBe(true),
       )
     })
@@ -1805,13 +1805,13 @@ describe('SummaryPage', () => {
       </QueryClientProvider>,
     )
 
-    await vi.waitFor(() =>
+    await waitFor(() =>
       expect(urls).toContain('/api/portfolios/1/history?to=2027-01-01&from=2026-10-01'),
     )
     expect(await screen.findByRole('radio', { name: '3A' })).toHaveAttribute('aria-checked', 'true')
 
     fireEvent.click(screen.getByRole('radio', { name: 'YBİ' }))
-    await vi.waitFor(() =>
+    await waitFor(() =>
       expect(urls).toContain('/api/portfolios/1/history?to=2027-01-01&from=2027-01-01'),
     )
   })
@@ -1936,14 +1936,14 @@ describe('SummaryPage', () => {
 
     fireEvent.click(screen.getByRole('radio', { name: '1Y' }))
     // Still the 3M chart, not a blank card, but marked as loading.
-    await vi.waitFor(() =>
+    await waitFor(() =>
       expect(
         screen.getByText('Grafik için yeterli veri yok.').closest('[aria-busy]'),
       ).toHaveAttribute('aria-busy', 'true'),
     )
 
     answer1y(Response.json({ currency: 'TRY', points: [] }))
-    await vi.waitFor(() =>
+    await waitFor(() =>
       expect(
         screen.getByText('Grafik için yeterli veri yok.').closest('[aria-busy]'),
       ).toHaveAttribute('aria-busy', 'false'),
@@ -2079,7 +2079,7 @@ describe('SummaryPage', () => {
 
     // Fiyat gir in the row's menu opens the price dialog.
     const table = within(await within(container).findByRole('table'))
-    await vi.waitFor(() => expect(historyCalls()).toBe(1))
+    await waitFor(() => expect(historyCalls()).toBe(1))
     const menu = table.getByRole('button', { name: 'THYAO işlemleri' })
     menu.focus()
     fireEvent.click(menu)
@@ -2091,7 +2091,7 @@ describe('SummaryPage', () => {
     fireEvent.change(priceInput, { target: { value: '130.50' } })
     fireEvent.keyDown(priceInput, { key: 'Enter' })
 
-    const putCall = await vi.waitFor(() => {
+    const putCall = await waitFor(() => {
       const call = fetchMock.mock.calls.find(([, callInit]) => callInit?.method === 'PUT')
       if (!call) throw new Error('PUT not called yet')
       return call
@@ -2101,7 +2101,7 @@ describe('SummaryPage', () => {
     expect(putCall[1]?.body).toBe(JSON.stringify({ close: '130.50' }))
 
     // The value chart must refetch its history after the price is saved.
-    await vi.waitFor(() => expect(historyCalls()).toBe(2))
+    await waitFor(() => expect(historyCalls()).toBe(2))
     // The dialog closes and focus is back on the row's menu.
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(document.activeElement).toBe(menu)
@@ -2206,8 +2206,8 @@ describe('SummaryPage', () => {
       const price = within(screen.getByRole('dialog')).getByLabelText('Fiyat')
       fireEvent.change(price, { target: { value: '41,5' } })
       fireEvent.keyDown(price, { key: 'Enter' })
-      await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-      await vi.waitFor(() => expect(card.queryByRole('button', { name: /THYAO/ })).toBeNull())
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      await waitFor(() => expect(card.queryByRole('button', { name: /THYAO/ })).toBeNull())
       return card
     }
 
@@ -2215,7 +2215,7 @@ describe('SummaryPage', () => {
     // goes back to Ana's SISE.
     const all = renderAt('/portfolios/all')
     let card = await enterPrice('Ana: THYAO için fiyat gir')
-    await vi.waitFor(() =>
+    await waitFor(() =>
       expect(document.activeElement).toBe(
         card.getByRole('button', { name: 'Ana: SISE için fiyat gir' }),
       ),
@@ -2225,7 +2225,7 @@ describe('SummaryPage', () => {
     // One portfolio's Özet: the last missing price leaves only the heading.
     renderAt('/portfolios/1')
     card = await enterPrice('SISE için fiyat gir')
-    await vi.waitFor(() =>
+    await waitFor(() =>
       expect(card.queryByRole('button', { name: 'SISE için fiyat gir' })).toBeNull(),
     )
     expect(document.activeElement).toBe(card.getByRole('heading', { name: 'Dikkat' }))
@@ -2414,7 +2414,7 @@ describe('SummaryPage', () => {
       const menu = within(container).getByRole('button', { name: 'GARAN işlemleri' })
       choose(menu, 'Elle fiyatı kaldır')
 
-      const deleteCall = await vi.waitFor(() => {
+      const deleteCall = await waitFor(() => {
         const call = fetchMock.mock.calls.find(([, callInit]) => callInit?.method === 'DELETE')
         if (!call) throw new Error('DELETE not called yet')
         return call
@@ -3302,7 +3302,7 @@ describe('SummaryPage', () => {
       fireEvent.click(
         await card.findByRole('button', { name: 'TUPRS 12.10.2026 temettüsünü ekle' }),
       )
-      await vi.waitFor(() =>
+      await waitFor(() =>
         expect(
           requests.find((r) => r.url === '/api/portfolios/1/transactions' && r.method === 'POST'),
         ).toBeDefined(),
@@ -3324,7 +3324,7 @@ describe('SummaryPage', () => {
       const card = within(await screen.findByRole('region', { name: 'Dikkat' }))
       const add = await card.findByRole('button', { name: 'TUPRS 12.10.2026 temettüsünü ekle' })
       fireEvent.click(add)
-      await vi.waitFor(() => expect(requests.filter((r) => r.method === 'POST')).toHaveLength(1))
+      await waitFor(() => expect(requests.filter((r) => r.method === 'POST')).toHaveLength(1))
       fireEvent.click(add)
       fireEvent.click(card.getByRole('button', { name: 'TUPRS 12.10.2026 temettüsünü yoksay' }))
       // Both stay focusable but are announced as unavailable meanwhile.
@@ -3345,9 +3345,9 @@ describe('SummaryPage', () => {
       const add = await card.findByRole('button', { name: 'TUPRS 12.10.2026 temettüsünü ekle' })
       fireEvent.click(add)
       fireEvent.click(add)
-      await vi.waitFor(() => expect(add).toHaveAttribute('aria-disabled', 'true'))
+      await waitFor(() => expect(add).toHaveAttribute('aria-disabled', 'true'))
       resolve()
-      await vi.waitFor(() => expect(add).not.toHaveAttribute('aria-disabled'))
+      await waitFor(() => expect(add).not.toHaveAttribute('aria-disabled'))
       expect(requests.filter((r) => r.method === 'POST')).toHaveLength(1)
     })
 
@@ -3369,7 +3369,7 @@ describe('SummaryPage', () => {
       const close = card.getByRole('button', { name: /^Vadeyi kapat/ })
       fireEvent.click(close)
       fireEvent.click(close)
-      await vi.waitFor(() => expect(card.queryByText('₺3.254,80')).toBeNull())
+      await waitFor(() => expect(card.queryByText('₺3.254,80')).toBeNull())
       expect(
         requests.filter((r) => r.method === 'POST' && r.url === '/api/deposits/5/mature'),
       ).toHaveLength(1)
@@ -3404,9 +3404,7 @@ describe('SummaryPage', () => {
       const book = await card.findByRole('button', { name: /^Kaydet: AKBNK/ })
       fireEvent.click(book)
       fireEvent.click(book)
-      await vi.waitFor(() =>
-        expect(card.queryByRole('button', { name: /^Kaydet: AKBNK/ })).toBeNull(),
-      )
+      await waitFor(() => expect(card.queryByRole('button', { name: /^Kaydet: AKBNK/ })).toBeNull())
       expect(
         requests.filter((r) => r.method === 'POST' && r.url === '/api/plans/7/book'),
       ).toHaveLength(1)
@@ -3420,7 +3418,7 @@ describe('SummaryPage', () => {
       fireEvent.click(
         await card.findByRole('button', { name: 'TUPRS 12.10.2026 temettüsünü yoksay' }),
       )
-      await vi.waitFor(() =>
+      await waitFor(() =>
         expect(
           requests.find((r) => r.url === '/api/portfolios/1/dividends/expected/dismiss'),
         ).toBeDefined(),
@@ -3459,7 +3457,7 @@ describe('SummaryPage', () => {
       const card = within(await screen.findByRole('region', { name: 'Dikkat' }))
       // Cash, 50% of the total, stays above its own default of 40%; as TRY cash it
       // is the TRY item.
-      await vi.waitFor(() =>
+      await waitFor(() =>
         expect(concentrated(card)).toEqual([expect.stringContaining('TL nakitte')]),
       )
     })
@@ -3569,7 +3567,7 @@ describe('SummaryPage', () => {
         ]
         expect(named(add.closest('li')!)).toEqual(['Ana', expect.stringMatching(/^AnaTUPRS/)])
         // The largest movers over every portfolio, two at most, each named.
-        await vi.waitFor(() => expect(card.getByText('Bugün')).toBeInTheDocument())
+        await waitFor(() => expect(card.getByText('Bugün')).toBeInTheDocument())
         const movers = within(card.getByText('Bugün').nextElementSibling as HTMLElement)
           .getAllByRole('listitem')
           .map(named)
@@ -3578,7 +3576,7 @@ describe('SummaryPage', () => {
           ['Ana', expect.stringMatching(/^AnaAKBNK/)],
         ])
         fireEvent.click(add)
-        await vi.waitFor(() =>
+        await waitFor(() =>
           expect(
             requests.find((r) => r.url === '/api/portfolios/1/transactions' && r.method === 'POST'),
           ).toBeDefined(),
@@ -3592,11 +3590,11 @@ describe('SummaryPage', () => {
         const client = new QueryClient()
         renderAll(client)
         // The override is in the cache the account page invalidates.
-        await vi.waitFor(() =>
+        await waitFor(() =>
           expect(client.getQueryData(attentionRulesQueryKey)).toEqual(attentionRules),
         )
         const card = within(await screen.findByRole('region', { name: 'Dikkat' }))
-        await vi.waitFor(() =>
+        await waitFor(() =>
           expect(concentrated(card)).toEqual([expect.stringContaining('TL nakitte')]),
         )
       })

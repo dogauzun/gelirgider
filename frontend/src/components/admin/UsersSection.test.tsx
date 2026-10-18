@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Toaster } from '../ui/Toast'
@@ -140,7 +140,7 @@ describe('UsersSection', () => {
     renderAtAdmin()
 
     const toggle = await screen.findByRole('checkbox')
-    await vi.waitFor(() => expect(toggle).toBeChecked())
+    await waitFor(() => expect(toggle).toBeChecked())
     const makeAdmin = await screen.findByRole('button', {
       name: 'bob@example.com kullanıcısını yönetici yap',
     })
@@ -148,8 +148,8 @@ describe('UsersSection', () => {
       control.focus()
       fireEvent.click(control)
       // Pending once the PUT is out; it is held until release().
-      await vi.waitFor(() => expect(puts).toHaveLength(i + 1))
-      await vi.waitFor(() => expect(control).toHaveAttribute('aria-disabled', 'true'))
+      await waitFor(() => expect(puts).toHaveLength(i + 1))
+      await waitFor(() => expect(control).toHaveAttribute('aria-disabled', 'true'))
       expect(control).toBeEnabled()
       expect(control).toHaveFocus()
       // A second click while the save runs sends nothing.
@@ -158,7 +158,7 @@ describe('UsersSection', () => {
     expect(puts).toEqual(['/api/admin/registration', '/api/admin/users/2/admin'])
 
     release()
-    await vi.waitFor(() => expect(makeAdmin).not.toHaveAttribute('aria-disabled'))
+    await waitFor(() => expect(makeAdmin).not.toHaveAttribute('aria-disabled'))
     expect(makeAdmin).toHaveFocus()
   })
 
@@ -191,7 +191,7 @@ describe('UsersSection', () => {
     const submit = within(dialog).getByRole('button', { name: 'Kullanıcı ekle' })
     submit.focus()
     fireEvent.click(submit)
-    await vi.waitFor(() => expect(submit).toHaveAttribute('aria-disabled', 'true'))
+    await waitFor(() => expect(submit).toHaveAttribute('aria-disabled', 'true'))
     expect(submit).toBeEnabled()
     expect(submit).toHaveFocus()
     // A second click (or Enter in a field) while the save runs sends nothing.
@@ -219,11 +219,11 @@ describe('UsersSection', () => {
     async function doubleClick(control: HTMLElement) {
       fireEvent.click(control)
       fireEvent.click(control)
-      await vi.waitFor(() => expect(control).toHaveAttribute('aria-disabled', 'true'))
+      await waitFor(() => expect(control).toHaveAttribute('aria-disabled', 'true'))
     }
 
     const toggle = await screen.findByRole('checkbox')
-    await vi.waitFor(() => expect(toggle).toBeChecked())
+    await waitFor(() => expect(toggle).toBeChecked())
     await doubleClick(toggle)
     await doubleClick(
       await screen.findByRole('button', { name: 'bob@example.com kullanıcısını yönetici yap' }),
@@ -379,7 +379,7 @@ describe('UsersSection', () => {
       const dialog = screen.getByRole('dialog', { name: `${email} silinsin mi?` })
       fireEvent.change(within(dialog).getByLabelText('E-posta'), { target: { value: email } })
       fireEvent.click(within(dialog).getByRole('button', { name: 'Kullanıcıyı ve verilerini sil' }))
-      await vi.waitFor(() => expect(screen.queryByText(email)).toBeNull())
+      await waitFor(() => expect(screen.queryByText(email)).toBeNull())
     }
 
     await remove(bob.email)

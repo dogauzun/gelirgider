@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider, QueryObserver } from '@tanstack/react-query'
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { historyQueryKey } from './history'
@@ -32,7 +32,7 @@ describe('useDeletePortfolio', () => {
         }),
     )
     const unsubscribes = observers.map((observer) => observer.subscribe(() => {}))
-    await vi.waitFor(() =>
+    await waitFor(() =>
       expect(observers.every((observer) => observer.getCurrentResult().isSuccess)).toBe(true),
     )
     fetchSpy.mockClear()

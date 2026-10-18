@@ -419,7 +419,7 @@ it('has one chart card that switches between the price chart with markers and th
   await screen.findByRole('heading', { level: 1, name: 'THYAO' })
 
   // The range comes from the URL.
-  await vi.waitFor(() =>
+  await waitFor(() =>
     expect(urls).toContain('/api/portfolios/1/instruments/7/history?to=2026-09-28&from=2025-09-28'),
   )
   expect(urls.filter((u) => u.includes('/history?'))).toHaveLength(1)
@@ -463,7 +463,7 @@ it('has one chart card that switches between the price chart with markers and th
   expect(urls.filter((u) => u.includes('/history?'))).toHaveLength(1)
 
   fireEvent.click(within(card).getByRole('radio', { name: '3A' }))
-  await vi.waitFor(() =>
+  await waitFor(() =>
     expect(urls).toContain('/api/portfolios/1/instruments/7/history?to=2026-09-28&from=2026-06-28'),
   )
 })
@@ -484,7 +484,7 @@ it('sets the range from a drag on the chart, and the clear button returns to the
     return el
   })
   await chartDrag(chart, 60, 580)
-  await vi.waitFor(() =>
+  await waitFor(() =>
     expect(urls).toContain('/api/portfolios/1/instruments/7/history?to=2026-09-27&from=2026-09-25'),
   )
   expect(within(card).getByRole('radio', { name: 'Özel' })).toHaveAttribute('aria-checked', 'true')

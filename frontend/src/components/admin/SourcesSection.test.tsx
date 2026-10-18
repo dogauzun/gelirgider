@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SourcesSection } from './SourcesSection'
 
@@ -46,7 +46,7 @@ describe('SourcesSection', () => {
 
     // The schedule checkboxes are named by their label, not "on".
     const catchup = await screen.findByRole('checkbox', { name: 'Açılışta eksikleri tamamla' })
-    await vi.waitFor(() => expect(catchup).toBeChecked())
+    await waitFor(() => expect(catchup).toBeChecked())
     expect(
       screen.getByRole('checkbox', { name: 'Açılışta geçmişi doldur' }),
     ).toHaveAccessibleDescription(
@@ -61,7 +61,7 @@ describe('SourcesSection', () => {
     expect(within(table).getByLabelText('tcmb açık')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Tümünü doldur' }))
-    await vi.waitFor(() =>
+    await waitFor(() =>
       expect(
         fetchMock.mock.calls.some(
           ([url, init]) => url === '/api/admin/backfill' && init?.method === 'POST' && !init.body,
@@ -93,18 +93,18 @@ describe('SourcesSection', () => {
     renderSection()
 
     const catchup = await screen.findByRole('checkbox', { name: 'Açılışta eksikleri tamamla' })
-    await vi.waitFor(() => expect(catchup).not.toHaveAttribute('aria-disabled', 'true'))
+    await waitFor(() => expect(catchup).not.toHaveAttribute('aria-disabled', 'true'))
     catchup.focus()
     fireEvent.click(catchup)
-    await vi.waitFor(() => expect(puts).toHaveLength(1))
-    await vi.waitFor(() => expect(catchup).toHaveAttribute('aria-disabled', 'true'))
+    await waitFor(() => expect(puts).toHaveLength(1))
+    await waitFor(() => expect(catchup).toHaveAttribute('aria-disabled', 'true'))
     expect(catchup).toHaveFocus()
     // A second click while the save runs sends nothing.
     fireEvent.click(catchup)
     expect(puts).toEqual(['/api/admin/schedule'])
 
     release()
-    await vi.waitFor(() => expect(catchup).not.toHaveAttribute('aria-disabled', 'true'))
+    await waitFor(() => expect(catchup).not.toHaveAttribute('aria-disabled', 'true'))
     expect(catchup).toHaveFocus()
   })
 
@@ -128,11 +128,11 @@ describe('SourcesSection', () => {
     renderSection()
 
     const catchup = await screen.findByRole('checkbox', { name: 'Açılışta eksikleri tamamla' })
-    await vi.waitFor(() => expect(catchup).not.toHaveAttribute('aria-disabled', 'true'))
+    await waitFor(() => expect(catchup).not.toHaveAttribute('aria-disabled', 'true'))
     for (const control of [screen.getByRole('button', { name: 'Tümünü doldur' }), catchup]) {
       fireEvent.click(control)
       fireEvent.click(control)
-      await vi.waitFor(() => expect(control).toHaveAttribute('aria-disabled', 'true'))
+      await waitFor(() => expect(control).toHaveAttribute('aria-disabled', 'true'))
     }
     expect(sent).toEqual(['POST /api/admin/backfill', 'PUT /api/admin/schedule'])
   })
