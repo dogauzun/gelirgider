@@ -1446,17 +1446,17 @@ func TestPortfolioSummaryDayChange(t *testing.T) {
 		}
 		return *s
 	}
-	for symbol, want := range map[string][4]string{
-		"DAY":  {"100", "2024-01-05", "50.00", "50.00"},
-		"ONCE": {"null", "null", "null", "null"},
-		"SPLT": {"50", "2024-01-05", "40.00", "40.00"},
-		"NEW":  {"50", "2024-01-05", "40.00", "40.00"},
-		"GAP":  {"49", "2024-01-04", "20.00", "20.00"},
-		"LATE": {"49", "2024-01-04", "0.00", "0.00"},
+	for symbol, want := range map[string][5]string{
+		"DAY":  {"100", "2024-01-05", "50.00", "50.00", "1000.00"},
+		"ONCE": {"null", "null", "null", "null", "null"},
+		"SPLT": {"50", "2024-01-05", "40.00", "40.00", "1000.00"},
+		"NEW":  {"50", "2024-01-05", "40.00", "40.00", "1000.00"},
+		"GAP":  {"49", "2024-01-04", "20.00", "20.00", "980.00"},
+		"LATE": {"49", "2024-01-04", "0.00", "0.00", "0.00"},
 	} {
 		p := bySymbol[symbol]
-		if fields := [4]string{str(p.PrevClose), str(p.PrevPriceDate), str(p.DayChange), str(p.DayChangeReporting)}; fields != want {
-			t.Errorf("%s {prev_close, prev_price_date, day_change, day_change_reporting} = %v, want %v", symbol, fields, want)
+		if fields := [5]string{str(p.PrevClose), str(p.PrevPriceDate), str(p.DayChange), str(p.DayChangeReporting), str(p.DayChangeBase)}; fields != want {
+			t.Errorf("%s {prev_close, prev_price_date, day_change, day_change_reporting, day_change_base} = %v, want %v", symbol, fields, want)
 		}
 	}
 	for _, symbol := range []string{"GAP", "LATE"} {
@@ -1488,6 +1488,8 @@ func TestPortfolioSummaryDayChange(t *testing.T) {
 //	      but the total takes 10 x (104 - 100) = 40
 //	OUTL: sell all 10 @ 110 Tue => closed, total takes 10 x (105 - 100) = 50
 //	OLD:  sell all 10 @ 95 on 01-03, before the price date => closed, adds 0
+//
+// Each row's day_change_base is the value at the previous close of what day_change counts: ONLY 1020, MIX 2020, SELL 1000 (the 4 sold were held), SPLT 1260, GAP 1475, POSB 1000 (the 5 bought later were not), POSS 1000.
 func TestPortfolioSummaryDayChangeSameDayTrades(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
@@ -1580,8 +1582,8 @@ func TestPortfolioSummaryDayChangeSameDayTrades(t *testing.T) {
 	}
 	for _, p := range got.Positions {
 		if p.Closed {
-			if p.DayChange != nil || p.DayChangeReporting != nil {
-				t.Errorf("%s closed: day_change = %s, reporting %s, want null", p.Symbol, str(p.DayChange), str(p.DayChangeReporting))
+			if p.DayChange != nil || p.DayChangeReporting != nil || p.DayChangeBase != nil {
+				t.Errorf("%s closed: day_change = %s, reporting %s, base %s, want null", p.Symbol, str(p.DayChange), str(p.DayChangeReporting), str(p.DayChangeBase))
 			}
 			continue
 		}
@@ -1589,9 +1591,110 @@ func TestPortfolioSummaryDayChangeSameDayTrades(t *testing.T) {
 		if p.DayChange == nil || *p.DayChange != want || p.DayChangeReporting == nil || *p.DayChangeReporting != want {
 			t.Errorf("%s day_change = %s, reporting %s, want %s", p.Symbol, str(p.DayChange), str(p.DayChangeReporting), want)
 		}
+		wantBase := map[string]string{"ONLY": "1020.00", "MIX": "2020.00", "SELL": "1000.00", "SPLT": "1260.00", "GAP": "1475.00", "POSB": "1000.00", "POSS": "1000.00"}[p.Symbol]
+		if p.DayChangeBase == nil || *p.DayChangeBase != wantBase {
+			t.Errorf("%s day_change_base = %s, want %s", p.Symbol, str(p.DayChangeBase), wantBase)
+		}
 	}
 	if got.DayChange == nil || *got.DayChange != "436.00" {
 		t.Errorf("total day_change = %s, want 436.00", str(got.DayChange))
+	}
+}
+
+// TestPortfolioSummaryDayChangeBaseAll checks that day_change_base on
+// /api/portfolios/all/summary counts the trades of every portfolio, and that
+// it stays in the position's currency. 2024-01-05 is a Friday, 2024-01-08 the
+// Monday after it; reporting TRY, USD 40, each close 100 Fri and 105 Mon.
+//
+//	XYZ:  A holds 10 @ 90, B holds 5 @ 90 and sells 5 @ 110 on Tue
+//	      => quantity 10, day_change 15 x (105 - 100) = 75 (the 5 sold still
+//	      moved Mon), day_change_base 15 x 100 = 1500
+//	AAPL: A holds 10 @ $90 and sells 4 @ $110 on Tue (USD)
+//	      => day_change $50 = 2000.00 TRY, day_change_base 10 x $100 = 1000.00
+//	      in dollars, not 40000.00
+func TestPortfolioSummaryDayChangeBaseAll(t *testing.T) {
+	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	handler := New(logger, conn, false, settings.NewRepo(conn, nil), nil)
+	ctx := context.Background()
+	usr, err := user.NewRepo(conn).Create(ctx, "baseall@example.com", "hash")
+	if err != nil {
+		t.Fatalf("users.Create: %v", err)
+	}
+	session, err := auth.NewRepo(conn).CreateSession(ctx, usr.ID)
+	if err != nil {
+		t.Fatalf("sessions.CreateSession: %v", err)
+	}
+	portfolios := portfolio.NewRepo(conn)
+	pfA, err := portfolios.Create(ctx, usr.ID, "A")
+	if err != nil {
+		t.Fatalf("portfolios.Create A: %v", err)
+	}
+	pfB, err := portfolios.Create(ctx, usr.ID, "B")
+	if err != nil {
+		t.Fatalf("portfolios.Create B: %v", err)
+	}
+	if err := fx.NewRepo(conn).Upsert(ctx, "USD", "2024-01-01", "40", "tcmb"); err != nil {
+		t.Fatalf("fx.Upsert: %v", err)
+	}
+	ids := map[string]int64{}
+	prices := price.NewRepo(conn)
+	for _, in := range []struct{ symbol, market, currency string }{{"XYZ", "BIST", "TRY"}, {"AAPL", "US", "USD"}} {
+		res, err := conn.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES (?, ?, ?, ?)`, in.symbol, in.market, in.symbol, in.currency)
+		if err != nil {
+			t.Fatalf("insert instrument: %v", err)
+		}
+		if ids[in.symbol], err = res.LastInsertId(); err != nil {
+			t.Fatalf("instrument id: %v", err)
+		}
+		for date, close := range map[string]string{"2024-01-05": "100", "2024-01-08": "105"} {
+			if err := prices.Upsert(ctx, ids[in.symbol], date, close, "test"); err != nil {
+				t.Fatalf("prices.Upsert: %v", err)
+			}
+		}
+	}
+	d := decimal.RequireFromString
+	xyz, aapl := ids["XYZ"], ids["AAPL"]
+	for _, tx := range []transaction.Transaction{
+		{PortfolioID: pfA.ID, Type: transaction.TypeBuy, InstrumentID: &xyz, Date: "2024-01-02", Quantity: d("10"), Price: d("90"), Amount: d("900"), Currency: "TRY"},
+		{PortfolioID: pfB.ID, Type: transaction.TypeBuy, InstrumentID: &xyz, Date: "2024-01-02", Quantity: d("5"), Price: d("90"), Amount: d("450"), Currency: "TRY"},
+		{PortfolioID: pfB.ID, Type: transaction.TypeSell, InstrumentID: &xyz, Date: "2024-01-09", Quantity: d("5"), Price: d("110"), Amount: d("550"), Currency: "TRY"},
+		{PortfolioID: pfA.ID, Type: transaction.TypeBuy, InstrumentID: &aapl, Date: "2024-01-02", Quantity: d("10"), Price: d("90"), Amount: d("900"), Currency: "USD"},
+		{PortfolioID: pfA.ID, Type: transaction.TypeSell, InstrumentID: &aapl, Date: "2024-01-09", Quantity: d("4"), Price: d("110"), Amount: d("440"), Currency: "USD"},
+	} {
+		tx.Fee = decimal.Zero
+		if _, err := transaction.NewRepo(conn).Create(ctx, usr.ID, tx); err != nil {
+			t.Fatalf("transactions.Create: %v", err)
+		}
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/api/portfolios/all/summary", nil)
+	r.AddCookie(&http.Cookie{Name: "session", Value: session.ID})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, r)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	var got summaryResponse
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	str := func(s *string) string {
+		if s == nil {
+			return "null"
+		}
+		return *s
+	}
+	want := map[string][3]string{"XYZ": {"75.00", "75.00", "1500.00"}, "AAPL": {"50.00", "2000.00", "1000.00"}}
+	for _, p := range got.Positions {
+		if fields := [3]string{str(p.DayChange), str(p.DayChangeReporting), str(p.DayChangeBase)}; fields != want[p.Symbol] {
+			t.Errorf("%s {day_change, day_change_reporting, day_change_base} = %v, want %v", p.Symbol, fields, want[p.Symbol])
+		}
 	}
 }
 

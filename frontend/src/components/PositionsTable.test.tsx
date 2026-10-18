@@ -61,6 +61,7 @@ function position(id: number, symbol: string, fields: Partial<Position> = {}): P
     prev_price_date: null,
     day_change: null,
     day_change_reporting: null,
+    day_change_base: null,
     market_value: '600.00',
     unrealized_pl: '100.00',
     realized_pl: '0.00',
@@ -156,6 +157,7 @@ describe('PositionsTable', () => {
           market_value_reporting: '600.00',
           day_change: '20.00',
           day_change_reporting: '6.00',
+          day_change_base: '1980.00',
           prev_close: '198.00',
           prev_price_date: '2026-09-10',
           price_date: '2099-01-01',
@@ -236,20 +238,21 @@ describe('PositionsTable', () => {
   })
 
   it('sorts Günlük by the percent it shows, not by the amount', () => {
-    const moved = (id: number, symbol: string, value: string, change: string) =>
+    const moved = (id: number, symbol: string, value: string, change: string, base: string) =>
       position(id, symbol, {
         market_value: value,
         market_value_reporting: value,
         day_change: change,
         day_change_reporting: change,
+        day_change_base: base,
         prev_close: '1.00',
         prev_price_date: '2026-09-10',
       })
     renderTable(
       summary([
         // +5.000 on 1.000.000: +%0,5. +740,74 on 10.000: +%8.
-        moved(1, 'BIG', '1005000.00', '5000.00'),
-        moved(2, 'SMALL', '10000.00', '740.74'),
+        moved(1, 'BIG', '1005000.00', '5000.00', '1000000.00'),
+        moved(2, 'SMALL', '10000.00', '740.74', '9259.26'),
       ]),
     )
     fireEvent.click(within(header('Günlük')).getByRole('button'))

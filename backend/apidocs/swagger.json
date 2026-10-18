@@ -6713,6 +6713,10 @@
                     "description": "The move of the position as held at the end of price_date, in the\nposition's currency: shares bought or sold on price_date move from their\nown trade price, and trades dated after it are ignored.",
                     "type": "string"
                 },
+                "day_change_base": {
+                    "description": "What day_change is a percentage of, in the position's currency: the\nvalue of the shares it counts, at prev_close for those held before\nprice_date (also those sold on or after it) and at their own price for\nthose bought on price_date. Shares bought after price_date are left\nout. Null whenever day_change is null; \"0.00\" when no counted share was\nheld or bought by price_date, so there is no percentage.",
+                    "type": "string"
+                },
                 "day_change_reporting": {
                     "description": "day_change in the reporting currency; also null without a rate.",
                     "type": "string"
@@ -6744,7 +6748,7 @@
                     "type": "string"
                 },
                 "prev_close": {
-                    "description": "The latest close dated before price_date (manual winning on a date,\nlike last_price), scaled by any split after its date up to today. It,\nprev_price_date, day_change and day_change_reporting are null when\neither price is missing or the position is closed (a closed\nposition's move still counts in the summary's day_change).",
+                    "description": "The latest close dated before price_date (manual winning on a date,\nlike last_price), scaled by any split after its date up to today. It,\nprev_price_date, day_change, day_change_reporting and day_change_base\nare null when either price is missing or the position is closed (a\nclosed position's move still counts in the summary's day_change).",
                     "type": "string"
                 },
                 "prev_price_date": {

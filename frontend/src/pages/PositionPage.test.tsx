@@ -62,6 +62,7 @@ const THYAO = {
   prev_price_date: '2026-09-25',
   day_change: '50.00',
   day_change_reporting: '50.00',
+  day_change_base: '1200.00',
   market_value: '1250.00',
   unrealized_pl: '245.00',
   realized_pl: '80.00',

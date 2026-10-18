@@ -22,6 +22,7 @@ function position(fields: Partial<Position>): Position {
     prev_price_date: null,
     day_change: null,
     day_change_reporting: null,
+    day_change_base: null,
     market_value: '1250.00',
     unrealized_pl: '250.00',
     realized_pl: '0.00',

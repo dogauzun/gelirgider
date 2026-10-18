@@ -491,6 +491,7 @@ describe('SummaryPage', () => {
       prev_price_date: change === null ? null : '2026-09-10',
       day_change: change,
       day_change_reporting: reporting,
+      day_change_base: change === null ? null : '10000.00',
       market_value: '10120.00',
       unrealized_pl: '120.00',
       realized_pl: '0.00',
