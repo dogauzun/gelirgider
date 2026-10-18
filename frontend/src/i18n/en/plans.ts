@@ -35,6 +35,12 @@ export const enPlans: AreaStrings<typeof trPlans> = {
   'plans.booked': 'Plan booked',
   'plans.skipped': 'Occurrence skipped',
   'plans.actionFailed': 'The action failed. {error}',
+  // The Dikkat card's group of due plans.
+  'attention.group.plans': 'Plan bookings',
+  'attention.plan.noPrice': 'no price',
+  'attention.plan.missed': '{count} occurrences waiting',
+  'attention.plan.bookLabel': 'Book: {symbol}, {amount}, {date}',
+  'attention.plan.skipLabel': 'Skip the occurrence: {symbol}, {amount}, {date}',
   // The add and edit dialog.
   'plans.dialog.addTitle': 'Add plan',
   'plans.dialog.editTitle': 'Edit plan',

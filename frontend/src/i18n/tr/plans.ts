@@ -32,6 +32,12 @@ export const trPlans = {
   'plans.booked': 'Plan kaydedildi',
   'plans.skipped': 'Dönem atlandı',
   'plans.actionFailed': 'İşlem yapılamadı. {error}',
+  // The Dikkat card's group of due plans.
+  'attention.group.plans': 'Planlı alımlar',
+  'attention.plan.noPrice': 'fiyat yok',
+  'attention.plan.missed': '{count} dönem bekliyor',
+  'attention.plan.bookLabel': 'Kaydet: {symbol}, {amount}, {date}',
+  'attention.plan.skipLabel': 'Dönemi atla: {symbol}, {amount}, {date}',
   // The add and edit dialog.
   'plans.dialog.addTitle': 'Plan ekle',
   'plans.dialog.editTitle': 'Planı düzenle',
