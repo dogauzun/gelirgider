@@ -184,6 +184,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </ul>
 
       <div className="flex flex-col gap-0.5 pt-2">
+        <NavLink to="/watchlist" onClick={onNavigate} className={rowClass}>
+          <Icon name="eye" className="shrink-0 text-muted" />
+          {t('nav.watchlist')}
+        </NavLink>
         {me?.is_admin && (
           <NavLink to="/admin" onClick={onNavigate} className={rowClass}>
             <Icon name="shield" className="shrink-0 text-muted" />

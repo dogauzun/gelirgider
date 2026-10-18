@@ -8,6 +8,7 @@ export const trCommon = {
   'app.name': 'gelirgider',
   'nav.portfolios': 'Portföyler',
   'nav.admin': 'Yönetim',
+  'nav.watchlist': 'İzleme listesi',
   'nav.label': 'Ana menü',
   'nav.version': 'Sürüm {version}',
   'nav.skip': 'İçeriğe geç',

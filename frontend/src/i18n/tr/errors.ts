@@ -102,4 +102,8 @@ export const trErrors = {
     '{date} tarihinde ya da öncesinde kapanış fiyatı yok; işlemi elle kaydet ve bu dönemi atla.',
   'error.planNoUnit': '{price} fiyatıyla tutar bir birim bile almıyor.',
   'error.field.day_of_month': 'Gün 1 ile 31 arasında olmalı.',
+  'error.watchDuplicate': 'Bu enstrüman zaten izleme listende.',
+  'error.watchNotFound': 'İzleme listesi öğesi bulunamadı.',
+  'error.watchNoClose': 'Karşılaştırılacak kapanış fiyatı yok; önce bir fiyat gelmeli.',
+  'error.field.target_price': 'Hedef fiyat pozitif bir sayı olmalı.',
 } as const

@@ -106,4 +106,8 @@ export const enErrors: AreaStrings<typeof trErrors> = {
     'No close on or before {date}; book the transaction by hand and skip this occurrence.',
   'error.planNoUnit': 'The amount buys no unit at {price}.',
   'error.field.day_of_month': 'Day must be between 1 and 31.',
+  'error.watchDuplicate': 'This instrument is already on your watchlist.',
+  'error.watchNotFound': 'Watchlist item not found.',
+  'error.watchNoClose': 'No close to compare with yet; a price has to arrive first.',
+  'error.field.target_price': 'Target price must be a positive number.',
 }
