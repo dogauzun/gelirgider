@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"path/filepath"
 	"testing"
 	"time"
@@ -338,5 +339,218 @@ func TestSweepAttributionDepositIsIncome(t *testing.T) {
 				t.Errorf("price %s income %s fx %s, want 0 %s %s", priceSum, income, fxSum, tc.wantIncome, tc.wantFX)
 			}
 		})
+	}
+}
+
+// attributionFixture seeds two portfolios in TRY for the range tests: P1 holds
+// SB, which has no price on day 1 and gets its first one on day 4 (with a
+// second buy of it before that), a fee row, a mid-range deposit and a
+// dividend; P2 sells out of SC.
+type attributionFixture struct {
+	e                     *periodsEnv
+	userID                int64
+	session               string
+	p1, p2                int64
+	sa, sb, sc            int64
+	from, to              time.Time
+	fromStr, toStr, query string
+}
+
+func newAttributionFixture(t *testing.T) *attributionFixture {
+	t.Helper()
+	ctx := context.Background()
+	f := &attributionFixture{e: newPeriodsEnv(t), fromStr: "2026-03-01", toStr: "2026-03-08"}
+	f.userID, f.session = f.e.user(t, "range@example.com")
+	f.p1, f.p2 = f.e.portfolio(t, f.userID), f.e.portfolio(t, f.userID)
+	f.sa, f.sb, f.sc = f.e.instrument(t, "SA"), f.e.instrument(t, "SB"), f.e.instrument(t, "SC")
+	f.from, _ = time.Parse(time.DateOnly, f.fromStr)
+	f.to, _ = time.Parse(time.DateOnly, f.toStr)
+	f.query = "?from=" + f.fromStr + "&to=" + f.toStr
+
+	prices := price.NewRepo(f.e.conn)
+	for _, p := range []struct {
+		id          int64
+		date, close string
+	}{
+		{f.sa, "2026-03-01", "100"}, {f.sa, "2026-03-05", "110"}, {f.sa, "2026-03-07", "105"},
+		{f.sb, "2026-03-04", "60"}, {f.sb, "2026-03-06", "65"},
+		{f.sc, "2026-03-01", "100"}, {f.sc, "2026-03-04", "120"},
+	} {
+		if err := prices.Upsert(ctx, p.id, p.date, p.close, "test"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	trade := func(pf int64, date, typ string, id int64, qty, px string) transaction.Transaction {
+		return transaction.Transaction{PortfolioID: pf, InstrumentID: &id, Type: typ, Date: date, Quantity: dec(qty), Price: dec(px), Amount: dec(qty).Mul(dec(px)), Fee: decimal.Zero, Currency: "TRY"}
+	}
+	cash := func(pf int64, date, typ, amount, fee string) transaction.Transaction {
+		return transaction.Transaction{PortfolioID: pf, Type: typ, Date: date, Amount: dec(amount), Fee: dec(fee), Currency: "TRY"}
+	}
+	dividend := trade(f.p1, "2026-03-05", transaction.TypeDividend, f.sa, "0", "0")
+	dividend.Amount, dividend.Fee = dec("20"), dec("2")
+	txs := []transaction.Transaction{
+		cash(f.p1, "2026-03-01", transaction.TypeDeposit, "10000", "0"),
+		trade(f.p1, "2026-03-01", transaction.TypeBuy, f.sa, "10", "100"),
+		trade(f.p1, "2026-03-01", transaction.TypeBuy, f.sb, "20", "50"),
+		trade(f.p1, "2026-03-02", transaction.TypeBuy, f.sb, "10", "55"),
+		cash(f.p1, "2026-03-03", transaction.TypeDeposit, "500", "0"),
+		cash(f.p1, "2026-03-03", transaction.TypeFee, "7", "1"),
+		dividend,
+		cash(f.p2, "2026-03-01", transaction.TypeDeposit, "5000", "0"),
+		trade(f.p2, "2026-03-01", transaction.TypeBuy, f.sc, "5", "100"),
+		trade(f.p2, "2026-03-02", transaction.TypeBuy, f.sa, "5", "100"),
+		trade(f.p2, "2026-03-05", transaction.TypeSell, f.sc, "5", "120"),
+	}
+	if _, err := transaction.NewRepo(f.e.conn).CreateAll(ctx, f.userID, txs); err != nil {
+		t.Fatal(err)
+	}
+	return f
+}
+
+func (f *attributionFixture) get(t *testing.T, scope string) attributionResponse {
+	t.Helper()
+	var got attributionResponse
+	f.e.get(t, f.session, "/api/portfolios/"+scope+"/attribution"+f.query, http.StatusOK, &got)
+	return got
+}
+
+// TestRangeAttributionMatchesRangeInputs checks, on exact decimals, that the
+// split over any range of days adds up to the change in total_value less the
+// external flows rangeInputs counts, the first-price jump of SB included when
+// the range opens before it; and that the rounded route buckets are within
+// 0.02 of the same.
+func TestRangeAttributionMatchesRangeInputs(t *testing.T) {
+	f := newAttributionFixture(t)
+	ctx := context.Background()
+	conn := f.e.conn
+	d := &deps{
+		users: user.NewRepo(conn), portfolios: portfolio.NewRepo(conn), instruments: instrument.NewRepo(conn),
+		prices: price.NewRepo(conn), manualPrices: price.NewManualRepo(conn), transactions: transaction.NewRepo(conn),
+		fx: fx.NewRepo(conn), splits: split.NewRepo(conn), benchmarks: benchmark.NewRepo(conn), deposits: deposit.NewRepo(conn),
+	}
+	lists, err := scopeTransactions(ctx, d.portfolios, d.transactions, f.userID, fmt.Sprint(f.p1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := (&historyHandler{d}).sweep(ctx, f.userID, flatByDate(lists), f.from, f.to, sweepOpts{attribution: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, jumped := s.firstPrice[f.sb]; !jumped {
+		t.Fatal("fixture: SB gets no first price")
+	}
+	last := len(s.totals) - 1
+	// wantChange is the change in total_value over days i..j less the
+	// external flows of rangeInputs.
+	wantChange := func(i, j int) decimal.Decimal {
+		_, _, external, _ := s.rangeInputs(i, j)
+		want := s.totals[j].Sub(s.totals[i])
+		for _, e := range external {
+			want = want.Sub(e)
+		}
+		return want
+	}
+	for _, r := range [][2]int{{0, last}, {2, last}, {0, 2}, {3, last}} {
+		i, j := r[0], r[1]
+		got := s.rangeAttribution(i, j)
+		sum := got.interest.Add(got.cashFX).Add(got.costs)
+		for _, v := range got.instruments {
+			sum = sum.Add(v.price).Add(v.income).Add(v.fx)
+		}
+		if want := wantChange(i, j); !sum.Equal(want) {
+			t.Errorf("days %d..%d: price+income+fx+cash_fx+costs = %s, want %s", i, j, sum, want)
+		}
+	}
+
+	resp := f.get(t, fmt.Sprint(f.p1))
+	rounded := dec(*resp.Total.Price).Add(dec(*resp.Total.Income)).Add(dec(*resp.Total.FX)).Add(dec(*resp.Total.CashFX))
+	if want := wantChange(0, last); rounded.Sub(want).Abs().GreaterThan(dec("0.02")) {
+		t.Errorf("rounded buckets %+v sum to %s, want %s within 0.02", resp.Total, rounded, want)
+	}
+	if resp.From != f.fromStr || resp.To != f.toStr || resp.Currency != "TRY" || len(resp.MissingRates) != 0 {
+		t.Errorf("header = %s %s..%s missing %v", resp.Currency, resp.From, resp.To, resp.MissingRates)
+	}
+	for _, p := range resp.Positions {
+		if p.InstrumentID == f.sb && (p.Price == nil || dec(*p.Price).IsZero()) {
+			t.Errorf("SB price = %v, want its gain after the first price", p.Price)
+		}
+	}
+}
+
+// TestAttributionAllIsSumOfPortfolios checks that the `all` scope's totals
+// and positions are the sum of the two portfolios' for the same range, and
+// that closed marks the position P2 sold out of.
+func TestAttributionAllIsSumOfPortfolios(t *testing.T) {
+	f := newAttributionFixture(t)
+	all, one, two := f.get(t, "all"), f.get(t, fmt.Sprint(f.p1)), f.get(t, fmt.Sprint(f.p2))
+	add := func(a, b *string) string { return dec(*a).Add(dec(*b)).StringFixed(2) }
+	for name, c := range map[string][3]*string{
+		"price":   {all.Total.Price, one.Total.Price, two.Total.Price},
+		"income":  {all.Total.Income, one.Total.Income, two.Total.Income},
+		"fx":      {all.Total.FX, one.Total.FX, two.Total.FX},
+		"cash_fx": {all.Total.CashFX, one.Total.CashFX, two.Total.CashFX},
+	} {
+		if *c[0] != add(c[1], c[2]) {
+			t.Errorf("total %s = %s, want %s + %s", name, *c[0], *c[1], *c[2])
+		}
+	}
+	if len(all.Positions) != 3 {
+		t.Fatalf("positions = %+v, want SA, SB and SC", all.Positions)
+	}
+	byID := func(r attributionResponse) map[int64]attributionPosition {
+		m := map[int64]attributionPosition{}
+		for _, p := range r.Positions {
+			m[p.InstrumentID] = p
+		}
+		return m
+	}
+	a, o, w := byID(all), byID(one), byID(two)
+	zero := "0.00"
+	for _, id := range []int64{f.sa, f.sb, f.sc} {
+		po, pw := o[id], w[id]
+		for _, p := range []*attributionPosition{&po, &pw} {
+			if p.Total == nil { // not in that portfolio
+				p.Price, p.Income, p.FX, p.Total = &zero, &zero, &zero, &zero
+			}
+		}
+		if *a[id].Total != add(po.Total, pw.Total) || *a[id].Price != add(po.Price, pw.Price) || *a[id].Income != add(po.Income, pw.Income) {
+			t.Errorf("instrument %d: all %+v, P1 %+v, P2 %+v", id, a[id], o[id], w[id])
+		}
+	}
+	if !a[f.sc].Closed || a[f.sa].Closed || a[f.sb].Closed {
+		t.Errorf("closed: SA %v SB %v SC %v, want false false true", a[f.sa].Closed, a[f.sb].Closed, a[f.sc].Closed)
+	}
+}
+
+// TestAttributionMissingRate checks that a bucket a day could not convert is
+// null for the range, and the currency is listed.
+func TestAttributionMissingRate(t *testing.T) {
+	e := newPeriodsEnv(t)
+	userID, session := e.user(t, "missing@example.com")
+	pf := e.portfolio(t, userID)
+	res, err := e.conn.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES ('USDSTK', 'US', 'USDSTK', 'USD')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, _ := res.LastInsertId()
+	for _, date := range []string{"2026-03-01", "2026-03-03"} {
+		if err := price.NewRepo(e.conn).Upsert(context.Background(), id, date, "10", "test"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	txs := []transaction.Transaction{
+		{PortfolioID: pf, Type: transaction.TypeDeposit, Date: "2026-03-01", Amount: dec("1000"), Currency: "USD"},
+		{PortfolioID: pf, InstrumentID: &id, Type: transaction.TypeBuy, Date: "2026-03-01", Quantity: dec("10"), Price: dec("10"), Amount: dec("100"), Currency: "USD"},
+	}
+	if _, err := transaction.NewRepo(e.conn).CreateAll(context.Background(), userID, txs); err != nil {
+		t.Fatal(err)
+	}
+	var got attributionResponse
+	e.get(t, session, fmt.Sprintf("/api/portfolios/%d/attribution?from=2026-03-01&to=2026-03-04", pf), http.StatusOK, &got)
+	if got.Total != (attributionBuckets{}) || len(got.Positions) != 1 || got.Positions[0].Total != nil || got.Positions[0].Price != nil {
+		t.Errorf("total %+v positions %+v, want every bucket null", got.Total, got.Positions)
+	}
+	if fmt.Sprint(got.MissingRates) != "[USD]" {
+		t.Errorf("missing_rates = %v, want [USD]", got.MissingRates)
 	}
 }

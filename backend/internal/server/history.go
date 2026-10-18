@@ -32,6 +32,7 @@ func registerHistoryRoutes(mux *http.ServeMux, d *deps) {
 	h := &historyHandler{d}
 	mux.HandleFunc("GET /api/portfolios/{id}/history", h.get)
 	mux.HandleFunc("GET /api/portfolios/{id}/returns/periods", h.periods)
+	mux.HandleFunc("GET /api/portfolios/{id}/attribution", h.attribution)
 }
 
 type historyHandler struct{ *deps }
@@ -390,9 +391,13 @@ type historySweep struct {
 	// A sub-cent residual shown as 0.00 doesn't count.
 	negativeCash []bool
 	// attribution is, per day, how its return splits into price, income and
-	// currency (attributeDay); day 0 has no previous day, so its entry is
-	// empty. nil unless sweepOpts.attribution is set.
-	attribution   []dayReturn
+	// currency (attributeDay); day 0 has no previous day, so its entry has
+	// only held. nil unless sweepOpts.attribution is set.
+	attribution []dayReturn
+	// symbolOf and deposit are sweepInputs', for the attribution response and
+	// for placing a deposit's first-price jump in income.
+	symbolOf      map[int64]string
+	deposit       map[int64]bool
 	missingRates  []string
 	missingPrices []string
 	// benchmarkPrices is P_i, the benchmark level in the reporting currency
@@ -622,6 +627,8 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 		flows:        make([]decimal.Decimal, 0, days),
 		unpriced:     make([][]int64, 0, days),
 		firstPrice:   map[int64]priceJump{},
+		symbolOf:     in.symbolOf,
+		deposit:      in.deposit,
 		unpricedBuys: map[int64][]unpricedBuy{},
 		negativeCash: make([]bool, 0, days),
 	}
@@ -749,6 +756,9 @@ func (s *historySweep) attribute(w *sweepWalk, dayIdx int, act dayActivity, summ
 				day.instruments[id] = r
 			}
 		}
+	}
+	for _, p := range summary.Positions {
+		day.held = append(day.held, p.InstrumentID)
 	}
 	s.attribution = append(s.attribution, day)
 	w.prevValue, w.prevCash, w.prevRates = value, summary.Cash, maps.Clone(rates)
