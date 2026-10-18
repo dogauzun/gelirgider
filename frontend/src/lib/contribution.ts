@@ -26,26 +26,28 @@ export type ContributionInput = Pick<
   'instrumentId' | 'symbol' | 'amount' | 'other'
 >
 
-// A cent, in the API's 1e-9 units: the summary's day_change is rounded once,
-// the rows one by one, so they may differ by that much.
-const CENT = 10_000_000n
+// Half a cent, in the API's 1e-9 units: the summary's day_change is rounded
+// once and each row on its own, so each of them may be off by that much.
+const HALF_CENT = 5_000_000n
 
 // dayRemainder is the day change the open rows do not hold: the price-date move
 // of positions sold out on or after it. Null when the rows add up to the total
-// within a cent, or when there is no total. Sums every open row, shown or not.
+// within the rounding of the rows and the total (half a cent each), or when
+// there is no total. Sums every open row, shown or not.
 export function dayRemainder(
   dayChange: string | null,
   inputs: ContributionInput[],
   symbol: string,
 ): ContributionInput | null {
   if (dayChange === null) return null
-  const sum = inputs.reduce(
-    (acc, row) => (row.amount === null ? acc : addDecimal(acc, row.amount)),
-    '0',
-  )
+  const amounts = inputs.flatMap((row) => (row.amount === null ? [] : [row.amount]))
+  const sum = amounts.reduce(addDecimal, '0')
   const amount = subDecimal(dayChange, sum)
   const units = decimalUnits(amount)
-  return units > CENT || units < -CENT ? { instrumentId: 0, symbol, amount, other: true } : null
+  const tolerance = BigInt(amounts.length + 1) * HALF_CENT
+  return units > tolerance || units < -tolerance
+    ? { instrumentId: 0, symbol, amount, other: true }
+    : null
 }
 
 // contributionRows orders the inputs by amount, best first, ties by symbol.

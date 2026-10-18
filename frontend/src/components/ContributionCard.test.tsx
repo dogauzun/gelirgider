@@ -118,6 +118,14 @@ describe('ContributionCard', () => {
     expect(items(card)).toEqual(['THYAO+₺3,00'])
   })
 
+  it('adds no remainder row when only the rounding of several small rows separates them from the day change', () => {
+    // Four rows of 0.004 print as 0.00 each, while the total rounds once to 0.02.
+    const positions = [1, 2, 3, 4].map((i) => position(i, `S${i}`, '0', '0.00'))
+    const card = renderCard(positions, 7, '0.02')
+    fireEvent.click(within(card).getByRole('radio', { name: 'Bugün' }))
+    expect(items(card)).toEqual(['S1₺0,00', 'S2₺0,00', 'S3₺0,00', 'S4₺0,00'])
+  })
+
   it('shows the best four and the worst four and expands to all', () => {
     const positions = Array.from({ length: 10 }, (_, i) =>
       position(i + 1, `S${i}`, `${(i - 4) * 10}.00`, null),
