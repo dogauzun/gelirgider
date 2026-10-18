@@ -158,10 +158,10 @@ the performance page offers on `all` as well. The projection is a normal read
 `all` route.
 
 Per portfolio: transactions (listing, adding, editing, deleting), statement
-imports, expected dividends and their dismissal, term deposits and saving plans
-(creating, editing, deleting, and the due lists the "Dikkat" card reads). Manual prices are stored per
-user and instrument, so `all` values an instrument at the same price as every
-portfolio.
+imports, expected dividends and their dismissal, term deposits (creating,
+deleting, renewing) and saving plans (creating, editing, deleting), and the due
+lists the "Dikkat" card reads. Manual prices are stored per user and instrument,
+so `all` values an instrument at the same price as every portfolio.
 
 ## Recorded simplifications
 
