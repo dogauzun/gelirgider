@@ -119,7 +119,7 @@ export function PlanDialog({
     PlanInput | PlanUpdate
   >({
     mutation,
-    validate: () => validate(form, instrument.id, form.start, today),
+    validate: () => validate(form, plan?.instrument_id ?? instrument.id, form.start, today),
     toInput: () => {
       const amount = parseDecimalInput(form.amount) ?? ''
       const day_of_month = Number(form.day)

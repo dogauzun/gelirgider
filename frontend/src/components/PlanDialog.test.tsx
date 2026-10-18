@@ -105,3 +105,46 @@ it('shows the day error under the field for a missing day and posts nothing', as
   expect(await screen.findByText(t('error.field.day_of_month'))).toBeInTheDocument()
   expect(bodies).toEqual([])
 })
+
+// The instrument is not editable, so an edit has none in the form state; the
+// check must use the plan's.
+it('saves an edit of a buy plan with a PUT', async () => {
+  const bodies: unknown[] = []
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    if (String(input) === '/api/plans/3' && init?.method === 'PUT') {
+      bodies.push(JSON.parse(init.body as string))
+      return Response.json({ id: 3 })
+    }
+    throw new Error(`unexpected request: ${String(input)}`)
+  })
+  const plan = {
+    id: 3,
+    portfolio_id: 1,
+    instrument_id: 7,
+    symbol: 'XYZ',
+    market: 'BIST',
+    currency: 'TRY',
+    amount: '1000',
+    day_of_month: 5,
+    start_date: '2026-11-01',
+    end_date: null,
+    next_date: '2026-11-05',
+    fund: false,
+    note: 'Düzenli alım',
+    status: 'active' as const,
+  }
+  const onClose = vi.fn()
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <PlanDialog portfolioId={1} plan={plan} onClose={onClose} />
+    </QueryClientProvider>,
+  )
+
+  fireEvent.change(screen.getByLabelText(t('plans.dialog.dayField')), { target: { value: '10' } })
+  fireEvent.click(screen.getByRole('button', { name: t('plans.dialog.save') }))
+
+  await waitFor(() => expect(onClose).toHaveBeenCalled())
+  expect(bodies).toEqual([
+    { amount: '1000', day_of_month: 10, end_date: '', fund: false, note: 'Düzenli alım' },
+  ])
+})
