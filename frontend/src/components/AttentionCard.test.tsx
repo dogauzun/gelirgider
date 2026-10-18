@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ExpectedDividend } from '../api/dividends'
+import type { DuePlan } from '../api/plans'
 import type { AttentionItem } from '../lib/attention'
 import { setPrivacy } from '../lib/privacy'
 import { AttentionCard } from './AttentionCard'
@@ -41,6 +42,8 @@ function renderCard(list: AttentionItem[]) {
     onAddDividend: vi.fn(),
     onDismissDividend: vi.fn(),
     onCloseDeposit: vi.fn(),
+    onBookPlan: vi.fn(),
+    onSkipPlan: vi.fn(),
     onEditPrice: vi.fn(),
   }
   render(
@@ -93,6 +96,70 @@ describe('AttentionCard', () => {
     expect(handlers.onCloseDeposit).toHaveBeenCalledWith(deposit)
   })
 
+  describe('due plans', () => {
+    const plan: DuePlan = {
+      plan_id: 7,
+      instrument_id: 3,
+      symbol: 'GARAN',
+      market: 'BIST',
+      currency: 'TRY',
+      amount: '1000.00',
+      date: '2026-10-12',
+      missed: 1,
+      price: '123.45',
+      price_date: '2026-10-12',
+      quantity: '8',
+      booked_amount: '987.60',
+    }
+
+    it('lists a due buy with its units and close, and Kaydet and Atla call back', () => {
+      const handlers = renderCard([{ kind: 'due-plan', plan }])
+      expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+        'Planlı alımlar',
+      ])
+      expect(screen.getByText(/8 adet × ₺123,45/)).toBeTruthy()
+      fireEvent.click(screen.getByRole('button', { name: /^Kaydet: GARAN/ }))
+      expect(handlers.onBookPlan).toHaveBeenCalledTimes(1)
+      expect(handlers.onBookPlan).toHaveBeenCalledWith(plan)
+      fireEvent.click(screen.getByRole('button', { name: /^Dönemi atla: GARAN/ }))
+      expect(handlers.onSkipPlan).toHaveBeenCalledWith(plan)
+    })
+
+    it('shows fiyat yok and disables Kaydet for a buy with no close', () => {
+      const noClose = {
+        ...plan,
+        price: null,
+        price_date: null,
+        quantity: null,
+        booked_amount: null,
+        missed: 3,
+      }
+      renderCard([{ kind: 'due-plan', plan: noClose }])
+      expect(screen.getByText(/fiyat yok/)).toBeTruthy()
+      expect(screen.getByText(/3 dönem bekliyor/)).toBeTruthy()
+      expect(screen.getByRole('button', { name: /^Kaydet: GARAN/ })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /^Dönemi atla: GARAN/ })).toBeEnabled()
+    })
+
+    it('keeps Kaydet enabled for a cash deposit plan, which needs no close', () => {
+      renderCard([
+        {
+          kind: 'due-plan',
+          plan: {
+            ...plan,
+            instrument_id: null,
+            symbol: null,
+            market: null,
+            quantity: null,
+            price: null,
+          },
+        },
+      ])
+      expect(screen.getByText('Para girişi')).toBeTruthy()
+      expect(screen.getByRole('button', { name: /^Kaydet: Para girişi/ })).toBeEnabled()
+    })
+  })
+
   it('renders the groups in order with their headings', () => {
     renderCard(items)
     expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
@@ -121,6 +188,8 @@ describe('AttentionCard', () => {
           onAddDividend={vi.fn()}
           onDismissDividend={vi.fn()}
           onCloseDeposit={vi.fn()}
+          onBookPlan={vi.fn()}
+          onSkipPlan={vi.fn()}
           onEditPrice={vi.fn()}
         />
       </MemoryRouter>,
@@ -201,6 +270,8 @@ describe('AttentionCard', () => {
         onAddDividend: vi.fn(),
         onDismissDividend: vi.fn(),
         onCloseDeposit: vi.fn(),
+        onBookPlan: vi.fn(),
+        onSkipPlan: vi.fn(),
         onEditPrice: vi.fn(),
       }
       const card = (list: AttentionItem[], busy: boolean) => (

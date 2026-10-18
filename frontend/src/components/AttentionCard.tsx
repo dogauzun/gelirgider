@@ -2,11 +2,20 @@ import { Fragment, useEffect, useRef, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { DueDeposit } from '../api/deposits'
 import type { ExpectedDividend } from '../api/dividends'
+import type { DuePlan } from '../api/plans'
 import { t, type StringKey } from '../i18n/strings'
 import { DRIFT_FORMAT, SHARE_FORMAT } from '../lib/allocation'
 import type { AttentionItem } from '../lib/attention'
 import { formatMarketDate, formatShortMarketDate } from '../lib/date'
-import { formatMoney, formatNumber, plTone, signedMoney, signedPercent } from '../lib/format'
+import { formatQuantity } from '../lib/decimal'
+import {
+  formatMoney,
+  formatNumber,
+  formatUnitPrice,
+  plTone,
+  signedMoney,
+  signedPercent,
+} from '../lib/format'
 import { focusIfLost, neighbourOf } from '../lib/useFocusLater'
 import { usePositionPath } from '../lib/useRange'
 import { Button } from './ui/Button'
@@ -19,6 +28,7 @@ const GROUPS: [StringKey, AttentionItem['kind'][]][] = [
   ],
   ['attention.group.dividends', ['dividend']],
   ['attention.group.deposits', ['due-deposit']],
+  ['attention.group.plans', ['due-plan']],
   ['attention.group.today', ['mover']],
   [
     'attention.group.concentration',
@@ -51,6 +61,9 @@ const priceKey = (item: AttentionItem & { instrument_id: number }) =>
 
 // A due deposit's key. Deposit ids are global, so the id is enough.
 const depositKey = (item: AttentionItem & { kind: 'due-deposit' }) => String(item.deposit.id)
+
+// A due plan's key. Plan ids are global, so the id is enough.
+const planKey = (item: AttentionItem & { kind: 'due-plan' }) => String(item.plan.plan_id)
 
 // A dividend item's key. On Tüm portföyler the same dividend can be due in
 // two portfolios; their names are unique per user, so the name tells them apart.
@@ -94,7 +107,13 @@ function Label({ item, children }: { item: AttentionItem; children: ReactNode })
         item.kind !== 'try-cash-share' &&
         item.kind !== 'no-hedge' &&
         item.kind !== 'allocation-drift' && (
-          <Dot tone={item.kind === 'dividend' || item.kind === 'due-deposit' ? 'accent' : 'warn'} />
+          <Dot
+            tone={
+              item.kind === 'dividend' || item.kind === 'due-deposit' || item.kind === 'due-plan'
+                ? 'accent'
+                : 'warn'
+            }
+          />
         )}
       {item.portfolio ? (
         <span className="flex min-w-0 flex-col">
@@ -110,11 +129,113 @@ function Label({ item, children }: { item: AttentionItem; children: ReactNode })
   )
 }
 
+// A due deposit's line: its net, with Vadeyi kapat.
+function DepositLine({
+  item,
+  busy,
+  onClose,
+}: {
+  item: AttentionItem & { kind: 'due-deposit' }
+  busy: boolean
+  onClose: () => void
+}) {
+  const d = item.deposit
+  const principal = formatMoney(d.principal, d.currency)
+  const date = formatMarketDate(d.maturity_date)
+  return (
+    <Row
+      action={
+        <Button
+          variant="secondary"
+          size="sm"
+          className="shrink-0"
+          aria-label={named(item, t('attention.deposit.closeLabel', { principal, date }))}
+          pending={busy}
+          data-attention-action={`close ${depositKey(item)}`}
+          onClick={onClose}
+        >
+          {t('attention.deposit.close')}
+        </Button>
+      }
+    >
+      <Label item={item}>
+        <span className="font-semibold">{formatMoney(d.net, d.currency)}</span>{' '}
+        {t('attention.deposit.detail', {
+          gross: formatMoney(d.gross, d.currency),
+          stopaj: formatMoney(d.stopaj, d.currency),
+        })}{' '}
+        · {formatShortMarketDate(d.maturity_date)}
+      </Label>
+    </Row>
+  )
+}
+
+// A due plan's line: Kaydet books it (a buy with no close cannot be booked),
+// Atla moves the plan on without booking.
+function PlanLine({
+  item,
+  busy,
+  onSettle,
+}: {
+  item: AttentionItem & { kind: 'due-plan' }
+  busy: boolean
+  onSettle: (action: 'book' | 'skip') => void
+}) {
+  const d = item.plan
+  const symbol = d.symbol ?? t('plans.cash')
+  const amount = formatMoney(d.amount, d.currency)
+  const label = { symbol, amount, date: formatMarketDate(d.date) }
+  const detail =
+    d.quantity !== null && d.price !== null
+      ? t('plans.proposal', {
+          quantity: formatQuantity(d.quantity),
+          price: formatUnitPrice(d.price, d.currency),
+        })
+      : t('attention.plan.noPrice')
+  return (
+    <Row
+      action={
+        <span className="flex shrink-0 gap-1">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="shrink-0"
+            aria-label={named(item, t('attention.plan.bookLabel', label))}
+            pending={busy}
+            disabled={d.instrument_id !== null && d.price === null}
+            data-attention-action={`book ${planKey(item)}`}
+            onClick={() => onSettle('book')}
+          >
+            {t('plans.book')}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="shrink-0"
+            aria-label={named(item, t('attention.plan.skipLabel', label))}
+            pending={busy}
+            data-attention-action={`skip ${planKey(item)}`}
+            onClick={() => onSettle('skip')}
+          >
+            {t('plans.skip')}
+          </Button>
+        </span>
+      }
+    >
+      <Label item={item}>
+        <span className="font-semibold">{symbol}</span> · {amount} · {formatShortMarketDate(d.date)}
+        {d.instrument_id !== null && ` · ${detail}`}
+        {d.missed > 1 && ` · ${t('attention.plan.missed', { count: d.missed })}`}
+      </Label>
+    </Row>
+  )
+}
+
 // AttentionCard renders the "Dikkat" list that attentionItems builds; it
 // decides nothing itself. The header counts the items that ask for
-// something (Veri, Temettü onayı and Vadesi gelen mevduat). A mover's symbol links to its position
+// something (Veri, Temettü onayı, Vadesi gelen mevduat and Planlı alımlar). A mover's symbol links to its position
 // when `portfolioId` is given; Tüm portföyler leaves it out. `busy` is a
-// dividend or deposit request in flight: Ekle, Yoksay and Vadeyi kapat ignore clicks
+// dividend, deposit or plan request in flight: Ekle, Yoksay, Vadeyi kapat, Kaydet and Atla ignore clicks
 // meanwhile, so a second click cannot book the same one twice. They stay enabled, as
 // Button's `pending` does, so focus stays on them. `editingPrice`
 // is the price editor that Fiyat gir or Güncelle opened, still open.
@@ -126,6 +247,8 @@ export function AttentionCard({
   onAddDividend,
   onDismissDividend,
   onCloseDeposit,
+  onBookPlan,
+  onSkipPlan,
   onEditPrice,
 }: {
   items: AttentionItem[]
@@ -135,13 +258,15 @@ export function AttentionCard({
   onAddDividend: (dividend: ExpectedDividend) => void
   onDismissDividend: (dividend: ExpectedDividend) => void
   onCloseDeposit: (deposit: DueDeposit) => void
+  onBookPlan: (plan: DuePlan) => void
+  onSkipPlan: (plan: DuePlan) => void
   onEditPrice: (instrumentId: number) => void
 }) {
   const positionPath = usePositionPath()
   // The item last acted on, which button, and that kind's item order then.
   const actedRef = useRef<{
     key: string
-    action: 'add' | 'dismiss' | 'price' | 'close'
+    action: 'add' | 'dismiss' | 'price' | 'close' | 'book' | 'skip'
     keys: string[]
   } | null>(null)
   const dividendKeys = items.flatMap((item) =>
@@ -150,6 +275,7 @@ export function AttentionCard({
   const depositKeys = items.flatMap((item) =>
     item.kind === 'due-deposit' ? [depositKey(item)] : [],
   )
+  const planKeys = items.flatMap((item) => (item.kind === 'due-plan' ? [planKey(item)] : []))
   const priceKeys = items.flatMap((item) =>
     item.kind === 'missing-price' || item.kind === 'stale-manual-prices' ? [priceKey(item)] : [],
   )
@@ -165,9 +291,14 @@ export function AttentionCard({
     const acted = actedRef.current
     if (busy || editingPrice || !acted) return
     actedRef.current = null
-    const keys = { price: priceKeys, close: depositKeys, add: dividendKeys, dismiss: dividendKeys }[
-      acted.action
-    ]
+    const keys = {
+      price: priceKeys,
+      close: depositKeys,
+      add: dividendKeys,
+      dismiss: dividendKeys,
+      book: planKeys,
+      skip: planKeys,
+    }[acted.action]
     if (keys.includes(acted.key)) return
     const neighbour = neighbourOf(acted.keys, acted.key, (key) => keys.includes(key))
     // Compared, not in a selector: a portfolio's name may hold a quote.
@@ -189,13 +320,21 @@ export function AttentionCard({
     actedRef.current = { key: depositKey(item), action: 'close', keys: depositKeys }
     onCloseDeposit(item.deposit)
   }
+  const settle = (item: AttentionItem & { kind: 'due-plan' }, action: 'book' | 'skip') => {
+    actedRef.current = { key: planKey(item), action, keys: planKeys }
+    if (action === 'book') onBookPlan(item.plan)
+    else onSkipPlan(item.plan)
+  }
   const editPrice = (item: AttentionItem & { instrument_id: number }) => {
     actedRef.current = { key: priceKey(item), action: 'price', keys: priceKeys }
     onEditPrice(item.instrument_id)
   }
   const asking = items.filter(
     (item) =>
-      GROUPS[0][1].includes(item.kind) || item.kind === 'dividend' || item.kind === 'due-deposit',
+      GROUPS[0][1].includes(item.kind) ||
+      item.kind === 'dividend' ||
+      item.kind === 'due-deposit' ||
+      item.kind === 'due-plan',
   ).length
 
   const line = (item: AttentionItem): ReactNode => {
@@ -309,37 +448,10 @@ export function AttentionCard({
           </Row>
         )
       }
-      case 'due-deposit': {
-        const d = item.deposit
-        const principal = formatMoney(d.principal, d.currency)
-        const date = formatMarketDate(d.maturity_date)
-        return (
-          <Row
-            action={
-              <Button
-                variant="secondary"
-                size="sm"
-                className="shrink-0"
-                aria-label={named(item, t('attention.deposit.closeLabel', { principal, date }))}
-                pending={busy}
-                data-attention-action={`close ${depositKey(item)}`}
-                onClick={() => close(item)}
-              >
-                {t('attention.deposit.close')}
-              </Button>
-            }
-          >
-            <Label item={item}>
-              <span className="font-semibold">{formatMoney(d.net, d.currency)}</span>{' '}
-              {t('attention.deposit.detail', {
-                gross: formatMoney(d.gross, d.currency),
-                stopaj: formatMoney(d.stopaj, d.currency),
-              })}{' '}
-              · {formatShortMarketDate(d.maturity_date)}
-            </Label>
-          </Row>
-        )
-      }
+      case 'due-deposit':
+        return <DepositLine item={item} busy={busy} onClose={() => close(item)} />
+      case 'due-plan':
+        return <PlanLine item={item} busy={busy} onSettle={(action) => settle(item, action)} />
       case 'mover':
         return (
           <Row

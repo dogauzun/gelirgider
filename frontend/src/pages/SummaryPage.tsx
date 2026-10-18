@@ -10,6 +10,7 @@ import { useAllocationTargets } from '../api/allocationTargets'
 import { useAttentionRules } from '../api/auth'
 import { useDueDepositsOf, useMatureDeposit, type DueDeposit } from '../api/deposits'
 import { usePortfolioHistory } from '../api/history'
+import { useBookPlan, useDuePlansOf, useSkipPlan, type DuePlan } from '../api/plans'
 import { usePortfolios } from '../api/portfolios'
 import { useDeletePrice } from '../api/prices'
 import {
@@ -150,6 +151,7 @@ function Attention({
   const targets = useAllocationTargets(scope).data
   const expected = useExpectedDividendsOf(ids)
   const dueDeposits = useDueDepositsOf(ids)
+  const duePlans = useDuePlansOf(ids)
   const invalidatePortfolios = useInvalidatePortfolios()
   // Undefined while loading or on a failure: attentionItems then uses the defaults.
   const rules = useAttentionRules().data
@@ -176,6 +178,7 @@ function Attention({
           summary,
           expected: dividends,
           dueDeposits: dueDeposits[i].data,
+          duePlans: duePlans[i].data,
           today,
           portfolioName: p.name,
           rules,
@@ -191,7 +194,14 @@ function Attention({
   const add = useAddExpectedDividend()
   const dismissal = useDismissExpectedDividend()
   const maturity = useMatureDeposit()
-  const busy = add.isPending || dismissal.isPending || maturity.isPending
+  const booking = useBookPlan()
+  const skipping = useSkipPlan()
+  const busy =
+    add.isPending ||
+    dismissal.isPending ||
+    maturity.isPending ||
+    booking.isPending ||
+    skipping.isPending
   const once = useOneAtATime()
   function run(
     dividend: ExpectedDividend,
@@ -213,6 +223,17 @@ function Attention({
       try {
         await maturity.mutateAsync(deposit.id)
         toast(t('attention.deposit.closed'))
+      } catch (error) {
+        toast((error as Error).message, { error: true })
+      }
+    })
+  }
+
+  function settlePlan(mutation: typeof booking, plan: DuePlan, doneKey: StringKey) {
+    once(async () => {
+      try {
+        await mutation.mutateAsync(plan.plan_id)
+        toast(t(doneKey))
       } catch (error) {
         toast((error as Error).message, { error: true })
       }
@@ -258,6 +279,8 @@ function Attention({
           )
         }
         onCloseDeposit={closeDeposit}
+        onBookPlan={(plan) => settlePlan(booking, plan, 'plans.booked')}
+        onSkipPlan={(plan) => settlePlan(skipping, plan, 'plans.skipped')}
         onEditPrice={(instrumentId) => {
           for (const [i, p] of portfolios.entries()) {
             const position = summaries[i].data?.positions.find(

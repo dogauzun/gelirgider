@@ -2046,6 +2046,7 @@ describe('SummaryPage', () => {
         return new Response(JSON.stringify([]), { status: 200 })
       }
       if (url === '/api/portfolios/1/deposits/due') return Response.json([])
+      if (url === '/api/portfolios/1/plans/due') return Response.json([])
       if (init?.method === 'PUT' && url === `/api/instruments/7/prices/${todayIstanbul()}`) {
         return new Response(
           JSON.stringify({
@@ -2177,7 +2178,7 @@ describe('SummaryPage', () => {
           benchmark: null,
         })
       if (/^\/api\/portfolios\/(1|2)\/dividends\/expected$/.test(url)) return Response.json([])
-      if (/^\/api\/portfolios\/(1|2)\/deposits\/due$/.test(url)) return Response.json([])
+      if (/^\/api\/portfolios\/(1|2)\/(deposits|plans)\/due$/.test(url)) return Response.json([])
       const put = url.match(/^\/api\/instruments\/(\d+)\/prices\//)
       if (init?.method === 'PUT' && put) {
         priced.add(Number(put[1]))
@@ -3114,6 +3115,7 @@ describe('SummaryPage', () => {
       expected: object[] = [],
       created?: Promise<void>,
       due: object[] = [],
+      duePlans: object[] = [],
     ) {
       const requests: { url: string; method: string; body: string }[] = []
       vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -3133,6 +3135,11 @@ describe('SummaryPage', () => {
           return new Response(JSON.stringify(expected), { status: 200 })
         }
         if (url === '/api/portfolios/1/deposits/due') return Response.json(due)
+        if (url === '/api/portfolios/1/plans/due') return Response.json(duePlans)
+        if (/^\/api\/plans\/7\/(book|skip)$/.test(url) && init?.method === 'POST') {
+          duePlans.length = 0
+          return Response.json({ id: 7 })
+        }
         if (url === '/api/deposits/5/mature' && init?.method === 'POST') {
           due.length = 0
           return new Response(null, { status: 204 })
@@ -3369,6 +3376,43 @@ describe('SummaryPage', () => {
       expect(await screen.findByText('Mevduat kapatıldı')).toBeInTheDocument()
     })
 
+    it('books a due plan once on Kaydet and drops it after the refetch', async () => {
+      const requests = mockApi(
+        twoPositions,
+        [],
+        undefined,
+        [],
+        [
+          {
+            plan_id: 7,
+            instrument_id: 1,
+            symbol: 'AKBNK',
+            market: 'BIST',
+            currency: 'TRY',
+            amount: '1000.00',
+            date: '2026-10-12',
+            missed: 1,
+            price: '125.00',
+            price_date: '2026-10-12',
+            quantity: '8',
+            booked_amount: '1000.00',
+          },
+        ],
+      )
+      renderPage()
+      const card = within(await screen.findByRole('region', { name: 'Dikkat' }))
+      const book = await card.findByRole('button', { name: /^Kaydet: AKBNK/ })
+      fireEvent.click(book)
+      fireEvent.click(book)
+      await vi.waitFor(() =>
+        expect(card.queryByRole('button', { name: /^Kaydet: AKBNK/ })).toBeNull(),
+      )
+      expect(
+        requests.filter((r) => r.method === 'POST' && r.url === '/api/plans/7/book'),
+      ).toHaveLength(1)
+      expect(await screen.findByText('Plan kaydedildi')).toBeInTheDocument()
+    })
+
     it('dismisses an expected dividend on Yoksay', async () => {
       const requests = mockApi(twoPositions, [tupras])
       renderPage()
@@ -3467,7 +3511,8 @@ describe('SummaryPage', () => {
             })
           if (url === '/api/portfolios/1/dividends/expected') return Response.json([tupras])
           if (url === '/api/portfolios/2/dividends/expected') return Response.json([])
-          if (/^\/api\/portfolios\/(1|2)\/deposits\/due$/.test(url)) return Response.json([])
+          if (/^\/api\/portfolios\/(1|2)\/(deposits|plans)\/due$/.test(url))
+            return Response.json([])
           if (url === '/api/portfolios/1/transactions' && method === 'POST')
             return Response.json({ id: 99 }, { status: 201 })
           if (/^\/api\/portfolios\/(all|1|2)\/attribution\?/.test(url)) return attribution()
