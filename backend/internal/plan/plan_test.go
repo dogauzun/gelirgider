@@ -3,7 +3,37 @@ package plan
 import (
 	"testing"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
+
+func TestBookingAndMissed(t *testing.T) {
+	d := decimal.RequireFromString
+	tests := []struct {
+		name        string
+		amount, cls string
+		market      string
+		qty, booked string
+	}{
+		{"BIST rounds to whole shares", "1000", "123.45", "BIST", "8", "987.60"},
+		{"TEFAS keeps 6 places", "1000", "12.345678", "TEFAS", "81.000006", "1000.00"},
+		{"amount buys no unit", "10", "100", "BIST", "0", "0"},
+		{"unknown market rounds to 0 places", "1000", "300", "OTHER", "3", "900"},
+		{"zero close buys nothing", "1000", "0", "BIST", "0", "0"},
+	}
+	for _, tt := range tests {
+		qty, booked := Booking(d(tt.amount), d(tt.cls), tt.market)
+		if !qty.Equal(d(tt.qty)) || !booked.Equal(d(tt.booked)) {
+			t.Errorf("%s: Booking = %s, %s, want %s, %s", tt.name, qty, booked, tt.qty, tt.booked)
+		}
+	}
+	if got := Missed("2026-09-05", "2026-11-04", 5); got != 2 {
+		t.Errorf("Missed over two months = %d, want 2", got)
+	}
+	if got := Missed("2026-11-05", "2026-11-05", 5); got != 1 {
+		t.Errorf("Missed on the day = %d, want 1", got)
+	}
+}
 
 func TestOccurrenceAndNext(t *testing.T) {
 	tests := []struct {

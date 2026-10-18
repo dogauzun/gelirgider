@@ -67,6 +67,31 @@ func FirstOnOrAfter(date string, day int) string {
 	return After(t.AddDate(0, 0, -1).Format(time.DateOnly), day)
 }
 
+// QuantityScale is the decimal places of a quantity per market.
+var QuantityScale = map[string]int32{"BIST": 0, "US": 4, "TEFAS": 6, "CRYPTO": 8, "GOLD": 4}
+
+// Booking returns the quantity that amount buys at closePrice, rounded down to the
+// market's scale (0 places for a market not in QuantityScale), and what that
+// quantity costs at closePrice, rounded to 2 places. A close that is not positive
+// buys nothing.
+func Booking(amount, closePrice decimal.Decimal, market string) (quantity, booked decimal.Decimal) {
+	if !closePrice.IsPositive() {
+		return decimal.Zero, decimal.Zero
+	}
+	quantity = amount.Div(closePrice).RoundDown(QuantityScale[market])
+	return quantity, quantity.Mul(closePrice).Round(2)
+}
+
+// Missed returns the number of occurrences of day from next through today, 1
+// when next is the only one.
+func Missed(next, today string, day int) int {
+	n := 0
+	for d := next; d != "" && d <= today; d = After(d, day) {
+		n++
+	}
+	return n
+}
+
 // Ended reports whether the next occurrence is past the end date.
 func (p Plan) Ended() bool { return p.EndDate != nil && p.NextDate > *p.EndDate }
 
@@ -103,9 +128,14 @@ func scanPlan(rows *sql.Rows) (Plan, error) {
 	return p, nil
 }
 
+// querier is the QueryContext of *sql.DB and *sql.Tx.
+type querier interface {
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+}
+
 // queryPlans runs a SELECT of columns over saving_plans and scans every row.
-func (r *Repo) queryPlans(ctx context.Context, where string, args ...any) ([]Plan, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT `+columns+` FROM saving_plans WHERE `+where, args...)
+func queryPlans(ctx context.Context, q querier, where string, args ...any) ([]Plan, error) {
+	rows, err := q.QueryContext(ctx, `SELECT `+columns+` FROM saving_plans WHERE `+where, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query plans: %w", err)
 	}
@@ -147,12 +177,21 @@ func (r *Repo) Insert(ctx context.Context, p Plan) (Plan, error) {
 
 // List returns userID's plans in portfolioID, the soonest next_date first.
 func (r *Repo) List(ctx context.Context, userID, portfolioID int64) ([]Plan, error) {
-	return r.queryPlans(ctx, `user_id = ? AND portfolio_id = ? ORDER BY next_date, id`, userID, portfolioID)
+	return queryPlans(ctx, r.db, `user_id = ? AND portfolio_id = ? ORDER BY next_date, id`, userID, portfolioID)
 }
 
 // Get returns userID's plan with the given id, or ErrNotFound.
 func (r *Repo) Get(ctx context.Context, userID, id int64) (Plan, error) {
-	ps, err := r.queryPlans(ctx, `user_id = ? AND id = ?`, userID, id)
+	return getPlan(ctx, r.db, userID, id)
+}
+
+// GetTx is Get inside tx, so the answer holds until tx ends.
+func (r *Repo) GetTx(ctx context.Context, tx *sql.Tx, userID, id int64) (Plan, error) {
+	return getPlan(ctx, tx, userID, id)
+}
+
+func getPlan(ctx context.Context, q querier, userID, id int64) (Plan, error) {
+	ps, err := queryPlans(ctx, q, `user_id = ? AND id = ?`, userID, id)
 	if err != nil {
 		return Plan{}, err
 	}
@@ -160,6 +199,19 @@ func (r *Repo) Get(ctx context.Context, userID, id int64) (Plan, error) {
 		return Plan{}, ErrNotFound
 	}
 	return ps[0], nil
+}
+
+// AdvanceTx moves p's next_date to next inside tx. It returns ErrNotFound when
+// the plan is gone or its next_date is no longer p.NextDate, so two concurrent
+// bookings of one occurrence cannot both pass.
+func (r *Repo) AdvanceTx(ctx context.Context, tx *sql.Tx, p Plan, next string) error {
+	res, err := tx.ExecContext(ctx,
+		`UPDATE saving_plans SET next_date = ? WHERE id = ? AND user_id = ? AND next_date = ?`,
+		next, p.ID, p.UserID, p.NextDate)
+	if err != nil {
+		return fmt.Errorf("advance plan: %w", err)
+	}
+	return db.CheckAffected(res, ErrNotFound)
 }
 
 // Update writes the editable fields of p (amount, day_of_month, end_date,

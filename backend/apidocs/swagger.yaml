@@ -475,6 +475,33 @@ definitions:
       stopaj:
         type: string
     type: object
+  server.duePlanResponse:
+    properties:
+      amount:
+        type: string
+      booked_amount:
+        type: string
+      currency:
+        type: string
+      date:
+        type: string
+      instrument_id:
+        type: integer
+      market:
+        type: string
+      missed:
+        type: integer
+      plan_id:
+        type: integer
+      price:
+        type: string
+      price_date:
+        type: string
+      quantity:
+        type: string
+      symbol:
+        type: string
+    type: object
   server.expectedDividendResponse:
     properties:
       currency:
@@ -3573,6 +3600,95 @@ paths:
       summary: Edit a saving plan
       tags:
       - plans
+  /plans/{id}/book:
+    post:
+      description: Books the occurrence dated next_date and moves next_date to the
+        next one. A buy plan books a buy of quantity (the amount divided by the close
+        on or before next_date, rounded down to the market's scale) at that close,
+        amount quantity times close to 2 decimals, fee 0, in the instrument's currency;
+        with fund set a deposit of the booked amount goes in before it. A deposit
+        plan books a deposit of its amount. Every row carries the plan's note and
+        is dated next_date. The rows and the move are written in one SQL transaction.
+        Answers with the plan, so the caller sees the new next_date and status.
+      parameters:
+      - description: plan id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.planResponse'
+        "404":
+          description: plan not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: plan has ended; plan is not due yet; plan changed, try again;
+            no close on or before <date>; amount buys no unit at <close>
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Book a saving plan's next occurrence
+      tags:
+      - plans
+  /plans/{id}/skip:
+    post:
+      description: Moves next_date to the next occurrence and books nothing. Answers
+        with the plan, so the caller sees the new next_date and status.
+      parameters:
+      - description: plan id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.planResponse'
+        "404":
+          description: plan not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: plan has ended; plan is not due yet
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Skip a saving plan's next occurrence
+      tags:
+      - plans
   /portfolios:
     get:
       description: Every portfolio of the caller, with total value, cash and unrealized
@@ -4668,6 +4784,51 @@ paths:
                 type: string
             type: object
       summary: Create a saving plan
+      tags:
+      - plans
+  /portfolios/{id}/plans/due:
+    get:
+      description: 'The portfolio''s plans whose next_date is today or past and that
+        have not ended, oldest next_date first. date is the next_date and missed the
+        number of occurrences from it through today (1 when it is the only one). For
+        a buy plan price is the close on or before date (null when there is none),
+        quantity the amount divided by price rounded down to the market''s scale (BIST
+        0, US 4, TEFAS 6, CRYPTO 8, GOLD 4) and booked_amount quantity times price
+        to 2 decimals; quantity and booked_amount are null without a close. For a
+        deposit plan instrument_id, symbol, market, price, price_date and quantity
+        are null and booked_amount is the amount. Nothing is booked: POST /plans/{id}/book
+        books one occurrence and POST /plans/{id}/skip skips it. The all scope is
+        not supported.'
+      parameters:
+      - description: portfolio id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/server.duePlanResponse'
+            type: array
+        "404":
+          description: portfolio not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: List due saving plans
       tags:
       - plans
   /portfolios/{id}/projection:

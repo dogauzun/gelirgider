@@ -2940,6 +2940,130 @@
                 }
             }
         },
+        "/plans/{id}/book": {
+            "post": {
+                "description": "Books the occurrence dated next_date and moves next_date to the next one. A buy plan books a buy of quantity (the amount divided by the close on or before next_date, rounded down to the market's scale) at that close, amount quantity times close to 2 decimals, fee 0, in the instrument's currency; with fund set a deposit of the booked amount goes in before it. A deposit plan books a deposit of its amount. Every row carries the plan's note and is dated next_date. The rows and the move are written in one SQL transaction. Answers with the plan, so the caller sees the new next_date and status.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "plans"
+                ],
+                "summary": "Book a saving plan's next occurrence",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "plan id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.planResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "plan not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "plan has ended; plan is not due yet; plan changed, try again; no close on or before \u003cdate\u003e; amount buys no unit at \u003cclose\u003e",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/plans/{id}/skip": {
+            "post": {
+                "description": "Moves next_date to the next occurrence and books nothing. Answers with the plan, so the caller sees the new next_date and status.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "plans"
+                ],
+                "summary": "Skip a saving plan's next occurrence",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "plan id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.planResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "plan not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "plan has ended; plan is not due yet",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/portfolios": {
             "get": {
                 "description": "Every portfolio of the caller, with total value, cash and unrealized P/L in the reporting currency. unrealized_pl is null when every currency contributing to it has no rate.",
@@ -4434,6 +4558,60 @@
                 }
             }
         },
+        "/portfolios/{id}/plans/due": {
+            "get": {
+                "description": "The portfolio's plans whose next_date is today or past and that have not ended, oldest next_date first. date is the next_date and missed the number of occurrences from it through today (1 when it is the only one). For a buy plan price is the close on or before date (null when there is none), quantity the amount divided by price rounded down to the market's scale (BIST 0, US 4, TEFAS 6, CRYPTO 8, GOLD 4) and booked_amount quantity times price to 2 decimals; quantity and booked_amount are null without a close. For a deposit plan instrument_id, symbol, market, price, price_date and quantity are null and booked_amount is the amount. Nothing is booked: POST /plans/{id}/book books one occurrence and POST /plans/{id}/skip skips it. The all scope is not supported.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "plans"
+                ],
+                "summary": "List due saving plans",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "portfolio id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/server.duePlanResponse"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/portfolios/{id}/projection": {
             "get": {
                 "description": "Projects the scope's value month by month from the next month through the target month, with the 25th, 50th and 75th percentile of the monthly time-weighted returns of the last 36 full calendar months (nearest rank) and the median net external flow of the last 12 full months. Month values are in the goal's unit: real is the reporting currency at the prices of the day the goal was set: a nominal value is multiplied by the TUFE level of that day over today's level and divided by the TUFE rate of the last 12 months compounded for each month ahead, usd by today's USD rate. months is empty, with history_months counting the usable months, when fewer than 6 full months have a return, and empty with history_months 0 when the scope has no history or the unit lacks its TUFE level or USD rate. reached_at is the first month of the median path at or above the amount, the current month when today's value already is at the amount; monthly_gap is the extra monthly flow in the reporting currency, rounded up, that the median path needs to reach the amount by the target month, null when reached_at is set. progress is today's value in the unit divided by the amount.",
@@ -5841,6 +6019,47 @@
                     "type": "string"
                 },
                 "stopaj": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.duePlanResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "string"
+                },
+                "booked_amount": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "instrument_id": {
+                    "type": "integer"
+                },
+                "market": {
+                    "type": "string"
+                },
+                "missed": {
+                    "type": "integer"
+                },
+                "plan_id": {
+                    "type": "integer"
+                },
+                "price": {
+                    "type": "string"
+                },
+                "price_date": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "string"
+                },
+                "symbol": {
                     "type": "string"
                 }
             }
