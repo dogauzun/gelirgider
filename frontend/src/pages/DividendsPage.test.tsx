@@ -69,6 +69,16 @@ const timeline = {
   missing_rates: [],
 }
 
+const forecast = {
+  currency: 'TRY',
+  months: Array.from({ length: 12 }, (_, i) => ({
+    period: `${2026 + Math.floor((9 + i) / 12)}-${String(((9 + i) % 12) + 1).padStart(2, '0')}`,
+    net: i === 0 ? '100.00' : '0.00',
+  })),
+  rows: [],
+  missing_rates: [] as string[],
+}
+
 const expectedRow = {
   instrument_id: 7,
   symbol: 'THYAO',
@@ -88,11 +98,15 @@ function mockApi({
   upcoming = [] as (typeof expectedRow)[],
   // The open positions' reporting cost the yield divides by.
   costBasis = '1000.00',
+  positionsValue = '2000.00',
+  forecastData = forecast,
 }: {
   data?: typeof timeline
   expected?: (typeof expectedRow)[]
   upcoming?: (typeof expectedRow)[]
   costBasis?: string
+  positionsValue?: string
+  forecastData?: typeof forecast
 } = {}) {
   const calls = { timeline: 0, posts: [] as string[] }
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -108,10 +122,16 @@ function mockApi({
       calls.timeline++
       return Response.json(data)
     }
+    if (url === '/api/portfolios/1/dividends/forecast') return Response.json(forecastData)
     if (url === '/api/portfolios/1/dividends/expected') return Response.json(expected)
     if (url === '/api/portfolios/1/dividends/upcoming') return Response.json(upcoming)
     if (url === '/api/portfolios/1/summary')
-      return Response.json({ currency: 'TRY', cost_basis: costBasis, positions: [] })
+      return Response.json({
+        currency: 'TRY',
+        cost_basis: costBasis,
+        positions_value: positionsValue,
+        positions: [],
+      })
     throw new Error(`unexpected request: ${url}`)
   })
   return calls
@@ -232,6 +252,22 @@ it('draws a bar per month or year', async () => {
   fireEvent.click(screen.getByRole('radio', { name: t('dividends.page.yearly') }))
   expect(bars()).toHaveLength(3)
   expect(localStorage.getItem('dividendsGroup')).toBe('year')
+})
+
+it('shows the twelve-month forecast net and yield, and charts it', async () => {
+  mockApi({ forecastData: { ...forecast, missing_rates: ['EUR'] } })
+  const { container } = renderPage()
+
+  expect(await kpi('dividends.page.forecast12')).toBe('₺100,00')
+  await waitFor(async () => expect(await kpi('dividends.page.forwardYield')).toBe('%5,0'))
+  // The forecast's currency joins the timeline's (none here) in the Notice.
+  expect(await screen.findByText(/EUR/)).toBeVisible()
+
+  fireEvent.click(screen.getByRole('radio', { name: t('dividends.page.forecast') }))
+  const bars = () => container.querySelectorAll('.series-bars .recharts-bar-rectangle')
+  await waitFor(() => expect(bars()).toHaveLength(12))
+  expect(screen.getByText(t('dividends.page.forecastHint'))).toBeVisible()
+  expect(localStorage.getItem('dividendsGroup')).toBe('forecast')
 })
 
 it('lists payments, share and the last payment with its year per instrument', async () => {

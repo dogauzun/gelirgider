@@ -99,6 +99,42 @@ export function useDividendTimeline(portfolioId: PortfolioScope) {
   })
 }
 
+// One expected payment of the next twelve months. `date` is null when the
+// month is only estimated from the last twelve months; `net_reporting` is
+// null when the row's currency has no rate.
+interface DividendForecastRow {
+  instrument_id: number
+  symbol: string
+  market: string
+  period: string
+  date: string | null
+  planned: boolean
+  quantity: string
+  per_share: string
+  gross: string
+  stopaj: string
+  net: string
+  currency: string
+  net_reporting: string | null
+}
+
+// `months` always has twelve entries, the reporting-currency net of each
+// ("2026-10"); `missing_rates` lists currencies left out of them.
+export interface DividendForecast {
+  currency: string
+  months: { period: string; net: string }[]
+  rows: DividendForecastRow[]
+  missing_rates: string[]
+}
+
+export function useDividendForecast(portfolioId: PortfolioScope) {
+  return useQuery({
+    queryKey: ['portfolios', portfolioId, 'dividends', 'forecast'] as const,
+    queryFn: () => apiFetch<DividendForecast>(`/api/portfolios/${portfolioId}/dividends/forecast`),
+    enabled: portfolioId !== 'all',
+  })
+}
+
 function dismissExpectedDividend(
   portfolioId: number,
   row: Pick<ExpectedDividend, 'instrument_id' | 'date'>,
