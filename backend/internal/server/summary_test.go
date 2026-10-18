@@ -10,9 +10,11 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
 	"github.com/dogauzun/gelirgider/backend/internal/db"
+	"github.com/dogauzun/gelirgider/backend/internal/deposit"
 	"github.com/dogauzun/gelirgider/backend/internal/fx"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
@@ -1920,5 +1922,95 @@ func TestPortfolioSummaryBookedBonusKeepsPriceScaling(t *testing.T) {
 	p := got.Positions[0]
 	if p.Quantity != "200" || p.LastPrice == nil || *p.LastPrice != "10" || p.MarketValue != "2000.00" || len(p.Splits) != 0 {
 		t.Errorf("position = {quantity %s, last_price %v, market_value %s, splits %+v}, want {200, 10, 2000.00, []}", p.Quantity, p.LastPrice, p.MarketValue, p.Splits)
+	}
+}
+
+// TestPortfolioSummaryDeposit checks that a term deposit is valued from its
+// terms: 1000 TRY at 36.5% with 20% stopaj, started ten days ago, closes at
+// 1 + 10 x 0.0008 = 1.008, so market_value is 1008.00, the price is dated
+// today with source "deposit", and the day change is one day's accrual of
+// 0.80. Another user holding the same instrument without a deposit of their
+// own has no price.
+func TestPortfolioSummaryDeposit(t *testing.T) {
+	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+	handler := New(logger, conn, false, settings.NewRepo(conn, nil), nil)
+	ctx := context.Background()
+
+	today := price.Today()
+	day, err := time.Parse(time.DateOnly, today)
+	if err != nil {
+		t.Fatalf("parse today: %v", err)
+	}
+	start := day.AddDate(0, 0, -10).Format(time.DateOnly)
+	maturity := day.AddDate(0, 0, 20).Format(time.DateOnly)
+	res, err := conn.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES ('DEP-T1', 'DEPOSIT', 'Deposit', 'TRY')`)
+	if err != nil {
+		t.Fatalf("insert instrument: %v", err)
+	}
+	instrumentID, err := res.LastInsertId()
+	if err != nil {
+		t.Fatalf("instrument id: %v", err)
+	}
+	summaryOf := func(email string, withDeposit bool) positionResponse {
+		usr, err := user.NewRepo(conn).Create(ctx, email, "hash")
+		if err != nil {
+			t.Fatalf("users.Create: %v", err)
+		}
+		session, err := auth.NewRepo(conn).CreateSession(ctx, usr.ID)
+		if err != nil {
+			t.Fatalf("sessions.CreateSession: %v", err)
+		}
+		pf, err := portfolio.NewRepo(conn).Create(ctx, usr.ID, "Test")
+		if err != nil {
+			t.Fatalf("portfolios.Create: %v", err)
+		}
+		if withDeposit {
+			if _, err := conn.Exec(`INSERT INTO term_deposits (user_id, portfolio_id, instrument_id, currency, principal, rate, stopaj_rate, start_date, maturity_date, created_at)
+				VALUES (?, ?, ?, 'TRY', '1000', '0.365', '0.2', ?, ?, '2026-01-10T00:00:00Z')`, usr.ID, pf.ID, instrumentID, start, maturity); err != nil {
+				t.Fatalf("insert term deposit: %v", err)
+			}
+		}
+		buy := transaction.Transaction{PortfolioID: pf.ID, InstrumentID: &instrumentID, Type: transaction.TypeBuy, Date: start, Quantity: decimal.RequireFromString("1000"), Price: decimal.NewFromInt(1), Amount: decimal.RequireFromString("1000"), Fee: decimal.Zero, Currency: "TRY"}
+		if _, err := transaction.NewRepo(conn).Create(ctx, usr.ID, buy); err != nil {
+			t.Fatalf("transactions.Create: %v", err)
+		}
+		r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/portfolios/%d/summary", pf.ID), nil)
+		r.AddCookie(&http.Cookie{Name: "session", Value: session.ID})
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, r)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
+		}
+		var got summaryResponse
+		if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+			t.Fatalf("decode response: %v", err)
+		}
+		if len(got.Positions) != 1 {
+			t.Fatalf("positions = %+v, want 1", got.Positions)
+		}
+		return got.Positions[0]
+	}
+
+	p := summaryOf("alice@example.com", true)
+	terms := deposit.Terms{Rate: decimal.RequireFromString("0.365"), StopajRate: decimal.RequireFromString("0.2"), StartDate: start, MaturityDate: maturity}
+	closeToday, _ := deposit.Close(terms, today)
+	principal := decimal.RequireFromString("1000")
+	if want := principal.Mul(closeToday).StringFixed(2); p.MarketValue != want || want != "1008.00" {
+		t.Errorf("market_value = %s, want %s (1008.00)", p.MarketValue, want)
+	}
+	if !p.HasPrice || p.PriceSource == nil || *p.PriceSource != "deposit" || p.PriceDate == nil || *p.PriceDate != today {
+		t.Errorf("{has_price, price_source, price_date} = {%v, %v, %v}, want {true, deposit, %s}", p.HasPrice, p.PriceSource, p.PriceDate, today)
+	}
+	if p.DayChange == nil || *p.DayChange != "0.80" {
+		t.Errorf("day_change = %v, want 0.80", p.DayChange)
+	}
+
+	if bob := summaryOf("bob@example.com", false); bob.HasPrice || bob.PriceSource != nil {
+		t.Errorf("another user's {has_price, price_source} = {%v, %v}, want {false, nil}", bob.HasPrice, bob.PriceSource)
 	}
 }

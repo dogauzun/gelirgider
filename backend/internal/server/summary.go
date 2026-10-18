@@ -413,7 +413,7 @@ func (h *summaryHandler) prevCloses(ctx context.Context, userID int64, v valuati
 	}
 	out := make(map[int64]prevClose, len(v.winner))
 	for before, ids := range idsBefore {
-		prevRows, err := holdings.LatestCloses(ctx, holdings.PriceSources{Prices: h.prices, Manual: h.manualPrices}, userID, ids, before)
+		prevRows, err := holdings.LatestCloses(ctx, h.priceSources(), userID, ids, before)
 		if err != nil {
 			return nil, err
 		}
@@ -597,7 +597,7 @@ func (h *summaryHandler) value(ctx context.Context, userID int64, ids []int64) (
 		winner:     make(map[int64]price.Price, len(ids)),
 		currencyOf: make(map[int64]string, len(ids)),
 	}
-	winners, err := holdings.LatestCloses(ctx, holdings.PriceSources{Prices: h.prices, Manual: h.manualPrices}, userID, ids, v.asOf)
+	winners, err := holdings.LatestCloses(ctx, h.priceSources(), userID, ids, v.asOf)
 	if err != nil {
 		return v, err
 	}

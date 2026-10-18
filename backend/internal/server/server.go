@@ -203,7 +203,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 		_, err := bist.Sync(ctx, d.bistFetcher, instruments, prices, date)
 		return true, err
 	}
-	statement.RegisterRoutes(protected, statement.Deps{Imports: statement.NewImportRepo(conn), Transactions: transactions, Splits: d.splits, Portfolios: portfolios, Instruments: instruments, Prices: prices, ManualPrices: manualPrices, OnDemandFetch: onDemandFetch, LookupFund: lookupFund, SyncBulletin: syncBulletin})
+	statement.RegisterRoutes(protected, statement.Deps{Imports: statement.NewImportRepo(conn), Transactions: transactions, Splits: d.splits, Portfolios: portfolios, Instruments: instruments, Prices: prices, ManualPrices: manualPrices, Deposits: d.deposits, OnDemandFetch: onDemandFetch, LookupFund: lookupFund, SyncBulletin: syncBulletin})
 	registerSummaryRoutes(protected, &d)
 	registerHistoryRoutes(protected, &d)
 	registerCashGapRoutes(protected, &d)
