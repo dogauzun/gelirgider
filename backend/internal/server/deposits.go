@@ -187,7 +187,7 @@ func toDepositResponse(dep deposit.Deposit, today string, sold bool) depositResp
 //	@Param		id		path		int						true	"portfolio id"
 //	@Param		body	body		server.depositRequest	true	"principal > 0, rate > 0 and at most 10, stopaj_rate from 0 up to but not including 1, start_date not in the future, maturity_date after it and at most 10 years later"
 //	@Success	201		{object}	server.depositResponse
-//	@Failure	400		{object}	object{error=string}	"invalid request body; currency: must be one of TRY, USD, EUR; principal|rate|stopaj_rate: required; principal|rate|stopaj_rate: must be a non-negative number with at most 15 integer and 9 fraction digits; principal: must be a positive number; rate: must be greater than 0 and at most 10; stopaj_rate: must be at least 0 and below 1; start_date: must be YYYY-MM-DD; start_date: must not be in the future; start_date: must be on or after 1990-01-01; maturity_date: must be YYYY-MM-DD; maturity_date: must be after start_date; maturity_date: must be at most 10 years after start_date; note: must be at most 500 characters; note: must not contain control characters"
+//	@Failure	400		{object}	object{error=string}	"invalid request body; currency: must be one of TRY, USD, EUR; principal|rate|stopaj_rate: required; principal|rate|stopaj_rate: must have at most 15 integer and 9 fraction digits; principal|rate|stopaj_rate: must be a non-negative number with at most 15 integer and 9 fraction digits; principal: must be a positive number; rate: must be greater than 0 and at most 10; stopaj_rate: must be at least 0 and below 1; start_date: must be YYYY-MM-DD; start_date: must not be in the future; start_date: must be on or after 1990-01-01; maturity_date: must be YYYY-MM-DD; maturity_date: must be after start_date; maturity_date: must be at most 10 years after start_date; note: must be at most 500 characters; note: must not contain control characters"
 //	@Failure	404		{object}	object{error=string}	"portfolio not found"
 //	@Failure	500		{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/deposits [post]
@@ -500,7 +500,7 @@ type renewRequest struct {
 //	@Param		id		path		int						true	"deposit id"
 //	@Param		body	body		server.renewRequest	true	"rate > 0 and at most 10, stopaj_rate from 0 up to but not including 1, maturity_date after the old maturity date and at most 10 years later"
 //	@Success	201		{object}	server.depositResponse
-//	@Failure	400		{object}	object{error=string}	"invalid request body; rate|stopaj_rate: required; rate|stopaj_rate: must be a non-negative number with at most 15 integer and 9 fraction digits; rate: must be greater than 0 and at most 10; stopaj_rate: must be at least 0 and below 1; maturity_date: must be YYYY-MM-DD; maturity_date: must be after start_date; maturity_date: must be at most 10 years after start_date"
+//	@Failure	400		{object}	object{error=string}	"invalid request body; rate|stopaj_rate: required; rate|stopaj_rate: must have at most 15 integer and 9 fraction digits; rate|stopaj_rate: must be a non-negative number with at most 15 integer and 9 fraction digits; rate: must be greater than 0 and at most 10; stopaj_rate: must be at least 0 and below 1; maturity_date: must be YYYY-MM-DD; maturity_date: must be after start_date; maturity_date: must be at most 10 years after start_date"
 //	@Failure	404		{object}	object{error=string}	"deposit not found"
 //	@Failure	409		{object}	object{error=string}	"deposit is not due yet; deposit is already renewed"
 //	@Failure	500		{object}	object{error=string}	"internal error"
