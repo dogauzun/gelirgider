@@ -1879,7 +1879,7 @@
                         }
                     },
                     "400": {
-                        "description": "invalid request body; rate|stopaj_rate: required; rate|stopaj_rate: must be a non-negative number with at most 15 integer and 9 fraction digits; rate: must be greater than 0 and at most 10; stopaj_rate: must be at least 0 and below 1; maturity_date: must be YYYY-MM-DD; maturity_date: must be after start_date; maturity_date: must be at most 10 years after start_date",
+                        "description": "invalid request body; rate|stopaj_rate: required; rate|stopaj_rate: must have at most 15 integer and 9 fraction digits; rate|stopaj_rate: must be a non-negative number with at most 15 integer and 9 fraction digits; rate: must be greater than 0 and at most 10; stopaj_rate: must be at least 0 and below 1; maturity_date: must be YYYY-MM-DD; maturity_date: must be after start_date; maturity_date: must be at most 10 years after start_date",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -2862,7 +2862,7 @@
                         }
                     },
                     "400": {
-                        "description": "invalid request body; amount: required; amount: must be a non-negative number with at most 15 integer and 9 fraction digits; amount: must be a positive number; day_of_month: must be between 1 and 31; end_date: must be YYYY-MM-DD; end_date: must be on or after start_date; note: must be at most 500 characters; note: must not contain control characters",
+                        "description": "invalid request body; amount: required; amount: must have at most 15 integer and 9 fraction digits; amount: must be a non-negative number with at most 15 integer and 9 fraction digits; amount: must be a positive number; day_of_month: must be between 1 and 31; end_date: must be YYYY-MM-DD; end_date: must be on or after start_date; note: must be at most 500 characters; note: must not contain control characters",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -3040,7 +3040,7 @@
                         }
                     },
                     "409": {
-                        "description": "plan has ended; plan is not due yet",
+                        "description": "plan has ended; plan is not due yet; plan changed, try again",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -3725,7 +3725,7 @@
                         }
                     },
                     "400": {
-                        "description": "invalid request body; currency: must be one of TRY, USD, EUR; principal|rate|stopaj_rate: required; principal|rate|stopaj_rate: must be a non-negative number with at most 15 integer and 9 fraction digits; principal: must be a positive number; rate: must be greater than 0 and at most 10; stopaj_rate: must be at least 0 and below 1; start_date: must be YYYY-MM-DD; start_date: must not be in the future; start_date: must be on or after 1990-01-01; maturity_date: must be YYYY-MM-DD; maturity_date: must be after start_date; maturity_date: must be at most 10 years after start_date; note: must be at most 500 characters; note: must not contain control characters",
+                        "description": "invalid request body; currency: must be one of TRY, USD, EUR; principal|rate|stopaj_rate: required; principal|rate|stopaj_rate: must have at most 15 integer and 9 fraction digits; principal|rate|stopaj_rate: must be a non-negative number with at most 15 integer and 9 fraction digits; principal: must be a positive number; rate: must be greater than 0 and at most 10; stopaj_rate: must be at least 0 and below 1; start_date: must be YYYY-MM-DD; start_date: must not be in the future; start_date: must be on or after 1990-01-01; maturity_date: must be YYYY-MM-DD; maturity_date: must be after start_date; maturity_date: must be at most 10 years after start_date; note: must be at most 500 characters; note: must not contain control characters",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -4523,7 +4523,7 @@
                         }
                     },
                     "400": {
-                        "description": "invalid request body; instrument_id: unknown instrument; currency: must match instrument currency (\u003ccurrency\u003e); currency: must be one of TRY, USD, EUR; amount: required; amount: must be a non-negative number with at most 15 integer and 9 fraction digits; amount: must be a positive number; day_of_month: must be between 1 and 31; start_date: must be YYYY-MM-DD; start_date: must be on or after 1990-01-01; start_date: must be at most 1 year after today; end_date: must be YYYY-MM-DD; end_date: must be on or after start_date; note: must be at most 500 characters; note: must not contain control characters",
+                        "description": "invalid request body; instrument_id: unknown instrument; currency: must match instrument currency (\u003ccurrency\u003e); currency: must be one of TRY, USD, EUR; amount: required; amount: must have at most 15 integer and 9 fraction digits; amount: must be a non-negative number with at most 15 integer and 9 fraction digits; amount: must be a positive number; day_of_month: must be between 1 and 31; start_date: must be YYYY-MM-DD; start_date: must be on or after 1990-01-01; start_date: must be at most 1 year after today; end_date: must be YYYY-MM-DD; end_date: must be on or after start_date; note: must be at most 500 characters; note: must not contain control characters",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -4560,7 +4560,7 @@
         },
         "/portfolios/{id}/plans/due": {
             "get": {
-                "description": "The portfolio's plans whose next_date is today or past and that have not ended, oldest next_date first. date is the next_date and missed the number of occurrences from it through today (1 when it is the only one). For a buy plan price is the close on or before date (null when there is none), quantity the amount divided by price rounded down to the market's scale (BIST 0, US 4, TEFAS 6, CRYPTO 8, GOLD 4) and booked_amount quantity times price to 2 decimals; quantity and booked_amount are null without a close. For a deposit plan instrument_id, symbol, market, price, price_date and quantity are null and booked_amount is the amount. Nothing is booked: POST /plans/{id}/book books one occurrence and POST /plans/{id}/skip skips it. The all scope is not supported.",
+                "description": "The portfolio's plans whose next_date is today or past and that have not ended, oldest next_date first. date is the next_date and missed the number of occurrences from it through today, or through end_date when that is earlier (1 when it is the only one). For a buy plan price is the close on or before date (null when there is none), quantity the amount divided by price rounded down to the market's scale (BIST 0, US 4, TEFAS 6, CRYPTO 8, GOLD 4) and booked_amount quantity times price to 2 decimals; quantity and booked_amount are null without a close. For a deposit plan instrument_id, symbol, market, price, price_date and quantity are null and booked_amount is the amount. Nothing is booked: POST /plans/{id}/book books one occurrence and POST /plans/{id}/skip skips it. The all scope is not supported.",
                 "produces": [
                     "application/json"
                 ],
