@@ -20,6 +20,12 @@ import { Icon } from '../ui/Icon'
 import { Pill } from '../ui/Pill'
 import { GROUP_ROW, ROW_44, TABLE, TD, TD_NUM, TH } from '../ui/table'
 
+// A term deposit's rows change only on the Mevduat tab: the server refuses
+// the generic routes for them (ADR 0024), so the list offers no action.
+function isDepositRow(tx: Transaction): boolean {
+  return tx.instrument_market === 'DEPOSIT'
+}
+
 // A row as the shared cells read it: the symbol is the instrument's, `#id`
 // while it is not loaded, and a cash row has none. A term deposit reads by
 // its label, never its generated symbol (ADR 0024).
@@ -93,15 +99,19 @@ function EditableTransactionRow({
   onClone: () => void
   onDelete: (event: React.MouseEvent) => void
 }) {
+  const managed = isDepositRow(tx)
+  const rowClass = managed
+    ? ROW_44
+    : `${ROW_44} cursor-pointer ${isEditing ? 'bg-paper' : 'hover:bg-paper'}`
   // A click anywhere on the row edits it, as a tap does on the phone list.
   // Clicks on the row's own buttons keep their behaviour; the
   // keyboard reaches edit through the pencil button, so the row takes no
   // focus itself.
   return (
     <tr
-      className={`${ROW_44} cursor-pointer ${isEditing ? 'bg-paper' : 'hover:bg-paper'}`}
+      className={rowClass}
       onClick={(event) => {
-        if (isEditing || (event.target as HTMLElement).closest('button, a')) return
+        if (managed || isEditing || (event.target as HTMLElement).closest('button, a')) return
         onEdit()
       }}
     >
@@ -121,13 +131,11 @@ function EditableTransactionRow({
             </span>
           )}
           <span className="min-w-0 truncate">
-            {tx.instrument_id !== null &&
-              tx.instrument_market !== 'DEPOSIT' &&
-              tx.instrument_name && (
-                <span className="text-muted" title={tx.instrument_name}>
-                  {tx.instrument_name}
-                </span>
-              )}
+            {tx.instrument_id !== null && !isDepositRow(tx) && tx.instrument_name && (
+              <span className="text-muted" title={tx.instrument_name}>
+                {tx.instrument_name}
+              </span>
+            )}
             {tx.note && (
               <span className="ml-1.5 text-muted first:ml-0" title={tx.note}>
                 {tx.note}
@@ -145,36 +153,38 @@ function EditableTransactionRow({
       {/* Always shown: on hover only, they were out of reach on a touch
           laptop and invisible to anyone scanning the row. */}
       <td className={TD}>
-        <div className="flex justify-end">
-          <Button
-            variant="ghost"
-            iconOnly
-            aria-label={t('transactions.edit', { what: rowLabel(cellsOf(tx)) })}
-            onClick={onEdit}
-            disabled={isEditing}
-          >
-            <Icon name="pencil" />
-          </Button>
-          <Button
-            variant="ghost"
-            iconOnly
-            aria-label={t('transactions.clone', { what: rowLabel(cellsOf(tx)) })}
-            onClick={onClone}
-            disabled={isEditing}
-          >
-            <Icon name="copy" />
-          </Button>
-          <Button
-            variant="ghost"
-            iconOnly
-            aria-label={t('transactions.delete', { what: rowLabel(cellsOf(tx)) })}
-            data-delete-tx={tx.id}
-            onClick={onDelete}
-            disabled={isEditing}
-          >
-            <Icon name="trash" />
-          </Button>
-        </div>
+        {!managed && (
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              iconOnly
+              aria-label={t('transactions.edit', { what: rowLabel(cellsOf(tx)) })}
+              onClick={onEdit}
+              disabled={isEditing}
+            >
+              <Icon name="pencil" />
+            </Button>
+            <Button
+              variant="ghost"
+              iconOnly
+              aria-label={t('transactions.clone', { what: rowLabel(cellsOf(tx)) })}
+              onClick={onClone}
+              disabled={isEditing}
+            >
+              <Icon name="copy" />
+            </Button>
+            <Button
+              variant="ghost"
+              iconOnly
+              aria-label={t('transactions.delete', { what: rowLabel(cellsOf(tx)) })}
+              data-delete-tx={tx.id}
+              onClick={onDelete}
+              disabled={isEditing}
+            >
+              <Icon name="trash" />
+            </Button>
+          </div>
+        )}
       </td>
     </tr>
   )
@@ -198,6 +208,7 @@ function TransactionListItem({
   onDelete: (event: React.MouseEvent) => void
 }) {
   const fee = feeText(tx)
+  const managed = isDepositRow(tx)
   // A named month, not dd/MM: the numeric pattern reads 12/09 in tr, unlike
   // the rest of the app, and the group header above already gives the year.
   const details = [formatMarketDate(tx.date, { day: '2-digit', month: 'short' })]
@@ -213,11 +224,16 @@ function TransactionListItem({
   // "0,004 × ₺2.100.000,00" at 360px.
   return (
     <li className="relative border-b border-line px-4 last:border-0">
-      <button type="button" onClick={onEdit} className="block w-full py-2 text-left">
+      <button
+        type="button"
+        onClick={onEdit}
+        disabled={managed}
+        className="block w-full py-2 text-left"
+      >
         {/* The row button says nothing about what tapping it does, so a hidden
             prefix names it. It prefixes rather than aria-labels the
             button, which would hide the row's own amount and quantity. */}
-        <span className="sr-only">{`${t('transactions.editTitle')}:`}</span>
+        {!managed && <span className="sr-only">{`${t('transactions.editTitle')}:`}</span>}
         <span className="flex min-h-11 flex-wrap items-start gap-x-3 gap-y-0.5 pr-26">
           {/* The pills wrap inside their own column, and the widest one is the
               column's floor (no min-w-0), so it never shrinks under the amount.
@@ -242,28 +258,30 @@ function TransactionListItem({
         </span>
         <span className="mt-0.5 block truncate text-[12px] text-muted">{details.join(' · ')}</span>
       </button>
-      <div className="absolute top-2 right-4 flex gap-2">
-        <Button
-          variant="ghost"
-          iconOnly
-          // 44px touch target on a phone; this list renders only below md.
-          className="max-md:h-11 max-md:w-11"
-          aria-label={t('transactions.clone', { what: rowLabel(cellsOf(tx)) })}
-          onClick={onClone}
-        >
-          <Icon name="copy" />
-        </Button>
-        <Button
-          variant="ghost"
-          iconOnly
-          className="max-md:h-11 max-md:w-11"
-          aria-label={t('transactions.delete', { what: rowLabel(cellsOf(tx)) })}
-          data-delete-tx={tx.id}
-          onClick={onDelete}
-        >
-          <Icon name="trash" />
-        </Button>
-      </div>
+      {!managed && (
+        <div className="absolute top-2 right-4 flex gap-2">
+          <Button
+            variant="ghost"
+            iconOnly
+            // 44px touch target on a phone; this list renders only below md.
+            className="max-md:h-11 max-md:w-11"
+            aria-label={t('transactions.clone', { what: rowLabel(cellsOf(tx)) })}
+            onClick={onClone}
+          >
+            <Icon name="copy" />
+          </Button>
+          <Button
+            variant="ghost"
+            iconOnly
+            className="max-md:h-11 max-md:w-11"
+            aria-label={t('transactions.delete', { what: rowLabel(cellsOf(tx)) })}
+            data-delete-tx={tx.id}
+            onClick={onDelete}
+          >
+            <Icon name="trash" />
+          </Button>
+        </div>
+      )}
     </li>
   )
 }

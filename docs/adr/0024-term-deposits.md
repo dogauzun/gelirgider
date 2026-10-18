@@ -29,6 +29,8 @@ advance. The instrument's name is `Vadeli mevduat <currency> <maturity>` with
 the date as YYYY-MM-DD; the frontend never prints the symbol or that name for a
 deposit position but builds a localized label from the currency and the date at
 the end of the name (`positionLabel` in `frontend/src/lib/positions.ts`).
+İşlemler lists a deposit's `buy` and `sell` rows under that label with no edit, clone or
+delete, since the generic routes refuse them; they change on the Mevduat tab.
 
 A `term_deposits` table holds the terms: principal, rate, stopaj, start date,
 maturity date, currency and the link to the instrument. It carries `user_id`.
