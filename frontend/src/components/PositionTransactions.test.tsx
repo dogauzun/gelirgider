@@ -9,6 +9,7 @@ const buy: Transaction = {
   instrument_id: 7,
   instrument_symbol: 'THYAO',
   instrument_name: 'Türk Hava Yolları',
+  instrument_market: 'BIST',
   type: 'buy',
   date: '2026-03-02',
   quantity: '10',

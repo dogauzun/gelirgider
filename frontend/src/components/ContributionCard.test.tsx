@@ -207,6 +207,8 @@ describe('ContributionCard', () => {
     const row = (id: number, symbol: string, total: string | null, closed = false) => ({
       instrument_id: id,
       symbol,
+      market: 'BIST',
+      currency: 'TRY',
       closed,
       price: null,
       income: null,
@@ -238,6 +240,19 @@ describe('ContributionCard', () => {
         'href',
         '/portfolios/7/positions/2?range=1y',
       )
+    })
+
+    it('shows a deposit by its currency, as plain text', async () => {
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+        Response.json(
+          attribution([{ ...row(4, 'TD-5e15a427b09cf13f', '12.00'), market: 'DEPOSIT' }]),
+        ),
+      )
+      const card = renderCard([position(3, 'THYAO', '1.00', null)])
+      fireEvent.click(within(card).getByRole('radio', { name: 'Dönem' }))
+      await within(card).findByText('Vadeli mevduat TRY')
+      expect(items(card)).toEqual(['Vadeli mevduat TRY+₺12,00'])
+      expect(within(card).queryByRole('link')).not.toBeInTheDocument()
     })
 
     it('reads as empty while the attribution has not answered', () => {

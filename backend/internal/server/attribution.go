@@ -251,6 +251,8 @@ type attributionBuckets struct {
 type attributionPosition struct {
 	InstrumentID int64   `json:"instrument_id"`
 	Symbol       string  `json:"symbol"`
+	Market       string  `json:"market"`
+	Currency     string  `json:"currency"`
 	Closed       bool    `json:"closed"` // quantity zero on the last day
 	Price        *string `json:"price"`
 	Income       *string `json:"income"`
@@ -287,7 +289,7 @@ func (s *historySweep) attributionResponse(from, to time.Time, r rangeReturn) at
 	for _, id := range slices.Sorted(maps.Keys(r.instruments)) {
 		t := r.instruments[id]
 		out.Positions = append(out.Positions, attributionPosition{
-			InstrumentID: id, Symbol: s.symbolOf[id], Closed: !slices.Contains(held, id),
+			InstrumentID: id, Symbol: s.symbolOf[id], Market: s.marketOf[id], Currency: s.currencyOf[id], Closed: !slices.Contains(held, id),
 			Price: fixed2(t.price, t.missing), Income: fixed2(t.income, t.missing), FX: fixed2(t.fx, t.missing),
 			Total: fixed2(t.price.Add(t.income).Add(t.fx), t.missing),
 		})

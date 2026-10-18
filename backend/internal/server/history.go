@@ -394,9 +394,12 @@ type historySweep struct {
 	// currency (attributeDay); day 0 has no previous day, so its entry has
 	// only held. nil unless sweepOpts.attribution is set.
 	attribution []dayReturn
-	// symbolOf and deposit are sweepInputs', for the attribution response and
-	// for placing a deposit's first-price jump in income.
+	// symbolOf, marketOf, currencyOf and deposit are sweepInputs', for the
+	// attribution response and for placing a deposit's first-price jump in
+	// income.
 	symbolOf      map[int64]string
+	marketOf      map[int64]string
+	currencyOf    map[int64]string
 	deposit       map[int64]bool
 	missingRates  []string
 	missingPrices []string
@@ -491,6 +494,7 @@ type sweepInputs struct {
 	splitsOf           map[int64][]split.Split
 	currencyOf         map[int64]string
 	symbolOf           map[int64]string
+	marketOf           map[int64]string
 	// deposit is the term deposits' instrument ids: their price change is
 	// accrued interest, income in the return split.
 	deposit           map[int64]bool
@@ -528,10 +532,12 @@ func (h *historyHandler) loadSweepInputs(ctx context.Context, userID int64, txs 
 	}
 	in.currencyOf = make(map[int64]string, len(instrumentIDs))
 	in.symbolOf = make(map[int64]string, len(instrumentIDs))
+	in.marketOf = make(map[int64]string, len(instrumentIDs))
 	in.deposit = map[int64]bool{}
 	for id, instr := range instruments {
 		in.currencyOf[id] = instr.Currency
 		in.symbolOf[id] = instr.Symbol
+		in.marketOf[id] = instr.Market
 		in.deposit[id] = instr.Market == instrument.MarketDeposit
 	}
 	in.benchmarkCurrency = benchmarkCurrencies[benchmarkCode]
@@ -628,6 +634,8 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 		unpriced:     make([][]int64, 0, days),
 		firstPrice:   map[int64]priceJump{},
 		symbolOf:     in.symbolOf,
+		marketOf:     in.marketOf,
+		currencyOf:   in.currencyOf,
 		deposit:      in.deposit,
 		unpricedBuys: map[int64][]unpricedBuy{},
 		negativeCash: make([]bool, 0, days),

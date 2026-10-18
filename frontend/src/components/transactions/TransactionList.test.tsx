@@ -12,6 +12,7 @@ function deposit(id: number, amount: string, currency: string): Transaction {
     instrument_id: null,
     instrument_symbol: null,
     instrument_name: null,
+    instrument_market: null,
     type: 'deposit',
     date: '2026-09-01',
     quantity: null,
@@ -22,6 +23,17 @@ function deposit(id: number, amount: string, currency: string): Transaction {
     note: null,
     created_at: '2026-09-01T00:00:00Z',
     import_id: null,
+  }
+}
+
+function termDeposit(): Transaction {
+  return {
+    ...deposit(3, '50000', 'TRY'),
+    type: 'buy',
+    instrument_id: 9,
+    instrument_symbol: 'TD-5e15a427b09cf13f',
+    instrument_name: 'Vadeli mevduat TRY 2026-12-01',
+    instrument_market: 'DEPOSIT',
   }
 }
 
@@ -70,5 +82,31 @@ describe('TransactionList', () => {
       .map((button) => button.getAttribute('aria-label'))
     expect(names).toHaveLength(2)
     expect(names[0]).not.toBe(names[1])
+  })
+
+  // ADR 0024: the user never sees a term deposit as an instrument, so no
+  // generated TD- symbol and no stored Turkish name, in either locale.
+  it.each([
+    ['tr', true, 'Vadeli mevduat TRY 2026-12-01'],
+    ['tr', false, 'Vadeli mevduat TRY 2026-12-01'],
+    ['en', true, 'Term deposit TRY 2026-12-01'],
+    ['en', false, 'Term deposit TRY 2026-12-01'],
+  ] as const)('labels a term deposit row (%s, desktop %s)', (locale, isDesktop, label) => {
+    setLocale(locale)
+    desktop = isDesktop
+    render(
+      <TransactionList
+        rows={[termDeposit()]}
+        imports={new Map()}
+        editingId={undefined}
+        cardRef={createRef()}
+        onEdit={() => {}}
+        onClone={() => {}}
+        onDelete={() => {}}
+      />,
+    )
+    expect(screen.getAllByText(label)).toHaveLength(1)
+    expect(screen.queryByText(/TD-/)).not.toBeInTheDocument()
+    if (locale === 'en') expect(screen.queryByText(/Vadeli/)).not.toBeInTheDocument()
   })
 })

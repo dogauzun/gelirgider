@@ -16,6 +16,8 @@ interface AttributionBuckets {
 export interface AttributionPosition {
   instrument_id: number
   symbol: string
+  market: string
+  currency: string
   // Quantity zero on the last day of the range.
   closed: boolean
   price: string | null

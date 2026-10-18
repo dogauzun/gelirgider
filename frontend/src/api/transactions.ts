@@ -18,6 +18,7 @@ export interface Transaction {
   instrument_id: number | null
   instrument_symbol: string | null
   instrument_name: string | null
+  instrument_market: string | null
   type: TransactionType
   date: string
   quantity: string | null

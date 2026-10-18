@@ -180,6 +180,7 @@ type transactionResponse struct {
 	InstrumentID     *int64  `json:"instrument_id"`
 	InstrumentSymbol *string `json:"instrument_symbol"`
 	InstrumentName   *string `json:"instrument_name"`
+	InstrumentMarket *string `json:"instrument_market"`
 	Type             string  `json:"type"`
 	Date             string  `json:"date"`
 	Quantity         *string `json:"quantity"`
@@ -201,6 +202,7 @@ func toResponse(t Transaction) transactionResponse {
 		InstrumentID:     t.InstrumentID,
 		InstrumentSymbol: t.InstrumentSymbol,
 		InstrumentName:   t.InstrumentName,
+		InstrumentMarket: t.InstrumentMarket,
 		Type:             t.Type,
 		Date:             t.Date,
 		Amount:           t.Amount.String(),

@@ -9,6 +9,7 @@ function tx(over: Partial<Transaction>): Transaction {
     instrument_id: null,
     instrument_symbol: null,
     instrument_name: null,
+    instrument_market: null,
     type: 'deposit',
     date: '2026-01-02',
     quantity: null,

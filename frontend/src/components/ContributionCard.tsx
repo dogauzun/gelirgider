@@ -66,7 +66,9 @@ export function ContributionCard({
     mode === 'range'
       ? (attribution.data?.positions ?? []).map((p) => ({
           instrumentId: p.instrument_id,
-          symbol: p.symbol,
+          symbol:
+            p.market === 'DEPOSIT' ? t('deposits.labelShort', { currency: p.currency }) : p.symbol,
+          plain: p.market === 'DEPOSIT',
           amount: p.total,
         }))
       : positionInputs(positions, mode)

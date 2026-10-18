@@ -517,6 +517,9 @@ func TestAttributionAllIsSumOfPortfolios(t *testing.T) {
 			t.Errorf("instrument %d: all %+v, P1 %+v, P2 %+v", id, a[id], o[id], w[id])
 		}
 	}
+	if a[f.sa].Market != "BIST" || a[f.sa].Currency != "TRY" {
+		t.Errorf("SA market/currency = %q/%q, want BIST/TRY", a[f.sa].Market, a[f.sa].Currency)
+	}
 	if !a[f.sc].Closed || a[f.sa].Closed || a[f.sb].Closed {
 		t.Errorf("closed: SA %v SB %v SC %v, want false false true", a[f.sa].Closed, a[f.sb].Closed, a[f.sc].Closed)
 	}
