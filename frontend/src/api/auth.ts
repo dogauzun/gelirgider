@@ -270,18 +270,47 @@ export function useTotpSetup(password: string) {
   })
 }
 
+interface RecoveryCodes {
+  recovery_codes: string[]
+}
+
 // Confirm and disable change `totp_enabled`: `onDone` runs once me has refetched.
-export function useTotpConfirm(code: string, onDone: () => void) {
+// The recovery codes go straight to `onCodes` and the mutation returns nothing,
+// so they never sit in the mutation cache.
+export function useTotpConfirm(
+  code: string,
+  onCodes: (codes: string[]) => void,
+  onDone: () => void,
+) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: () =>
-      apiFetch<void>('/api/account/totp/confirm', {
+    mutationFn: async () => {
+      const { recovery_codes } = await apiFetch<RecoveryCodes>('/api/account/totp/confirm', {
         method: 'POST',
         body: JSON.stringify({ code }),
-      }),
+      })
+      onCodes(recovery_codes)
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: meQueryKey })
       onDone()
+    },
+  })
+}
+
+// Replaces all recovery codes. `code` is an authenticator or a recovery code.
+export function useTotpRegenerate(
+  password: string,
+  code: string,
+  onCodes: (codes: string[]) => void,
+) {
+  return useMutation({
+    mutationFn: async () => {
+      const { recovery_codes } = await apiFetch<RecoveryCodes>('/api/account/totp/recovery-codes', {
+        method: 'POST',
+        body: JSON.stringify({ password, code }),
+      })
+      onCodes(recovery_codes)
     },
   })
 }

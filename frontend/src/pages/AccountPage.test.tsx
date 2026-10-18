@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -469,6 +469,12 @@ describe('AccountPage', () => {
   const secret = 'JBSWY3DPEHPK3PXP'
   const uri = `otpauth://totp/Gelirgider:a%40b.com?secret=${secret}&issuer=Gelirgider`
   const setupOk = () => new Response(JSON.stringify({ secret, uri }))
+  const recoveryCodes = Array.from({ length: 10 }, (_, i) => `ABCD${i}-EFGH${i}`)
+  const codesOk = (codes = recoveryCodes) => new Response(JSON.stringify({ recovery_codes: codes }))
+  function totpOk(url: string) {
+    if (url === '/api/account/totp/setup') return setupOk()
+    return url === '/api/account/totp' ? new Response(null, { status: 204 }) : codesOk()
+  }
 
   // The password card has a field of the same label.
   async function twoStepCard() {
@@ -485,9 +491,7 @@ describe('AccountPage', () => {
   }
 
   it('shows the QR code and secret after setup, and the state as on after a confirmed code', async () => {
-    const calls = mockTotp((url) =>
-      url === '/api/account/totp/setup' ? setupOk() : new Response(null, { status: 204 }),
-    )
+    const calls = mockTotp((url) => totpOk(url))
     renderPage()
     await startEnrolment('password123')
 
@@ -509,7 +513,7 @@ describe('AccountPage', () => {
     expect(await within(card).findByText('Açık')).toBeInTheDocument()
     expect(calls[1]).toMatchObject({ url: '/api/account/totp/confirm', body: { code: '123456' } })
     expect(screen.queryByDisplayValue(secret)).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Kapat' })).toBeInTheDocument()
+    expect(screen.getByText('Bu kodlar bir daha gösterilmeyecek')).toBeInTheDocument()
   })
 
   it('shows a wrong password inline during enrolment', async () => {
@@ -540,20 +544,19 @@ describe('AccountPage', () => {
   })
 
   it('turns two-step off with the password and a code', async () => {
-    const calls = mockTotp((url) =>
-      url === '/api/account/totp/setup' ? setupOk() : new Response(null, { status: 204 }),
-    )
+    const calls = mockTotp((url) => totpOk(url))
     renderPage()
     await startEnrolment('password123')
     fireEvent.change(await screen.findByLabelText('Uygulamadaki 6 haneli kod'), {
       target: { value: '123456' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Doğrula ve aç' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Kodları sakladım' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Kapat' }))
     fireEvent.change(within(await twoStepCard()).getByLabelText('Mevcut şifre'), {
       target: { value: 'password123' },
     })
-    fireEvent.change(screen.getByLabelText('Uygulamadaki 6 haneli kod'), {
+    fireEvent.change(screen.getByLabelText('6 haneli kod veya bir kurtarma kodu'), {
       target: { value: '654321' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'İki adımlı doğrulamayı kapat' }))
@@ -564,6 +567,109 @@ describe('AccountPage', () => {
       url: '/api/account/totp',
       body: { password: 'password123', code: '654321' },
     })
+  })
+
+  async function enrol() {
+    await startEnrolment('password123')
+    fireEvent.change(await screen.findByLabelText('Uygulamadaki 6 haneli kod'), {
+      target: { value: '123456' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Doğrula ve aç' }))
+  }
+
+  it('shows the 10 recovery codes once after a confirmed code, until they are dismissed', async () => {
+    mockTotp(totpOk)
+    renderPage()
+    await enrol()
+
+    const list = await screen.findByRole('list', { name: 'Kurtarma kodları' })
+    expect(
+      within(list)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent),
+    ).toEqual(recoveryCodes)
+    expect(screen.getByText('Bu kodlar bir daha gösterilmeyecek')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Kapat' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Kodları sakladım' }))
+
+    expect(screen.queryByRole('list', { name: 'Kurtarma kodları' })).not.toBeInTheDocument()
+    expect(screen.queryByText(recoveryCodes[0])).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Kapat' })).toBeInTheDocument()
+  })
+
+  it('drops the recovery codes when the card remounts', async () => {
+    mockTotp(totpOk)
+    renderPage()
+    await enrol()
+    await screen.findByRole('list', { name: 'Kurtarma kodları' })
+
+    cleanup()
+    renderPage()
+
+    expect(await screen.findByRole('button', { name: 'Kapat' })).toBeInTheDocument()
+    expect(screen.queryByText(recoveryCodes[0])).not.toBeInTheDocument()
+  })
+
+  it('copies the recovery codes, one per line', async () => {
+    mockTotp(totpOk)
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+    renderPage()
+    await enrol()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Kopyala' }))
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(recoveryCodes.join('\n')))
+    vi.unstubAllGlobals()
+  })
+
+  it('regenerates the recovery codes with the password and a recovery code', async () => {
+    const fresh = recoveryCodes.map((c) => c.replace('ABCD', 'WXYZ'))
+    const calls = mockTotp((url) =>
+      url === '/api/account/totp/recovery-codes' ? codesOk(fresh) : totpOk(url),
+    )
+    renderPage()
+    await enrol()
+    fireEvent.click(await screen.findByRole('button', { name: 'Kodları sakladım' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Kurtarma kodlarını yenile' }))
+    fireEvent.change(within(await twoStepCard()).getByLabelText('Mevcut şifre'), {
+      target: { value: 'password123' },
+    })
+    fireEvent.change(screen.getByLabelText('6 haneli kod veya bir kurtarma kodu'), {
+      target: { value: 'ABCDE-FGHIJ' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Yeni kodlar üret' }))
+
+    const list = await screen.findByRole('list', { name: 'Kurtarma kodları' })
+    expect(
+      within(list)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent),
+    ).toEqual(fresh)
+    expect(calls[2]).toMatchObject({
+      method: 'POST',
+      url: '/api/account/totp/recovery-codes',
+      body: { password: 'password123', code: 'ABCDE-FGHIJ' },
+    })
+  })
+
+  it('turns two-step off with a recovery code in place of the code', async () => {
+    const calls = mockTotp(totpOk)
+    renderPage()
+    await enrol()
+    fireEvent.click(await screen.findByRole('button', { name: 'Kodları sakladım' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Kapat' }))
+    fireEvent.change(within(await twoStepCard()).getByLabelText('Mevcut şifre'), {
+      target: { value: 'password123' },
+    })
+    fireEvent.change(screen.getByLabelText('6 haneli kod veya bir kurtarma kodu'), {
+      target: { value: 'ABCDE-FGHIJ' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'İki adımlı doğrulamayı kapat' }))
+
+    expect(await within(await twoStepCard()).findByText('Kapalı')).toBeInTheDocument()
+    expect(calls[2]).toMatchObject({ method: 'DELETE', body: { code: 'ABCDE-FGHIJ' } })
   })
 
   it('switches the interface language from the segmented control', async () => {
