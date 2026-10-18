@@ -39,6 +39,7 @@ of a phase epic, or a workflow rule.
 | 0029 | [Goals and the real-terms projection](0029-goals-and-projection.md)                                                | accepted 2026-10-18                               |
 | 0030 | [Saving plans](0030-saving-plans.md)                                                                               | accepted 2026-10-18                               |
 | 0031 | [Dividend income forecast](0031-dividend-forecast.md)                                                              | accepted 2026-10-18                               |
+| 0032 | [Watchlist with target prices](0032-watchlist.md)                                                                  | accepted 2026-10-18                               |
 
 ## Convention
 
