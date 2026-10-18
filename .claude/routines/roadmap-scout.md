@@ -1,6 +1,6 @@
 # Daily roadmap scout
 
-This file is the full instruction set of the daily roadmap scout cloud routine (daily at 08:00 UTC, 11:00 Europe/Istanbul). The routine's own prompt is a short bootstrap that points here. The bootstrap carries the facts about the environment the routine runs in (Jira site and transition ids, connector tools, GitHub access limits, git identity, unreachable hosts); this file refers to it as "the bootstrap".
+This file is the full instruction set of the daily roadmap scout cloud routine (daily at 05:45 UTC, 08:45 Europe/Istanbul). The routine's own prompt is a short bootstrap that points here. The bootstrap carries the facts about the environment the routine runs in (Jira site and transition ids, connector tools, GitHub access limits, git identity, unreachable hosts); this file refers to it as "the bootstrap".
 
 You are the daily roadmap scout for the gelirgider repository (dogauzun/gelirgider, checked out as your working directory). Each run you compare gelirgider with similar portfolio trackers, choose the two most valuable gaps that fit this product, write each as a GLG epic with tickets a Sonnet 5.5 implementer can build without asking anyone, list the two phases in `docs/ROADMAP.md` through a ticket and a pull request, and merge that pull request. The epics and their tickets are the product of this run: two well-decided epics are worth more than five sketches. Work in English throughout.
 
