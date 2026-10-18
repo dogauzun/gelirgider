@@ -37,6 +37,7 @@ of a phase epic, or a workflow rule.
 | 0027 | [Return attribution](0027-return-attribution.md)                                                                   | accepted 2026-10-18                               |
 | 0028 | [Target allocation and the contribution planner](0028-target-allocation.md)                                        | accepted 2026-10-18                               |
 | 0029 | [Goals and the real-terms projection](0029-goals-and-projection.md)                                                | accepted 2026-10-18                               |
+| 0030 | [Saving plans](0030-saving-plans.md)                                                                               | accepted 2026-10-18                               |
 
 ## Convention
 
