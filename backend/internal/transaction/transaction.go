@@ -101,6 +101,10 @@ type Transaction struct {
 	storedDate string
 }
 
+// BookedSplit reports whether t is a zero-price buy that DropBookedSplits put
+// in place of a split row.
+func (t Transaction) BookedSplit() bool { return t.bookedSplit }
+
 // StoredDate returns the date t is stored on: Date, unless DropBookedSplits
 // moved t, a bonus buy, to its split's ex-date. The statement preview's
 // duplicate check reads List's rows through it.
