@@ -1,7 +1,8 @@
 import { useMemo, useState, type ComponentProps, type FormEvent } from 'react'
+import type { UseMutationResult } from '@tanstack/react-query'
 import { encode } from 'uqr'
 import { ApiError } from '../api'
-import { useMe, useTotpConfirm, useTotpDisable, useTotpSetup } from '../api/auth'
+import { useMe, useTotpConfirm, useTotpDisable, useTotpRegenerate, useTotpSetup } from '../api/auth'
 import { t } from '../i18n/strings'
 import { toast } from '../lib/toast'
 import { Button } from './ui/Button'
@@ -35,8 +36,9 @@ const selectAll = (event: { currentTarget: HTMLInputElement }) => event.currentT
 function CodeInput({
   value,
   onChange,
+  recovery = false,
   ...aria
-}: { value: string; onChange: (code: string) => void } & Omit<
+}: { value: string; onChange: (code: string) => void; recovery?: boolean } & Omit<
   ComponentProps<'input'>,
   'value' | 'onChange'
 >) {
@@ -44,10 +46,11 @@ function CodeInput({
     <input
       {...aria}
       type="text"
-      inputMode="numeric"
+      // A recovery code is 11 letters and digits: no cap, no numeric pad.
+      inputMode={recovery ? undefined : 'numeric'}
       autoComplete="one-time-code"
       required
-      maxLength={6}
+      maxLength={recovery ? undefined : 6}
       value={value}
       onChange={(event) => onChange(event.target.value)}
       className={inputClass()}
@@ -77,12 +80,12 @@ function PasswordInput({
   )
 }
 
-function EnableFlow() {
+function EnableFlow({ onCodes }: { onCodes: (codes: string[]) => void }) {
   const [asking, setAsking] = useState(false)
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
   const setup = useTotpSetup(password)
-  const confirm = useTotpConfirm(code, () => toast(t('account.totp.enabledToast')))
+  const confirm = useTotpConfirm(code, onCodes, () => toast(t('account.totp.enabledToast')))
 
   function askPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -169,44 +172,62 @@ function EnableFlow() {
   )
 }
 
-function DisableFlow() {
+// A password and a code ask before a change that needs them: turning two-step
+// off, or replacing the recovery codes. `useAction` gets both and `onCodes`,
+// which only the regenerate action uses.
+function ReauthFlow({
+  openLabel,
+  submitLabel,
+  submitVariant,
+  useAction,
+  onCodes,
+}: {
+  openLabel: string
+  submitLabel: string
+  submitVariant: 'danger' | 'primary'
+  useAction: (
+    password: string,
+    code: string,
+    onCodes: (codes: string[]) => void,
+  ) => UseMutationResult<unknown, Error, void>
+  onCodes: (codes: string[]) => void
+}) {
   const [asking, setAsking] = useState(false)
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
-  const disable = useTotpDisable(password, code, () => toast(t('account.totp.disabledToast')))
+  const action = useAction(password, code, onCodes)
 
   if (!asking) {
     return (
       <Button variant="secondary" onClick={() => setAsking(true)} className="self-start">
-        {t('account.totp.disable')}
+        {openLabel}
       </Button>
     )
   }
 
   // The wrong password is the field above; any other rejection is the code.
   const wrongPassword =
-    disable.error instanceof ApiError &&
-    disable.error.body.error === 'current password is incorrect'
-  const message = disable.isError ? disable.error.message : undefined
+    action.error instanceof ApiError && action.error.body.error === 'current password is incorrect'
+  const message = action.isError ? action.error.message : undefined
 
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault()
-        disable.mutate()
+        action.mutate()
       }}
-      onChange={() => disable.isError && disable.reset()}
+      onChange={() => action.isError && action.reset()}
       className="flex max-w-sm flex-col gap-4"
     >
       <Field label={t('account.currentPassword')} error={wrongPassword ? message : undefined}>
         <PasswordInput value={password} onChange={setPassword} />
       </Field>
-      <Field label={t('account.totp.code')} error={wrongPassword ? undefined : message}>
-        <CodeInput value={code} onChange={setCode} />
+      <Field label={t('account.totp.codeOrRecovery')} error={wrongPassword ? undefined : message}>
+        <CodeInput recovery value={code} onChange={setCode} />
       </Field>
       <div className="flex gap-2">
-        <Button type="submit" variant="danger" pending={disable.isPending}>
-          {t('account.totp.disableSubmit')}
+        <Button type="submit" variant={submitVariant} pending={action.isPending}>
+          {submitLabel}
         </Button>
         <Button
           variant="ghost"
@@ -214,7 +235,7 @@ function DisableFlow() {
             setAsking(false)
             setPassword('')
             setCode('')
-            disable.reset()
+            action.reset()
           }}
         >
           {t('confirm.cancel')}
@@ -224,11 +245,73 @@ function DisableFlow() {
   )
 }
 
+const useDisableAction = (password: string, code: string) =>
+  useTotpDisable(password, code, () => toast(t('account.totp.disabledToast')))
+
+// The codes live in the card's state alone: no query, storage or URL.
+function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone: () => void }) {
+  // Awaited inside try: `navigator.clipboard` is undefined outside a secure
+  // context, which throws before any promise exists.
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(codes.join('\n'))
+      toast(t('account.totp.codes.copied'))
+    } catch {
+      toast(t('account.totp.codes.copyFailed'), { error: true })
+    }
+  }
+
+  return (
+    <div className="flex max-w-sm flex-col gap-4">
+      <p className="text-[13px] font-medium text-warn">{t('account.totp.codes.warning')}</p>
+      <p className="text-[13px] text-muted">{t('account.totp.codes.help')}</p>
+      <ul
+        aria-label={t('account.totp.codes')}
+        className="grid grid-cols-2 gap-x-4 gap-y-1 text-[14px] font-semibold tracking-wide text-ink"
+      >
+        {codes.map((code) => (
+          <li key={code}>{code}</li>
+        ))}
+      </ul>
+      <div className="flex gap-2">
+        <Button variant="secondary" onClick={() => void copy()}>
+          {t('account.totp.codes.copy')}
+        </Button>
+        <Button onClick={onDone}>{t('account.totp.codes.done')}</Button>
+      </div>
+    </div>
+  )
+}
+
 // The flows are separate components so a finished one unmounts with its
-// secret, password and code: `totp_enabled` on /api/me swaps them.
+// secret, password and code: `totp_enabled` on /api/me swaps them. The
+// recovery codes are held here, as the enrolment flow unmounts right after
+// it receives them.
 export function TwoStepCard() {
   const { data: me } = useMe()
+  const [codes, setCodes] = useState<string[] | null>(null)
   if (!me) return null
+
+  const flows = me.totp_enabled ? (
+    <>
+      <ReauthFlow
+        openLabel={t('account.totp.regenerate')}
+        submitLabel={t('account.totp.regenerateSubmit')}
+        submitVariant="primary"
+        useAction={useTotpRegenerate}
+        onCodes={setCodes}
+      />
+      <ReauthFlow
+        openLabel={t('account.totp.disable')}
+        submitLabel={t('account.totp.disableSubmit')}
+        submitVariant="danger"
+        useAction={useDisableAction}
+        onCodes={setCodes}
+      />
+    </>
+  ) : (
+    <EnableFlow onCodes={setCodes} />
+  )
 
   return (
     <section className="card p-5">
@@ -238,7 +321,7 @@ export function TwoStepCard() {
         <p className="text-[13px] font-medium text-ink-2">
           {me.totp_enabled ? t('account.totp.statusOn') : t('account.totp.statusOff')}
         </p>
-        {me.totp_enabled ? <DisableFlow /> : <EnableFlow />}
+        {codes ? <RecoveryCodes codes={codes} onDone={() => setCodes(null)} /> : flows}
       </div>
     </section>
   )
