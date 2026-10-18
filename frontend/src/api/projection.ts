@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '../api'
+import { formatNumber } from '../lib/format'
 import type { Goal } from './goal'
 import type { PortfolioScope } from './summary'
 
@@ -42,4 +43,5 @@ export function useProjection(portfolioId: PortfolioScope, enabled: boolean) {
   })
 }
 
-export const progressPercent = (progress: number) => `${Math.round(progress * 100)}%`
+export const progressPercent = (progress: number) =>
+  formatNumber(progress, { style: 'percent', maximumFractionDigits: 0 })

@@ -568,7 +568,7 @@ describe('PortfolioHeader', () => {
       </QueryClientProvider>,
     )
 
-    const pill = await screen.findByRole('link', { name: `${t('projection.title')} 42%` })
+    const pill = await screen.findByRole('link', { name: `${t('projection.title')} %42` })
     expect(pill).toHaveAttribute('href', '#projection')
     expect(pill.firstElementChild).toHaveClass('text-ink-2')
   })
@@ -596,7 +596,7 @@ describe('PortfolioHeader', () => {
     await screen.findByRole('heading', { level: 1, name: 'Emeklilik' })
     await waitFor(() => expect(queryClient.getQueryData(['portfolios', 1, 'goal'])).toBeNull())
     expect(
-      screen.queryByRole('link', { name: `${t('projection.title')} 42%` }),
+      screen.queryByRole('link', { name: `${t('projection.title')} %42` }),
     ).not.toBeInTheDocument()
   })
 
