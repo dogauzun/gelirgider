@@ -90,6 +90,11 @@ export const enCharts: AreaStrings<typeof trCharts> = {
   'drawdown.current': 'Now',
   'drawdown.error': 'Could not load the drawdown',
   'drawdown.chart.summary': 'Drawdown {from} – {to}, largest {value}',
+  // The goal projection chart: the 75th, 50th and 25th percentile paths.
+  'projection.high': 'Good case',
+  'projection.mid': 'Median case',
+  'projection.low': 'Bad case',
+  'projection.chart.summary': 'Goal projection {from} – {to}, ending at {value}',
   'chart.totalValue': 'Total value',
   'chart.costBasis': 'Cost',
   'chart.empty': 'Not enough data for a chart.',

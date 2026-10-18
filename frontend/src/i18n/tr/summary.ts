@@ -117,4 +117,10 @@ export const trSummary = {
   'goal.error.targetDate': 'Hedef tarih bugünden sonra olmalı.',
   'goal.error.unit': 'Bu birim, raporlama para birimiyle kullanılamaz.',
   'goal.error.notFound': 'Hedef bulunamadı.',
+  // The goal card on Özet.
+  'projection.title': 'Hedef',
+  'projection.reached': 'Bu hızla hedefe {month} içinde ulaşılır.',
+  'projection.gap': 'Hedef için ayda {amount} daha gerekiyor.',
+  'projection.tooLittleHistory': 'Tahmin için en az 6 aylık geçmiş gerekir.',
+  'projection.error': 'Hedef tahmini yüklenemedi',
 } as const

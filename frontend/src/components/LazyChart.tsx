@@ -7,6 +7,7 @@ import type { AllocationDonutProps } from './charts/AllocationDonut'
 import type { BarChartProps } from './charts/BarChart'
 import type { DrawdownChartProps } from './charts/DrawdownChart'
 import type { LineChartProps } from './charts/LineChart'
+import type { ProjectionChartProps } from './charts/ProjectionChart'
 import type { ReturnBarsProps } from './charts/ReturnBars'
 import { ErrorBoundary } from './ErrorBoundary'
 import { Skeleton } from './ui/Skeleton'
@@ -19,6 +20,7 @@ import { Skeleton } from './ui/Skeleton'
 const LazyLineChart = lazyNamed(() => import('./charts'), 'LineChart')
 const LazyBarChart = lazyNamed(() => import('./charts'), 'BarChart')
 const LazyDrawdownChart = lazyNamed(() => import('./charts'), 'DrawdownChart')
+const LazyProjectionChart = lazyNamed(() => import('./charts'), 'ProjectionChart')
 const LazyReturnBars = lazyNamed(() => import('./charts'), 'ReturnBars')
 const LazyAllocationDonut = lazyNamed(() => import('./charts'), 'AllocationDonut')
 
@@ -92,6 +94,20 @@ export function DrawdownChart(props: DrawdownChartProps) {
       }
     >
       <LazyDrawdownChart {...props} />
+    </Loaded>
+  )
+}
+
+export function ProjectionChart(props: ProjectionChartProps) {
+  return (
+    <Loaded
+      placeholder={
+        <div data-chart-placeholder style={{ height: props.height ?? 200 }}>
+          <Skeleton className="h-full w-full" />
+        </div>
+      }
+    >
+      <LazyProjectionChart {...props} />
     </Loaded>
   )
 }

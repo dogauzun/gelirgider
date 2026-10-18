@@ -162,6 +162,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -265,6 +266,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -334,6 +336,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -429,6 +432,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -531,6 +535,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
     const renderPage = async () => {
@@ -626,6 +631,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -710,6 +716,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/all/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -777,6 +784,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/3/history?')) {
         return Response.json({ currency: 'TRY', points: [] })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -848,6 +856,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -921,6 +930,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -1001,6 +1011,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -1063,6 +1074,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -1119,6 +1131,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -1202,6 +1215,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -1261,6 +1275,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -1324,6 +1339,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -1391,6 +1407,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -1483,6 +1500,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -1569,6 +1587,8 @@ describe('SummaryPage', () => {
             { status: 200 },
           )
         }
+        if (url.endsWith('/goal'))
+          return Response.json({ error: 'goal not found' }, { status: 404 })
         throw new Error(`unexpected request: ${url}`)
       })
       return urls
@@ -1771,6 +1791,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -1836,6 +1857,7 @@ describe('SummaryPage', () => {
         }
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -1895,6 +1917,7 @@ describe('SummaryPage', () => {
           answer1y = resolve
         })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -1941,6 +1964,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/999/history?')) {
         return new Response(JSON.stringify({ error: 'portfolio not found' }), { status: 404 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -2033,6 +2057,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
     const historyCalls = () =>
@@ -2158,6 +2183,7 @@ describe('SummaryPage', () => {
         priced.add(Number(put[1]))
         return Response.json({})
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
     function renderAt(path: string) {
@@ -2256,6 +2282,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -2346,6 +2373,8 @@ describe('SummaryPage', () => {
           deleted = response.ok
           return response
         }
+        if (url.endsWith('/goal'))
+          return Response.json({ error: 'goal not found' }, { status: 404 })
         throw new Error(`unexpected request: ${url}`)
       })
     }
@@ -2484,6 +2513,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -2544,6 +2574,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -2607,6 +2638,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -2735,6 +2767,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -2823,6 +2856,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -2892,6 +2926,7 @@ describe('SummaryPage', () => {
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
+      if (url.endsWith('/goal')) return Response.json({ error: 'goal not found' }, { status: 404 })
       throw new Error(`unexpected request: ${url}`)
     })
 
@@ -2949,6 +2984,8 @@ describe('SummaryPage', () => {
         if (url.startsWith('/api/portfolios/1/history?')) {
           return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
         }
+        if (url.endsWith('/goal'))
+          return Response.json({ error: 'goal not found' }, { status: 404 })
         throw new Error(`unexpected request: ${url}`)
       })
       render(
@@ -3125,6 +3162,8 @@ describe('SummaryPage', () => {
             { status: 200 },
           )
         }
+        if (url.endsWith('/goal'))
+          return Response.json({ error: 'goal not found' }, { status: 404 })
         throw new Error(`unexpected request: ${url}`)
       })
       return requests
@@ -3433,6 +3472,8 @@ describe('SummaryPage', () => {
             return Response.json({ id: 99 }, { status: 201 })
           if (/^\/api\/portfolios\/(all|1|2)\/attribution\?/.test(url)) return attribution()
           if (/^\/api\/portfolios\/(all|1|2)\/history\?/.test(url)) return Response.json(history)
+          if (url.endsWith('/goal'))
+            return Response.json({ error: 'goal not found' }, { status: 404 })
           throw new Error(`unexpected request: ${url}`)
         })
         return requests

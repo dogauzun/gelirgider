@@ -99,4 +99,10 @@ export const enSummary: AreaStrings<typeof trSummary> = {
   'goal.error.targetDate': 'The target date must be after today.',
   'goal.error.unit': 'This unit does not fit your reporting currency.',
   'goal.error.notFound': 'Goal not found.',
+  // The goal card on Özet.
+  'projection.title': 'Goal',
+  'projection.reached': 'At this pace the goal is reached in {month}.',
+  'projection.gap': 'The goal needs {amount} more a month.',
+  'projection.tooLittleHistory': 'A projection needs at least 6 months of history.',
+  'projection.error': 'Could not load the goal projection',
 }
