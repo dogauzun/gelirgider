@@ -141,6 +141,15 @@ describe('AttentionCard', () => {
       expect(screen.getByRole('button', { name: /^Dönemi atla: GARAN/ })).toBeEnabled()
     })
 
+    it('says the amount buys no unit and disables Kaydet for a zero quantity', () => {
+      const noUnit = { ...plan, price: '310', quantity: '0', booked_amount: '0.00' }
+      renderCard([{ kind: 'due-plan', plan: noUnit }])
+      expect(screen.getByText(/bir birim bile almıyor/)).toBeTruthy()
+      expect(screen.queryByText(/0 adet/)).toBeNull()
+      expect(screen.getByRole('button', { name: /^Kaydet: GARAN/ })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /^Dönemi atla: GARAN/ })).toBeEnabled()
+    })
+
     // Booking GARAN moves its next date past THYAO's, so the list re-sorts;
     // the focused button has to stay with GARAN's plan, not the row index.
     it('keeps focus on the booked plan when it stays due and re-sorts', () => {

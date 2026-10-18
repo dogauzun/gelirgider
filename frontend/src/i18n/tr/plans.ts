@@ -19,6 +19,7 @@ export const trPlans = {
   'plans.status.ended': 'Bitti',
   'plans.proposal': '{quantity} adet × {price}',
   'plans.noPrice': 'Fiyat yok',
+  'plans.noUnit': 'Tutar bir birim bile almıyor',
   'plans.book': 'Kaydet',
   'plans.skip': 'Atla',
   'plans.edit': 'Düzenle',
@@ -35,6 +36,7 @@ export const trPlans = {
   // The Dikkat card's group of due plans.
   'attention.group.plans': 'Planlı alımlar',
   'attention.plan.noPrice': 'fiyat yok',
+  'attention.plan.noUnit': 'tutar bir birim bile almıyor',
   'attention.plan.missed': '{count} dönem bekliyor',
   'attention.plan.bookLabel': 'Kaydet: {symbol}, {amount}, {date}',
   'attention.plan.skipLabel': 'Dönemi atla: {symbol}, {amount}, {date}',

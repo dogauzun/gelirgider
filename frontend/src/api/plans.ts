@@ -1,5 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../api'
+import { compareDecimal } from '../lib/decimal'
 import { invalidatePortfolio, invalidatePortfolios } from './transactions'
 
 // A monthly saving plan of a portfolio: a buy of the instrument, or with no
@@ -89,8 +90,8 @@ export function useDeletePlan(portfolioId: number) {
 
 // The occurrence a plan has come to and what booking it would write. For a
 // buy plan with no close on or before `date` the price, price_date, quantity
-// and booked_amount are null; a deposit plan has no instrument, price or
-// quantity and books its amount.
+// and booked_amount are null; a close above the amount gives quantity "0". A
+// deposit plan has no instrument, price or quantity and books its amount.
 export interface DuePlan {
   plan_id: number
   instrument_id: number | null
@@ -106,6 +107,11 @@ export interface DuePlan {
   quantity: string | null
   booked_amount: string | null
 }
+
+// A deposit plan always books; a buy needs a close and an amount that buys
+// at least one unit, else the book request answers 409 (ADR 0030).
+export const canBookPlan = (due: DuePlan) =>
+  due.instrument_id === null || (due.quantity !== null && compareDecimal(due.quantity, '0') > 0)
 
 // Under the plans key, so every plan edit refetches it too. The all scope has
 // no route: Tüm portföyler asks each portfolio.

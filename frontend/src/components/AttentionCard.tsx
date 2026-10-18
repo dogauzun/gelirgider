@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { DueDeposit } from '../api/deposits'
 import type { ExpectedDividend } from '../api/dividends'
-import type { DuePlan } from '../api/plans'
+import { canBookPlan, type DuePlan } from '../api/plans'
 import { t, type StringKey } from '../i18n/strings'
 import { DRIFT_FORMAT, SHARE_FORMAT } from '../lib/allocation'
 import type { AttentionItem } from '../lib/attention'
@@ -170,7 +170,7 @@ function DepositLine({
   )
 }
 
-// A due plan's line: Kaydet books it (a buy with no close cannot be booked),
+// A due plan's line: Kaydet books it (a buy with no close or no unit cannot be booked),
 // Atla moves the plan on without booking.
 function PlanLine({
   item,
@@ -185,13 +185,15 @@ function PlanLine({
   const symbol = d.symbol ?? t('plans.cash')
   const amount = formatMoney(d.amount, d.currency)
   const label = { symbol, amount, date: formatMarketDate(d.date) }
-  const detail =
-    d.quantity !== null && d.price !== null
+  let detail = t('attention.plan.noPrice')
+  if (d.quantity !== null && d.price !== null) {
+    detail = canBookPlan(d)
       ? t('plans.proposal', {
           quantity: formatQuantity(d.quantity),
           price: formatUnitPrice(d.price, d.currency),
         })
-      : t('attention.plan.noPrice')
+      : t('attention.plan.noUnit')
+  }
   return (
     <Row
       action={
@@ -202,7 +204,7 @@ function PlanLine({
             className="shrink-0"
             aria-label={named(item, t('attention.plan.bookLabel', label))}
             pending={busy}
-            disabled={d.instrument_id !== null && d.price === null}
+            disabled={!canBookPlan(d)}
             data-attention-action={`book ${planKey(item)}`}
             onClick={() => onSettle('book')}
           >
