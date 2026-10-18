@@ -23,6 +23,7 @@ import { formatQuantity } from '../lib/decimal'
 import { formatMarketDate } from '../lib/date'
 import { formatMoney, formatUnitPrice, MISSING } from '../lib/format'
 import { toast } from '../lib/toast'
+import { useFocusAfterDelete } from '../lib/useFocusAfterDelete'
 import { usePortfolioTitle } from '../lib/useTitle'
 
 const STATUS: Record<Plan['status'], { labelKey: StringKey; tone: 'gain' | 'warn' | 'cash' }> = {
@@ -121,6 +122,7 @@ function PlanRow({
           variant="ghost"
           iconOnly
           aria-label={t('plans.delete', { summary: summary(plan) })}
+          data-delete-row={plan.id}
           onClick={onDelete}
         >
           <Icon name="trash" />
@@ -148,6 +150,7 @@ function PlansBody({ portfolioId }: { portfolioId: number }) {
   const bookMutation = useBookPlan()
   const skipMutation = useSkipPlan()
   const { confirm, dialog } = useConfirm()
+  const focusAfterDelete = useFocusAfterDelete()
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<Plan | null>(null)
   const isEmpty = data !== undefined && data.length === 0
@@ -160,8 +163,15 @@ function PlansBody({ portfolioId }: { portfolioId: number }) {
       danger: true,
     })
     if (!confirmed) return
+    const focusNext = focusAfterDelete(
+      (data ?? []).map((item) => item.id),
+      plan.id,
+    )
     deleteMutation.mutate(plan.id, {
-      onSuccess: () => toast(t('plans.deleted')),
+      onSuccess: () => {
+        toast(t('plans.deleted'))
+        focusNext()
+      },
       onError: (mutationError) =>
         toast(t('plans.deleteFailed', { error: mutationError.message }), { error: true }),
     })
@@ -181,7 +191,9 @@ function PlansBody({ portfolioId }: { portfolioId: number }) {
     body = (
       <section className="mb-6 flex flex-col items-center gap-3 card px-6 py-12 text-center">
         <p className="text-[16px] font-semibold text-ink">{t('plans.empty')}</p>
-        <Button onClick={() => setAdding(true)}>{t('plans.add')}</Button>
+        <Button data-list-add onClick={() => setAdding(true)}>
+          {t('plans.add')}
+        </Button>
       </section>
     )
   } else if (data) {

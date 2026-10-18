@@ -4,15 +4,20 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import type { DuePlan, Plan } from '../api/plans'
 import { t } from '../i18n/strings'
+import { formatMoney } from '../lib/format'
 import { PlansPage } from './PlansPage'
 
-// jsdom has no showModal() on <dialog>; this only flips the open state.
+// jsdom has no showModal() on <dialog>; both methods flip the open state, and
+// close() hands focus back to what had it before showModal(), as browsers do.
+let focusBeforeDialog: Element | null = null
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
+    focusBeforeDialog = document.activeElement
     this.open = true
   }
   HTMLDialogElement.prototype.close = function () {
     this.open = false
+    if (focusBeforeDialog instanceof HTMLElement) focusBeforeDialog.focus()
   }
 })
 
@@ -53,15 +58,23 @@ const due: DuePlan = {
   booked_amount: '987.60',
 }
 
-// Answers the lists and records the book POSTs.
-function mockApi(dues: DuePlan[]) {
+// Answers the lists and records the book POSTs; a DELETE drops the plan from
+// the list.
+function mockApi(dues: DuePlan[], plans: Plan[] = [plan]) {
   const booked: string[] = []
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input)
     if (url === '/api/portfolios') {
       return Response.json([{ id: 1, name: 'Emeklilik', created_at: '2026-01-01T00:00:00Z' }])
     }
-    if (url === '/api/portfolios/1/plans') return Response.json([plan])
+    if (url === '/api/portfolios/1/plans') return Response.json(plans)
+    if (url.startsWith('/api/plans/') && init?.method === 'DELETE') {
+      plans.splice(
+        plans.findIndex((item) => url === `/api/plans/${item.id}`),
+        1,
+      )
+      return new Response(null, { status: 204 })
+    }
     if (url === '/api/portfolios/1/plans/due') return Response.json(dues)
     if (url === '/api/plans/3/book' && init?.method === 'POST') {
       booked.push(url)
@@ -116,4 +129,62 @@ it('disables Kaydet when the due plan buys no unit', async () => {
   expect(within(row).queryByText(/0 adet/)).toBeNull()
   expect(within(row).getByRole('button', { name: t('plans.book') })).toBeDisabled()
   expect(within(row).getByRole('button', { name: t('plans.skip') })).toBeEnabled()
+})
+
+const deleteName = (item: Plan) =>
+  t('plans.delete', {
+    summary: `${item.symbol ?? t('plans.cash')} · ${formatMoney(item.amount, item.currency)}`,
+  })
+
+async function deletePlan(item: Plan) {
+  const trigger = await screen.findByRole('button', { name: deleteName(item) })
+  trigger.focus()
+  fireEvent.click(trigger)
+  const confirm = await screen.findByRole('dialog', { name: t('plans.deleteConfirm') })
+  return { trigger, confirm }
+}
+
+it('moves focus to the next plan after a delete, then to the previous, then to the add button', async () => {
+  const plans = [
+    { ...plan, id: 1, amount: '100' },
+    { ...plan, id: 2, amount: '200' },
+    { ...plan, id: 3, amount: '300' },
+  ]
+  mockApi([], plans)
+  renderPage()
+
+  let { confirm } = await deletePlan(plans[0])
+  fireEvent.click(within(confirm).getByRole('button', { name: t('plans.deleteButton') }))
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: deleteName(plans[0]) })).toHaveFocus(),
+  )
+  expect(plans.map((item) => item.id)).toEqual([2, 3])
+
+  // The last row: the previous one takes over.
+  ;({ confirm } = await deletePlan(plans[1]))
+  fireEvent.click(within(confirm).getByRole('button', { name: t('plans.deleteButton') }))
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: deleteName(plans[0]) })).toHaveFocus(),
+  )
+
+  // The only row: the empty card's add button.
+  ;({ confirm } = await deletePlan(plans[0]))
+  fireEvent.click(within(confirm).getByRole('button', { name: t('plans.deleteButton') }))
+  await waitFor(() => expect(screen.getByRole('button', { name: t('plans.add') })).toHaveFocus())
+})
+
+it('keeps focus on the trash button when the delete is cancelled', async () => {
+  mockApi(
+    [],
+    [
+      { ...plan, id: 1 },
+      { ...plan, id: 2, amount: '200' },
+    ],
+  )
+  renderPage()
+
+  const { trigger, confirm } = await deletePlan({ ...plan, id: 1 })
+  fireEvent.click(within(confirm).getByRole('button', { name: t('confirm.cancel') }))
+
+  await waitFor(() => expect(trigger).toHaveFocus())
 })

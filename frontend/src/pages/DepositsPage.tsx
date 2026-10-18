@@ -13,6 +13,7 @@ import { t, type StringKey } from '../i18n/strings'
 import { formatMarketDate } from '../lib/date'
 import { formatMoney, formatNumber } from '../lib/format'
 import { toast } from '../lib/toast'
+import { useFocusAfterDelete } from '../lib/useFocusAfterDelete'
 import { usePortfolioTitle } from '../lib/useTitle'
 
 const STATUS: Record<Deposit['status'], { labelKey: StringKey; tone: 'gain' | 'warn' | 'cash' }> = {
@@ -93,6 +94,7 @@ function DepositRow({
               principal: formatMoney(deposit.principal, currency),
               currency,
             })}
+            data-delete-row={deposit.id}
             onClick={onDelete}
           >
             <Icon name="trash" />
@@ -118,6 +120,7 @@ function DepositsBody({ portfolioId }: { portfolioId: number }) {
   const { data } = query
   const deleteMutation = useDeleteDeposit(portfolioId)
   const { confirm, dialog } = useConfirm()
+  const focusAfterDelete = useFocusAfterDelete()
   const [opening, setOpening] = useState(false)
   const [renewing, setRenewing] = useState<Deposit | null>(null)
   const isEmpty = data !== undefined && data.length === 0
@@ -134,8 +137,16 @@ function DepositsBody({ portfolioId }: { portfolioId: number }) {
       danger: true,
     })
     if (!confirmed) return
+    // A matured deposit has no delete button to take focus.
+    const focusNext = focusAfterDelete(
+      (data ?? []).filter((item) => item.status !== 'matured').map((item) => item.id),
+      deposit.id,
+    )
     deleteMutation.mutate(deposit.id, {
-      onSuccess: () => toast(t('deposits.deleted')),
+      onSuccess: () => {
+        toast(t('deposits.deleted'))
+        focusNext()
+      },
       onError: (mutationError) =>
         toast(t('deposits.deleteFailed', { error: mutationError.message }), { error: true }),
     })
@@ -146,7 +157,9 @@ function DepositsBody({ portfolioId }: { portfolioId: number }) {
     body = (
       <section className="mb-6 flex flex-col items-center gap-3 card px-6 py-12 text-center">
         <p className="text-[16px] font-semibold text-ink">{t('deposits.empty')}</p>
-        <Button onClick={() => setOpening(true)}>{t('deposits.open')}</Button>
+        <Button data-list-add onClick={() => setOpening(true)}>
+          {t('deposits.open')}
+        </Button>
       </section>
     )
   } else if (data) {

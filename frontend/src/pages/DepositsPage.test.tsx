@@ -4,15 +4,20 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import type { Deposit } from '../api/deposits'
 import { t } from '../i18n/strings'
+import { formatMoney } from '../lib/format'
 import { DepositsPage } from './DepositsPage'
 
-// jsdom has no showModal() on <dialog>; this only flips the open state.
+// jsdom has no showModal() on <dialog>; both methods flip the open state, and
+// close() hands focus back to what had it before showModal(), as browsers do.
+let focusBeforeDialog: Element | null = null
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
+    focusBeforeDialog = document.activeElement
     this.open = true
   }
   HTMLDialogElement.prototype.close = function () {
     this.open = false
+    if (focusBeforeDialog instanceof HTMLElement) focusBeforeDialog.focus()
   }
 })
 
@@ -39,7 +44,8 @@ const deposit = (fields: Partial<Deposit>): Deposit => ({
   ...fields,
 })
 
-// Answers the list with `deposits` and records the deleted ids.
+// Answers the list with `deposits` and records the deleted ids; a DELETE drops
+// the deposit from the list.
 function mockApi(deposits: Deposit[]) {
   const deleted: string[] = []
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -50,12 +56,22 @@ function mockApi(deposits: Deposit[]) {
     if (url === '/api/portfolios/1/deposits') return Response.json(deposits)
     if (url.startsWith('/api/deposits/') && init?.method === 'DELETE') {
       deleted.push(url)
+      deposits.splice(
+        deposits.findIndex((item) => url === `/api/deposits/${item.id}`),
+        1,
+      )
       return new Response(null, { status: 204 })
     }
     throw new Error(`unexpected request: ${url}`)
   })
   return deleted
 }
+
+const deleteName = (item: Deposit) =>
+  t('deposits.delete', {
+    principal: formatMoney(item.principal, item.currency),
+    currency: item.currency,
+  })
 
 function renderPage() {
   render(
@@ -105,6 +121,35 @@ it('deletes an active deposit after a confirm', async () => {
   fireEvent.click(within(confirm).getByRole('button', { name: t('deposits.deleteButton') }))
 
   await waitFor(() => expect(deleted).toEqual(['/api/deposits/7']))
+})
+
+it('moves focus to the next deletable deposit after a delete, then to the add button', async () => {
+  const deposits = [
+    deposit({ id: 1, status: 'active', principal: '1000' }),
+    deposit({ id: 2, status: 'matured', principal: '2000' }),
+    deposit({ id: 3, status: 'active', principal: '3000' }),
+  ]
+  mockApi(deposits)
+  renderPage()
+
+  // The matured deposit has no delete button: the next active one takes over.
+  const first = await screen.findByRole('button', { name: deleteName(deposits[0]) })
+  first.focus()
+  fireEvent.click(first)
+  let confirm = await screen.findByRole('dialog', { name: t('deposits.deleteConfirm') })
+  fireEvent.click(within(confirm).getByRole('button', { name: t('deposits.deleteButton') }))
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: deleteName(deposits[1]) })).toHaveFocus(),
+  )
+
+  // The only deletable row left (the matured one stays): the add button.
+  const last = screen.getByRole('button', { name: deleteName(deposits[1]) })
+  fireEvent.click(last)
+  confirm = await screen.findByRole('dialog', { name: t('deposits.deleteConfirm') })
+  fireEvent.click(within(confirm).getByRole('button', { name: t('deposits.deleteButton') }))
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: t('deposits.open') })).toHaveFocus(),
+  )
 })
 
 it('offers to open the first deposit when there is none', async () => {
