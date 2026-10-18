@@ -69,3 +69,16 @@ export function useBenchmark(summary: Summary | undefined) {
   ]
   return { benchmark, options, setBenchmark }
 }
+
+// The chosen benchmark's label (a position reads as its symbol) and the name
+// of its difference from the return: above inflation it is the real return,
+// in the pill and the chart's tooltip alike.
+export function benchmarkNames(
+  code: Benchmark | undefined,
+  benchmarks: { value: string; label: string }[],
+) {
+  return {
+    label: code ? (benchmarks.find((b) => b.value === code)?.label ?? code) : undefined,
+    excess: t(code === 'TUFE' ? 'chart.benchmark.real' : 'chart.benchmark.excess'),
+  }
+}

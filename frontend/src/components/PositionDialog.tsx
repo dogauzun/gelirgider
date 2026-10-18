@@ -8,6 +8,7 @@ import { t } from '../i18n/strings'
 import { todayIstanbul } from '../lib/date'
 import { positionLabel } from '../lib/positions'
 import { resolveRange, type RangeValue } from '../lib/ranges'
+import { useBenchmark } from '../lib/useReturnSettings'
 import { usePositionPath } from '../lib/useRange'
 import { PositionActions } from './PositionActions'
 import { PositionKpis } from './PositionKpis'
@@ -36,13 +37,23 @@ function PortfolioDetail({
   range: RangeValue
 }) {
   const { from, to } = resolveRange(range, todayIstanbul())
-  const history = usePositionHistory(portfolioId, position.instrument_id, from, to)
+  // Fixed benchmarks only: no summary, so a stored position benchmark counts
+  // as none.
+  const { benchmark, options, setBenchmark } = useBenchmark(undefined)
+  const history = usePositionHistory(portfolioId, position.instrument_id, { from, to }, benchmark)
   const transactions = useTransactions(portfolioId, { instrumentId: position.instrument_id })
   const rows = transactions.data ?? []
   return (
     <>
       <div className="mt-4">
-        <PositionReturnCard Heading="h3" history={history} currency={position.currency} />
+        <PositionReturnCard
+          Heading="h3"
+          history={history}
+          currency={position.currency}
+          benchmark={benchmark}
+          benchmarks={options}
+          onBenchmark={setBenchmark}
+        />
       </div>
       {/* The chart's own arrow keys move its tooltip, not the position. */}
       <div className="mt-4" onKeyDown={(event) => event.stopPropagation()}>
