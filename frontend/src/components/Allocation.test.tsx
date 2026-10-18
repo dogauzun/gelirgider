@@ -322,6 +322,22 @@ describe('Allocation', () => {
     expect(save).toBeDisabled()
   })
 
+  it('puts the target and drift on their own line so the class name keeps its width', async () => {
+    mockTargets([{ asset_class: 'equity', weight: '100' }])
+    const { scoped } = renderAllocation()
+    const noTargets = scoped.getAllByRole('listitem')[0]
+    expect(noTargets.className).not.toContain('flex-wrap')
+
+    fireEvent.click(scoped.getByRole('radio', { name: 'Varlık sınıfı' }))
+    await waitFor(() => expect(scoped.getAllByTitle('Hedef').length).toBeGreaterThan(0))
+    const row = scoped.getAllByRole('listitem')[0]
+    const label = scoped.getByText('Hisse senedi')
+    // The label is in the row's first line; the target and drift are in a group that takes a full line.
+    expect(row.className).toContain('flex-wrap')
+    expect(label.className).not.toContain('truncate')
+    expect(scoped.getAllByTitle('Hedef')[0].parentElement?.className).toContain('basis-full')
+  })
+
   it('lists the planned buys for a typed contribution in the asset class view', async () => {
     mockTargets([
       { asset_class: 'equity', weight: '70' },
