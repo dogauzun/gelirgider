@@ -218,6 +218,29 @@ describe('attentionItems', () => {
     ])
   })
 
+  it('never picks a deposit as a mover, whatever its day change', () => {
+    const moved = (id: number, change: string) =>
+      position(id, `D${id}`, '100', {
+        last_price: '100',
+        prev_close: '50',
+        prev_price_date: '2026-10-02',
+        day_change: '50',
+        day_change_reporting: change,
+      })
+    const deposit = position(1, 'TD-1', '100', {
+      market: 'DEPOSIT',
+      last_price: '100',
+      prev_close: '50',
+      prev_price_date: '2026-10-02',
+      day_change: '50',
+      day_change_reporting: '90',
+    })
+    const movers = run(summary([deposit, moved(2, '-30'), moved(3, '20'), ...spread(6)])).filter(
+      (i) => i.kind === 'mover',
+    )
+    expect(movers.map((i) => i.instrument_id)).toEqual([2, 3])
+  })
+
   it("a short mover's ratio has the sign of its day change", () => {
     // Short one share: the price fell from 100 to 95, a gain of 5,
     // which the Günlük cell shows as +5%.
