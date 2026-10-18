@@ -1646,6 +1646,68 @@
                 }
             }
         },
+        "/deposits/{id}/mature": {
+            "post": {
+                "description": "Books a sell of the principal at price 1 on the maturity date (no realized profit or loss) and, when the gross interest is above zero, a dividend with no instrument for it: amount the gross interest, fee the stopaj, deposit currency, note the deposit's name. Both rows are written in one SQL transaction. 409 when today is before the maturity date or the deposit is already matured.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "deposits"
+                ],
+                "summary": "Mature a term deposit",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "deposit id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.depositResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "deposit not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "deposit is not due yet; deposit is already matured",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/export.zip": {
             "get": {
                 "produces": [
@@ -3078,6 +3140,60 @@
                                 "error": {
                                     "type": "string"
                                 }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/portfolios/{id}/deposits/due": {
+            "get": {
+                "description": "The portfolio's deposits whose maturity date is today or past and that have no sell yet, oldest maturity first, each with the interest over the whole term (gross, stopaj, net; 2 decimals). Nothing is booked: POST /deposits/{id}/mature books one. The all scope is not supported.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "deposits"
+                ],
+                "summary": "List due term deposits",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "portfolio id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/server.dueDepositResponse"
                             }
                         }
                     },
@@ -4701,6 +4817,33 @@
                     "items": {
                         "$ref": "#/definitions/server.dividendBucket"
                     }
+                }
+            }
+        },
+        "server.dueDepositResponse": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "gross": {
+                    "description": "Gross, Stopaj and Net are the interest over the whole term, 2 decimals.",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "maturity_date": {
+                    "type": "string"
+                },
+                "net": {
+                    "type": "string"
+                },
+                "principal": {
+                    "type": "string"
+                },
+                "stopaj": {
+                    "type": "string"
                 }
             }
         },

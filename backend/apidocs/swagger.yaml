@@ -372,6 +372,25 @@ definitions:
           $ref: '#/definitions/server.dividendBucket'
         type: array
     type: object
+  server.dueDepositResponse:
+    properties:
+      currency:
+        type: string
+      gross:
+        description: Gross, Stopaj and Net are the interest over the whole term, 2
+          decimals.
+        type: string
+      id:
+        type: integer
+      maturity_date:
+        type: string
+      net:
+        type: string
+      principal:
+        type: string
+      stopaj:
+        type: string
+    type: object
   server.expectedDividendResponse:
     properties:
       currency:
@@ -2334,6 +2353,51 @@ paths:
       summary: Register a user
       tags:
       - auth
+  /deposits/{id}/mature:
+    post:
+      description: 'Books a sell of the principal at price 1 on the maturity date
+        (no realized profit or loss) and, when the gross interest is above zero, a
+        dividend with no instrument for it: amount the gross interest, fee the stopaj,
+        deposit currency, note the deposit''s name. Both rows are written in one SQL
+        transaction. 409 when today is before the maturity date or the deposit is
+        already matured.'
+      parameters:
+      - description: deposit id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.depositResponse'
+        "404":
+          description: deposit not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: deposit is not due yet; deposit is already matured
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Mature a term deposit
+      tags:
+      - deposits
   /export.zip:
     get:
       produces:
@@ -3459,6 +3523,44 @@ paths:
                 type: string
             type: object
       summary: Open a term deposit
+      tags:
+      - deposits
+  /portfolios/{id}/deposits/due:
+    get:
+      description: 'The portfolio''s deposits whose maturity date is today or past
+        and that have no sell yet, oldest maturity first, each with the interest over
+        the whole term (gross, stopaj, net; 2 decimals). Nothing is booked: POST /deposits/{id}/mature
+        books one. The all scope is not supported.'
+      parameters:
+      - description: portfolio id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/server.dueDepositResponse'
+            type: array
+        "404":
+          description: portfolio not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: List due term deposits
       tags:
       - deposits
   /portfolios/{id}/dividends/expected:

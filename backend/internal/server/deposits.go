@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,12 +25,15 @@ import (
 // maxDepositTermYears caps the distance from a deposit's start to its maturity.
 const maxDepositTermYears = 10
 
-// registerDepositRoutes wires POST and GET /api/portfolios/{id}/deposits.
+// registerDepositRoutes wires POST and GET /api/portfolios/{id}/deposits,
+// GET .../deposits/due and POST /api/deposits/{id}/mature.
 // onDemandFetch is the transaction routes' price and FX hook.
 func registerDepositRoutes(mux *http.ServeMux, d *deps, onDemandFetch transaction.OnDemandFetch) {
 	h := &depositHandler{deps: d, onDemandFetch: onDemandFetch}
 	mux.HandleFunc("POST /api/portfolios/{id}/deposits", h.create)
 	mux.HandleFunc("GET /api/portfolios/{id}/deposits", h.list)
+	mux.HandleFunc("GET /api/portfolios/{id}/deposits/due", h.due)
+	mux.HandleFunc("POST /api/deposits/{id}/mature", h.mature)
 }
 
 type depositHandler struct {
@@ -275,16 +280,10 @@ func (h *depositHandler) list(w http.ResponseWriter, r *http.Request) {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	txs, err := h.transactions.List(r.Context(), userID, portfolioID)
+	sold, err := h.soldInstruments(r, userID, portfolioID)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
-	}
-	sold := map[int64]bool{}
-	for _, t := range txs {
-		if t.Type == transaction.TypeSell && t.InstrumentID != nil {
-			sold[*t.InstrumentID] = true
-		}
 	}
 	today := price.Today()
 	out := make([]depositResponse, 0, len(ds))
@@ -292,4 +291,161 @@ func (h *depositHandler) list(w http.ResponseWriter, r *http.Request) {
 		out = append(out, toDepositResponse(dep, today, sold[dep.InstrumentID]))
 	}
 	auth.WriteJSON(w, http.StatusOK, out)
+}
+
+// soldInstruments returns the ids of the portfolio's instruments that have a
+// sell recorded.
+func (h *depositHandler) soldInstruments(r *http.Request, userID, portfolioID int64) (map[int64]bool, error) {
+	txs, err := h.transactions.List(r.Context(), userID, portfolioID)
+	if err != nil {
+		return nil, err
+	}
+	sold := map[int64]bool{}
+	for _, t := range txs {
+		if t.Type == transaction.TypeSell && t.InstrumentID != nil {
+			sold[*t.InstrumentID] = true
+		}
+	}
+	return sold, nil
+}
+
+type dueDepositResponse struct {
+	ID           int64  `json:"id"`
+	Currency     string `json:"currency"`
+	Principal    string `json:"principal"`
+	MaturityDate string `json:"maturity_date"`
+	// Gross, Stopaj and Net are the interest over the whole term, 2 decimals.
+	Gross  string `json:"gross"`
+	Stopaj string `json:"stopaj"`
+	Net    string `json:"net"`
+}
+
+// due suggests the deposits to mature: it writes nothing.
+//
+//	@Summary	List due term deposits
+//	@Description	The portfolio's deposits whose maturity date is today or past and that have no sell yet, oldest maturity first, each with the interest over the whole term (gross, stopaj, net; 2 decimals). Nothing is booked: POST /deposits/{id}/mature books one. The all scope is not supported.
+//	@Tags		deposits
+//	@Produce	json
+//	@Param		id	path		int	true	"portfolio id"
+//	@Success	200	{array}		server.dueDepositResponse
+//	@Failure	404	{object}	object{error=string}	"portfolio not found"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/portfolios/{id}/deposits/due [get]
+func (h *depositHandler) due(w http.ResponseWriter, r *http.Request) {
+	userID, portfolioID, ok := portfolio.Owned(w, r, h.portfolios)
+	if !ok {
+		return
+	}
+	ds, err := h.deposits.List(r.Context(), userID, portfolioID)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	sold, err := h.soldInstruments(r, userID, portfolioID)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	today := price.Today()
+	ds = slices.DeleteFunc(ds, func(d deposit.Deposit) bool { return sold[d.InstrumentID] || today < d.Terms.MaturityDate })
+	slices.SortStableFunc(ds, func(a, b deposit.Deposit) int {
+		return strings.Compare(a.Terms.MaturityDate, b.Terms.MaturityDate)
+	})
+	out := make([]dueDepositResponse, 0, len(ds))
+	for _, d := range ds {
+		gross, stopaj := deposit.Interest(d.Principal, d.Terms)
+		out = append(out, dueDepositResponse{
+			ID: d.ID, Currency: d.Currency, Principal: d.Principal.String(), MaturityDate: d.Terms.MaturityDate,
+			Gross: gross.StringFixed(2), Stopaj: stopaj.StringFixed(2), Net: gross.Sub(stopaj).StringFixed(2),
+		})
+	}
+	auth.WriteJSON(w, http.StatusOK, out)
+}
+
+// mature books a due deposit: the principal back to cash and the interest as
+// income, both dated the maturity date.
+//
+//	@Summary	Mature a term deposit
+//	@Description	Books a sell of the principal at price 1 on the maturity date (no realized profit or loss) and, when the gross interest is above zero, a dividend with no instrument for it: amount the gross interest, fee the stopaj, deposit currency, note the deposit's name. Both rows are written in one SQL transaction. 409 when today is before the maturity date or the deposit is already matured.
+//	@Tags		deposits
+//	@Produce	json
+//	@Param		id	path		int	true	"deposit id"
+//	@Success	200	{object}	server.depositResponse
+//	@Failure	404	{object}	object{error=string}	"deposit not found"
+//	@Failure	409	{object}	object{error=string}	"deposit is not due yet; deposit is already matured"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/deposits/{id}/mature [post]
+func (h *depositHandler) mature(w http.ResponseWriter, r *http.Request) {
+	userID := auth.MustUserID(r.Context())
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		auth.WriteError(w, http.StatusNotFound, "deposit not found")
+		return
+	}
+	dep, err := h.deposits.Get(r.Context(), userID, id)
+	if errors.Is(err, deposit.ErrNotFound) {
+		auth.WriteError(w, http.StatusNotFound, "deposit not found")
+		return
+	}
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	today := price.Today()
+	if today < dep.Terms.MaturityDate {
+		auth.WriteError(w, http.StatusConflict, "deposit is not due yet")
+		return
+	}
+	in, err := h.instruments.Get(r.Context(), dep.InstrumentID)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	booked, err := h.book(r, dep, in.Name)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	if !booked {
+		auth.WriteError(w, http.StatusConflict, "deposit is already matured")
+		return
+	}
+	auth.WriteJSON(w, http.StatusOK, toDepositResponse(dep, today, true))
+}
+
+// book writes dep's sell and interest rows in one SQL transaction. It is false,
+// having written nothing, when the deposit already has a sell. BeginTx takes
+// the write lock, so two calls cannot both pass the check.
+func (h *depositHandler) book(r *http.Request, dep deposit.Deposit, name string) (bool, error) {
+	ctx := r.Context()
+	tx, err := h.conn.BeginTx(ctx, nil)
+	if err != nil {
+		return false, fmt.Errorf("begin: %w", err)
+	}
+	defer tx.Rollback()
+	sold, err := h.deposits.SoldTx(ctx, tx, dep.UserID, dep.InstrumentID)
+	if err != nil || sold {
+		return false, err
+	}
+	date := dep.Terms.MaturityDate
+	_, err = h.transactions.CreateTx(ctx, tx, dep.UserID, transaction.Transaction{
+		PortfolioID: dep.PortfolioID, InstrumentID: &dep.InstrumentID, Type: transaction.TypeSell, Date: date,
+		Quantity: dep.Principal, Price: decimal.NewFromInt(1), Amount: dep.Principal, Fee: decimal.Zero, Currency: dep.Currency,
+	})
+	if err != nil {
+		return false, err
+	}
+	if gross, stopaj := deposit.Interest(dep.Principal, dep.Terms); gross.IsPositive() {
+		_, err = h.transactions.CreateTx(ctx, tx, dep.UserID, transaction.Transaction{
+			PortfolioID: dep.PortfolioID, Type: transaction.TypeDividend, Date: date,
+			Amount: gross, Fee: stopaj, Currency: dep.Currency, Note: name,
+		})
+		if err != nil {
+			return false, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("commit: %w", err)
+	}
+	return true, nil
 }
