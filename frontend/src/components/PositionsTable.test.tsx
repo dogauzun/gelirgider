@@ -289,6 +289,19 @@ describe('PositionsTable', () => {
     expect(handlers.onRemovePrice).toHaveBeenCalledWith(manual)
   })
 
+  // The server refuses a buy, sell or manual price on a deposit, so its row
+  // offers none; the row still opens the position page.
+  it('leaves the row menu off a deposit', () => {
+    renderTable(summary([position(1, 'THYAO'), position(2, 'TD-1', { market: 'DEPOSIT' })]))
+
+    expect(screen.getByRole('button', { name: 'THYAO işlemleri' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'TD-1 işlemleri' })).toBeNull()
+    expect(within(rowOf('TD-1')).getByRole('link', { name: 'TD-1' })).toHaveAttribute(
+      'href',
+      '/portfolios/1/positions/2',
+    )
+  })
+
   it('puts a pill after a manual or stale price with the tooltip of today', () => {
     renderTable(
       summary([

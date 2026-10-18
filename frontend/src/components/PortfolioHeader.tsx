@@ -426,8 +426,8 @@ export function PortfolioHeader({
           long list can switch tabs without scrolling back up. It is
           a sibling of the page body rather than inside the wrapper above: a
           sticky box only sticks within its parent, and that one ends here.
-          Full width, so the rule and the background span the page. Five tabs
-          fill a 375 px row in English, so a narrower one scrolls sideways
+          Full width, so the rule and the background span the page. A row
+          too narrow for the tabs (six in English at 375 px) scrolls sideways
           rather than the page. The gap keeps neighbouring labels
           apart at every width. */}
       <nav
@@ -455,6 +455,9 @@ export function PortfolioHeader({
               </NavLink>
               <NavLink to={`/portfolios/${portfolioId}/dividends`} {...tab}>
                 {t('dividends.page.title')}
+              </NavLink>
+              <NavLink to={`/portfolios/${portfolioId}/deposits`} {...tab}>
+                {t('deposits.tab')}
               </NavLink>
               <NavLink to={`/portfolios/${portfolioId}/import`} {...tab}>
                 {t('import.title')}

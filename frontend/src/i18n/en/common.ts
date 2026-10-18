@@ -32,6 +32,7 @@ export const enCommon: AreaStrings<typeof trCommon> = {
   'search.closeList': 'Close suggestions',
   'market.CRYPTO': 'Crypto',
   'market.GOLD': 'Gold',
+  'market.DEPOSIT': 'Deposit',
   'page.loading': 'Loading page...',
   'decimal.error.ambiguousThousands': 'Thousands separator? Type 1000 or 1,000.00.',
   'decimal.error.tooManyDigits':
