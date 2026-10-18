@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -3699,7 +3699,7 @@ describe('SummaryPage', () => {
             const response = await answer(input, init)
             if (init?.method === 'POST') {
               await client.refetchQueries({ queryKey: ['portfolios'] })
-              await vi.waitFor(() => expect(screen.queryByText('Henüz portföyün yok')).toBeNull())
+              await waitFor(() => expect(screen.queryByText('Henüz portföyün yok')).toBeNull())
             }
             return response
           })
@@ -3710,10 +3710,10 @@ describe('SummaryPage', () => {
             target: { value: 'Birikim' },
           })
           fireEvent.click(within(dialog).getByRole('button', { name: 'Oluştur' }))
-          await vi.waitFor(() =>
+          await waitFor(() =>
             expect(screen.getByTestId('location')).toHaveTextContent('/portfolios/2'),
           )
-          await vi.waitFor(() =>
+          await waitFor(() =>
             expect(document.activeElement).toBe(screen.getByRole('button', { name: 'İşlem ekle' })),
           )
           expect(await screen.findByText('Portföy oluşturuldu')).toBeInTheDocument()
