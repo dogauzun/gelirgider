@@ -61,7 +61,7 @@ export function ListCard({
   children: ReactNode
 }) {
   return (
-    <section className="mb-6 overflow-x-auto card">
+    <section className="relative mb-6 overflow-x-auto card">
       <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
         <h2 className="text-[14px] font-semibold text-ink">{title}</h2>
         <Button onClick={onAdd}>

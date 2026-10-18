@@ -115,3 +115,13 @@ it('offers to open the first deposit when there is none', async () => {
   fireEvent.click(screen.getByRole('button', { name: t('deposits.open') }))
   expect(screen.getByRole('dialog', { name: t('deposits.dialog.title') })).toBeInTheDocument()
 })
+
+it('positions the table card so the sr-only actions header cannot widen the page', async () => {
+  mockApi([deposit({})])
+  renderPage()
+
+  await screen.findByText(t('deposits.status.matured'))
+  // The card scrolls the table sideways; without `relative` the absolutely
+  // positioned header span escapes it and the page scrolls sideways at 375 px.
+  expect(screen.getByRole('table').parentElement).toHaveClass('relative', 'overflow-x-auto')
+})

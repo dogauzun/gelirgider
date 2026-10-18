@@ -259,7 +259,7 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
           </div>
         </section>
 
-        <section className="mb-6 overflow-x-auto card">
+        <section className="relative mb-6 overflow-x-auto card">
           <h2 className="border-b border-line px-4 py-3 text-[14px] font-semibold text-ink">
             {t('dividends.page.byInstrument')}
           </h2>
