@@ -10,7 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dogauzun/gelirgider/backend/internal/benchmark"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
+	"github.com/shopspring/decimal"
 )
 
 func goalPath(id any) string { return fmt.Sprintf("/api/portfolios/%v/goal", id) }
@@ -316,6 +318,64 @@ func TestGoalProjection(t *testing.T) {
 	}
 	if got := project(long); got.HistoryMonths != 0 || len(got.Months) != 0 || got.Months == nil {
 		t.Errorf("real without TUFE = %+v, want an empty fan", got)
+	}
+}
+
+// TestGoalProjectionRealAnchor checks that a real goal carries today's value
+// back to the prices of the day the goal was set: a goal set today has
+// progress equal to the nominal one, a goal set three months ago has it
+// multiplied by the TUFE level of that day over today's level.
+func TestGoalProjectionRealAnchor(t *testing.T) {
+	e := newTransactionTestEnv(t)
+	session := e.login("a@example.com")
+	now := time.Now().In(price.Istanbul)
+	monthStart := func(ago int) time.Time {
+		return time.Date(now.Year(), now.Month()-time.Month(ago), 1, 0, 0, 0, 0, time.UTC)
+	}
+	var months []benchmark.MonthLevel
+	for ago := 14; ago >= 0; ago-- {
+		m, level := monthStart(ago), decimal.NewFromFloat(100*math.Pow(1.02, float64(14-ago))).Round(4)
+		months = append(months, benchmark.MonthLevel{Month: m.Format("2006-01"), Level: level.InexactFloat64()})
+		if _, err := e.db.Exec("INSERT INTO benchmark_values (code, date, value, source) VALUES (?, ?, ?, 'test')", benchmark.CodeTUFE, m.Format(time.DateOnly), level.String()); err != nil {
+			t.Fatalf("insert TUFE: %v", err)
+		}
+	}
+	id := e.createPortfolio(session, "Long")
+	for ago := 9; ago >= 1; ago-- {
+		e.createTransaction(session, id, map[string]any{"type": "deposit", "date": monthStart(ago).Format(time.DateOnly), "amount": "1000"})
+	}
+	progress := func(unit string) float64 {
+		t.Helper()
+		if rec := e.do(session, http.MethodPut, goalPath(id), goalReq("100000", unit, futureDate())); rec.Code != http.StatusOK {
+			t.Fatalf("put %s goal = %d %s", unit, rec.Code, rec.Body.String())
+		}
+		rec := e.do(session, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/projection", id), nil)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("projection = %d %s, want 200", rec.Code, rec.Body.String())
+		}
+		return decodeJSON[projectionResponse](t, rec.Body.Bytes()).Progress
+	}
+
+	nominal := progress("nominal")
+	if math.Abs(nominal-0.09) > 1e-9 {
+		t.Fatalf("nominal progress = %v, want 0.09", nominal)
+	}
+	if got := progress("real"); math.Abs(got-0.09) > 1e-9 {
+		t.Errorf("real progress on the day the goal is set = %v, want 0.09", got)
+	}
+
+	created := time.Now().UTC().AddDate(0, -3, 0).Truncate(time.Second)
+	if _, err := e.db.Exec("UPDATE goals SET created_at = ? WHERE user_id = ?", created.Format(time.RFC3339), e.userID(session)); err != nil {
+		t.Fatalf("backdate goal: %v", err)
+	}
+	rec := e.do(session, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/projection", id), nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("projection = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+	levels, _, _ := benchmark.DailyCPI(months, created.In(price.Istanbul).Format(time.DateOnly), price.Today())
+	want := nominal * levels[0] / levels[len(levels)-1]
+	if got := decodeJSON[projectionResponse](t, rec.Body.Bytes()).Progress; math.Abs(got-want) > 1e-9 {
+		t.Errorf("real progress of a goal set three months ago = %v, want %v", got, want)
 	}
 }
 

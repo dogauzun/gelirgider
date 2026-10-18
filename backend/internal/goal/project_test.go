@@ -104,7 +104,7 @@ func TestProject(t *testing.T) {
 
 	t.Run("real is below nominal", func(t *testing.T) {
 		in := base
-		in.Unit, in.MonthlyCPIRate = "real", 0.02
+		in.Unit, in.MonthlyCPIRate, in.RealBase = "real", 0.02, 1
 		real, nominal := Project(in), Project(base)
 		if real.Months[5].Mid >= nominal.Months[5].Mid {
 			t.Errorf("real %v not below nominal %v", real.Months[5].Mid, nominal.Months[5].Mid)
@@ -112,6 +112,18 @@ func TestProject(t *testing.T) {
 		want := 1600 / math.Pow(1.02, 6)
 		if math.Abs(real.Months[5].Mid-want) > 1e-9 {
 			t.Errorf("real mid = %v, want %v", real.Months[5].Mid, want)
+		}
+	})
+
+	t.Run("real is anchored to the creation level", func(t *testing.T) {
+		in := base
+		in.Unit, in.MonthlyCPIRate, in.RealBase = "real", 0.02, 0.9
+		p := Project(in)
+		if want := 1000 * 0.9 / 1500; math.Abs(p.Progress-want) > 1e-9 {
+			t.Errorf("progress = %v, want %v", p.Progress, want)
+		}
+		if want := 1600 * 0.9 / math.Pow(1.02, 6); math.Abs(p.Months[5].Mid-want) > 1e-9 {
+			t.Errorf("mid = %v, want %v", p.Months[5].Mid, want)
 		}
 	})
 

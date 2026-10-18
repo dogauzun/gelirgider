@@ -18,6 +18,8 @@ type ProjectionInput struct {
 	USDRate        float64
 	FirstMonth     string
 	Months         int
+	// RealBase is L_created / L_today, the factor that carries a real goal's value back to the prices of the day it was set.
+	RealBase float64
 }
 
 type ProjectionMonth struct {
@@ -75,7 +77,7 @@ func Project(in ProjectionInput) Projection {
 func (in ProjectionInput) scale(k int) float64 {
 	switch in.Unit {
 	case "real":
-		return math.Pow(1+in.MonthlyCPIRate, -float64(k))
+		return in.RealBase * math.Pow(1+in.MonthlyCPIRate, -float64(k))
 	case "usd":
 		return 1 / in.USDRate
 	}

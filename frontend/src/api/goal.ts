@@ -5,8 +5,8 @@ import type { PortfolioScope } from './summary'
 
 // The savings goal of a portfolio, or of the all scope: reach `amount` in
 // `unit` by `target_date` (YYYY-MM-DD). `nominal` is the reporting currency,
-// `real` is TRY in today's prices (TRY reporting currency only), `usd` needs a
-// non-USD reporting currency.
+// `real` is TRY at the prices of the day the goal was set (TRY reporting
+// currency only), `usd` needs a non-USD reporting currency.
 export interface Goal {
   amount: string
   unit: 'nominal' | 'real' | 'usd'

@@ -85,7 +85,7 @@ export const enSummary: AreaStrings<typeof trSummary> = {
   'goal.amount': 'Target amount',
   'goal.unit': 'Unit',
   'goal.unit.nominal': '{currency}',
-  'goal.unit.real': "TRY, today's prices",
+  'goal.unit.real': 'TRY, prices when the goal was set',
   'goal.unit.usd': 'USD',
   'goal.date': 'Target date',
   'goal.save': 'Save',

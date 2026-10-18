@@ -4149,9 +4149,10 @@ paths:
       consumes:
       - application/json
       description: Replaces the goal of the scope and answers the stored goal. unit
-        is nominal (the reporting currency), real (inflation-adjusted, only with a
-        TRY reporting currency) or usd (only with a non-USD reporting currency). target_date
-        is YYYY-MM-DD and in a later calendar month than today (Europe/Istanbul).
+        is nominal (the reporting currency), real (the amount at the prices of the
+        day the goal is set, only with a TRY reporting currency) or usd (only with
+        a non-USD reporting currency). target_date is YYYY-MM-DD and in a later calendar
+        month than today (Europe/Istanbul).
       parameters:
       - description: numeric id or `all`
         in: path
@@ -4328,16 +4329,18 @@ paths:
         through the target month, with the 25th, 50th and 75th percentile of the monthly
         time-weighted returns of the last 36 full calendar months (nearest rank) and
         the median net external flow of the last 12 full months. Month values are
-        in the goal''s unit: real is divided by the TUFE rate of the last 12 months
-        compounded, usd by today''s USD rate. months is empty, with history_months
-        counting the usable months, when fewer than 6 full months have a return, and
-        empty with history_months 0 when the scope has no history or the unit lacks
-        its TUFE level or USD rate. reached_at is the first month of the median path
-        at or above the amount, the current month when today''s value already is at
-        the amount; monthly_gap is the extra monthly flow in the reporting currency,
-        rounded up, that the median path needs to reach the amount by the target month,
-        null when reached_at is set. progress is today''s value in the unit divided
-        by the amount.'
+        in the goal''s unit: real is the reporting currency at the prices of the day
+        the goal was set: a nominal value is multiplied by the TUFE level of that
+        day over today''s level and divided by the TUFE rate of the last 12 months
+        compounded for each month ahead, usd by today''s USD rate. months is empty,
+        with history_months counting the usable months, when fewer than 6 full months
+        have a return, and empty with history_months 0 when the scope has no history
+        or the unit lacks its TUFE level or USD rate. reached_at is the first month
+        of the median path at or above the amount, the current month when today''s
+        value already is at the amount; monthly_gap is the extra monthly flow in the
+        reporting currency, rounded up, that the median path needs to reach the amount
+        by the target month, null when reached_at is set. progress is today''s value
+        in the unit divided by the amount.'
       parameters:
       - description: numeric id or `all`
         in: path
