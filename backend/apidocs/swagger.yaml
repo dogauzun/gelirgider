@@ -2124,7 +2124,7 @@ paths:
         name: name
         required: true
         type: string
-      - description: enabled is required; at is the daily run time, HH:MM
+      - description: enabled and at are both required; at is the daily run time, HH:MM
         in: body
         name: body
         required: true
