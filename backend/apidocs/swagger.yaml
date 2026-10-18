@@ -200,6 +200,20 @@ definitions:
       started_at:
         type: string
     type: object
+  server.allocationTarget:
+    properties:
+      asset_class:
+        type: string
+      weight:
+        type: string
+    type: object
+  server.allocationTargetsBody:
+    properties:
+      targets:
+        items:
+          $ref: '#/definitions/server.allocationTarget'
+        type: array
+    type: object
   server.attributionBuckets:
     properties:
       cash_fx:
@@ -3454,6 +3468,93 @@ paths:
                 type: string
             type: object
       summary: Rename a portfolio
+      tags:
+      - portfolios
+  /portfolios/{id}/allocation-targets:
+    get:
+      description: The target weight of each asset class (equity, fund, commodity,
+        crypto, deposit, cash), in percent, ordered by that class order. targets is
+        an empty array when none are set. `all` is the set of the all-portfolios view
+        and is stored apart from every portfolio's set.
+      parameters:
+      - description: numeric id or `all`
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.allocationTargetsBody'
+        "404":
+          description: portfolio not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Read a portfolio's allocation targets
+      tags:
+      - portfolios
+    put:
+      consumes:
+      - application/json
+      description: Replaces the whole set in one SQL transaction and answers the stored
+        set. An empty targets array clears it. A set holds each class at most once,
+        and its weights sum to exactly 100.
+      parameters:
+      - description: numeric id or `all`
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: asset_class one of equity, fund, commodity, crypto, deposit,
+          cash; weight a decimal from 0 to 100
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/server.allocationTargetsBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.allocationTargetsBody'
+        "400":
+          description: 'invalid request body; asset_class: unknown class; asset_class:
+            duplicate; weight: must be between 0 and 100; weight: must sum to 100'
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: portfolio not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Replace a portfolio's allocation targets
       tags:
       - portfolios
   /portfolios/{id}/attribution:
