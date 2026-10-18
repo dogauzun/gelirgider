@@ -141,6 +141,41 @@ describe('AttentionCard', () => {
       expect(screen.getByRole('button', { name: /^Dönemi atla: GARAN/ })).toBeEnabled()
     })
 
+    // Booking GARAN moves its next date past THYAO's, so the list re-sorts;
+    // the focused button has to stay with GARAN's plan, not the row index.
+    it('keeps focus on the booked plan when it stays due and re-sorts', () => {
+      const garan: AttentionItem = { kind: 'due-plan', plan }
+      const thyao: AttentionItem = {
+        kind: 'due-plan',
+        plan: { ...plan, plan_id: 8, symbol: 'THYAO', date: '2026-10-20' },
+      }
+      const garanNext: AttentionItem = {
+        kind: 'due-plan',
+        plan: { ...plan, date: '2026-11-12' },
+      }
+      const card = (list: AttentionItem[], busy: boolean) => (
+        <MemoryRouter>
+          <AttentionCard
+            items={list}
+            busy={busy}
+            onAddDividend={vi.fn()}
+            onDismissDividend={vi.fn()}
+            onCloseDeposit={vi.fn()}
+            onBookPlan={vi.fn()}
+            onSkipPlan={vi.fn()}
+            onEditPrice={vi.fn()}
+          />
+        </MemoryRouter>
+      )
+      const { rerender } = render(card([garan, thyao], false))
+      const kaydet = screen.getByRole('button', { name: /^Kaydet: GARAN/ })
+      kaydet.focus()
+      fireEvent.click(kaydet)
+      rerender(card([garan, thyao], true))
+      rerender(card([thyao, garanNext], false))
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: /^Kaydet: GARAN/ }))
+    })
+
     it('keeps Kaydet enabled for a cash deposit plan, which needs no close', () => {
       renderCard([
         {

@@ -526,8 +526,12 @@ export function AttentionCard({
                 {t(heading)}
               </h3>
               <ul>
+                {/* A plan stays listed after Kaydet or Atla and may re-sort, so its row
+                    is keyed by the plan to keep the focused button with it. */}
                 {group.map((item, index) => (
-                  <Fragment key={index}>{line(item)}</Fragment>
+                  <Fragment key={item.kind === 'due-plan' ? `plan ${planKey(item)}` : index}>
+                    {line(item)}
+                  </Fragment>
                 ))}
               </ul>
             </div>
