@@ -6,8 +6,9 @@ Status: accepted (2026-09-28).
 
 A user can keep several portfolios, for example one per broker. Each has its
 own summary page and chart. "What do I hold in total, and how did it do"
-needs one read-only view of all of a user's portfolios, where every figure
-equals the sum of the per-portfolio figures.
+needs one view of all of a user's portfolios, where every figure equals the
+sum of the per-portfolio figures. The view is for reading; the few writes it
+accepts are listed under "URL and API".
 
 ## Decision
 
@@ -19,6 +20,11 @@ The view reuses the existing portfolio routes with the reserved id `all`:
 - `GET /api/portfolios/all/history`, with `from`, `to` and `benchmark`
   unchanged.
 - `GET /api/portfolios/all/returns/periods`
+- `GET /api/portfolios/all/attribution`
+  ([ADR 0027](0027-return-attribution.md))
+- `GET /api/portfolios/all/cash-gaps` (ADR 0011)
+- `GET /api/portfolios/all/projection` (the real-terms projection of
+  [ADR 0029](0029-goals-and-projection.md)), a read like the others.
 - The page `/portfolios/all`.
 
 Portfolio ids are numeric, so `all` never clashes with a real one. One scope
@@ -31,10 +37,26 @@ portfolio, is `portfolio.ErrNotFound`, the 404 the routes return today.
 Every other `/api/portfolios/{id}/*` route keeps parsing `{id}` as a number
 and keeps returning 404 for `all`: transactions, expected dividends, rename,
 delete, and the position history
-(`/api/portfolios/{id}/instruments/{instrument_id}/history`). The view is
-read-only by construction, not by a check that could be forgotten. Statement
-imports live under `/api/imports` with the portfolio id in the body, which
-must stay a real portfolio.
+(`/api/portfolios/{id}/instruments/{instrument_id}/history`). Three route paths
+accept `all` for writing, and they are the only ones that do:
+
+- `GET` and `PUT /api/portfolios/{id}/allocation-targets`
+  ([ADR 0028](0028-target-allocation.md)), the target allocation set.
+- `GET`, `PUT` and `DELETE /api/portfolios/{id}/goal`
+  ([ADR 0029](0029-goals-and-projection.md)), the savings goal.
+- `POST /api/portfolios/{id}/cash-gaps` (ADR 0011), which records the deposits
+  for the cash gaps the `GET` lists.
+
+The first two store one setting for the whole view. They resolve `{id}` with
+`scopePortfolioID` in the same `scope.go`: `all` becomes a NULL portfolio id,
+so the all-portfolios set or goal is stored apart from every portfolio's own.
+Both are settings stored beside the portfolios, not a change to any portfolio's
+transactions. The cash-gaps `POST` does change transactions. It resolves `{id}`
+with `scopeTransactions` like its `GET`, recomputes the gaps of every portfolio
+in scope and inserts each deposit into the portfolio whose cash had the gap, in
+one database transaction. The client sends only a note, never an amount or a
+portfolio. Statement imports live under `/api/imports` with the portfolio id in
+the body, which must stay a real portfolio.
 
 ### Merge rule: one holdings pass per portfolio, then sum
 
@@ -120,14 +142,17 @@ to the chart range buttons.
 Benchmarks work unchanged: the shadow portfolio of ADR 0012 takes the summed
 `V_0` and the summed daily flows.
 
-### Read-only, with what stays per portfolio
+### Read-mostly, with what stays per portfolio
 
 On `/portfolios/all` there is no manual-price editing, no buy and sell
 buttons, no links to transactions or imports, and no position page (ADR 0016).
 The "Dikkat" card still books or dismisses an expected dividend and enters a
 manual price, each through the owning portfolio's own route
-(`/api/portfolios/{n}/...`) or the user's price route; the `all` routes stay
-read-only.
+(`/api/portfolios/{n}/...`) or the user's price route. The `all` routes read,
+except the three writes listed under "URL and API": the allocation targets
+routes of ADR 0028, the goal routes of ADR 0029 and the cash-gaps `POST`, which
+the performance page offers on `all` as well. The projection is a normal read
+`all` route.
 
 Per portfolio: transactions (listing, adding, editing, deleting), statement
 imports, expected dividends and their dismissal. Manual prices are stored per
@@ -140,5 +165,5 @@ portfolio.
 
 ### Out of scope
 
-Editing from the all-portfolios view, a user-chosen subset of portfolios, a
+Entering or editing transactions by hand from the all-portfolios view, a user-chosen subset of portfolios, a
 position page across portfolios.
