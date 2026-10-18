@@ -144,7 +144,17 @@ definitions:
         type: string
       name:
         type: string
+      sector_override:
+        description: SectorOverride is the sector key an admin set, null when none.
+        type: string
       symbol:
+        type: string
+    type: object
+  instrument.sectorOverrideRequest:
+    properties:
+      sector_override:
+        description: SectorOverride is a sector key; null or an omitted key clears
+          it.
         type: string
     type: object
   portfolio.nameRequest:
@@ -1576,6 +1586,57 @@ paths:
                 type: string
             type: object
       summary: Add an instrument
+      tags:
+      - admin
+  /admin/instruments/{id}:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: instrument id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: sector_override is one of the 11 sector keys (energy, materials,
+          industrials, consumer_discretionary, consumer_staples, health_care, financials,
+          information_technology, communication_services, utilities, real_estate);
+          null or an omitted key clears the override
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/instrument.sectorOverrideRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: the instrument with its new override
+          schema:
+            $ref: '#/definitions/instrument.instrumentResponse'
+        "400":
+          description: invalid request body; sector_override must be a sector key;
+            term deposits have no classification
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: instrument not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Set or clear an instrument's sector override
       tags:
       - admin
   /admin/providers:

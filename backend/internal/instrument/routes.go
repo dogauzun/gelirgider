@@ -34,6 +34,7 @@ func RegisterRoutes(mux *http.ServeMux, repo *Repo) {
 func RegisterAdminRoutes(admin *http.ServeMux, repo *Repo) {
 	h := &handler{repo: repo}
 	admin.HandleFunc("POST /api/admin/instruments", h.add)
+	admin.HandleFunc("PATCH /api/admin/instruments/{id}", h.setSectorOverride)
 }
 
 type handler struct {
@@ -69,6 +70,16 @@ type instrumentResponse struct {
 	Market   string `json:"market"`
 	Name     string `json:"name"`
 	Currency string `json:"currency"`
+	// SectorOverride is the sector key an admin set, null when none.
+	SectorOverride *string `json:"sector_override"`
+}
+
+func toResponse(in Instrument) instrumentResponse {
+	out := instrumentResponse{ID: in.ID, Symbol: in.Symbol, Market: in.Market, Name: in.Name, Currency: in.Currency}
+	if in.SectorOverride.Valid {
+		out.SectorOverride = &in.SectorOverride.String
+	}
+	return out
 }
 
 // search finds instruments by symbol or name, at most searchLimit of them.
@@ -95,13 +106,7 @@ func (h *handler) search(w http.ResponseWriter, r *http.Request) {
 
 	out := make([]instrumentResponse, len(results))
 	for i, in := range results {
-		out[i] = instrumentResponse{
-			ID:       in.ID,
-			Symbol:   in.Symbol,
-			Market:   in.Market,
-			Name:     in.Name,
-			Currency: in.Currency,
-		}
+		out[i] = toResponse(in)
 	}
 	auth.WriteJSON(w, http.StatusOK, out)
 }
@@ -180,11 +185,52 @@ func (h *handler) add(w http.ResponseWriter, r *http.Request) {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	auth.WriteJSON(w, http.StatusOK, instrumentResponse{
-		ID:       in.ID,
-		Symbol:   in.Symbol,
-		Market:   in.Market,
-		Name:     in.Name,
-		Currency: in.Currency,
-	})
+	auth.WriteJSON(w, http.StatusOK, toResponse(in))
+}
+
+type sectorOverrideRequest struct {
+	// SectorOverride is a sector key; null or an omitted key clears it.
+	SectorOverride *string `json:"sector_override"`
+}
+
+// setSectorOverride sets or clears the sector an admin pins on an instrument.
+//
+//	@Summary	Set or clear an instrument's sector override
+//	@Tags		admin
+//	@Accept		json
+//	@Produce	json
+//	@Param		id		path		int									true	"instrument id"
+//	@Param		body	body		instrument.sectorOverrideRequest	true	"sector_override is one of the 11 sector keys (energy, materials, industrials, consumer_discretionary, consumer_staples, health_care, financials, information_technology, communication_services, utilities, real_estate); null or an omitted key clears the override"
+//	@Success	200		{object}	instrument.instrumentResponse		"the instrument with its new override"
+//	@Failure	400		{object}	object{error=string}				"invalid request body; sector_override must be a sector key; term deposits have no classification"
+//	@Failure	404		{object}	object{error=string}				"instrument not found"
+//	@Failure	500		{object}	object{error=string}				"internal error"
+//	@Router		/admin/instruments/{id} [patch]
+func (h *handler) setSectorOverride(w http.ResponseWriter, r *http.Request) {
+	in, ok := FromPath(w, r, h.repo, "id")
+	if !ok {
+		return
+	}
+	var req sectorOverrideRequest
+	if !auth.DecodeJSON(w, r, &req) {
+		return
+	}
+	if req.SectorOverride != nil && !IsSectorKey(*req.SectorOverride) {
+		auth.WriteError(w, http.StatusBadRequest, "sector_override must be a sector key")
+		return
+	}
+	if in.Market == MarketDeposit {
+		auth.WriteError(w, http.StatusBadRequest, "term deposits have no classification")
+		return
+	}
+	if err := h.repo.SetSectorOverride(r.Context(), in.ID, req.SectorOverride); err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	in, err := h.repo.Get(r.Context(), in.ID)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	auth.WriteJSON(w, http.StatusOK, toResponse(in))
 }

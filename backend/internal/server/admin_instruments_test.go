@@ -8,6 +8,7 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -112,6 +113,22 @@ func TestAdminAddInstrument(t *testing.T) {
 
 	if status, _ := add(bob, nvda); status != http.StatusForbidden {
 		t.Errorf("non-admin add: status %d, want 403", status)
+	}
+	// The sector override route is admin-only as well.
+	for name, c := range map[string]*http.Client{"admin": admin, "non-admin": bob} {
+		req, err := http.NewRequest(http.MethodPatch, srv.URL+"/api/admin/instruments/"+strconv.FormatInt(first.ID, 10), strings.NewReader(`{"sector_override":"information_technology"}`))
+		if err != nil {
+			t.Fatalf("new request: %v", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := c.Do(req)
+		if err != nil {
+			t.Fatalf("%s patch: %v", name, err)
+		}
+		resp.Body.Close()
+		if want := map[string]int{"admin": http.StatusOK, "non-admin": http.StatusForbidden}[name]; resp.StatusCode != want {
+			t.Errorf("%s sector override: status %d, want %d", name, resp.StatusCode, want)
+		}
 	}
 
 	resp, err := admin.Get(srv.URL + "/api/instruments?q=nvda")

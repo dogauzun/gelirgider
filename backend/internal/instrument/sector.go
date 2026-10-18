@@ -1,6 +1,22 @@
 package instrument
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
+
+// sectorKeys are the 11 sector keys, without unknown: unknown is what a
+// position shows when nothing is set, not something an admin pins.
+var sectorKeys = []string{
+	"energy", "materials", "industrials", "consumer_discretionary",
+	"consumer_staples", "health_care", "financials", "information_technology",
+	"communication_services", "utilities", "real_estate",
+}
+
+// IsSectorKey reports whether s is one of the 11 sector keys.
+func IsSectorKey(s string) bool {
+	return slices.Contains(sectorKeys, s)
+}
 
 // sectorUnknown is the key of an instrument with no sector data or a raw
 // string no map knows.

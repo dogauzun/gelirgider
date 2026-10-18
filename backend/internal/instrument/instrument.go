@@ -479,6 +479,15 @@ func (r *Repo) Rename(ctx context.Context, id int64, name string) error {
 	return nil
 }
 
+// SetSectorOverride pins the instrument to a sector key, or clears the pin
+// with nil. A symbol refresh never touches it.
+func (r *Repo) SetSectorOverride(ctx context.Context, id int64, sector *string) error {
+	if _, err := r.db.ExecContext(ctx, "UPDATE instruments SET sector_override = ? WHERE id = ?", sector, id); err != nil {
+		return fmt.Errorf("set sector override of instrument %d: %w", id, err)
+	}
+	return nil
+}
+
 // likeEscape escapes LIKE wildcards in q so user input is matched literally.
 func likeEscape(q string) string {
 	r := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
