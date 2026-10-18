@@ -473,6 +473,33 @@ describe('PositionsTable', () => {
     expect(symbols()).toEqual([expect.stringContaining('TI1')])
   })
 
+  it('searches and sorts a deposit by its label, not its symbol or stored name', () => {
+    setLocale('en')
+    renderTable(
+      summary([
+        position(1, 'AKBNK'),
+        position(2, 'TD-1', { market: 'DEPOSIT', name: 'Vadeli mevduat TRY 2026-07-01' }),
+        position(3, 'TEA'),
+      ]),
+    )
+    const search = screen.getByRole('searchbox', { name: 'Search positions' })
+    fireEvent.change(search, { target: { value: 'term' } })
+    expect(symbols()).toEqual([expect.stringContaining('Term deposit TRY 2026-07-01')])
+    for (const value of ['TD-', 'vadeli']) {
+      fireEvent.change(search, { target: { value } })
+      expect(screen.getByText('No positions match the search.')).toBeInTheDocument()
+    }
+
+    fireEvent.change(search, { target: { value: '' } })
+    fireEvent.click(within(header('Instrument')).getByRole('button'))
+    // By symbol the deposit would sit between AKBNK and TEA.
+    expect(symbols()).toEqual([
+      expect.stringContaining('AKBNK'),
+      expect.stringContaining('TEA'),
+      expect.stringContaining('Term deposit'),
+    ])
+  })
+
   it('has no switch without closed positions', () => {
     renderTable(summary(twoPositions()))
     expect(screen.queryByRole('radiogroup')).toBeNull()

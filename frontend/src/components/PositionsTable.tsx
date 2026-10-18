@@ -87,7 +87,7 @@ type Column = {
   value: (p: Position) => string | number | null
 }
 const COLUMNS: Column[] = [
-  { key: 'symbol', label: 'summary.symbol', value: (p) => p.symbol },
+  { key: 'symbol', label: 'summary.symbol', value: positionLabel },
   { key: 'weight', label: 'summary.weight', value: (p) => p.market_value_reporting },
   { key: 'quantity', label: 'summary.quantity', value: (p) => p.quantity },
   { key: 'avgCost', label: 'summary.avgCost', value: (p) => p.avg_cost },
@@ -106,7 +106,7 @@ const COLUMNS: Column[] = [
 // The closed view's columns. Realized P/L sorts by its reporting
 // amount, as K/Z does: the cells are in each position's own currency.
 const CLOSED_COLUMNS: Column[] = [
-  { key: 'symbol', label: 'summary.symbol', value: (p) => p.symbol },
+  { key: 'symbol', label: 'summary.symbol', value: positionLabel },
   { key: 'realized', label: 'summary.realizedPl', value: (p) => p.realized_pl_reporting },
   {
     key: 'realizedPercent',
@@ -530,7 +530,8 @@ export function PositionsTable({
   // position.
   const query = searchFold(search.trim())
   const matches = (p: Position) =>
-    searchFold(p.symbol).includes(query) || searchFold(p.name).includes(query)
+    searchFold(positionLabel(p)).includes(query) ||
+    (p.market !== 'DEPOSIT' && searchFold(p.name).includes(query))
   const openRows = query ? open.filter(matches) : open
   const closedRows = query ? closed.filter(matches) : closed
   // The total row is the server's figure for every open position,
