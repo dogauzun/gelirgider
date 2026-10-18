@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
 import {
+  useDividendForecast,
   useDividendTimeline,
   type DividendBucket,
   type DividendInstrumentTotal,
@@ -31,12 +32,13 @@ import { usePortfolioTitle } from '../lib/useTitle'
 import { usePositionPath } from '../lib/useRange'
 import { useStoredChoice } from '../lib/useStoredChoice'
 
-const GROUP_KEYS = ['month', 'year'] as const
+const GROUP_KEYS = ['month', 'year', 'forecast'] as const
 type Group = (typeof GROUP_KEYS)[number]
 
 const GROUPS: { key: Group; labelKey: StringKey }[] = [
   { key: 'month', labelKey: 'dividends.page.monthly' },
   { key: 'year', labelKey: 'dividends.page.yearly' },
+  { key: 'forecast', labelKey: 'dividends.page.forecast' },
 ]
 
 type SortKey = 'symbol' | 'count' | 'net' | 'last_date'
@@ -84,10 +86,17 @@ function monthsBack(last: string, count: number): string[] {
 // The chart's bars: the last 24 months, or every year from the first bucket
 // to this one, each zero-filled where the API has no bucket (it sends only
 // non-empty ones).
-function barsFor(group: Group, months: DividendBucket[], years: DividendBucket[], today: string) {
-  const net = new Map((group === 'month' ? months : years).map((b) => [b.period, b.net]))
+function barsFor(
+  group: Group,
+  source: Record<Group, { period: string; net: string }[]>,
+  today: string,
+) {
+  const { year: years, forecast } = source
+  const net = new Map(source[group].map((b) => [b.period, b.net]))
   let periods: string[]
-  if (group === 'month') {
+  if (group === 'forecast') {
+    periods = forecast.map((b) => b.period)
+  } else if (group === 'month') {
     periods = monthsBack(today.slice(0, 7), 24)
   } else {
     const last = Number(today.slice(0, 4))
@@ -97,9 +106,9 @@ function barsFor(group: Group, months: DividendBucket[], years: DividendBucket[]
   return periods.map((period): Bar => ({
     key: period,
     label:
-      group === 'month'
-        ? formatMarketDate(`${period}-01`, { month: 'short', year: '2-digit' })
-        : period,
+      group === 'year'
+        ? period
+        : formatMarketDate(`${period}-01`, { month: 'short', year: '2-digit' }),
     value: net.get(period) ?? '0',
   }))
 }
@@ -118,6 +127,7 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
   const positionPath = usePositionPath()
   const { data, isLoading, isError, error, refetch, isFetching } = useDividendTimeline(portfolioId)
   const summary = usePortfolioSummary(portfolioId)
+  const forecast = useDividendForecast(portfolioId)
   const [group, setGroup] = useStoredChoice('dividendsGroup', GROUP_KEYS, 'month')
   const [adding, setAdding] = useState(false)
   // The API already sends the rows net largest first, so the table starts
@@ -127,6 +137,10 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
   const today = todayIstanbul()
   const selected = GROUPS.find((g) => g.key === group) ?? GROUPS[0]
   const isEmpty = data !== undefined && data.years.length === 0
+  const missingRates = [
+    ...(data?.missing_rates ?? []),
+    ...(forecast.data?.missing_rates ?? []).filter((c) => !data?.missing_rates.includes(c)),
+  ]
 
   let body = null
   if (isEmpty) {
@@ -149,6 +163,15 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
     // once on the server; a position without a rate is left out.
     const cost = Number(summary.data?.cost_basis ?? 0)
     const yieldOnCost = cost > 0 ? percent(Number(last12) / cost) : MISSING
+    const forecastMonths = forecast.data?.months ?? []
+    const forecastNet = forecast.data
+      ? unitsToDecimal(forecastMonths.reduce((sum, m) => sum + decimalUnits(m.net), 0n))
+      : null
+    const positionsValue = Number(summary.data?.positions_value ?? 0)
+    const forwardYield =
+      forecastNet !== null && positionsValue > 0
+        ? percent(Number(forecastNet) / positionsValue)
+        : MISSING
     const money = (key: StringKey, value: string) => (
       <KpiCell label={t(key)}>
         <FitFigure className={`${KPI_FIGURE} text-ink`} text={formatMoney(value, currency)} />
@@ -159,11 +182,21 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
       netUnits > 0n ? percent(Number(net) / Number(unitsToDecimal(netUnits))) : MISSING
     body = (
       <>
-        <KpiStrip columns="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6" className="mb-6">
+        <KpiStrip columns="grid-cols-2 sm:grid-cols-4" className="mb-6">
           {money('dividends.page.last12', last12)}
           <KpiCell label={t('dividends.page.yieldOnCost')}>
             <FitFigure className={`${KPI_FIGURE} text-ink`} text={yieldOnCost} />
             <p className="mt-1 text-[11px] text-muted">{t('dividends.page.yieldOnCostHint')}</p>
+          </KpiCell>
+          <KpiCell label={t('dividends.page.forecast12')}>
+            <FitFigure
+              className={`${KPI_FIGURE} text-ink`}
+              text={forecastNet === null ? MISSING : formatMoney(forecastNet, currency)}
+            />
+          </KpiCell>
+          <KpiCell label={t('dividends.page.forwardYield')}>
+            <FitFigure className={`${KPI_FIGURE} text-ink`} text={forwardYield} />
+            <p className="mt-1 text-[11px] text-muted">{t('dividends.page.forwardYieldHint')}</p>
           </KpiCell>
           {money(
             'dividends.page.thisYear',
@@ -200,7 +233,13 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
             />
           </div>
           <div className="p-4">
-            <BarChart bars={barsFor(group, months, years, today)} currency={currency} />
+            <BarChart
+              bars={barsFor(group, { month: months, year: years, forecast: forecastMonths }, today)}
+              currency={currency}
+            />
+            {group === 'forecast' && (
+              <p className="mt-3 text-[11px] text-muted">{t('dividends.page.forecastHint')}</p>
+            )}
           </div>
         </section>
 
@@ -304,12 +343,12 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
         )}
         {/* Also over the empty state: rows left out for a missing rate can be
             all there is. */}
-        {data && data.missing_rates.length > 0 && (
+        {data && missingRates.length > 0 && (
           <div className="mb-6">
             <Notice>
               {t('summary.missingRates', {
                 currency: data.currency,
-                currencies: data.missing_rates.join(', '),
+                currencies: missingRates.join(', '),
               })}
             </Notice>
           </div>
