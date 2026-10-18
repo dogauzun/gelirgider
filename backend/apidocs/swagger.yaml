@@ -443,6 +443,15 @@ definitions:
       symbol:
         type: string
     type: object
+  server.goalBody:
+    properties:
+      amount:
+        type: string
+      target_date:
+        type: string
+      unit:
+        type: string
+    type: object
   server.historyEntry:
     properties:
       benchmark_twr:
@@ -4020,6 +4029,123 @@ paths:
       summary: List upcoming dividends
       tags:
       - dividends
+  /portfolios/{id}/goal:
+    delete:
+      parameters:
+      - description: numeric id or `all`
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: deleted
+        "404":
+          description: portfolio not found; goal not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Delete a portfolio's goal
+      tags:
+      - portfolios
+    get:
+      description: 'The savings goal of the portfolio: amount to reach in unit by
+        target_date. `all` is the goal of the all-portfolios view and is stored apart
+        from every portfolio''s goal.'
+      parameters:
+      - description: numeric id or `all`
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.goalBody'
+        "404":
+          description: portfolio not found; goal not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Read a portfolio's goal
+      tags:
+      - portfolios
+    put:
+      consumes:
+      - application/json
+      description: Replaces the goal of the scope and answers the stored goal. unit
+        is nominal (the reporting currency), real (inflation-adjusted, only with a
+        TRY reporting currency) or usd (only with a non-USD reporting currency). target_date
+        is YYYY-MM-DD and after today (Europe/Istanbul).
+      parameters:
+      - description: numeric id or `all`
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: amount a positive decimal; unit one of nominal, real, usd
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/server.goalBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.goalBody'
+        "400":
+          description: 'invalid request body; amount: must be a positive number; unit:
+            must be one of nominal, real, usd; unit: real needs a TRY reporting currency;
+            unit: usd needs a non-USD reporting currency; target_date: must be after
+            today'
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: portfolio not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Set a portfolio's goal
+      tags:
+      - portfolios
   /portfolios/{id}/history:
     get:
       description: One point per day from `from` to `to`, in the reporting currency.
