@@ -68,9 +68,11 @@ function renderShell(path: string) {
         <Routes>
           {/* Shaped like App.tsx: the bar reads the matched route. */}
           <Route element={<AppShell />}>
-            {['/account', '/portfolios/:id', '/portfolios/:id/transactions'].map((path) => (
-              <Route key={path} path={path} element={<Where />} />
-            ))}
+            {['/account', '/watchlist', '/portfolios/:id', '/portfolios/:id/transactions'].map(
+              (path) => (
+                <Route key={path} path={path} element={<Where />} />
+              ),
+            )}
             <Route path="*" element={<Where />} />
           </Route>
         </Routes>
@@ -264,9 +266,13 @@ describe('AppShell', () => {
     view.unmount()
 
     // The other pages by their own title, not the app's name.
-    renderShell('/account')
+    view = renderShell('/account')
     expect(within(bar()).getByText(t('account.heading'))).toBeInTheDocument()
     expect(within(bar()).queryByText(t('app.name'))).not.toBeInTheDocument()
+    view.unmount()
+
+    renderShell('/watchlist')
+    expect(within(bar()).getByText(t('watchlist.title'))).toBeInTheDocument()
   })
 
   // The bar names the page the router rendered, and the router

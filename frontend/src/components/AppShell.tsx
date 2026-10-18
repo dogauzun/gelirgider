@@ -99,6 +99,7 @@ function PageTitle() {
   const match = useMatch('/portfolios/:id/*')
   const account = useMatch('/account')
   const admin = useMatch('/admin')
+  const watchlist = useMatch('/watchlist')
   const { data } = usePortfolios()
   const { data: me } = useMe()
   const id = match?.params.id
@@ -112,6 +113,7 @@ function PageTitle() {
       data?.find((p) => String(p.id) === id)?.name ??
       (data === undefined ? t('app.name') : t('notFound.title'))
   else if (account) title = t('account.heading')
+  else if (watchlist) title = t('watchlist.title')
   else if (admin && me?.is_admin) title = t('admin.heading')
   else title = t('notFound.title')
   return (
