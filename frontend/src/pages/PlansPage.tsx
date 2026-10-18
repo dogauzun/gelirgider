@@ -10,15 +10,12 @@ import {
   type Plan,
 } from '../api/plans'
 import { PlanDialog } from '../components/PlanDialog'
-import { PortfolioHeader } from '../components/PortfolioHeader'
-import { ActionsTh } from '../components/ui/ActionsTh'
+import { ListCard, PortfolioListFrame } from '../components/PortfolioListFrame'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Icon } from '../components/ui/Icon'
-import { LoadError } from '../components/ui/LoadError'
 import { Pill } from '../components/ui/Pill'
-import { SkeletonRows } from '../components/ui/Skeleton'
-import { ROW_44, TABLE, TD, TD_NUM, TH } from '../components/ui/table'
+import { ROW_44, TD, TD_NUM } from '../components/ui/table'
 import { useConfirm } from '../components/ui/useConfirm'
 import { t, type StringKey } from '../i18n/strings'
 import { formatQuantity } from '../lib/decimal'
@@ -142,7 +139,8 @@ export function PlansPage() {
 
 function PlansBody({ portfolioId }: { portfolioId: number }) {
   usePortfolioTitle(t('plans.title'), portfolioId)
-  const { data, isLoading, isError, error, refetch, isFetching } = usePlans(portfolioId)
+  const query = usePlans(portfolioId)
+  const { data } = query
   const dueList = useDuePlansOf([portfolioId])[0].data
   const deleteMutation = useDeletePlan(portfolioId)
   const bookMutation = useBookPlan()
@@ -186,65 +184,41 @@ function PlansBody({ portfolioId }: { portfolioId: number }) {
     )
   } else if (data) {
     body = (
-      <section className="mb-6 overflow-x-auto card">
-        <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
-          <h2 className="text-[14px] font-semibold text-ink">{t('plans.title')}</h2>
-          <Button onClick={() => setAdding(true)}>
-            <Icon name="plus" />
-            {t('plans.add')}
-          </Button>
-        </div>
-        <table className={TABLE}>
-          <thead>
-            <tr>
-              {COLUMNS.map(({ labelKey, className }) => (
-                <th key={labelKey} className={`${TH} ${className}`}>
-                  {t(labelKey)}
-                </th>
-              ))}
-              <ActionsTh />
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((plan) => (
-              <PlanRow
-                key={plan.id}
-                plan={plan}
-                due={dueList?.find((item) => item.plan_id === plan.id)}
-                busy={bookMutation.isPending || skipMutation.isPending}
-                onBook={() => settle(bookMutation, plan.id, 'plans.booked')}
-                onSkip={() => settle(skipMutation, plan.id, 'plans.skipped')}
-                onEdit={() => setEditing(plan)}
-                onDelete={() => void remove(plan)}
-              />
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <ListCard
+        title={t('plans.title')}
+        addLabel={t('plans.add')}
+        onAdd={() => setAdding(true)}
+        columns={COLUMNS}
+      >
+        {data.map((plan) => (
+          <PlanRow
+            key={plan.id}
+            plan={plan}
+            due={dueList?.find((item) => item.plan_id === plan.id)}
+            busy={bookMutation.isPending || skipMutation.isPending}
+            onBook={() => settle(bookMutation, plan.id, 'plans.booked')}
+            onSkip={() => settle(skipMutation, plan.id, 'plans.skipped')}
+            onEdit={() => setEditing(plan)}
+            onDelete={() => void remove(plan)}
+          />
+        ))}
+      </ListCard>
     )
   }
 
   return (
-    // The page's own button leads, so the header's add-transaction one is quiet.
-    <PortfolioHeader portfolioId={portfolioId} add="quiet">
-      <div className="mx-auto max-w-6xl px-6 pt-6 pb-12">
-        {adding && <PlanDialog portfolioId={portfolioId} onClose={() => setAdding(false)} />}
-        {editing && (
-          <PlanDialog portfolioId={portfolioId} plan={editing} onClose={() => setEditing(null)} />
-        )}
-        {isLoading && <SkeletonRows label={t('plans.loading')} />}
-        {isError && (
-          <LoadError
-            title={t('plans.loadError')}
-            error={error}
-            onRetry={() => refetch()}
-            retrying={isFetching}
-            className="mb-6"
-          />
-        )}
-        {body}
-        {dialog}
-      </div>
-    </PortfolioHeader>
+    <PortfolioListFrame
+      portfolioId={portfolioId}
+      query={query}
+      loadingLabel={t('plans.loading')}
+      errorTitle={t('plans.loadError')}
+    >
+      {adding && <PlanDialog portfolioId={portfolioId} onClose={() => setAdding(false)} />}
+      {editing && (
+        <PlanDialog portfolioId={portfolioId} plan={editing} onClose={() => setEditing(null)} />
+      )}
+      {body}
+      {dialog}
+    </PortfolioListFrame>
   )
 }

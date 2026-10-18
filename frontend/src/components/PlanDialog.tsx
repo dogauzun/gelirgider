@@ -10,7 +10,7 @@ import { t } from '../i18n/strings'
 import { todayIstanbul } from '../lib/date'
 import { compareDecimal, formatDecimalInput, parseDecimalInput } from '../lib/decimal'
 import { decimalError, firstError, textBinding, useDepositSubmit, type Rule } from './depositForm'
-import { DateInput, DecimalInput, DepositFormDialog } from './DepositFormDialog'
+import { DateInput, DecimalInput, DepositFormDialog, NoteField } from './DepositFormDialog'
 import { InstrumentSearchInput } from './InstrumentSearchInput'
 import { CURRENCIES } from './transactionForm'
 import { Checkbox } from './ui/Checkbox'
@@ -232,11 +232,7 @@ export function PlanDialog({
         >
           <DateInput {...bind('end')} min={form.start} />
         </Field>
-        <div className="sm:col-span-2">
-          <Field label={`${t('transactions.note')} · ${t('transactions.optional')}`}>
-            <input type="text" maxLength={500} className={inputClass()} {...bind('note')} />
-          </Field>
-        </div>
+        <NoteField {...bind('note')} />
         {buy && (
           <div className="sm:col-span-2">
             <Checkbox
