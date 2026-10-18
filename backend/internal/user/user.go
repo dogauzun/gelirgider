@@ -428,6 +428,7 @@ var userDataTables = []string{
 	"term_deposits",
 	"allocation_targets",
 	"goals",
+	"saving_plans",
 	"portfolios",
 }
 
