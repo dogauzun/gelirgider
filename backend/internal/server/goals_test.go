@@ -252,3 +252,36 @@ func TestGoalProjection(t *testing.T) {
 		t.Errorf("real without TUFE = %+v, want an empty fan", got)
 	}
 }
+
+// TestGoalProjectionWindowsFullMonths checks that the 36-month window is cut
+// over the full calendar months before the months without a return are
+// dropped: a scope with returns from 39 to 30 months ago, empty from 29 to 21
+// and funded again from 20 to 1 has 27 months with a return inside the last
+// 36 full months (36 to 30 and 20 to 1), and the 3 older ones must not count.
+func TestGoalProjectionWindowsFullMonths(t *testing.T) {
+	e := newTransactionTestEnv(t)
+	session := e.login("a@example.com")
+	now := time.Now().In(price.Istanbul)
+	monthStart := func(ago int) string {
+		return time.Date(now.Year(), now.Month()-time.Month(ago), 1, 0, 0, 0, 0, time.UTC).Format(time.DateOnly)
+	}
+	id := e.createPortfolio(session, "Gap")
+	for ago := 40; ago >= 1; ago-- {
+		switch {
+		case ago == 29:
+			e.createTransaction(session, id, map[string]any{"type": "withdrawal", "date": monthStart(ago), "amount": "11000"})
+		case ago > 29 || ago <= 20:
+			e.createTransaction(session, id, map[string]any{"type": "deposit", "date": monthStart(ago), "amount": "1000"})
+		}
+	}
+	if rec := e.do(session, http.MethodPut, goalPath(id), goalReq("100000", "nominal", futureDate())); rec.Code != http.StatusOK {
+		t.Fatalf("put goal = %d %s", rec.Code, rec.Body.String())
+	}
+	rec := e.do(session, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/projection", id), nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("projection = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+	if got := decodeJSON[projectionResponse](t, rec.Body.Bytes()); got.HistoryMonths != 27 || len(got.Months) == 0 {
+		t.Errorf("history_months = %d, want 27: empty months and months before the 36-month window do not count", got.HistoryMonths)
+	}
+}

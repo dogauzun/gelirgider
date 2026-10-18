@@ -289,21 +289,27 @@ func (h *goalHandler) projectionInput(ctx context.Context, userID int64, id stri
 		return in, false, err
 	}
 	var flows []float64
+	var twrs []*float64
 	for _, b := range s.buckets(len("2006-01")) {
 		if b.Partial {
 			continue
 		}
 		flows = append(flows, b.flow)
-		if b.Returns.TWR == nil {
-			continue
+		var twr *float64
+		if b.Returns.TWR != nil {
+			v, err := strconv.ParseFloat(*b.Returns.TWR, 64)
+			if err != nil {
+				return in, false, err
+			}
+			twr = &v
 		}
-		twr, err := strconv.ParseFloat(*b.Returns.TWR, 64)
-		if err != nil {
-			return in, false, err
-		}
-		in.MonthlyReturns = append(in.MonthlyReturns, twr)
+		twrs = append(twrs, twr)
 	}
-	in.MonthlyReturns = lastN(in.MonthlyReturns, projectionReturnMonths)
+	for _, twr := range lastN(twrs, projectionReturnMonths) {
+		if twr != nil {
+			in.MonthlyReturns = append(in.MonthlyReturns, *twr)
+		}
+	}
 	in.MonthlyFlows = lastN(flows, projectionFlowMonths)
 	in.Value = s.values[len(s.values)-1]
 	thisMonth := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, time.UTC)
@@ -348,6 +354,6 @@ func (h *goalHandler) unitRate(ctx context.Context, in *goal.ProjectionInput, re
 	return true, nil
 }
 
-func lastN(xs []float64, n int) []float64 {
+func lastN[T any](xs []T, n int) []T {
 	return xs[max(0, len(xs)-n):]
 }
