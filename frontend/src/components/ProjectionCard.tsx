@@ -2,7 +2,7 @@ import { useGoal } from '../api/goal'
 import { progressPercent, useProjection } from '../api/projection'
 import type { PortfolioScope } from '../api/summary'
 import { t } from '../i18n/strings'
-import { formatMarketDate } from '../lib/date'
+import { formatMarketDate, todayIstanbul } from '../lib/date'
 import { formatMoney } from '../lib/format'
 import { ProjectionChart } from './LazyChart'
 import { ChartFrame } from './ui/ChartFrame'
@@ -12,6 +12,7 @@ import { ChartFrame } from './ui/ChartFrame'
 // amount it needs. Shown only when the scope has a goal. A real or USD goal
 // says so under the title, as the chart's amounts are in that unit; the extra
 // monthly amount is always in the reporting currency, as the server computes it.
+// A target month that has arrived is told apart from too little history.
 export function ProjectionCard({ portfolioId }: { portfolioId: PortfolioScope }) {
   const goal = useGoal(portfolioId).data
   const query = useProjection(portfolioId, Boolean(goal))
@@ -20,6 +21,8 @@ export function ProjectionCard({ portfolioId }: { portfolioId: PortfolioScope })
 
   const sentence = () => {
     if (!p) return null
+    if (p.target_date.slice(0, 7) <= todayIstanbul().slice(0, 7))
+      return t('projection.targetPassed')
     if (p.months.length === 0) return t('projection.tooLittleHistory')
     if (p.reached_at) {
       return t('projection.reached', {

@@ -24,7 +24,7 @@ const projection = (over: Partial<Projection>): Projection => ({
   unit: 'nominal',
   currency: 'TRY',
   amount: '2000',
-  target_date: '2027-12-31',
+  target_date: '2099-12-31',
   months,
   reached_at: null,
   monthly_gap: null,
@@ -76,5 +76,19 @@ describe('ProjectionCard', () => {
 
     expect(await screen.findByText(t('projection.tooLittleHistory'))).toBeInTheDocument()
     expect(screen.queryByRole('application')).not.toBeInTheDocument()
+  })
+
+  it('says the target date has passed, and draws no chart', async () => {
+    renderCard(projection({ months: [], history_months: 36, target_date: '2020-01-31' }))
+
+    expect(await screen.findByText(t('projection.targetPassed'))).toBeInTheDocument()
+    expect(screen.queryByRole('application')).not.toBeInTheDocument()
+  })
+
+  it('a passed target date wins over too little history', async () => {
+    renderCard(projection({ months: [], history_months: 3, target_date: '2020-01-31' }))
+
+    expect(await screen.findByText(t('projection.targetPassed'))).toBeInTheDocument()
+    expect(screen.queryByText(t('projection.tooLittleHistory'))).not.toBeInTheDocument()
   })
 })
