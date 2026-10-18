@@ -28,6 +28,13 @@ export const enDeposits: AreaStrings<typeof trDeposits> = {
   'deposits.deleteButton': 'Delete',
   'deposits.deleted': 'Deposit deleted',
   'deposits.deleteFailed': 'Could not delete the deposit. {error}',
+  // The renew dialog.
+  'deposits.renew': 'Renew',
+  'deposits.renewLabel': 'Renew the {principal} {currency} deposit',
+  'deposits.renewDialog.title': 'Renew the deposit',
+  'deposits.renewDialog.principal': 'New principal (principal + net interest)',
+  'deposits.renewDialog.submit': 'Renew',
+  'deposits.renewDialog.renewed': 'Deposit renewed',
   'deposits.dialog.title': 'Open a term deposit',
   'deposits.dialog.rate': 'Gross interest rate (annual, %)',
   'deposits.dialog.stopaj': 'Withholding tax (%)',
@@ -42,6 +49,8 @@ export const enDeposits: AreaStrings<typeof trDeposits> = {
   'deposits.error.maturityDate': 'Maturity must be after the start, at most 10 years later.',
   'deposits.error.matured': 'A matured deposit cannot be deleted.',
   'deposits.error.notFound': 'Deposit not found.',
+  'deposits.error.notDue': 'The deposit is not due yet.',
+  'deposits.error.renewed': 'This deposit has already been renewed.',
   // The Dikkat card's due deposits.
   'attention.group.deposits': 'Deposits at maturity',
   'attention.deposit.close': 'Close at maturity',

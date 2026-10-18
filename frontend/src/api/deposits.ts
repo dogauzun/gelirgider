@@ -15,6 +15,8 @@ export interface Deposit {
   stopaj_rate: string
   start_date: string
   maturity_date: string
+  // The id of the deposit this one renews, null for one opened on its own.
+  renewed_from: number | null
   // Principal plus the net interest accrued up to today.
   value: string
   accrued_interest: string
@@ -102,6 +104,30 @@ export function useMatureDeposit() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: number) => apiFetch<void>(`/api/deposits/${id}/mature`, { method: 'POST' }),
+    onSettled: () => invalidatePortfolios(queryClient),
+  })
+}
+
+// The renew POST body: the new terms, as fractions. The server takes the
+// principal (old principal plus net interest), currency and start date from
+// the deposit being renewed.
+export interface RenewInput {
+  rate: string
+  stopaj_rate: string
+  maturity_date: string
+}
+
+// Opens the next deposit from a due or matured one, booking the old maturity
+// first when it has none. That can book a dividend, which the all scope
+// shows, so every portfolio query is refreshed, like the mature hook.
+export function useRenewDeposit(id: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: RenewInput) =>
+      apiFetch<Deposit>(`/api/deposits/${id}/renew`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
     onSettled: () => invalidatePortfolios(queryClient),
   })
 }

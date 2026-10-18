@@ -25,6 +25,13 @@ export const trDeposits = {
   'deposits.deleteButton': 'Sil',
   'deposits.deleted': 'Mevduat silindi',
   'deposits.deleteFailed': 'Mevduat silinemedi. {error}',
+  // The renew dialog.
+  'deposits.renew': 'Yenile',
+  'deposits.renewLabel': '{principal} {currency} mevduatını yenile',
+  'deposits.renewDialog.title': 'Mevduatı yenile',
+  'deposits.renewDialog.principal': 'Yeni anapara (anapara + net faiz)',
+  'deposits.renewDialog.submit': 'Yenile',
+  'deposits.renewDialog.renewed': 'Mevduat yenilendi',
   // The dialog that opens a deposit.
   'deposits.dialog.title': 'Vadeli mevduat aç',
   'deposits.dialog.rate': 'Brüt faiz oranı (yıllık, %)',
@@ -40,6 +47,8 @@ export const trDeposits = {
   'deposits.error.maturityDate': 'Vade sonu vade başından sonra olmalı, en fazla 10 yıl sonra.',
   'deposits.error.matured': 'Vadesi dolmuş mevduat silinemez.',
   'deposits.error.notFound': 'Mevduat bulunamadı.',
+  'deposits.error.notDue': 'Mevduatın vadesi henüz gelmedi.',
+  'deposits.error.renewed': 'Bu mevduat zaten yenilendi.',
   // The Dikkat card's due deposits.
   'attention.group.deposits': 'Vadesi gelen mevduat',
   'attention.deposit.close': 'Vadeyi kapat',

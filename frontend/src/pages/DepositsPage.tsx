@@ -3,6 +3,7 @@ import { Navigate, useParams } from 'react-router'
 import { useDeleteDeposit, useDeposits, type Deposit } from '../api/deposits'
 import { DepositDialog } from '../components/DepositDialog'
 import { PortfolioHeader } from '../components/PortfolioHeader'
+import { RenewDepositDialog } from '../components/RenewDepositDialog'
 import { ActionsTh } from '../components/ui/ActionsTh'
 import { Button } from '../components/ui/Button'
 import { Icon } from '../components/ui/Icon'
@@ -46,7 +47,16 @@ const COLUMNS: { labelKey: StringKey; className: string }[] = [
   { labelKey: 'deposits.status', className: '' },
 ]
 
-function DepositRow({ deposit, onDelete }: { deposit: Deposit; onDelete: () => void }) {
+function DepositRow({
+  deposit,
+  onRenew,
+  onDelete,
+}: {
+  deposit: Deposit
+  // Set only on a due or matured deposit that has not been renewed.
+  onRenew?: () => void
+  onDelete: () => void
+}) {
   const { currency } = deposit
   const status = STATUS[deposit.status]
   return (
@@ -63,7 +73,19 @@ function DepositRow({ deposit, onDelete }: { deposit: Deposit; onDelete: () => v
       <td className={TD}>
         <Pill tone={status.tone}>{t(status.labelKey)}</Pill>
       </td>
-      <td className={`${TD} w-0`}>
+      <td className={`${TD} w-0 whitespace-nowrap`}>
+        {onRenew && (
+          <Button
+            variant="ghost"
+            aria-label={t('deposits.renewLabel', {
+              principal: formatMoney(deposit.principal, currency),
+              currency,
+            })}
+            onClick={onRenew}
+          >
+            {t('deposits.renew')}
+          </Button>
+        )}
         {/* A matured deposit has booked its sell and its interest: the
             server refuses to delete it. */}
         {deposit.status !== 'matured' && (
@@ -99,7 +121,10 @@ function DepositsBody({ portfolioId }: { portfolioId: number }) {
   const deleteMutation = useDeleteDeposit(portfolioId)
   const { confirm, dialog } = useConfirm()
   const [opening, setOpening] = useState(false)
+  const [renewing, setRenewing] = useState<Deposit | null>(null)
   const isEmpty = data !== undefined && data.length === 0
+  // A deposit is renewed once: the server answers 409 to a second renewal.
+  const renewed = new Set(data?.map((deposit) => deposit.renewed_from))
 
   async function remove(deposit: Deposit) {
     const confirmed = await confirm({
@@ -152,6 +177,11 @@ function DepositsBody({ portfolioId }: { portfolioId: number }) {
               <DepositRow
                 key={deposit.id}
                 deposit={deposit}
+                onRenew={
+                  deposit.status !== 'active' && !renewed.has(deposit.id)
+                    ? () => setRenewing(deposit)
+                    : undefined
+                }
                 onDelete={() => void remove(deposit)}
               />
             ))}
@@ -166,6 +196,7 @@ function DepositsBody({ portfolioId }: { portfolioId: number }) {
     <PortfolioHeader portfolioId={portfolioId} add="quiet">
       <div className="mx-auto max-w-6xl px-6 pt-6 pb-12">
         {opening && <DepositDialog portfolioId={portfolioId} onClose={() => setOpening(false)} />}
+        {renewing && <RenewDepositDialog deposit={renewing} onClose={() => setRenewing(null)} />}
         {isLoading && <SkeletonRows label={t('deposits.loading')} />}
         {isError && (
           <LoadError
