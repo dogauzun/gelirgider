@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"net/http"
 	"sort"
 	"strconv"
 
@@ -46,6 +47,24 @@ func scopeTransactions(ctx context.Context, portfolios *portfolio.Repo, transact
 		lists = append(lists, txs)
 	}
 	return lists, nil
+}
+
+// scopePortfolioID resolves the {id} path value into the portfolio a stored
+// per-scope row belongs to: nil for "all", else the id of a portfolio userID
+// owns. A non-number, or another user's portfolio, is portfolio.ErrNotFound.
+func (d *deps) scopePortfolioID(r *http.Request, userID int64) (*int64, error) {
+	id := r.PathValue("id")
+	if id == "all" {
+		return nil, nil
+	}
+	n, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return nil, portfolio.ErrNotFound
+	}
+	if _, err := d.portfolios.Get(r.Context(), userID, n); err != nil {
+		return nil, err
+	}
+	return &n, nil
 }
 
 // flatByDate concatenates per-portfolio lists into one, ordered by date. The

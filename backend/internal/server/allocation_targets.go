@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"slices"
-	"strconv"
 
 	"github.com/dogauzun/gelirgider/backend/internal/allocation"
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
@@ -33,24 +32,6 @@ type allocationTarget struct {
 // allocationTargetsBody is the PUT body and the response of both routes.
 type allocationTargetsBody struct {
 	Targets []allocationTarget `json:"targets"`
-}
-
-// scopePortfolioID resolves the {id} path value into the set's portfolio: nil
-// for "all", else the id of a portfolio userID owns. A non-number, or another
-// user's portfolio, is portfolio.ErrNotFound.
-func (h *allocationTargetHandler) scopePortfolioID(r *http.Request, userID int64) (*int64, error) {
-	id := r.PathValue("id")
-	if id == "all" {
-		return nil, nil
-	}
-	n, err := strconv.ParseInt(id, 10, 64)
-	if err != nil {
-		return nil, portfolio.ErrNotFound
-	}
-	if _, err := h.portfolios.Get(r.Context(), userID, n); err != nil {
-		return nil, err
-	}
-	return &n, nil
 }
 
 // parseAllocationTargets validates req's set: known classes, each once, weights

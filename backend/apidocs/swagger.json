@@ -3800,6 +3800,174 @@
                 }
             }
         },
+        "/portfolios/{id}/goal": {
+            "get": {
+                "description": "The savings goal of the portfolio: amount to reach in unit by target_date. `all` is the goal of the all-portfolios view and is stored apart from every portfolio's goal.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Read a portfolio's goal",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "numeric id or `all`",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.goalBody"
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found; goal not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Replaces the goal of the scope and answers the stored goal. unit is nominal (the reporting currency), real (inflation-adjusted, only with a TRY reporting currency) or usd (only with a non-USD reporting currency). target_date is YYYY-MM-DD and after today (Europe/Istanbul).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Set a portfolio's goal",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "numeric id or `all`",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "amount a positive decimal; unit one of nominal, real, usd",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.goalBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.goalBody"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; amount: must be a positive number; unit: must be one of nominal, real, usd; unit: real needs a TRY reporting currency; unit: usd needs a non-USD reporting currency; target_date: must be after today",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Delete a portfolio's goal",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "numeric id or `all`",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "deleted"
+                    },
+                    "404": {
+                        "description": "portfolio not found; goal not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/portfolios/{id}/history": {
             "get": {
                 "description": "One point per day from `from` to `to`, in the reporting currency. A `from` before the first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the first transaction (at most 3660 days back); a `to` after today is clamped to today. The three returns are null when undefined for the range; benchmark is null when no benchmark was requested, and its returns are null when it has no level on or before the first point. Each point's twr is the time-weighted return from the first point to that one, ending on returns.twr, and null on every point when returns.twr is null; benchmark_twr is the same for the benchmark's shadow series. inflation is the TUFE change over the range, whatever the benchmark, null unless the reporting currency is TRY or when TUFE has no level on or before the first point; inflation_estimated_from is the first extrapolated day of it, null when none.",
@@ -5268,6 +5436,20 @@
                     "type": "string"
                 },
                 "symbol": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.goalBody": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "string"
+                },
+                "target_date": {
+                    "type": "string"
+                },
+                "unit": {
                     "type": "string"
                 }
             }
