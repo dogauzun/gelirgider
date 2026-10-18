@@ -1,11 +1,11 @@
 import type { Position } from '../api/summary'
-import { marketLabel, t } from '../i18n/strings'
+import { marketLabel, sectorLabel, t } from '../i18n/strings'
 import { compareUnits, decimalUnits, unitsToDecimal } from './decimal'
 import { currencyTotals, holdingsTotal, shareOf, shareUnits } from './positions'
 
 // The groupings of the allocation card's toggle: one row per position, per
-// market, per asset class, or per currency.
-export const ALLOCATION_VIEWS = ['symbol', 'market', 'assetClass', 'currency'] as const
+// market, per asset class, per sector, or per currency.
+export const ALLOCATION_VIEWS = ['symbol', 'market', 'assetClass', 'sector', 'currency'] as const
 export type AllocationView = (typeof ALLOCATION_VIEWS)[number]
 
 type AssetClass = 'equity' | 'fund' | 'commodity' | 'crypto' | 'cash' | 'deposit' | 'unknown'
@@ -56,6 +56,7 @@ function groupOf(position: Position, view: AllocationView): [string, string] {
       'unknown'
     return [`class-${assetClass}`, t(`allocation.assetClass.${assetClass}`)]
   }
+  if (view === 'sector') return [`sector-${position.sector}`, sectorLabel(position.sector)]
   return [position.market, marketLabel(position.market)]
 }
 
@@ -67,7 +68,7 @@ const COLORS = [1, 2, 3, 4, 5, 6].map((n) => `var(--color-cat-${n})`)
 const CASH_COLOR = 'var(--color-cash)'
 
 // allocationRows groups the portfolio for the allocation card: one row per
-// position (or per market, asset class, or currency, see AllocationView) and one for
+// position (or per market, asset class, sector, or currency, see AllocationView) and one for
 // cash, largest first, cash last. Values are the reporting-currency
 // equivalents (market_value_reporting), so positions in different currencies
 // compare correctly. A position with a zero or negative reporting value, or

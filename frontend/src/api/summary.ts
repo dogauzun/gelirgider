@@ -10,6 +10,9 @@ export interface Position {
   // The instrument's stored class (equity, fund, commodity, crypto, cash or
   // deposit); null when it has none.
   asset_class: string | null
+  // The instrument's sector key (financials, energy, ... or a fund_* key for
+  // a TEFAS fund); 'unknown' when it has none, never null.
+  sector: string
   currency: string
   quantity: string
   avg_cost: string

@@ -95,7 +95,9 @@ export function Allocation({
           onChange={setView}
           label={(option) => t(`allocation.view.${option}`)}
           aria-label={t('allocation.view.label')}
-          itemClassName={TAP_Y}
+          itemClassName={`${TAP_Y} whitespace-nowrap`}
+          // Five options outgrow a phone-width card: wrap them inside the track.
+          className="flex-wrap"
         />
       </div>
       <div className="@container p-4">
