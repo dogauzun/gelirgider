@@ -89,7 +89,7 @@ func (h *scheduleHandler) listSources(w http.ResponseWriter, r *http.Request) {
 //	@Accept		json
 //	@Produce	json
 //	@Param		name	path	string							true	"source name"
-//	@Param		body	body	object{enabled=bool,at=string}	true	"enabled is required; at is the daily run time, HH:MM"
+//	@Param		body	body	object{enabled=bool,at=string}	true	"enabled and at are both required; at is the daily run time, HH:MM"
 //	@Success	204
 //	@Failure	400	{object}	object{error=string}	"invalid request body; at: must be HH:MM"
 //	@Failure	404	{object}	object{error=string}	"unknown source"

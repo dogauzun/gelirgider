@@ -960,7 +960,7 @@
                         "required": true
                     },
                     {
-                        "description": "enabled is required; at is the daily run time, HH:MM",
+                        "description": "enabled and at are both required; at is the daily run time, HH:MM",
                         "name": "body",
                         "in": "body",
                         "required": true,
