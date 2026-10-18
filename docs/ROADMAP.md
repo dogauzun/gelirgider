@@ -12,16 +12,6 @@ Nothing at the moment.
 
 ## Next
 
-- Phase 32, quick wins (GLG-1460): small improvements from the Ghostfolio review, such as a real return next to TWR, upcoming dividends by month, `SECRET_KEY_FILE` and a 15,000-transaction benchmark.
-- Phase 36, configurable attention rules (GLG-1471): each user switches the Dikkat rules off and tunes their thresholds, with two new TRY rules.
-- Phase 34, term deposits (GLG-1464): record a vadeli mevduat and value it daily with interest accrued net of stopaj.
-- Phase 37, two-step login with TOTP (GLG-1472): an optional TOTP second step at login, with recovery codes and a QR code at enrolment.
-- Phase 33, return split (GLG-1461): split a range's return into price, income and currency, per portfolio and per position.
-  - Deferred: the Katkı card's range mode.
-- Phase 35, allocation by asset class (GLG-1463): group the allocation card by equity, fund, commodity, crypto, deposit and cash.
-  - Deferred: the sector view, if GLG-1475 finds no BIST sector source.
-- Phase 38, target allocation and rebalancing (GLG-1566): target weights per asset class, drift next to the actual share, a drift Dikkat rule and a buy-only planner that splits a contribution across the under-weight classes.
-- Phase 39, goals and real-terms projection (GLG-1567): a goal per portfolio in TRY, real TRY or USD, projected from the portfolio's own returns and contributions as a fan to the target date, with the month it is reached or the monthly gap.
 - Phase 40, saving plans (GLG-1595): a monthly standing order per instrument or cash deposit, offered for one-click booking at the day's close when its date passes.
 - Phase 41, dividend income forecast (GLG-1596): the next twelve months of dividend income from what the holdings paid over the last twelve, with the planned ex-dates laid over it, a forward yield and a calendar by month.
 
