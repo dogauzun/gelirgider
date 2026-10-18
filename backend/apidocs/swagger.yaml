@@ -190,6 +190,54 @@ definitions:
       started_at:
         type: string
     type: object
+  server.attributionBuckets:
+    properties:
+      cash_fx:
+        type: string
+      fx:
+        type: string
+      income:
+        type: string
+      price:
+        type: string
+    type: object
+  server.attributionPosition:
+    properties:
+      closed:
+        description: quantity zero on the last day
+        type: boolean
+      fx:
+        type: string
+      income:
+        type: string
+      instrument_id:
+        type: integer
+      price:
+        type: string
+      symbol:
+        type: string
+      total:
+        type: string
+    type: object
+  server.attributionResponse:
+    properties:
+      currency:
+        type: string
+      from:
+        type: string
+      missing_rates:
+        items:
+          type: string
+        type: array
+      positions:
+        items:
+          $ref: '#/definitions/server.attributionPosition'
+        type: array
+      to:
+        type: string
+      total:
+        $ref: '#/definitions/server.attributionBuckets'
+    type: object
   server.benchmarkResponse:
     properties:
       code:
@@ -3095,6 +3143,70 @@ paths:
                 type: string
             type: object
       summary: Rename a portfolio
+      tags:
+      - portfolios
+  /portfolios/{id}/attribution:
+    get:
+      description: 'How the scope''s return from `from` to `to` splits into price,
+        income and currency, in the reporting currency, as 2-decimal strings. `from`
+        and `to` are resolved like the history route''s, and the response carries
+        the range actually used. total.price is the positions'' price plus the scope''s
+        cash costs (standalone fee rows, fees on deposits and withdrawals); total.income
+        is the positions'' income plus interest; total.fx is the positions'' currency
+        effect and total.cash_fx the currency effect on cash. A term deposit''s price
+        change is income. The first price of an instrument held without one when the
+        range opens is not counted: its jump from cost to market is a flow, as in
+        the history route''s net_flow. positions lists every instrument that had a
+        position on a day of the range or any activity after `from`; closed is true
+        when its quantity is zero on `to`; its total is the sum of the unrounded buckets,
+        rounded once. Each bucket is rounded to 2 decimals on its own, so the four
+        rounded totals can differ from the rounded change in total value less net
+        flows by up to 0.02. A bucket is null when a day of the range had no rate
+        to convert it; missing_rates lists those currencies.'
+      parameters:
+      - description: numeric id or `all`
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: first day, YYYY-MM-DD
+        in: query
+        name: from
+        type: string
+      - description: last day, YYYY-MM-DD, default today
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.attributionResponse'
+        "400":
+          description: to must be YYYY-MM-DD; from must be YYYY-MM-DD; from must not
+            be after to; range exceeds 3660 days
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: portfolio not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Return split over a range
       tags:
       - portfolios
   /portfolios/{id}/cash-gaps:
