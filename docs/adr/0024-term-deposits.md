@@ -89,8 +89,9 @@ with the `sell` and the interest row pre-filled. The user books them with one
 click through the deposit routes.
 
 A matured deposit can be renewed: the same request books its maturity rows and
-opens a new deposit starting on the maturity date, with the principal, rate,
-term and stopaj pre-filled and editable. A deposit is renewed at most once; the
+opens a new deposit starting on the maturity date, with the rate, term and
+stopaj pre-filled and editable; the principal is the old payout and is not
+editable. A deposit is renewed at most once; the
 new deposit can be renewed in turn.
 
 Out of scope: an early break (closing before maturity), automatic rollover, a

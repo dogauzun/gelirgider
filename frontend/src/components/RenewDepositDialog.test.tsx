@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import type { Deposit } from '../api/deposits'
 import { t } from '../i18n/strings'
+import { formatDecimalInput } from '../lib/decimal'
 import { RenewDepositDialog } from './RenewDepositDialog'
 
 // jsdom implements neither method on <dialog>; both only flip the open state.
@@ -78,6 +79,19 @@ it('shows the payout as the new principal and posts the terms as fractions once'
   // A decimal shift on the string: 40 % is "0.4", the same number as "0.40".
   expect(bodies).toEqual([{ rate: '0.4', stopaj_rate: '0.15', maturity_date: '2026-06-02' }])
   expect(screen.getByLabelText(t('deposits.renewDialog.principal'))).toHaveValue('₺103.254,80')
+})
+
+it('opens with the old rate and stopaj and a maturity one old term later', () => {
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <RenewDepositDialog deposit={old} onClose={vi.fn()} />
+    </QueryClientProvider>,
+  )
+
+  expect(screen.getByLabelText(t('deposits.dialog.rate'))).toHaveValue(formatDecimalInput('45'))
+  expect(screen.getByLabelText(t('deposits.dialog.stopaj'))).toHaveValue(formatDecimalInput('17.5'))
+  // 2026-01-01 to 2026-02-02 is 32 days, so the new term ends 2026-03-06.
+  expect(screen.getByLabelText(t('deposits.maturity'))).toHaveValue('2026-03-06')
 })
 
 it('shows the 409 message inline and stays open', async () => {
