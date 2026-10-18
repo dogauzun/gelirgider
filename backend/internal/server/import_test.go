@@ -40,6 +40,9 @@ func importBody(portfolioID int64, sha string, rows ...map[string]any) map[strin
 type importedTransaction struct {
 	ID       int64   `json:"id"`
 	Type     string  `json:"type"`
+	Date     string  `json:"date"`
+	Quantity *string `json:"quantity"`
+	Price    *string `json:"price"`
 	Amount   string  `json:"amount"`
 	Fee      string  `json:"fee"`
 	Note     *string `json:"note"`

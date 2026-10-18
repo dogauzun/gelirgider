@@ -1,15 +1,20 @@
 package server
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/plan"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
+	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 )
 
 // twoMonthsAgo returns the first day of the month two months before today.
@@ -266,5 +271,237 @@ func TestEditAndDeletePlan(t *testing.T) {
 	}
 	if rec := e.do(a, http.MethodDelete, own, nil); rec.Code != http.StatusNotFound {
 		t.Errorf("second delete = %d, want 404", rec.Code)
+	}
+}
+
+// bookEnv is a portfolio with a close of 123.45 for the env's instrument, dated
+// the day before next, the next_date of a day-5 plan started two months ago.
+type bookEnv struct {
+	*transactionTestEnv
+	session   string
+	portfolio int64
+	next      string
+}
+
+func newBookEnv(t *testing.T) *bookEnv {
+	t.Helper()
+	e := newTransactionTestEnv(t)
+	next := twoMonthsAgo(t)[:8] + "05"
+	d, err := time.Parse(time.DateOnly, next)
+	if err != nil {
+		t.Fatalf("parse %s: %v", next, err)
+	}
+	if _, err := e.db.Exec(`INSERT INTO prices (instrument_id, date, close, source) VALUES (?, ?, '123.45', 'test')`,
+		e.instrumentID, d.AddDate(0, 0, -1).Format(time.DateOnly)); err != nil {
+		t.Fatalf("insert price: %v", err)
+	}
+	session := e.login("a@example.com")
+	return &bookEnv{transactionTestEnv: e, session: session, portfolio: e.createPortfolio(session, "P"), next: next}
+}
+
+// newPlan creates a day-5 plan of 1000 TRY started two months ago on the env's
+// instrument, with over applied to the body.
+func (b *bookEnv) newPlan(over map[string]any) planResponse {
+	b.t.Helper()
+	body := map[string]any{
+		"instrument_id": b.instrumentID, "amount": "1000", "day_of_month": 5, "start_date": twoMonthsAgo(b.t), "note": "Düzenli alım",
+	}
+	for k, v := range over {
+		body[k] = v
+	}
+	rec := b.do(b.session, http.MethodPost, fmt.Sprintf("/api/portfolios/%d/plans", b.portfolio), body)
+	if rec.Code != http.StatusCreated {
+		b.t.Fatalf("create plan = %d %s, want 201", rec.Code, rec.Body.String())
+	}
+	return decodeJSON[planResponse](b.t, rec.Body.Bytes())
+}
+
+// act posts to /api/plans/{id}/{action} and returns the recorder.
+func (b *bookEnv) act(session string, id int64, action string) *httptest.ResponseRecorder {
+	return b.do(session, http.MethodPost, fmt.Sprintf("/api/plans/%d/%s", id, action), nil)
+}
+
+func TestDuePlansAndBook(t *testing.T) {
+	b := newBookEnv(t)
+	buy := b.newPlan(nil)
+
+	rec := b.do(b.session, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/plans/due", b.portfolio), nil)
+	due := decodeJSON[[]duePlanResponse](t, rec.Body.Bytes())
+	// The occurrences of the 5th from two months ago through today.
+	wantMissed := 2
+	if price.Today()[8:] >= "05" {
+		wantMissed = 3
+	}
+	if len(due) != 1 {
+		t.Fatalf("due = %s, want the one plan", rec.Body.String())
+	}
+	d := due[0]
+	if d.PlanID != buy.ID || d.Date != b.next || d.Missed != wantMissed || d.Symbol == nil || *d.Symbol != "TEST" || d.Market == nil || *d.Market != "BIST" ||
+		d.Price == nil || *d.Price != "123.45" || d.PriceDate == nil || d.Quantity == nil || *d.Quantity != "8" || d.BookedAmount == nil || *d.BookedAmount != "987.60" {
+		t.Errorf("due plan = %s, want the buy plan dated %s, missed %d, price 123.45, quantity 8, booked 987.60", rec.Body.String(), b.next, wantMissed)
+	}
+
+	rec = b.act(b.session, buy.ID, "book")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("book = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+	d0, _ := time.Parse(time.DateOnly, b.next)
+	if got := decodeJSON[planResponse](t, rec.Body.Bytes()); got.NextDate != d0.AddDate(0, 1, 0).Format(time.DateOnly) {
+		t.Errorf("next_date after book = %s, want one month after %s", got.NextDate, b.next)
+	}
+	txs := listTransactions(b.transactionTestEnv, b.session, b.portfolio)
+	if len(txs) != 1 || txs[0].Type != "buy" || txs[0].Date != b.next || txs[0].Quantity == nil || *txs[0].Quantity != "8" ||
+		txs[0].Price == nil || *txs[0].Price != "123.45" || txs[0].Amount != "987.6" || txs[0].Fee != "0" || txs[0].Note == nil || *txs[0].Note != "Düzenli alım" {
+		t.Errorf("transactions after book = %+v, want one buy of 8 at 123.45 dated %s with the plan's note", txs, b.next)
+	}
+}
+
+func TestBookPlanWithFundAndDepositPlan(t *testing.T) {
+	b := newBookEnv(t)
+	funded := b.newPlan(map[string]any{"fund": true})
+	if rec := b.act(b.session, funded.ID, "book"); rec.Code != http.StatusOK {
+		t.Fatalf("book funded = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+	txs := listTransactions(b.transactionTestEnv, b.session, b.portfolio)
+	if len(txs) != 2 {
+		t.Fatalf("transactions after a funded book = %+v, want a deposit and a buy", txs)
+	}
+	buy, cash := txs[0], txs[1] // newest first
+	if buy.Type != "buy" || cash.Type != "deposit" || cash.Amount != "987.6" || cash.Date != b.next || cash.ID >= buy.ID {
+		t.Errorf("transactions = %+v, want a deposit of 987.60 dated %s with a lower id than the buy", txs, b.next)
+	}
+
+	// A deposit plan books a deposit of its amount; a skip books nothing.
+	dep := b.newPlan(map[string]any{"instrument_id": nil, "currency": "TRY", "amount": "250"})
+	rec := b.do(b.session, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/plans/due", b.portfolio), nil)
+	for _, d := range decodeJSON[[]duePlanResponse](t, rec.Body.Bytes()) {
+		if d.PlanID == dep.ID && (d.InstrumentID != nil || d.Symbol != nil || d.Price != nil || d.Quantity != nil || d.BookedAmount == nil || *d.BookedAmount != "250") {
+			t.Errorf("due deposit plan = %+v, want null instrument, price and quantity and booked_amount 250", d)
+		}
+	}
+	if rec := b.act(b.session, dep.ID, "book"); rec.Code != http.StatusOK {
+		t.Fatalf("book deposit plan = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+	txs = listTransactions(b.transactionTestEnv, b.session, b.portfolio)
+	if len(txs) != 3 || txs[0].Type != "deposit" || txs[0].Amount != "250" || txs[0].Date != b.next {
+		t.Errorf("transactions after a deposit plan = %+v, want a third row, a deposit of 250 dated %s", txs, b.next)
+	}
+
+	skipped := b.newPlan(nil)
+	rec = b.act(b.session, skipped.ID, "skip")
+	got := decodeJSON[planResponse](t, rec.Body.Bytes())
+	if rec.Code != http.StatusOK || got.NextDate <= skipped.NextDate {
+		t.Errorf("skip = %d %s, want 200 with next_date after %s", rec.Code, rec.Body.String(), skipped.NextDate)
+	}
+	if n := len(listTransactions(b.transactionTestEnv, b.session, b.portfolio)); n != 3 {
+		t.Errorf("transactions after a skip = %d, want still 3", n)
+	}
+}
+
+func TestBookAndSkipPlanConflicts(t *testing.T) {
+	b := newBookEnv(t)
+	res, err := b.db.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES ('NOPX', 'BIST', 'No Price', 'TRY')`)
+	if err != nil {
+		t.Fatalf("insert instrument: %v", err)
+	}
+	noPrice, _ := res.LastInsertId()
+	future := daysFromToday(t, 10)
+	futureDay, _ := strconv.Atoi(future[8:])
+	tests := []struct {
+		name  string
+		over  map[string]any
+		books bool // only book is refused, skip goes through
+		want  string
+	}{
+		{"not due yet", map[string]any{"start_date": future, "day_of_month": futureDay}, false, "plan is not due yet"},
+		{"ended", map[string]any{"end_date": twoMonthsAgo(t)}, false, "plan has ended"},
+		{"no close", map[string]any{"instrument_id": noPrice}, true, "no close on or before " + b.next},
+		{"amount buys no unit", map[string]any{"amount": "10"}, true, "amount buys no unit at 123.45"},
+	}
+	for _, tt := range tests {
+		p := b.newPlan(tt.over)
+		rec := b.act(b.session, p.ID, "book")
+		if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), tt.want) {
+			t.Errorf("%s: book = %d %s, want 409 containing %q", tt.name, rec.Code, rec.Body.String(), tt.want)
+		}
+		wantSkip := http.StatusConflict
+		if tt.books {
+			wantSkip = http.StatusOK
+		}
+		if rec := b.act(b.session, p.ID, "skip"); rec.Code != wantSkip {
+			t.Errorf("%s: skip = %d %s, want %d", tt.name, rec.Code, rec.Body.String(), wantSkip)
+		}
+	}
+	if n := len(listTransactions(b.transactionTestEnv, b.session, b.portfolio)); n != 0 {
+		t.Errorf("transactions after the refused bookings = %d, want none", n)
+	}
+
+	// A buy plan with no close is listed with null price, quantity and booked_amount.
+	var noClose *duePlanResponse
+	rec := b.do(b.session, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/plans/due", b.portfolio), nil)
+	for _, d := range decodeJSON[[]duePlanResponse](t, rec.Body.Bytes()) {
+		if d.InstrumentID != nil && *d.InstrumentID == noPrice {
+			noClose = &d
+		}
+	}
+	if noClose == nil || noClose.Price != nil || noClose.PriceDate != nil || noClose.Quantity != nil || noClose.BookedAmount != nil {
+		t.Errorf("due plan with no close = %+v, want null price, price_date, quantity and booked_amount", noClose)
+	}
+}
+
+func TestBookAndSkipPlanAreScopedToTheirUser(t *testing.T) {
+	b := newBookEnv(t)
+	other := b.login("b@example.com")
+	p := b.newPlan(nil)
+	for _, id := range []string{fmt.Sprint(p.ID), "999999", "x"} {
+		for _, action := range []string{"book", "skip"} {
+			session := other
+			if id != fmt.Sprint(p.ID) {
+				session = b.session
+			}
+			rec := b.do(session, http.MethodPost, fmt.Sprintf("/api/plans/%s/%s", id, action), nil)
+			if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), "plan not found") {
+				t.Errorf("%s of plan %s = %d %s, want 404 plan not found", action, id, rec.Code, rec.Body.String())
+			}
+		}
+	}
+	rec := b.do(other, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/plans/due", b.portfolio), nil)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("B's due on A's portfolio = %d, want 404", rec.Code)
+	}
+	if got := decodeJSON[[]planResponse](t, b.do(b.session, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/plans", b.portfolio), nil).Body.Bytes()); got[0].NextDate != b.next {
+		t.Errorf("A's plan next_date = %s, want %s untouched", got[0].NextDate, b.next)
+	}
+}
+
+// A stale call (a double-clicked Book on a plan with two missed occurrences)
+// must not book the occurrence after the one it priced.
+func TestAdvanceRefusesAStalePlan(t *testing.T) {
+	b := newBookEnv(t)
+	p := b.newPlan(nil)
+	ctx := context.Background()
+	var userID int64
+	if err := b.db.QueryRow(`SELECT user_id FROM saving_plans WHERE id = ?`, p.ID).Scan(&userID); err != nil {
+		t.Fatalf("plan owner: %v", err)
+	}
+	h := &planHandler{deps: &deps{conn: b.db, plans: plan.NewRepo(b.db), transactions: transaction.NewRepo(b.db)}}
+	stale, err := h.plans.Get(ctx, userID, p.ID)
+	if err != nil {
+		t.Fatalf("get plan: %v", err)
+	}
+	if rec := b.act(b.session, p.ID, "book"); rec.Code != http.StatusOK {
+		t.Fatalf("first book = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+
+	var conflict planConflict
+	_, err = h.advance(ctx, stale, price.Today(), func(tx *sql.Tx, cur plan.Plan) error {
+		t.Error("write ran for a stale plan")
+		return nil
+	})
+	if !errors.As(err, &conflict) || string(conflict) != "plan changed, try again" {
+		t.Fatalf("advance on a stale plan = %v, want the conflict %q", err, "plan changed, try again")
+	}
+	if n := len(listTransactions(b.transactionTestEnv, b.session, b.portfolio)); n != 1 {
+		t.Errorf("transactions after the stale call = %d, want the one buy", n)
 	}
 }

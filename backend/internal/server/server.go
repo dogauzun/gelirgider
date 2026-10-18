@@ -225,7 +225,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 	registerDepositRoutes(protected, &d, onDemandFetch)
 	registerAllocationTargetRoutes(protected, &d)
 	registerGoalRoutes(protected, &d)
-	registerPlanRoutes(protected, &d)
+	registerPlanRoutes(protected, &d, onDemandFetch)
 	mux.Handle("/api/", sessions.RequireUser(withJSONMiss(protected)))
 
 	return withRecover(logger, withLogging(logger, withCrossOriginProtection(withBodyLimit(mux))))

@@ -1,9 +1,12 @@
 package server
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -11,24 +14,33 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
 	"github.com/dogauzun/gelirgider/backend/internal/currency"
 	"github.com/dogauzun/gelirgider/backend/internal/db"
+	"github.com/dogauzun/gelirgider/backend/internal/holdings"
 	"github.com/dogauzun/gelirgider/backend/internal/instrument"
 	"github.com/dogauzun/gelirgider/backend/internal/plan"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
+	"github.com/shopspring/decimal"
 )
 
-// registerPlanRoutes wires POST and GET /api/portfolios/{id}/plans, and PUT
-// and DELETE /api/plans/{id}.
-func registerPlanRoutes(mux *http.ServeMux, d *deps) {
-	h := &planHandler{d}
+// registerPlanRoutes wires POST and GET /api/portfolios/{id}/plans, GET
+// .../plans/due, PUT and DELETE /api/plans/{id}, and POST /api/plans/{id}/book
+// and /skip. onDemandFetch is the transaction routes' price and FX hook.
+func registerPlanRoutes(mux *http.ServeMux, d *deps, onDemandFetch transaction.OnDemandFetch) {
+	h := &planHandler{deps: d, onDemandFetch: onDemandFetch}
 	mux.HandleFunc("POST /api/portfolios/{id}/plans", h.create)
 	mux.HandleFunc("GET /api/portfolios/{id}/plans", h.list)
+	mux.HandleFunc("GET /api/portfolios/{id}/plans/due", h.due)
 	mux.HandleFunc("PUT /api/plans/{id}", h.update)
 	mux.HandleFunc("DELETE /api/plans/{id}", h.delete)
+	mux.HandleFunc("POST /api/plans/{id}/book", h.book)
+	mux.HandleFunc("POST /api/plans/{id}/skip", h.skip)
 }
 
-type planHandler struct{ *deps }
+type planHandler struct {
+	*deps
+	onDemandFetch transaction.OnDemandFetch
+}
 
 // planRequest is the POST body. amount is a decimal string. instrument_id,
 // currency, end_date, fund and note may be omitted; a plan with no instrument
@@ -352,4 +364,292 @@ func (h *planHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// planConflict is the 409 message of a plan that cannot be booked or skipped now.
+type planConflict string
+
+func (c planConflict) Error() string { return string(c) }
+
+// dueConflict returns why p cannot be booked or skipped on today, "" when it can.
+func dueConflict(p plan.Plan, today string) string {
+	switch {
+	case p.Ended():
+		return "plan has ended"
+	case p.NextDate > today:
+		return "plan is not due yet"
+	}
+	return ""
+}
+
+// planClose returns the close on or before the next_date of p, which has an
+// instrument; false when there is none.
+func (h *planHandler) planClose(ctx context.Context, p plan.Plan) (price.Price, bool, error) {
+	closes, err := holdings.LatestCloses(ctx, h.priceSources(), p.UserID, []int64{*p.InstrumentID}, p.NextDate)
+	c, ok := closes[*p.InstrumentID]
+	return c, ok, err
+}
+
+// duePlanResponse is a due plan with the booking it suggests. instrument_id,
+// symbol, market, price, price_date and quantity are null for a deposit plan;
+// price, price_date, quantity and booked_amount are null for a buy plan with
+// no close.
+type duePlanResponse struct {
+	PlanID       int64   `json:"plan_id"`
+	InstrumentID *int64  `json:"instrument_id"`
+	Symbol       *string `json:"symbol"`
+	Market       *string `json:"market"`
+	Currency     string  `json:"currency"`
+	Amount       string  `json:"amount"`
+	Date         string  `json:"date"`
+	Missed       int     `json:"missed"`
+	Price        *string `json:"price"`
+	PriceDate    *string `json:"price_date"`
+	Quantity     *string `json:"quantity"`
+	BookedAmount *string `json:"booked_amount"`
+}
+
+// due suggests the plans to book: it writes nothing.
+//
+//	@Summary	List due saving plans
+//	@Description	The portfolio's plans whose next_date is today or past and that have not ended, oldest next_date first. date is the next_date and missed the number of occurrences from it through today (1 when it is the only one). For a buy plan price is the close on or before date (null when there is none), quantity the amount divided by price rounded down to the market's scale (BIST 0, US 4, TEFAS 6, CRYPTO 8, GOLD 4) and booked_amount quantity times price to 2 decimals; quantity and booked_amount are null without a close. For a deposit plan instrument_id, symbol, market, price, price_date and quantity are null and booked_amount is the amount. Nothing is booked: POST /plans/{id}/book books one occurrence and POST /plans/{id}/skip skips it. The all scope is not supported.
+//	@Tags		plans
+//	@Produce	json
+//	@Param		id	path		int	true	"portfolio id"
+//	@Success	200	{array}		server.duePlanResponse
+//	@Failure	404	{object}	object{error=string}	"portfolio not found"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/portfolios/{id}/plans/due [get]
+func (h *planHandler) due(w http.ResponseWriter, r *http.Request) {
+	userID, portfolioID, ok := portfolio.Owned(w, r, h.portfolios)
+	if !ok {
+		return
+	}
+	ps, err := h.plans.List(r.Context(), userID, portfolioID)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	today := price.Today()
+	ps = slices.DeleteFunc(ps, func(p plan.Plan) bool { return !p.Due(today) })
+	var ids []int64
+	for _, p := range ps {
+		if p.InstrumentID != nil {
+			ids = append(ids, *p.InstrumentID)
+		}
+	}
+	ins, err := h.instruments.ByIDs(r.Context(), ids)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	out := make([]duePlanResponse, 0, len(ps))
+	for _, p := range ps {
+		through := today
+		if p.EndDate != nil {
+			through = min(today, *p.EndDate)
+		}
+		d := duePlanResponse{
+			PlanID: p.ID, InstrumentID: p.InstrumentID, Currency: p.Currency, Amount: p.Amount.String(),
+			Date: p.NextDate, Missed: plan.Missed(p.NextDate, through, p.DayOfMonth),
+		}
+		if p.InstrumentID == nil {
+			booked := p.Amount.String()
+			d.BookedAmount = &booked
+			out = append(out, d)
+			continue
+		}
+		in := ins[*p.InstrumentID]
+		d.Symbol, d.Market = &in.Symbol, &in.Market
+		c, found, err := h.planClose(r.Context(), p)
+		if err != nil {
+			auth.WriteInternalError(w, r, err)
+			return
+		}
+		if found {
+			qty, booked := plan.Booking(p.Amount, c.Close, in.Market)
+			closeStr, quantity, bookedAmount := c.Close.String(), qty.String(), booked.StringFixed(2)
+			d.Price, d.PriceDate, d.Quantity, d.BookedAmount = &closeStr, &c.Date, &quantity, &bookedAmount
+		}
+		out = append(out, d)
+	}
+	auth.WriteJSON(w, http.StatusOK, out)
+}
+
+// duePlan returns the plan named by the {id} path value, and its instrument
+// (nil for a deposit plan), when it is the caller's and can be booked or
+// skipped on today. Otherwise it writes the 404, 409 or 500 and returns false.
+func (h *planHandler) duePlan(w http.ResponseWriter, r *http.Request, today string) (plan.Plan, *instrument.Instrument, bool) {
+	id, ok := planID(r)
+	if !ok {
+		auth.WriteError(w, http.StatusNotFound, "plan not found")
+		return plan.Plan{}, nil, false
+	}
+	p, err := h.plans.Get(r.Context(), auth.MustUserID(r.Context()), id)
+	if errors.Is(err, plan.ErrNotFound) {
+		auth.WriteError(w, http.StatusNotFound, "plan not found")
+		return p, nil, false
+	}
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return p, nil, false
+	}
+	if msg := dueConflict(p, today); msg != "" {
+		auth.WriteError(w, http.StatusConflict, msg)
+		return p, nil, false
+	}
+	if p.InstrumentID == nil {
+		return p, nil, true
+	}
+	in, err := h.instruments.Get(r.Context(), *p.InstrumentID)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return p, nil, false
+	}
+	return p, &in, true
+}
+
+// advance moves p's next_date to the next occurrence inside one SQL
+// transaction. It first re-reads the plan, repeats the due check and calls
+// write (nil for a skip) with the plan it read, so the rows write inserts and
+// the move commit together or not at all. BeginTx takes the write lock, so
+// two calls cannot both pass the check. It returns the advanced plan.
+func (h *planHandler) advance(ctx context.Context, p plan.Plan, today string, write func(tx *sql.Tx, cur plan.Plan) error) (plan.Plan, error) {
+	tx, err := h.conn.BeginTx(ctx, nil)
+	if err != nil {
+		return p, fmt.Errorf("begin: %w", err)
+	}
+	defer tx.Rollback()
+	cur, err := h.plans.GetTx(ctx, tx, p.UserID, p.ID)
+	if err != nil {
+		return p, err
+	}
+	if msg := dueConflict(cur, today); msg != "" {
+		return p, planConflict(msg)
+	}
+	// The occurrence and the amount behind a suggested quantity must still be
+	// the stored ones, else a stale call books the next occurrence at the
+	// previous date's close.
+	if cur.NextDate != p.NextDate || !cur.Amount.Equal(p.Amount) {
+		return p, planConflict("plan changed, try again")
+	}
+	if write != nil {
+		if err := write(tx, cur); err != nil {
+			return p, err
+		}
+	}
+	next := plan.After(cur.NextDate, cur.DayOfMonth)
+	if err := h.plans.AdvanceTx(ctx, tx, cur, next); err != nil {
+		return p, err
+	}
+	if err := tx.Commit(); err != nil {
+		return p, fmt.Errorf("commit: %w", err)
+	}
+	cur.NextDate = next
+	return cur, nil
+}
+
+// writeAdvanceError answers an error of advance.
+func writeAdvanceError(w http.ResponseWriter, r *http.Request, err error) {
+	var conflict planConflict
+	switch {
+	case errors.As(err, &conflict):
+		auth.WriteError(w, http.StatusConflict, string(conflict))
+	case errors.Is(err, plan.ErrNotFound), errors.Is(err, portfolio.ErrNotFound):
+		auth.WriteError(w, http.StatusNotFound, "plan not found")
+	default:
+		auth.WriteInternalError(w, r, err)
+	}
+}
+
+// book books the next occurrence of a due plan.
+//
+//	@Summary	Book a saving plan's next occurrence
+//	@Description	Books the occurrence dated next_date and moves next_date to the next one. A buy plan books a buy of quantity (the amount divided by the close on or before next_date, rounded down to the market's scale) at that close, amount quantity times close to 2 decimals, fee 0, in the instrument's currency; with fund set a deposit of the booked amount goes in before it. A deposit plan books a deposit of its amount. Every row carries the plan's note and is dated next_date. The rows and the move are written in one SQL transaction. Answers with the plan, so the caller sees the new next_date and status.
+//	@Tags		plans
+//	@Produce	json
+//	@Param		id	path		int	true	"plan id"
+//	@Success	200	{object}	server.planResponse
+//	@Failure	404	{object}	object{error=string}	"plan not found"
+//	@Failure	409	{object}	object{error=string}	"plan has ended; plan is not due yet; plan changed, try again; no close on or before <date>; amount buys no unit at <close>"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/plans/{id}/book [post]
+func (h *planHandler) book(w http.ResponseWriter, r *http.Request) {
+	today := price.Today()
+	p, in, ok := h.duePlan(w, r, today)
+	if !ok {
+		return
+	}
+	booked, quantity, closePrice := p.Amount, decimal.Zero, decimal.Zero
+	if in != nil {
+		c, found, err := h.planClose(r.Context(), p)
+		if err != nil {
+			auth.WriteInternalError(w, r, err)
+			return
+		}
+		if !found {
+			auth.WriteError(w, http.StatusConflict, "no close on or before "+p.NextDate)
+			return
+		}
+		closePrice = c.Close
+		if quantity, booked = plan.Booking(p.Amount, closePrice, in.Market); !quantity.IsPositive() {
+			auth.WriteError(w, http.StatusConflict, "amount buys no unit at "+closePrice.String())
+			return
+		}
+	}
+	// last is the row EnsurePrice runs for: the buy, else the deposit.
+	var last transaction.Transaction
+	next, err := h.advance(r.Context(), p, today, func(tx *sql.Tx, cur plan.Plan) (err error) {
+		// The cash goes in before the buy so it gets the lower id.
+		if cur.Fund || in == nil {
+			last, err = h.transactions.CreateTx(r.Context(), tx, cur.UserID, transaction.Transaction{
+				PortfolioID: cur.PortfolioID, Type: transaction.TypeDeposit, Date: cur.NextDate,
+				Amount: booked, Fee: decimal.Zero, Currency: cur.Currency, Note: cur.Note,
+			})
+			if err != nil || in == nil {
+				return err
+			}
+		}
+		last, err = h.transactions.CreateTx(r.Context(), tx, cur.UserID, transaction.Transaction{
+			PortfolioID: cur.PortfolioID, InstrumentID: cur.InstrumentID, Type: transaction.TypeBuy, Date: cur.NextDate,
+			Quantity: quantity, Price: closePrice, Amount: booked, Fee: decimal.Zero, Currency: cur.Currency, Note: cur.Note,
+		})
+		return err
+	})
+	if err != nil {
+		writeAdvanceError(w, r, err)
+		return
+	}
+	var ensure instrument.Instrument
+	if in != nil {
+		ensure = *in
+	}
+	transaction.EnsurePrice(r.Context(), h.onDemandFetch, ensure, last)
+	auth.WriteJSON(w, http.StatusOK, toPlanResponse(next, in, today))
+}
+
+// skip moves a due plan past its next occurrence without booking it.
+//
+//	@Summary	Skip a saving plan's next occurrence
+//	@Description	Moves next_date to the next occurrence and books nothing. Answers with the plan, so the caller sees the new next_date and status.
+//	@Tags		plans
+//	@Produce	json
+//	@Param		id	path		int	true	"plan id"
+//	@Success	200	{object}	server.planResponse
+//	@Failure	404	{object}	object{error=string}	"plan not found"
+//	@Failure	409	{object}	object{error=string}	"plan has ended; plan is not due yet"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/plans/{id}/skip [post]
+func (h *planHandler) skip(w http.ResponseWriter, r *http.Request) {
+	today := price.Today()
+	p, in, ok := h.duePlan(w, r, today)
+	if !ok {
+		return
+	}
+	next, err := h.advance(r.Context(), p, today, nil)
+	if err != nil {
+		writeAdvanceError(w, r, err)
+		return
+	}
+	auth.WriteJSON(w, http.StatusOK, toPlanResponse(next, in, today))
 }
