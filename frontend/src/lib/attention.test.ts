@@ -439,6 +439,13 @@ describe('allocation drift rule', () => {
     expect(drift(split('46', '54'))).toEqual([])
   })
 
+  it('flags a held class missing from the targets as a target of 0', () => {
+    expect(drift([{ asset_class: 'cash', weight: '100' }])).toEqual([
+      { kind: 'allocation-drift', assetClass: 'Hisse senedi', drift: expect.closeTo(50) },
+      { kind: 'allocation-drift', assetClass: 'Nakit', drift: expect.closeTo(-50) },
+    ])
+  })
+
   it('uses the rule value, and nothing when the rule is off or there are no targets', () => {
     expect(drift(split('46', '54'), { allocation_drift: { value: 3 } })).toHaveLength(2)
     expect(drift(split('44', '56'), { allocation_drift: { enabled: false } })).toEqual([])

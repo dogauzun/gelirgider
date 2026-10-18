@@ -256,7 +256,7 @@ describe('sector labels', () => {
 })
 
 describe('driftRows', () => {
-  it('adds target and drift per class, null without a target, and appends a class with no row', () => {
+  it('adds target and drift per class, counts a held class with no weight as 0, and appends a class with no row', () => {
     const { rows } = allocationRows({
       positions: [
         position(1, 'THYAO', '600.00'),
@@ -278,8 +278,10 @@ describe('driftRows', () => {
     expect(pick('class-equity').target).toBe(0.5)
     expect(pick('class-equity').drift).toBeCloseTo(10)
     expect(pick('class-fund').drift).toBeCloseTo(-10)
-    expect(pick('class-crypto')).toMatchObject({ target: null, drift: null })
-    expect(pick('cash')).toMatchObject({ target: null, drift: null })
+    expect(pick('class-crypto').target).toBe(0)
+    expect(pick('class-crypto').drift).toBeCloseTo(10)
+    expect(pick('cash').target).toBe(0)
+    expect(pick('cash').drift).toBeCloseTo(10)
     expect(out.at(-1)).toMatchObject({
       key: 'class-deposit',
       label: 'Mevduat',
@@ -290,6 +292,16 @@ describe('driftRows', () => {
       drift: -20,
     })
     expect(out).toHaveLength(rows.length + 1)
+  })
+
+  it('leaves target and drift empty for every row when there are no targets', () => {
+    const { rows } = allocationRows({
+      positions: [position(1, 'THYAO', '600.00')],
+      cash: '400.00',
+      cashByCurrencyReporting: { TRY: '400.00' },
+      view: 'assetClass',
+    })
+    for (const row of driftRows(rows, [])) expect(row).toMatchObject({ target: null, drift: null })
   })
 })
 
