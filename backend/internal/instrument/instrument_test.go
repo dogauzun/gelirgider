@@ -774,6 +774,47 @@ func TestAssetClassIsRead(t *testing.T) {
 	check("Search fresh", foundFresh[0].AssetClass, unset)
 }
 
+// TestSectorIsRead checks that Get and ByIDs return the raw sector and the
+// override, NULL as unset and an empty string as set.
+func TestSectorIsRead(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	ctx := context.Background()
+	if _, err := conn.ExecContext(ctx, `INSERT INTO instruments (id, symbol, market, name, currency, sector, sector_override)
+		VALUES (1, 'AAPL', 'US', 'Apple Inc', 'USD', 'Technology', 'utilities'),
+		       (2, 'NONE', 'US', 'No Sector', 'USD', '', NULL),
+		       (3, 'NEW', 'US', 'Not Fetched', 'USD', NULL, NULL)`); err != nil {
+		t.Fatalf("seed instruments: %v", err)
+	}
+
+	repo := instrument.NewRepo(conn)
+	str := func(s string) sql.NullString { return sql.NullString{String: s, Valid: true} }
+	want := map[int64][2]sql.NullString{
+		1: {str("Technology"), str("utilities")},
+		2: {str(""), {}},
+		3: {{}, {}},
+	}
+	many, err := repo.ByIDs(ctx, []int64{1, 2, 3})
+	if err != nil {
+		t.Fatalf("ByIDs: %v", err)
+	}
+	for id, w := range want {
+		one, err := repo.Get(ctx, id)
+		if err != nil {
+			t.Fatalf("Get(%d): %v", id, err)
+		}
+		for name, in := range map[string]instrument.Instrument{"Get": one, "ByIDs": many[id]} {
+			if got := [2]sql.NullString{in.Sector, in.SectorOverride}; got != w {
+				t.Errorf("%s(%d) sector, override = %+v, want %+v", name, id, got, w)
+			}
+		}
+	}
+}
+
 func TestSeedFileAssetClass(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {

@@ -488,7 +488,9 @@ func TestPortfolioSummaryQuantityKeepsScale(t *testing.T) {
 }
 
 // TestPortfolioSummaryAssetClass checks that a position carries its
-// instrument's stored asset class, and null when the instrument has none.
+// instrument's stored asset class, and null when the instrument has none. It
+// also checks the sector key: mapped from the raw provider string, beaten by
+// an override, and unknown without data.
 func TestPortfolioSummaryAssetClass(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
@@ -512,10 +514,18 @@ func TestPortfolioSummaryAssetClass(t *testing.T) {
 		t.Fatalf("portfolios.Create: %v", err)
 	}
 	for _, in := range []struct {
-		symbol string
-		class  any
-	}{{"GLD", "commodity"}, {"PLAIN", nil}} {
-		res, err := conn.Exec(`INSERT INTO instruments (symbol, market, name, currency, asset_class) VALUES (?, 'BIST', ?, 'TRY', ?)`, in.symbol, in.symbol, in.class)
+		symbol, market string
+		class          any
+		sector         any
+		override       any
+	}{
+		{"GLD", "BIST", "commodity", nil, nil},
+		{"PLAIN", "BIST", nil, nil, nil},
+		{"BANK", "US", nil, "Banking", nil},
+		{"OVER", "US", nil, "Banking", "energy"},
+		{"NOSEC", "US", nil, "", nil},
+	} {
+		res, err := conn.Exec(`INSERT INTO instruments (symbol, market, name, currency, asset_class, sector, sector_override) VALUES (?, ?, ?, 'TRY', ?, ?, ?)`, in.symbol, in.market, in.symbol, in.class, in.sector, in.override)
 		if err != nil {
 			t.Fatalf("insert instrument: %v", err)
 		}
@@ -549,6 +559,11 @@ func TestPortfolioSummaryAssetClass(t *testing.T) {
 	}
 	if c := bySymbol["PLAIN"].AssetClass; c != nil {
 		t.Errorf("PLAIN asset_class = %q, want null", *c)
+	}
+	for symbol, want := range map[string]string{"BANK": "financials", "OVER": "energy", "NOSEC": "unknown", "PLAIN": "unknown"} {
+		if got := bySymbol[symbol].Sector; got != want {
+			t.Errorf("%s sector = %q, want %q", symbol, got, want)
+		}
 	}
 }
 

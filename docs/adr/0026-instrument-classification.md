@@ -43,3 +43,25 @@ The BIST bulletin tags each row with an instrument group: `EQT` for a share,
 seed stores `equity` for `EQT`, `fund` for `ETF` and `commodity` for `EMS`. A
 BIST instrument without a group keeps NULL and falls back to the market map,
 so it counts as `equity`.
+
+### Sector is a fixed key list over a raw provider string
+
+`instruments.sector` holds the provider's raw string, never mapped when
+stored: NULL means not fetched yet, an empty string means fetched and the
+provider has none. `SectorKey(market, raw)` maps it in code to one of 11
+GICS-like keys (`energy`, `materials`, `industrials`, `consumer_discretionary`,
+`consumer_staples`, `health_care`, `financials`, `information_technology`,
+`communication_services`, `utilities`, `real_estate`) or `unknown`, with one
+lookup map per market, compared case-insensitively with Turkish diacritics
+folded. A new mapping needs no data migration. A position always carries a
+`sector`, `unknown` when there is no data.
+
+`instruments.sector_override` holds a sector key, written only by the admin
+route, and wins over the mapped key.
+
+The sources: Finnhub's `finnhubIndustry` gives US sectors. A TEFAS fund's type
+is its sector; its map comes with the TEFAS fund type fetch. For BIST, the
+İş Yatırım "Temel Değerler ve Oranlar" page, already fetched for capital
+increases (ADR 0008), lists one Turkish sector per equity for all of them. A
+server sync stores the raw string and the BIST map follows. KAP is rejected: it
+sits behind a bot wall.

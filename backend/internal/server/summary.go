@@ -55,6 +55,7 @@ type positionResponse struct {
 	LastPrice    *string `json:"last_price"`
 	HasPrice     bool    `json:"has_price"`
 	AssetClass   *string `json:"asset_class"` // the instrument's stored class (equity, fund, ...), null when it has none
+	Sector       string  `json:"sector"`      // a sector key (financials, ...); "unknown" when there is no data
 	// The latest close dated before price_date (manual winning on a date,
 	// like last_price), scaled by any split after its date up to today. It,
 	// prev_price_date, day_change and day_change_reporting are null when
@@ -486,6 +487,10 @@ func positionRow(p holdings.Position, closed bool, v valuation, prev map[int64]p
 	}
 	if instr.AssetClass.Valid {
 		pr.AssetClass = &instr.AssetClass.String
+	}
+	pr.Sector = instr.SectorOverride.String // already a key
+	if pr.Sector == "" {
+		pr.Sector = instrument.SectorKey(instr.Market, instr.Sector.String)
 	}
 	for _, s := range p.Splits {
 		pr.Splits = append(pr.Splits, splitResponse{Date: s.Date, Ratio: s.Ratio.String()})
