@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
@@ -101,12 +101,15 @@ function mockApi({
   costBasis = '1000.00',
   positionsValue = '2000.00',
   forecastData = forecast,
+  // 'fail' answers the forecast with a 500, 'pending' never answers it.
+  forecastState = 'ok',
 }: {
   data?: typeof timeline
   expected?: (typeof expectedRow)[]
   costBasis?: string
   positionsValue?: string
   forecastData?: typeof forecast
+  forecastState?: 'ok' | 'fail' | 'pending'
 } = {}) {
   const calls = { timeline: 0, posts: [] as string[] }
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -122,7 +125,11 @@ function mockApi({
       calls.timeline++
       return Response.json(data)
     }
-    if (url === '/api/portfolios/1/dividends/forecast') return Response.json(forecastData)
+    if (url === '/api/portfolios/1/dividends/forecast') {
+      if (forecastState === 'pending') return new Promise<Response>(() => {})
+      if (forecastState === 'fail') return Response.json({ error: 'boom' }, { status: 500 })
+      return Response.json(forecastData)
+    }
     if (url === '/api/portfolios/1/dividends/expected') return Response.json(expected)
     if (url === '/api/portfolios/1/summary')
       return Response.json({
@@ -136,9 +143,9 @@ function mockApi({
   return calls
 }
 
-function renderPage(search = '') {
+function renderPage(search = '', client = new QueryClient()) {
   return render(
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[`/portfolios/1/dividends${search}`]}>
         <Routes>
           <Route path="/portfolios/:id/dividends" element={<DividendsPage />} />
@@ -207,6 +214,67 @@ it('shows the upcoming dividends after the confirm card, even with nothing recei
   expect(within(upcoming.closest('section')!).getByText('THYAO')).toBeInTheDocument()
   const confirm = screen.getByRole('heading', { name: t('dividends.expected.title') })
   expect(confirm.compareDocumentPosition(upcoming) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
+
+// A forecast-only portfolio's data: nothing received, one planned row.
+const forecastOnly = {
+  data: {
+    ...timeline,
+    months: [],
+    years: [],
+    last_12_months: bucket('2025-10', '0.00', '0.00'),
+    by_instrument: [],
+  },
+  forecastData: {
+    ...forecast,
+    rows: [
+      {
+        ...expectedRow,
+        period: '2026-10',
+        date: '2026-10-05',
+        planned: true,
+        net_reporting: '100.00',
+      },
+    ],
+  },
+}
+
+it('shows the forecast KPIs and chart with nothing received but a forecast', async () => {
+  mockApi(forecastOnly)
+  renderPage()
+
+  expect(await kpi('dividends.page.forecast12')).toBe('₺100,00')
+  expect(await kpi('dividends.page.last12')).toBe('₺0,00')
+  expect(screen.getByRole('radio', { name: t('dividends.page.forecast') })).toBeInTheDocument()
+  // The empty text stands in for the by-instrument table; no add button.
+  expect(screen.getByText(t('dividends.page.empty'))).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: t('dividends.page.emptyAdd') })).toBeNull()
+})
+
+it('keeps the forecast body when a refetch of the forecast fails', async () => {
+  mockApi({ ...forecastOnly, forecastState: 'fail' })
+  // The previous answer stays in the cache, as after a failed background refetch.
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  client.setQueryData(['portfolios', 1, 'dividends', 'forecast'], forecastOnly.forecastData)
+  renderPage('', client)
+
+  expect(await kpi('dividends.page.forecast12')).toBe('₺100,00')
+  await waitFor(() =>
+    expect(client.getQueryState(['portfolios', 1, 'dividends', 'forecast'])?.status).toBe('error'),
+  )
+  expect(screen.queryByRole('button', { name: t('dividends.page.emptyAdd') })).toBeNull()
+  expect(await kpi('dividends.page.forecast12')).toBe('₺100,00')
+})
+
+it('shows the loading skeleton while the forecast decides an empty portfolio', async () => {
+  mockApi({ ...forecastOnly, forecastState: 'pending' })
+  renderPage()
+
+  await screen.findByText(t('dividends.expected.title'))
+  // Let the timeline settle: its own skeleton is gone by then.
+  await act(() => new Promise((resolve) => setTimeout(resolve, 100)))
+  expect(screen.getByText(t('dividends.page.loading'))).toBeInTheDocument()
+  expect(screen.queryByText(t('dividends.page.empty'))).toBeNull()
 })
 
 it('has no confirm card when nothing is expected', async () => {

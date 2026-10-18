@@ -91,7 +91,8 @@ draws the forecast months. The upcoming card becomes the forecast calendar,
 with projected rows marked "tahmini" and planned rows "planlanan". The
 by-instrument table gets an expected annual column. The position page's Temettü
 cell gets a sub-line with the instrument's expected annual net and forward
-yield.
+yield. A portfolio with a forecast but nothing received keeps the KPI strip and
+the chart; the empty state shows only when both are empty.
 
 ### Recorded simplifications
 
