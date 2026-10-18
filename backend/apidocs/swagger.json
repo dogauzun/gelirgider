@@ -4353,7 +4353,7 @@
         },
         "/portfolios/{id}/instruments/{instrument_id}/history": {
             "get": {
-                "description": "One point per day from `from` to `to` for one instrument of the portfolio, in the instrument's own currency (no fx). A `from` before the instrument's first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the instrument's first transaction (at most 3660 days back); a `to` after today is clamped to today.",
+                "description": "One point per day from `from` to `to` for one instrument of the portfolio, in the instrument's own currency (no fx). `returns` holds the range's simple, time-weighted and money-weighted returns of the position, in that currency, as 6-decimal fractions or null when undefined (a non-positive value on the first day, or a time-weighted factor below zero); buys and their fees are flows in, sells and dividends (net of stopaj and fee) flows out. They start at `returns_from`, the first day with a close (null when there is none), whose value is the base; each point's `twr` is the running time-weighted return from that day, null before it. A `from` before the instrument's first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the instrument's first transaction (at most 3660 days back); a `to` after today is clamped to today.",
                 "produces": [
                     "application/json"
                 ],
@@ -6406,6 +6406,10 @@
                 },
                 "quantity": {
                     "type": "string"
+                },
+                "twr": {
+                    "description": "running time-weighted return from returns_from, null before it or when the range's is null",
+                    "type": "string"
                 }
             }
         },
@@ -6420,6 +6424,13 @@
                     "items": {
                         "$ref": "#/definitions/server.positionHistoryPoint"
                     }
+                },
+                "returns": {
+                    "$ref": "#/definitions/server.returnsResponse"
+                },
+                "returns_from": {
+                    "description": "first day with a close, null when there is none",
+                    "type": "string"
                 }
             }
         },
