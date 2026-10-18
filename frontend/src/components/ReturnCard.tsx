@@ -1,11 +1,6 @@
 import type { UseQueryResult } from '@tanstack/react-query'
 import { useId, useMemo } from 'react'
-import {
-  RETURN_METHODS,
-  type Benchmark,
-  type HistoryResponse,
-  type ReturnMethod,
-} from '../api/history'
+import { type Benchmark, type HistoryResponse, type ReturnMethod } from '../api/history'
 import { t } from '../i18n/strings'
 import { rangeDelta } from '../lib/chart'
 import { daysBetween, formatMarketDate, todayIstanbul } from '../lib/date'
@@ -22,6 +17,7 @@ import { annualize, excessReturn } from '../lib/returns'
 import { useZoom } from '../lib/useRange'
 import { LineChart } from './LazyChart'
 import { RangePicker } from './RangePicker'
+import { ReturnMethodSelect } from './ReturnMethodSelect'
 import { useStoredChoice } from '../lib/useStoredChoice'
 import { ChartFrame } from './ui/ChartFrame'
 import { Notice } from './ui/Notice'
@@ -211,12 +207,7 @@ export function ReturnCard({
             onChange={(next) => onBenchmark((next as Benchmark) || null)}
             options={[{ value: '', label: t('chart.benchmark.none') }, ...benchmarks]}
           />
-          <FitSelect
-            aria-label={t('chart.return.method')}
-            value={method}
-            onChange={onMethod}
-            options={RETURN_METHODS.map((m) => ({ value: m, label: t(`chart.return.${m}`) }))}
-          />
+          <ReturnMethodSelect method={method} onChange={onMethod} />
         </div>
         <div className="min-w-0 sm:col-span-2">
           {delta !== null && (

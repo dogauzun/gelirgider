@@ -10,6 +10,7 @@ import { NotFound } from '../components/NotFound'
 import { PortfolioHeader } from '../components/PortfolioHeader'
 import { PositionActions } from '../components/PositionActions'
 import { PositionKpis } from '../components/PositionKpis'
+import { PositionReturnCard } from '../components/PositionReturnCard'
 import { PositionPriceChart } from '../components/PositionPriceChart'
 import { PositionTitle } from '../components/PositionTitle'
 import { PositionTransactions } from '../components/PositionTransactions'
@@ -140,7 +141,9 @@ export function PositionPage() {
               )}
             />
 
-            <section className="mb-6 card">
+            <PositionReturnCard history={history} currency={position.currency} />
+
+            <section className="my-6 card">
               <div className={CARD_HEAD}>
                 <Segmented
                   options={CHARTS}

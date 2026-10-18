@@ -11,6 +11,7 @@ import { resolveRange, type RangeValue } from '../lib/ranges'
 import { usePositionPath } from '../lib/useRange'
 import { PositionActions } from './PositionActions'
 import { PositionKpis } from './PositionKpis'
+import { PositionReturnCard } from './PositionReturnCard'
 import { PositionPriceChart } from './PositionPriceChart'
 import type { TradeType } from './PositionsTable'
 import { PositionTitle } from './PositionTitle'
@@ -40,6 +41,9 @@ function PortfolioDetail({
   const rows = transactions.data ?? []
   return (
     <>
+      <div className="mt-4">
+        <PositionReturnCard Heading="h3" history={history} currency={position.currency} />
+      </div>
       {/* The chart's own arrow keys move its tooltip, not the position. */}
       <div className="mt-4" onKeyDown={(event) => event.stopPropagation()}>
         <PositionPriceChart history={history} position={position} transactions={rows} />
