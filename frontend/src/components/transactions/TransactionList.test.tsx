@@ -1,6 +1,6 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createRef } from 'react'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { Transaction } from '../../api/transactions'
 import { setLocale } from '../../i18n/strings'
 import { TransactionList } from './TransactionList'
@@ -108,5 +108,43 @@ describe('TransactionList', () => {
     expect(screen.getAllByText(label)).toHaveLength(1)
     expect(screen.queryByText(/TD-/)).not.toBeInTheDocument()
     if (locale === 'en') expect(screen.queryByText(/Vadeli/)).not.toBeInTheDocument()
+  })
+  // A term deposit's rows change on the Mevduat tab (ADR 0024): the server
+  // refuses the generic update, create and delete, so the list offers none of
+  // them, and the other rows keep theirs.
+  it.each([true, false])('offers no action on a term deposit row (desktop %s)', (isDesktop) => {
+    desktop = isDesktop
+    const onEdit = vi.fn()
+    const onDelete = vi.fn()
+    render(
+      <TransactionList
+        rows={[termDeposit(), deposit(1, '100000', 'TRY')]}
+        imports={new Map()}
+        editingId={undefined}
+        cardRef={createRef()}
+        onEdit={onEdit}
+        onClone={() => {}}
+        onDelete={onDelete}
+      />,
+    )
+    const label = screen.getByText('Vadeli mevduat TRY 2026-12-01')
+    fireEvent.click(label)
+    expect(onEdit).not.toHaveBeenCalled()
+    // The cash deposit row keeps its actions: the pencil exists on the
+    // desktop table only, the phone row is itself the edit button.
+    expect(screen.queryAllByRole('button', { name: /işlemini düzenle$/ })).toHaveLength(
+      isDesktop ? 1 : 0,
+    )
+    expect(screen.getAllByRole('button', { name: /işlemini kopyala$/ })).toHaveLength(1)
+    const remove = screen.getAllByRole('button', { name: /işlemini sil$/ })
+    expect(remove).toHaveLength(1)
+    fireEvent.click(remove[0])
+    expect(onDelete).toHaveBeenCalledTimes(1)
+    expect(onDelete.mock.calls[0][0].id).toBe(1)
+    // The phone row stays a (disabled) button around the label; the desktop
+    // label sits in no button.
+    const rowButton = label.closest('button')
+    if (isDesktop) expect(rowButton).toBeNull()
+    else expect(rowButton).toBeDisabled()
   })
 })
