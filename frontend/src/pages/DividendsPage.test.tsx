@@ -209,6 +209,38 @@ it('shows the upcoming dividends after the confirm card, even with nothing recei
   expect(confirm.compareDocumentPosition(upcoming) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
 
+it('shows the forecast KPIs and chart with nothing received but a forecast', async () => {
+  mockApi({
+    data: {
+      ...timeline,
+      months: [],
+      years: [],
+      last_12_months: bucket('2025-10', '0.00', '0.00'),
+      by_instrument: [],
+    },
+    forecastData: {
+      ...forecast,
+      rows: [
+        {
+          ...expectedRow,
+          period: '2026-10',
+          date: '2026-10-05',
+          planned: true,
+          net_reporting: '100.00',
+        },
+      ],
+    },
+  })
+  renderPage()
+
+  expect(await kpi('dividends.page.forecast12')).toBe('₺100,00')
+  expect(await kpi('dividends.page.last12')).toBe('₺0,00')
+  expect(screen.getByRole('radio', { name: t('dividends.page.forecast') })).toBeInTheDocument()
+  // The empty text stands in for the by-instrument table; no add button.
+  expect(screen.getByText(t('dividends.page.empty'))).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: t('dividends.page.emptyAdd') })).toBeNull()
+})
+
 it('has no confirm card when nothing is expected', async () => {
   mockApi({ expected: [] })
   renderPage()

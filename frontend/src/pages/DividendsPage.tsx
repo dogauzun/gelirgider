@@ -134,6 +134,15 @@ export function DividendsPage() {
   return <DividendsBody portfolioId={Number(params.id)} />
 }
 
+function EmptyCard({ onAdd }: { onAdd: () => void }) {
+  return (
+    <section className="mb-6 flex flex-col items-center gap-3 card px-6 py-12 text-center">
+      <p className="text-[16px] font-semibold text-ink">{t('dividends.page.empty')}</p>
+      <Button onClick={onAdd}>{t('dividends.page.emptyAdd')}</Button>
+    </section>
+  )
+}
+
 function DividendsBody({ portfolioId }: { portfolioId: number }) {
   usePortfolioTitle(t('dividends.page.title'), portfolioId)
   const positionPath = usePositionPath()
@@ -148,7 +157,13 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
   const toggleSort = (key: SortKey) => setSort((cur) => nextSort(cur, key))
   const today = todayIstanbul()
   const selected = GROUPS.find((g) => g.key === group) ?? GROUPS[0]
-  const isEmpty = data !== undefined && data.years.length === 0
+  // Nothing received and nothing ahead is the empty state. With a forecast
+  // alone the body still has the forecast KPIs and chart to show, so with
+  // nothing received the page waits for the forecast before deciding; a
+  // failed forecast counts as none.
+  const forecastRows = forecast.isError ? [] : forecast.data?.rows
+  const isEmpty = data?.years.length === 0 && forecastRows?.length === 0
+  const undecided = data?.years.length === 0 && forecastRows === undefined
   const missingRates = [
     ...(data?.missing_rates ?? []),
     ...(forecast.data?.missing_rates ?? []).filter((c) => !data?.missing_rates.includes(c)),
@@ -156,13 +171,8 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
 
   let body = null
   if (isEmpty) {
-    body = (
-      <section className="mb-6 flex flex-col items-center gap-3 card px-6 py-12 text-center">
-        <p className="text-[16px] font-semibold text-ink">{t('dividends.page.empty')}</p>
-        <Button onClick={() => setAdding(true)}>{t('dividends.page.emptyAdd')}</Button>
-      </section>
-    )
-  } else if (data) {
+    body = <EmptyCard onAdd={() => setAdding(true)} />
+  } else if (data && !undecided) {
     const { currency, months, years } = data
     const last12 = data.last_12_months.net
     // Last 12 months net over what the open positions cost; nothing to
@@ -259,75 +269,79 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
           <h2 className="border-b border-line px-4 py-3 text-[14px] font-semibold text-ink">
             {t('dividends.page.byInstrument')}
           </h2>
-          <table className={TABLE}>
-            <thead>
-              <tr>
-                {COLUMNS.map(({ key, labelKey, className }) => {
-                  if (key === 'share') {
+          {data.by_instrument.length === 0 ? (
+            <p className="px-4 py-6 text-[13px] text-muted">{t('dividends.page.empty')}</p>
+          ) : (
+            <table className={TABLE}>
+              <thead>
+                <tr>
+                  {COLUMNS.map(({ key, labelKey, className }) => {
+                    if (key === 'share') {
+                      return (
+                        <th key={key} className={`${TH} ${className}`}>
+                          {t(labelKey)}
+                        </th>
+                      )
+                    }
                     return (
-                      <th key={key} className={`${TH} ${className}`}>
+                      <SortHeader
+                        key={key}
+                        column={key}
+                        sort={sort}
+                        onSort={toggleSort}
+                        className={className}
+                      >
                         {t(labelKey)}
-                      </th>
+                      </SortHeader>
                     )
-                  }
-                  return (
-                    <SortHeader
-                      key={key}
-                      column={key}
-                      sort={sort}
-                      onSort={toggleSort}
-                      className={className}
-                    >
-                      {t(labelKey)}
-                    </SortHeader>
-                  )
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {sortRows(
-                data.by_instrument,
-                (row) => pickValue(sort.key, row, expectedNet(row.instrument_id)),
-                sort,
-              ).map((row) => (
-                <tr key={row.instrument_id} className={ROW_44}>
-                  <td className={TD}>
-                    <Link
-                      to={positionPath(portfolioId, row.instrument_id)}
-                      className="font-semibold text-ink hover:underline"
-                    >
-                      {row.symbol}
-                    </Link>
-                    {/* Truncated, so a long name never widens the table. */}
-                    <span
-                      title={row.name}
-                      className="block max-w-56 truncate text-[11px] text-muted max-sm:hidden"
-                    >
-                      {row.name}
-                    </span>
-                    <span className="block text-[11px] text-muted sm:hidden">
-                      {t('dividends.page.paymentsCount', { count: row.count })}
-                    </span>
-                  </td>
-                  <td className={`${TD_NUM} max-sm:hidden`}>{row.count}</td>
-                  <td className={`${TD_NUM} max-sm:hidden`}>{share(row.net)}</td>
-                  <td className={`${TD_NUM} font-medium text-plum`}>
-                    {formatMoney(row.net, currency)}
-                  </td>
-                  <td className={`${TD_NUM} max-sm:hidden`}>
-                    {formatMoney(expectedNet(row.instrument_id), currency)}
-                  </td>
-                  <td className={TD_NUM}>
-                    {formatMarketDate(row.last_date, {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </td>
+                  })}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sortRows(
+                  data.by_instrument,
+                  (row) => pickValue(sort.key, row, expectedNet(row.instrument_id)),
+                  sort,
+                ).map((row) => (
+                  <tr key={row.instrument_id} className={ROW_44}>
+                    <td className={TD}>
+                      <Link
+                        to={positionPath(portfolioId, row.instrument_id)}
+                        className="font-semibold text-ink hover:underline"
+                      >
+                        {row.symbol}
+                      </Link>
+                      {/* Truncated, so a long name never widens the table. */}
+                      <span
+                        title={row.name}
+                        className="block max-w-56 truncate text-[11px] text-muted max-sm:hidden"
+                      >
+                        {row.name}
+                      </span>
+                      <span className="block text-[11px] text-muted sm:hidden">
+                        {t('dividends.page.paymentsCount', { count: row.count })}
+                      </span>
+                    </td>
+                    <td className={`${TD_NUM} max-sm:hidden`}>{row.count}</td>
+                    <td className={`${TD_NUM} max-sm:hidden`}>{share(row.net)}</td>
+                    <td className={`${TD_NUM} font-medium text-plum`}>
+                      {formatMoney(row.net, currency)}
+                    </td>
+                    <td className={`${TD_NUM} max-sm:hidden`}>
+                      {formatMoney(expectedNet(row.instrument_id), currency)}
+                    </td>
+                    <td className={TD_NUM}>
+                      {formatMarketDate(row.last_date, {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
       </>
     )
