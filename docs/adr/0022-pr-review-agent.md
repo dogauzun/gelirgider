@@ -111,19 +111,10 @@ The merger does not read the whole diff. It:
    new GLG ticket for a real but out-of-scope problem (CLAUDE.md rule 4);
 6. resolves every thread once it is fixed or answered.
 
-The merge comment on the PR and the comment on the Jira `Done` transition each
-carry one line, so a ticket's cost can be found by a text search for `Cost:`:
-
-    Cost: implementer 412k tokens, reviewer 188k tokens in 2 runs, 1 review round with findings
-
-The figures are the usage the Agent tool result reports for each subagent the
-merger spawned, summed per role over every run for that PR (an implementer
-respawned after findings, a fresh reviewer after a push). A round is defined
-below; the line also gives the number of reviewer runs. When the reviewer was
-skipped, the reviewer part reads `reviewer skipped (exempt paths)`. A figure
-the merger does not have (a ticket taken over after stale recovery, so the
-earlier session's usage is gone) is written `unknown`, never left out. The
-merger's own tokens are not in the line; it counts tokens only, no prices.
+The merger posts a merge comment on the PR that lists the required checks with
+their run URLs and conclusions on the merged head, and the head the reviewer ran
+on or `reviewer skipped (exempt paths)`, and it transitions the ticket to `Done`
+with a comment that links the merged PR.
 
 ### Merge gate
 
@@ -165,8 +156,7 @@ seventh.
   comment states either `reviewer skipped (exempt paths)` or the head the
   reviewer ran on.
 - A review that starts while the checks run is wasted when a failing check
-  forces a push that changes the diff. The cost is accepted; the cost line
-  the merger records per ticket shows how often it happens.
+  forces a push that changes the diff. The cost is accepted.
 - A PR opened outside a merger session (by hand, or by an agent whose
   orchestrator died) gets no review until a merger picks it up. The hourly
   worker takes over an idle `In Review` ticket after two hours.
