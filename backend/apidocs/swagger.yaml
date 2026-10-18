@@ -319,6 +319,11 @@ definitions:
         type: string
       rate:
         type: string
+      renewed_from:
+        description: |-
+          RenewedFrom is the id of the deposit this one renews, null for a deposit
+          opened on its own.
+        type: integer
       start_date:
         type: string
       status:
@@ -750,6 +755,15 @@ definitions:
       last4:
         type: string
       name:
+        type: string
+    type: object
+  server.renewRequest:
+    properties:
+      maturity_date:
+        type: string
+      rate:
+        type: string
+      stopaj_rate:
         type: string
     type: object
   server.returnsResponse:
@@ -2504,6 +2518,72 @@ paths:
                 type: string
             type: object
       summary: Mature a term deposit
+      tags:
+      - deposits
+  /deposits/{id}/renew:
+    post:
+      consumes:
+      - application/json
+      description: Opens a new deposit of the old principal plus its net interest
+        (gross minus stopaj, 2 decimals), starting on the old maturity date in the
+        same portfolio and currency, with a buy of that principal dated that day and
+        renewed_from set to the old deposit. When the old deposit has no sell yet,
+        its maturity is booked first, as POST /deposits/{id}/mature does. Everything
+        is written in one SQL transaction. A deposit can be renewed once. rate and
+        stopaj_rate are fractions (0.45 for 45%).
+      parameters:
+      - description: deposit id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: rate > 0 and at most 10, stopaj_rate from 0 up to but not including
+          1, maturity_date after the old maturity date and at most 10 years later
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/server.renewRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/server.depositResponse'
+        "400":
+          description: 'invalid request body; rate|stopaj_rate: required; rate|stopaj_rate:
+            must be a non-negative number with at most 15 integer and 9 fraction digits;
+            rate: must be greater than 0 and at most 10; stopaj_rate: must be at least
+            0 and below 1; maturity_date: must be YYYY-MM-DD; maturity_date: must
+            be after start_date; maturity_date: must be at most 10 years after start_date'
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: deposit not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: deposit is not due yet; deposit is already renewed
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Renew a term deposit
       tags:
       - deposits
   /export.zip:

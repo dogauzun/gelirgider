@@ -1,7 +1,9 @@
 package server
 
 import (
+	"context"
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -26,8 +28,8 @@ import (
 const maxDepositTermYears = 10
 
 // registerDepositRoutes wires POST and GET /api/portfolios/{id}/deposits,
-// GET .../deposits/due, POST /api/deposits/{id}/mature and
-// DELETE /api/deposits/{id}.
+// GET .../deposits/due, POST /api/deposits/{id}/mature, POST
+// /api/deposits/{id}/renew and DELETE /api/deposits/{id}.
 // onDemandFetch is the transaction routes' price and FX hook.
 func registerDepositRoutes(mux *http.ServeMux, d *deps, onDemandFetch transaction.OnDemandFetch) {
 	h := &depositHandler{deps: d, onDemandFetch: onDemandFetch}
@@ -35,6 +37,7 @@ func registerDepositRoutes(mux *http.ServeMux, d *deps, onDemandFetch transactio
 	mux.HandleFunc("GET /api/portfolios/{id}/deposits", h.list)
 	mux.HandleFunc("GET /api/portfolios/{id}/deposits/due", h.due)
 	mux.HandleFunc("POST /api/deposits/{id}/mature", h.mature)
+	mux.HandleFunc("POST /api/deposits/{id}/renew", h.renew)
 	mux.HandleFunc("DELETE /api/deposits/{id}", h.delete)
 }
 
@@ -66,6 +69,9 @@ type depositResponse struct {
 	StopajRate   string `json:"stopaj_rate"`
 	StartDate    string `json:"start_date"`
 	MaturityDate string `json:"maturity_date"`
+	// RenewedFrom is the id of the deposit this one renews, null for a deposit
+	// opened on its own.
+	RenewedFrom *int64 `json:"renewed_from"`
 	// Value is the principal plus the net interest accrued up to today, 2 decimals.
 	Value string `json:"value"`
 	// AccruedInterest is Value minus the principal.
@@ -160,6 +166,7 @@ func toDepositResponse(dep deposit.Deposit, today string, sold bool) depositResp
 		StopajRate:            dep.Terms.StopajRate.String(),
 		StartDate:             dep.Terms.StartDate,
 		MaturityDate:          dep.Terms.MaturityDate,
+		RenewedFrom:           dep.RenewedFrom,
 		Value:                 value.StringFixed(2),
 		AccruedInterest:       value.Round(2).Sub(dep.Principal).StringFixed(2),
 		NetInterestAtMaturity: net.StringFixed(2),
@@ -222,13 +229,22 @@ func (h *depositHandler) create(w http.ResponseWriter, r *http.Request) {
 // open writes the rows of a new deposit in one SQL transaction and returns the
 // buy and the stored deposit.
 func (h *depositHandler) open(r *http.Request, dep deposit.Deposit, in instrument.Instrument, note string, fund bool) (buy transaction.Transaction, _ deposit.Deposit, err error) {
-	ctx := r.Context()
-	tx, err := h.conn.BeginTx(ctx, nil)
+	tx, err := h.conn.BeginTx(r.Context(), nil)
 	if err != nil {
 		return buy, dep, fmt.Errorf("begin: %w", err)
 	}
 	defer tx.Rollback()
+	if buy, dep, err = h.openTx(r.Context(), tx, dep, in, note, fund); err != nil {
+		return buy, dep, err
+	}
+	if err := tx.Commit(); err != nil {
+		return buy, dep, fmt.Errorf("commit: %w", err)
+	}
+	return buy, dep, nil
+}
 
+// openTx writes the rows of a new deposit inside tx, which the caller commits.
+func (h *depositHandler) openTx(ctx context.Context, tx *sql.Tx, dep deposit.Deposit, in instrument.Instrument, note string, fund bool) (buy transaction.Transaction, _ deposit.Deposit, err error) {
 	if dep.InstrumentID, err = h.instruments.InsertTx(ctx, tx, in.Market, in.Symbol, in.Name, in.Currency); err != nil {
 		return buy, dep, err
 	}
@@ -252,13 +268,7 @@ func (h *depositHandler) open(r *http.Request, dep deposit.Deposit, in instrumen
 		Quantity: dep.Principal, Price: decimal.NewFromInt(1), Amount: dep.Principal, Fee: decimal.Zero,
 		Currency: dep.Currency, Note: note,
 	})
-	if err != nil {
-		return buy, dep, err
-	}
-	if err := tx.Commit(); err != nil {
-		return buy, dep, fmt.Errorf("commit: %w", err)
-	}
-	return buy, dep, nil
+	return buy, dep, err
 }
 
 // list returns the portfolio's deposits, newest start first.
@@ -378,19 +388,8 @@ func (h *depositHandler) due(w http.ResponseWriter, r *http.Request) {
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/deposits/{id}/mature [post]
 func (h *depositHandler) mature(w http.ResponseWriter, r *http.Request) {
-	userID := auth.MustUserID(r.Context())
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		auth.WriteError(w, http.StatusNotFound, "deposit not found")
-		return
-	}
-	dep, err := h.deposits.Get(r.Context(), userID, id)
-	if errors.Is(err, deposit.ErrNotFound) {
-		auth.WriteError(w, http.StatusNotFound, "deposit not found")
-		return
-	}
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
+	dep, ok := h.ownedDeposit(w, r)
+	if !ok {
 		return
 	}
 	today := price.Today()
@@ -419,12 +418,25 @@ func (h *depositHandler) mature(w http.ResponseWriter, r *http.Request) {
 // having written nothing, when the deposit already has a sell. BeginTx takes
 // the write lock, so two calls cannot both pass the check.
 func (h *depositHandler) book(r *http.Request, dep deposit.Deposit, name string) (bool, error) {
-	ctx := r.Context()
-	tx, err := h.conn.BeginTx(ctx, nil)
+	tx, err := h.conn.BeginTx(r.Context(), nil)
 	if err != nil {
 		return false, fmt.Errorf("begin: %w", err)
 	}
 	defer tx.Rollback()
+	booked, err := h.bookTx(r.Context(), tx, dep, name)
+	if err != nil || !booked {
+		return false, err
+	}
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("commit: %w", err)
+	}
+	return true, nil
+}
+
+// bookTx writes dep's sell and interest rows inside tx, which the caller
+// commits. It is false, having written nothing, when the deposit already has a
+// sell.
+func (h *depositHandler) bookTx(ctx context.Context, tx *sql.Tx, dep deposit.Deposit, name string) (bool, error) {
 	sold, err := h.deposits.SoldTx(ctx, tx, dep.UserID, dep.InstrumentID)
 	if err != nil || sold {
 		return false, err
@@ -446,10 +458,134 @@ func (h *depositHandler) book(r *http.Request, dep deposit.Deposit, name string)
 			return false, err
 		}
 	}
-	if err := tx.Commit(); err != nil {
-		return false, fmt.Errorf("commit: %w", err)
-	}
 	return true, nil
+}
+
+// ownedDeposit returns the deposit named by the {id} path value when it is the
+// caller's. Otherwise it writes the 404 or 500 and returns false.
+func (h *depositHandler) ownedDeposit(w http.ResponseWriter, r *http.Request) (deposit.Deposit, bool) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		auth.WriteError(w, http.StatusNotFound, "deposit not found")
+		return deposit.Deposit{}, false
+	}
+	dep, err := h.deposits.Get(r.Context(), auth.MustUserID(r.Context()), id)
+	if errors.Is(err, deposit.ErrNotFound) {
+		auth.WriteError(w, http.StatusNotFound, "deposit not found")
+		return deposit.Deposit{}, false
+	}
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return deposit.Deposit{}, false
+	}
+	return dep, true
+}
+
+// renewRequest is the POST body of a renewal: the new terms. The principal,
+// currency and start date come from the deposit being renewed.
+type renewRequest struct {
+	Rate         string `json:"rate"`
+	StopajRate   string `json:"stopaj_rate"`
+	MaturityDate string `json:"maturity_date"`
+}
+
+// renew opens a new deposit from a due or matured one: the principal plus the
+// net interest, starting on the old maturity date.
+//
+//	@Summary	Renew a term deposit
+//	@Description	Opens a new deposit of the old principal plus its net interest (gross minus stopaj, 2 decimals), starting on the old maturity date in the same portfolio and currency, with a buy of that principal dated that day and renewed_from set to the old deposit. When the old deposit has no sell yet, its maturity is booked first, as POST /deposits/{id}/mature does. Everything is written in one SQL transaction. A deposit can be renewed once. rate and stopaj_rate are fractions (0.45 for 45%).
+//	@Tags		deposits
+//	@Accept		json
+//	@Produce	json
+//	@Param		id		path		int						true	"deposit id"
+//	@Param		body	body		server.renewRequest	true	"rate > 0 and at most 10, stopaj_rate from 0 up to but not including 1, maturity_date after the old maturity date and at most 10 years later"
+//	@Success	201		{object}	server.depositResponse
+//	@Failure	400		{object}	object{error=string}	"invalid request body; rate|stopaj_rate: required; rate|stopaj_rate: must be a non-negative number with at most 15 integer and 9 fraction digits; rate: must be greater than 0 and at most 10; stopaj_rate: must be at least 0 and below 1; maturity_date: must be YYYY-MM-DD; maturity_date: must be after start_date; maturity_date: must be at most 10 years after start_date"
+//	@Failure	404		{object}	object{error=string}	"deposit not found"
+//	@Failure	409		{object}	object{error=string}	"deposit is not due yet; deposit is already renewed"
+//	@Failure	500		{object}	object{error=string}	"internal error"
+//	@Router		/deposits/{id}/renew [post]
+func (h *depositHandler) renew(w http.ResponseWriter, r *http.Request) {
+	old, ok := h.ownedDeposit(w, r)
+	if !ok {
+		return
+	}
+	var req renewRequest
+	if !auth.DecodeJSON(w, r, &req) {
+		return
+	}
+	if price.Today() < old.Terms.MaturityDate {
+		auth.WriteError(w, http.StatusConflict, "deposit is not due yet")
+		return
+	}
+	gross, stopaj := deposit.Interest(old.Principal, old.Terms)
+	principal, terms, _, err := parseDepositRequest(depositRequest{
+		Currency: old.Currency, Principal: old.Principal.Add(gross).Sub(stopaj).String(), Rate: req.Rate,
+		StopajRate: req.StopajRate, StartDate: old.Terms.MaturityDate, MaturityDate: req.MaturityDate,
+	})
+	if err != nil {
+		auth.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	in, err := h.instruments.Get(r.Context(), old.InstrumentID)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	next := deposit.Deposit{UserID: old.UserID, PortfolioID: old.PortfolioID, Currency: old.Currency, Principal: principal, Terms: terms, RenewedFrom: &old.ID}
+	nextIn := instrument.Instrument{Market: instrument.MarketDeposit, Currency: old.Currency, Name: fmt.Sprintf("Vadeli mevduat %s %s", old.Currency, terms.MaturityDate)}
+	if nextIn.Symbol, err = newDepositSymbol(); err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	buy, next, err := h.renewRows(r, old, in.Name, next, nextIn)
+	if errors.Is(err, deposit.ErrAlreadyRenewed) {
+		auth.WriteError(w, http.StatusConflict, "deposit is already renewed")
+		return
+	}
+	if db.IsForeignKeyViolation(err) {
+		auth.WriteError(w, http.StatusNotFound, "deposit not found")
+		return
+	}
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	nextIn.ID = next.InstrumentID
+	transaction.EnsurePrice(r.Context(), h.onDemandFetch, nextIn, buy)
+	auth.WriteJSON(w, http.StatusCreated, toDepositResponse(next, price.Today(), false))
+}
+
+// renewRows writes a renewal in one SQL transaction: old's maturity when it
+// has no sell yet, then the new deposit and its buy. It returns
+// deposit.ErrAlreadyRenewed, having written nothing, when a deposit already
+// renews old. BeginTx takes the write lock, so two renewals cannot both pass
+// the check.
+func (h *depositHandler) renewRows(r *http.Request, old deposit.Deposit, name string, next deposit.Deposit, nextIn instrument.Instrument) (buy transaction.Transaction, _ deposit.Deposit, err error) {
+	ctx := r.Context()
+	tx, err := h.conn.BeginTx(ctx, nil)
+	if err != nil {
+		return buy, next, fmt.Errorf("begin: %w", err)
+	}
+	defer tx.Rollback()
+	renewed, err := h.deposits.RenewedTx(ctx, tx, old.UserID, old.ID)
+	if err != nil {
+		return buy, next, err
+	}
+	if renewed {
+		return buy, next, deposit.ErrAlreadyRenewed
+	}
+	// false only when the deposit is matured already, which is fine here.
+	if _, err = h.bookTx(ctx, tx, old, name); err != nil {
+		return buy, next, err
+	}
+	if buy, next, err = h.openTx(ctx, tx, next, nextIn, "", false); err != nil {
+		return buy, next, err
+	}
+	if err := tx.Commit(); err != nil {
+		return buy, next, fmt.Errorf("commit: %w", err)
+	}
+	return buy, next, nil
 }
 
 // delete removes an open deposit with the rows it booked.
@@ -465,19 +601,8 @@ func (h *depositHandler) book(r *http.Request, dep deposit.Deposit, name string)
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/deposits/{id} [delete]
 func (h *depositHandler) delete(w http.ResponseWriter, r *http.Request) {
-	userID := auth.MustUserID(r.Context())
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		auth.WriteError(w, http.StatusNotFound, "deposit not found")
-		return
-	}
-	dep, err := h.deposits.Get(r.Context(), userID, id)
-	if errors.Is(err, deposit.ErrNotFound) {
-		auth.WriteError(w, http.StatusNotFound, "deposit not found")
-		return
-	}
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
+	dep, ok := h.ownedDeposit(w, r)
+	if !ok {
 		return
 	}
 	removed, err := h.remove(r, dep)
