@@ -1,6 +1,8 @@
 package server
 
 import (
+	"cmp"
+	"context"
 	"errors"
 	"maps"
 	"net/http"
@@ -18,7 +20,8 @@ import (
 )
 
 // registerDividendRoutes wires GET /api/portfolios/{id}/dividends/expected,
-// POST .../expected/dismiss, GET .../dividends/upcoming and GET .../dividends/timeline. It lives in
+// POST .../expected/dismiss, GET .../dividends/upcoming, GET .../dividends/timeline
+// and GET .../dividends/forecast. It lives in
 // server for the same import-cycle reason as the summary route.
 func registerDividendRoutes(mux *http.ServeMux, d *deps) {
 	h := &dividendHandler{d}
@@ -26,6 +29,7 @@ func registerDividendRoutes(mux *http.ServeMux, d *deps) {
 	mux.HandleFunc("POST /api/portfolios/{id}/dividends/expected/dismiss", h.dismiss)
 	mux.HandleFunc("GET /api/portfolios/{id}/dividends/upcoming", h.upcoming)
 	mux.HandleFunc("GET /api/portfolios/{id}/dividends/timeline", h.timeline)
+	mux.HandleFunc("GET /api/portfolios/{id}/dividends/forecast", h.forecast)
 }
 
 type dividendHandler struct{ *deps }
@@ -94,57 +98,65 @@ func (h *dividendHandler) upcoming(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// dividendInputs is what the suggestion and forecast routes read: the
+// portfolio's rows per instrument, still in transaction.SortForApply order,
+// their stored dividends, the stopaj rate per market and the instruments.
+type dividendInputs struct {
+	rows        map[int64][]transaction.Transaction
+	divs        map[int64][]dividend.Dividend
+	stopajRates map[string]decimal.Decimal
+	instruments map[int64]instrument.Instrument
+}
+
+func (h *dividendHandler) loadInputs(ctx context.Context, userID, portfolioID int64) (dividendInputs, error) {
+	in := dividendInputs{rows: map[int64][]transaction.Transaction{}}
+	txs, err := h.transactions.List(ctx, userID, portfolioID)
+	if err != nil {
+		return in, err
+	}
+	for _, t := range txs {
+		if t.InstrumentID != nil {
+			in.rows[*t.InstrumentID] = append(in.rows[*t.InstrumentID], t)
+		}
+	}
+	ids := distinctInstrumentIDs(txs)
+	if in.divs, err = h.dividends.ListFor(ctx, ids); err != nil {
+		return in, err
+	}
+	// The pre-filled stopaj per market (ADR 0009); a market without a row gets 0.
+	if in.stopajRates, err = h.dividends.StopajRates(ctx); err != nil {
+		return in, err
+	}
+	in.instruments, err = h.instruments.ByIDs(ctx, ids)
+	return in, err
+}
+
+// stopajNet is the pre-filled stopaj of a gross at a market's rate, rounded
+// to 2 decimals, and the net left after it.
+func stopajNet(gross, rate decimal.Decimal) (stopaj, net decimal.Decimal) {
+	stopaj = gross.Mul(rate).Round(2)
+	return stopaj, gross.Sub(stopaj)
+}
+
 // writeSuggestions loads the portfolio's rows and dividends, runs suggest on
 // each instrument and writes the results with stopaj and net, by date then
 // instrument id. expected and upcoming share it so their rows do not drift.
 func (h *dividendHandler) writeSuggestions(w http.ResponseWriter, r *http.Request, userID, portfolioID int64, suggest func([]transaction.Transaction, []dividend.Dividend) ([]dividend.Suggestion, error)) {
-	txs, err := h.transactions.List(r.Context(), userID, portfolioID)
+	in, err := h.loadInputs(r.Context(), userID, portfolioID)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	// Rows per instrument, still in List's transaction.SortForApply order.
-	byInstrument := map[int64][]transaction.Transaction{}
-	for _, t := range txs {
-		if t.InstrumentID != nil {
-			byInstrument[*t.InstrumentID] = append(byInstrument[*t.InstrumentID], t)
-		}
-	}
-	divs, err := h.dividends.ListFor(r.Context(), distinctInstrumentIDs(txs))
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
-		return
-	}
-
-	// The pre-filled stopaj per market (ADR 0009); a market without a row gets 0.
-	stopajRates, err := h.dividends.StopajRates(r.Context())
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
-		return
-	}
-
-	var withDividends []int64
-	for id := range byInstrument {
-		if len(divs[id]) > 0 {
-			withDividends = append(withDividends, id)
-		}
-	}
-	instruments, err := h.instruments.ByIDs(r.Context(), withDividends)
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
-		return
-	}
-
 	out := []expectedDividendResponse{}
-	for id, rows := range byInstrument {
-		suggestions, err := suggest(rows, divs[id])
+	for id, rows := range in.rows {
+		suggestions, err := suggest(rows, in.divs[id])
 		if err != nil {
 			auth.WriteInternalError(w, r, err)
 			return
 		}
-		instr := instruments[id]
+		instr := in.instruments[id]
 		for _, e := range suggestions {
-			stopaj := e.Gross.Mul(stopajRates[instr.Market]).Round(2)
+			stopaj, net := stopajNet(e.Gross, in.stopajRates[instr.Market])
 			out = append(out, expectedDividendResponse{
 				InstrumentID: id,
 				Symbol:       instr.Symbol,
@@ -154,7 +166,7 @@ func (h *dividendHandler) writeSuggestions(w http.ResponseWriter, r *http.Reques
 				PerShare:     e.PerShare.String(),
 				Gross:        e.Gross.StringFixed(2),
 				Stopaj:       stopaj.StringFixed(2),
-				Net:          e.Gross.Sub(stopaj).StringFixed(2),
+				Net:          net.StringFixed(2),
 				Currency:     e.Currency,
 			})
 		}
@@ -389,4 +401,122 @@ func dividendInstrumentTotals(m map[int64]*dividendInstrumentSums) []dividendIns
 		out = append(out, e.total)
 	}
 	return out
+}
+
+type dividendForecastRow struct {
+	InstrumentID int64   `json:"instrument_id"`
+	Symbol       string  `json:"symbol"`
+	Market       string  `json:"market"`
+	Period       string  `json:"period"`
+	Date         *string `json:"date"`
+	Planned      bool    `json:"planned"`
+	Quantity     string  `json:"quantity"`
+	PerShare     string  `json:"per_share"`
+	Gross        string  `json:"gross"`
+	Stopaj       string  `json:"stopaj"`
+	Net          string  `json:"net"`
+	Currency     string  `json:"currency"`
+	NetReporting *string `json:"net_reporting"`
+}
+
+type dividendForecastMonth struct {
+	Period string `json:"period"`
+	Net    string `json:"net"`
+}
+
+type dividendForecastResponse struct {
+	Currency     string                  `json:"currency"`
+	Months       []dividendForecastMonth `json:"months"`
+	Rows         []dividendForecastRow   `json:"rows"`
+	MissingRates []string                `json:"missing_rates"`
+}
+
+// forecast answers the dividends expected in the next twelve months.
+//
+//	@Summary	Dividend forecast
+//	@Description	Expected dividends of the twelve months from next month: each dividend recorded since the first day of the month eleven months ago, repeated a year later at its per-share amount times the quantity held now, replaced by the stored ex-dates (planned) that fall in the same period. Stopaj is pre-filled per market like the expected list. net_reporting is the net in the reporting currency at today's rate (null, and the currency listed in missing_rates, when it has no rate); months sums it per period, zero-filled, rows without a rate left out. Rows are ordered by period, date, instrument id; date is null for a projected row. The all scope is not supported.
+//	@Tags		dividends
+//	@Produce	json
+//	@Param		id	path	int	true	"portfolio id"
+//	@Success	200	{object}	server.dividendForecastResponse
+//	@Failure	404	{object}	object{error=string}	"portfolio not found"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/portfolios/{id}/dividends/forecast [get]
+func (h *dividendHandler) forecast(w http.ResponseWriter, r *http.Request) {
+	userID, portfolioID, ok := portfolio.Owned(w, r, h.portfolios)
+	if !ok {
+		return
+	}
+	usr, err := h.users.GetByID(r.Context(), userID)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	reporting := usr.ReportingCurrency
+	in, err := h.loadInputs(r.Context(), userID, portfolioID)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+
+	today := price.Today()
+	var forecast []dividend.ForecastRow
+	set := map[string]bool{}
+	for id, rows := range in.rows {
+		for _, f := range dividend.Forecast(rows, in.divs[id], today) {
+			forecast = append(forecast, f)
+			set[f.Currency] = true
+		}
+	}
+	slices.SortFunc(forecast, func(a, b dividend.ForecastRow) int {
+		return cmp.Or(cmp.Compare(a.Period, b.Period), cmp.Compare(a.Date, b.Date), cmp.Compare(a.InstrumentID, b.InstrumentID))
+	})
+	latest, err := h.fx.Latest(r.Context(), fxCurrencies(set, reporting), today)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	rates := make(map[string]decimal.Decimal, len(latest))
+	for currency, rate := range latest {
+		rates[currency] = rate.Rate
+	}
+
+	periods := dividend.ForecastPeriods(today)
+	sums := map[string]decimal.Decimal{}
+	missing := map[string]bool{}
+	out := dividendForecastResponse{Currency: reporting, Months: make([]dividendForecastMonth, 0, len(periods)), Rows: make([]dividendForecastRow, 0, len(forecast)), MissingRates: []string{}}
+	for _, f := range forecast {
+		instr := in.instruments[f.InstrumentID]
+		stopaj, net := stopajNet(f.Gross, in.stopajRates[instr.Market])
+		row := dividendForecastRow{
+			InstrumentID: f.InstrumentID,
+			Symbol:       instr.Symbol,
+			Market:       instr.Market,
+			Period:       f.Period,
+			Planned:      f.Planned,
+			Quantity:     f.Quantity.String(),
+			PerShare:     f.PerShare.String(),
+			Gross:        f.Gross.StringFixed(2),
+			Stopaj:       stopaj.StringFixed(2),
+			Net:          net.StringFixed(2),
+			Currency:     f.Currency,
+		}
+		if f.Date != "" {
+			row.Date = &f.Date
+		}
+		if factor, ok := holdings.Factor(rates, f.Currency, reporting); ok {
+			inReporting := net.Mul(factor).Round(2)
+			sums[f.Period] = sums[f.Period].Add(inReporting)
+			s := inReporting.StringFixed(2)
+			row.NetReporting = &s
+		} else {
+			missing[f.Currency] = true
+		}
+		out.Rows = append(out.Rows, row)
+	}
+	for _, period := range periods {
+		out.Months = append(out.Months, dividendForecastMonth{Period: period, Net: sums[period].StringFixed(2)})
+	}
+	out.MissingRates = append(out.MissingRates, slices.Sorted(maps.Keys(missing))...)
+	auth.WriteJSON(w, http.StatusOK, out)
 }

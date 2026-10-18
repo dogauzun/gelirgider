@@ -367,6 +367,59 @@ definitions:
       tax:
         type: string
     type: object
+  server.dividendForecastMonth:
+    properties:
+      net:
+        type: string
+      period:
+        type: string
+    type: object
+  server.dividendForecastResponse:
+    properties:
+      currency:
+        type: string
+      missing_rates:
+        items:
+          type: string
+        type: array
+      months:
+        items:
+          $ref: '#/definitions/server.dividendForecastMonth'
+        type: array
+      rows:
+        items:
+          $ref: '#/definitions/server.dividendForecastRow'
+        type: array
+    type: object
+  server.dividendForecastRow:
+    properties:
+      currency:
+        type: string
+      date:
+        type: string
+      gross:
+        type: string
+      instrument_id:
+        type: integer
+      market:
+        type: string
+      net:
+        type: string
+      net_reporting:
+        type: string
+      per_share:
+        type: string
+      period:
+        type: string
+      planned:
+        type: boolean
+      quantity:
+        type: string
+      stopaj:
+        type: string
+      symbol:
+        type: string
+    type: object
   server.dividendInstrumentTotal:
     properties:
       count:
@@ -4002,6 +4055,47 @@ paths:
                 type: string
             type: object
       summary: Dismiss an expected dividend
+      tags:
+      - dividends
+  /portfolios/{id}/dividends/forecast:
+    get:
+      description: 'Expected dividends of the twelve months from next month: each
+        dividend recorded since the first day of the month eleven months ago, repeated
+        a year later at its per-share amount times the quantity held now, replaced
+        by the stored ex-dates (planned) that fall in the same period. Stopaj is pre-filled
+        per market like the expected list. net_reporting is the net in the reporting
+        currency at today''s rate (null, and the currency listed in missing_rates,
+        when it has no rate); months sums it per period, zero-filled, rows without
+        a rate left out. Rows are ordered by period, date, instrument id; date is
+        null for a projected row. The all scope is not supported.'
+      parameters:
+      - description: portfolio id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.dividendForecastResponse'
+        "404":
+          description: portfolio not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Dividend forecast
       tags:
       - dividends
   /portfolios/{id}/dividends/timeline:
