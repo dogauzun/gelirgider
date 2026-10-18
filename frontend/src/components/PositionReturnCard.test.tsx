@@ -120,3 +120,20 @@ it('says so when the benchmark has no values in the range', () => {
   render(<PositionReturnCard history={h} currency="TRY" benchmark="XU100" />)
   expect(screen.getByText('BIST 100 · bu aralık için veri yok')).toBeInTheDocument()
 })
+
+it('does not mark an undefined benchmark return as estimated', () => {
+  localStorage.setItem('returnMethod', 'mwr')
+  const b = XU100('2026-01-05')
+  render(
+    <PositionReturnCard
+      history={history({}, '2026-01-01', '2026-01-11', {
+        ...b,
+        returns: { ...b.returns, mwr: null },
+      })}
+      currency="TRY"
+      benchmark="XU100"
+    />,
+  )
+  expect(screen.getByText('BIST 100 —')).toBeInTheDocument()
+  expect(screen.queryByText(/tahmini/)).toBeNull()
+})

@@ -58,6 +58,7 @@ export function PositionReturnCard({
       : null
   const benchmarkEstimated =
     benchmarkHasValues &&
+    benchmarkPct !== null &&
     !!historyBenchmark?.estimated_from &&
     !!lastDate &&
     historyBenchmark.estimated_from <= lastDate
