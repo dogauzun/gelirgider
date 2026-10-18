@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/benchmark"
+	"github.com/dogauzun/gelirgider/backend/internal/goal"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/shopspring/decimal"
 )
@@ -188,6 +189,34 @@ func TestGoalProjectionAtCap(t *testing.T) {
 	got := decodeJSON[projectionResponse](t, rec.Body.Bytes())
 	if got.HistoryMonths < 6 || len(got.Months) != 600 {
 		t.Errorf("projection = %d history months, %d months, want 6 or more and 600", got.HistoryMonths, len(got.Months))
+	}
+}
+
+// TestGoalProjectionStoredBeyondCap checks that a goal stored with a target
+// date past the cap (a row from before the cap, written past the route) still
+// projects a decodable fan of at most goal.MaxYears*12 months.
+func TestGoalProjectionStoredBeyondCap(t *testing.T) {
+	e := newTransactionTestEnv(t)
+	session := e.login("a@example.com")
+	id := e.createPortfolio(session, "Deposit")
+	body := map[string]any{
+		"currency": "TRY", "principal": "20000", "rate": "0.5", "stopaj_rate": "0",
+		"start_date": daysFromToday(t, -240), "maturity_date": daysFromToday(t, 3000), "fund": true,
+	}
+	if rec := e.do(session, http.MethodPost, fmt.Sprintf("/api/portfolios/%d/deposits", id), body); rec.Code != http.StatusCreated {
+		t.Fatalf("create deposit = %d %s", rec.Code, rec.Body.String())
+	}
+	g := goal.Goal{Amount: decimal.RequireFromString("10000000"), Unit: "nominal", TargetDate: "5000-12-01"}
+	if _, err := goal.NewRepo(e.db).Set(context.Background(), e.userID(session), &id, g); err != nil {
+		t.Fatalf("store goal: %v", err)
+	}
+	rec := e.do(session, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/projection", id), nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("projection = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+	got := decodeJSON[projectionResponse](t, rec.Body.Bytes())
+	if len(got.Months) != goal.MaxYears*12 {
+		t.Errorf("projection = %d months, want %d", len(got.Months), goal.MaxYears*12)
 	}
 }
 

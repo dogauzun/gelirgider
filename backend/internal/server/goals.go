@@ -327,7 +327,8 @@ func (h *goalHandler) projectionInput(ctx context.Context, userID int64, id stri
 	if err != nil {
 		return in, false, err
 	}
-	in.Months = (target.Year()-today.Year())*12 + int(target.Month()-today.Month())
+	// shortcut: a stored goal past the cap projects only to the cap; re-saving the goal fixes the date
+	in.Months = min((target.Year()-today.Year())*12+int(target.Month()-today.Month()), goal.MaxYears*12)
 	return in, true, nil
 }
 
