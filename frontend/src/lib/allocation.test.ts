@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Position } from '../api/summary'
+import { trCharts } from '../i18n/tr/charts'
+import { enCharts } from '../i18n/en/charts'
 import { allocationRows } from './allocation'
 
 function position(
@@ -9,6 +11,7 @@ function position(
   market = 'BIST',
   currency = 'TRY',
   assetClass: string | null = null,
+  sector = 'unknown',
 ): Position {
   return {
     instrument_id: instrumentId,
@@ -16,6 +19,7 @@ function position(
     name: symbol,
     market,
     asset_class: assetClass,
+    sector,
     currency,
     quantity: '1',
     avg_cost: '0',
@@ -201,5 +205,60 @@ describe('allocationRows', () => {
     expect(other).toEqual(['G', 'F'])
     expect(new Set(rows.map((row) => row.color)).size).toBe(rows.length)
     expect(rows.reduce((sum, row) => sum + row.share, 0)).toBeCloseTo(1, 10)
+  })
+
+  it('groups by sector, puts a position with sector unknown in "Bilinmiyor" and keeps the shares at 100%', () => {
+    const { rows } = allocationRows({
+      positions: [
+        position(1, 'GARAN', '200.00', 'BIST', 'TRY', null, 'financials'),
+        position(2, 'AKBNK', '100.00', 'BIST', 'TRY', null, 'financials'),
+        position(3, 'AAPL', '150.00', 'US', 'USD', null, 'information_technology'),
+        position(4, 'WHAT', '50.00', 'BIST', 'TRY'),
+      ],
+      cash: '100.00',
+      cashByCurrencyReporting: { TRY: '100.00' },
+      view: 'sector',
+    })
+
+    expect(brief(rows)).toEqual([
+      ['Finans', '300', 0.5],
+      ['Bilgi teknolojileri', '150', 0.25],
+      ['Bilinmiyor', '50', 0.0833],
+      ['Nakit', '100', 0.1667],
+    ])
+    expect(rows.reduce((sum, row) => sum + row.share, 0)).toBeCloseTo(1, 10)
+  })
+})
+
+// Every key the backend can send as a position's sector: the 11 keys of
+// backend/internal/instrument/sector.go, unknown, and the TEFAS fund keys.
+const SECTOR_KEYS = [
+  'energy',
+  'materials',
+  'industrials',
+  'consumer_discretionary',
+  'consumer_staples',
+  'health_care',
+  'financials',
+  'information_technology',
+  'communication_services',
+  'utilities',
+  'real_estate',
+  'unknown',
+  'fund_money_market',
+  'fund_equity',
+  'fund_debt',
+  'fund_precious_metals',
+  'fund_mixed',
+  'fund_other',
+]
+
+describe('sector labels', () => {
+  it.each([
+    ['tr', trCharts],
+    ['en', enCharts],
+  ])('has a sector.<key> label for every sector key in %s', (_locale, labels) => {
+    const missing = SECTOR_KEYS.filter((key) => !(`sector.${key}` in labels))
+    expect(missing).toEqual([])
   })
 })

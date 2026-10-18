@@ -110,3 +110,10 @@ export function marketLabel(market: string): string {
   const key = `market.${market}`
   return key in tr ? t(key as StringKey) : market
 }
+
+// A sector's display name from its sector.<key> string; a key the frontend
+// does not know yet shows as itself.
+export function sectorLabel(sector: string): string {
+  const key = `sector.${sector}`
+  return key in tr ? t(key as StringKey) : sector
+}
