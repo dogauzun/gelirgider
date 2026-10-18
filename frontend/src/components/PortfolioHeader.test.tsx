@@ -576,8 +576,13 @@ describe('PortfolioHeader', () => {
     expect(
       screen.queryByRole('button', { name: t('transactions.addTitle') }),
     ).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: t('portfolio.menu') })).not.toBeInTheDocument()
     expect(urls).toEqual(['/api/portfolios'])
+
+    // The menu holds the goal only: no rename, no delete.
+    fireEvent.click(screen.getByRole('button', { name: t('portfolio.menu') }))
+    expect(await screen.findAllByRole('menuitem')).toHaveLength(1)
+    expect(screen.getByRole('menuitem', { name: t('goal.set') })).toBeInTheDocument()
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
 
     // A new portfolio instead, opened in the create dialog.
     fireEvent.click(screen.getByRole('button', { name: t('portfolios.new') }))

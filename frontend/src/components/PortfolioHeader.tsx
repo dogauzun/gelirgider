@@ -17,6 +17,7 @@ import { toast } from '../lib/toast'
 import { focusIfLost } from '../lib/useFocusLater'
 import { rangeSearch } from '../lib/useRange'
 import { CreatePortfolioDialog } from './CreatePortfolioDialog'
+import { GoalDialog } from './GoalDialog'
 import { Button } from './ui/Button'
 import { useConfirm } from './ui/useConfirm'
 import { NotFound } from './NotFound'
@@ -129,8 +130,8 @@ const fabClass =
 // message, so no action is offered on a portfolio that is not there.
 //
 // In the `all` scope (every portfolio together, ADR 0014) the header has no
-// portfolio actions, and its tab row holds Özet and Performans only;
-// it offers a new portfolio instead, which opens once created, as
+// portfolio actions but the goal, and its tab row holds Özet and Performans
+// only; it offers a new portfolio instead, which opens once created, as
 // from the sidebar.
 //
 // The header and the body share one <main>, so the header block is inside a
@@ -164,6 +165,7 @@ export function PortfolioHeader({
   const [removedId, setRemovedId] = useState<PortfolioScope | null>(null)
   const removeTried = removedId === portfolioId
   const [creating, setCreating] = useState(false)
+  const [goaling, setGoaling] = useState(false)
   const menuRef = useRef<HTMLButtonElement>(null)
   const addRef = useRef<HTMLButtonElement>(null)
   const tabsRef = useRef<HTMLDivElement>(null)
@@ -302,6 +304,24 @@ export function PortfolioHeader({
     nameSlot = <Skeleton className="mt-1 h-7 w-44" />
   }
 
+  const menuTrigger = (
+    <Button
+      ref={menuRef}
+      variant="ghost"
+      iconOnly
+      aria-label={t('portfolio.menu')}
+      className={TAP_ICON}
+    >
+      <Icon name="dots" />
+    </Button>
+  )
+  const goalItem = (
+    <MenuItem onSelect={() => setGoaling(true)}>
+      <Icon name="target" />
+      {t('goal.set')}
+    </MenuItem>
+  )
+
   return (
     // Room below the last row for the floating add button.
     <main id="main" className={floatAdd ? 'max-md:pb-24' : undefined}>
@@ -335,15 +355,18 @@ export function PortfolioHeader({
           </div>
 
           {isAll && (
-            <Button
-              data-new-portfolio
-              variant="secondary"
-              className="shrink-0"
-              onClick={() => setCreating(true)}
-            >
-              <Icon name="plus" />
-              {t('portfolios.new')}
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                data-new-portfolio
+                variant="secondary"
+                className="shrink-0"
+                onClick={() => setCreating(true)}
+              >
+                <Icon name="plus" />
+                {t('portfolios.new')}
+              </Button>
+              <Menu trigger={menuTrigger}>{goalItem}</Menu>
+            </div>
           )}
           {!isAll && (
             <div className="flex shrink-0 items-center gap-2">
@@ -371,19 +394,7 @@ export function PortfolioHeader({
                   {t('transactions.addTitle')}
                 </span>
               </Button>
-              <Menu
-                trigger={
-                  <Button
-                    ref={menuRef}
-                    variant="ghost"
-                    iconOnly
-                    aria-label={t('portfolio.menu')}
-                    className={TAP_ICON}
-                  >
-                    <Icon name="dots" />
-                  </Button>
-                }
-              >
+              <Menu trigger={menuTrigger}>
                 <MenuItem
                   onSelect={() => {
                     setName(portfolio?.name ?? '')
@@ -393,6 +404,7 @@ export function PortfolioHeader({
                   <Icon name="pencil" />
                   {t('portfolios.rename')}
                 </MenuItem>
+                {goalItem}
                 <MenuItem
                   tone="danger"
                   disabled={isPending}
@@ -468,6 +480,7 @@ export function PortfolioHeader({
       </nav>
       {dialog}
       {creating && <CreatePortfolioDialog onClose={() => setCreating(false)} />}
+      {goaling && <GoalDialog portfolioId={portfolioId} onClose={() => setGoaling(false)} />}
       {children}
     </main>
   )
