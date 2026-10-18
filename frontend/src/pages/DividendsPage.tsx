@@ -160,8 +160,8 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
   // Nothing received and nothing ahead is the empty state. With a forecast
   // alone the body still has the forecast KPIs and chart to show, so with
   // nothing received the page waits for the forecast before deciding; a
-  // failed forecast counts as none.
-  const forecastRows = forecast.isError ? [] : forecast.data?.rows
+  // failed forecast counts as none unless an earlier answer is still cached.
+  const forecastRows = forecast.data?.rows ?? (forecast.isError ? [] : undefined)
   const isEmpty = data?.years.length === 0 && forecastRows?.length === 0
   const undecided = data?.years.length === 0 && forecastRows === undefined
   const missingRates = [
@@ -172,7 +172,9 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
   let body = null
   if (isEmpty) {
     body = <EmptyCard onAdd={() => setAdding(true)} />
-  } else if (data && !undecided) {
+  } else if (undecided) {
+    body = <SkeletonRows label={t('dividends.page.loading')} />
+  } else if (data) {
     const { currency, months, years } = data
     const last12 = data.last_12_months.net
     // Last 12 months net over what the open positions cost; nothing to
