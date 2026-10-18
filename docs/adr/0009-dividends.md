@@ -90,7 +90,9 @@ dividends already recorded: monthly and yearly buckets with `gross`, `tax`,
 `net` and `interest`, and totals per instrument, in the reporting currency.
 Each `dividend` transaction converts at the latest `fx_rates` rate on or
 before its own date. A row with no such rate is left out and its currency is
-listed in `missing_rates`. The route takes a numeric portfolio id only; the
+listed in `missing_rates`. `last_12_months` is the window the tab's "Son 12
+ay net" shows, summed before rounding: the monthly buckets are each rounded,
+so adding them can differ from it by a cent. The route takes a numeric portfolio id only; the
 `all` scope is a 404 (ADR 0014).
 
 The Temettü tab shows the timeline. Its first card, "Onay bekleyen

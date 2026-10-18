@@ -73,6 +73,8 @@ export interface DividendTimeline {
   currency: string
   months: DividendBucket[]
   years: DividendBucket[]
+  // The current month and the eleven before it, summed before rounding.
+  last_12_months: DividendBucket
   by_instrument: DividendInstrumentTotal[]
   missing_rates: string[]
 }

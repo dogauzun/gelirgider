@@ -164,11 +164,7 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
     )
   } else if (data) {
     const { currency, months, years } = data
-    const since = monthsBack(today.slice(0, 7), 12)[0]
-    const last12 = total(
-      months.filter((b) => b.period >= since),
-      (b) => b.net,
-    )
+    const last12 = data.last_12_months.net
     // Last 12 months net over what the open positions cost; nothing to
     // divide by when they cost nothing (all closed, or cash only).
     // The open positions' cost in the reporting currency, summed and rounded

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"slices"
 	"sort"
+	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
 	"github.com/dogauzun/gelirgider/backend/internal/dividend"
@@ -251,9 +252,11 @@ type dividendInstrumentTotal struct {
 }
 
 type dividendTimelineResponse struct {
-	Currency     string                    `json:"currency"`
-	Months       []dividendBucket          `json:"months"`
-	Years        []dividendBucket          `json:"years"`
+	Currency string           `json:"currency"`
+	Months   []dividendBucket `json:"months"`
+	Years    []dividendBucket `json:"years"`
+	// One bucket over the current month and the eleven before it, period its first month; summed unrounded, so it matches by_instrument.
+	Last12Months dividendBucket            `json:"last_12_months"`
 	ByInstrument []dividendInstrumentTotal `json:"by_instrument"`
 	MissingRates []string                  `json:"missing_rates"`
 }
@@ -263,7 +266,7 @@ type dividendTimelineResponse struct {
 // (not today's, which would rewrite history; ADR 0009).
 //
 //	@Summary	Dividend timeline
-//	@Description	Dividends received bucketed by month and year (only non-empty buckets, ascending) and totaled per instrument (net descending, then symbol), in the reporting currency at each transaction's own-date rate. A dividend with an instrument adds to gross (amount), tax (fee) and net; one without adds amount minus fee to interest only. A row whose currency has no rate on or before its date is left out and its currency listed in missing_rates. Amounts are 2-decimal strings.
+//	@Description	Dividends received bucketed by month and year (only non-empty buckets, ascending) and totaled per instrument (net descending, then symbol), in the reporting currency at each transaction's own-date rate. A dividend with an instrument adds to gross (amount), tax (fee) and net; one without adds amount minus fee to interest only. A row whose currency has no rate on or before its date is left out and its currency listed in missing_rates. last_12_months is one bucket over the current month and the eleven before it (period is its first month), summed before rounding, so its net equals the sum of by_instrument over the window. Amounts are 2-decimal strings.
 //	@Tags		dividends
 //	@Produce	json
 //	@Param		id	path	int	true	"portfolio id"
@@ -297,12 +300,16 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 			set[t.Currency] = true
 		}
 	}
-	out := dividendTimelineResponse{Currency: reporting, Months: []dividendBucket{}, Years: []dividendBucket{}, ByInstrument: []dividendInstrumentTotal{}, MissingRates: []string{}}
+	today := price.Today()
+	now, _ := time.Parse(time.DateOnly, today) // price.Today is always a valid date
+	since := time.Date(now.Year(), now.Month()-11, 1, 0, 0, 0, 0, time.UTC).Format("2006-01")
+	last12 := &dividendSums{}
+	out := dividendTimelineResponse{Currency: reporting, Months: []dividendBucket{}, Years: []dividendBucket{}, ByInstrument: []dividendInstrumentTotal{}, MissingRates: []string{}, Last12Months: bucketOf(since, last12)}
 	if len(rows) == 0 {
 		auth.WriteJSON(w, http.StatusOK, out)
 		return
 	}
-	fxw, err := loadFXWalk(r.Context(), h.fx, set, reporting, rows[0].Date, price.Today())
+	fxw, err := loadFXWalk(r.Context(), h.fx, set, reporting, rows[0].Date, today)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
@@ -329,13 +336,10 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 				s = &dividendSums{}
 				b.m[b.period] = s
 			}
-			if t.InstrumentID == nil {
-				s.interest = s.interest.Add(net)
-				continue
-			}
-			s.gross = s.gross.Add(amount)
-			s.tax = s.tax.Add(fee)
-			s.net = s.net.Add(net)
+			s.add(t.InstrumentID == nil, amount, fee, net)
+		}
+		if t.Date[:7] >= since {
+			last12.add(t.InstrumentID == nil, amount, fee, net)
 		}
 		if t.InstrumentID == nil {
 			continue
@@ -357,6 +361,7 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 	}
 
 	out.Months, out.Years = dividendBuckets(months), dividendBuckets(years)
+	out.Last12Months = bucketOf(since, last12)
 	out.ByInstrument = dividendInstrumentTotals(byInstrument)
 	out.MissingRates = slices.Sorted(maps.Keys(missing))
 	if out.MissingRates == nil {
@@ -367,6 +372,23 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 
 // dividendSums is one bucket's running totals.
 type dividendSums struct{ gross, tax, net, interest decimal.Decimal }
+
+// add books one dividend: an interest row (no instrument) grows interest by
+// its net only, any other grows gross, tax and net.
+func (s *dividendSums) add(interest bool, amount, fee, net decimal.Decimal) {
+	if interest {
+		s.interest = s.interest.Add(net)
+		return
+	}
+	s.gross = s.gross.Add(amount)
+	s.tax = s.tax.Add(fee)
+	s.net = s.net.Add(net)
+}
+
+// bucketOf rounds s to the 2-decimal strings of one bucket.
+func bucketOf(period string, s *dividendSums) dividendBucket {
+	return dividendBucket{Period: period, Gross: s.gross.StringFixed(2), Tax: s.tax.StringFixed(2), Net: s.net.StringFixed(2), Interest: s.interest.StringFixed(2)}
+}
 
 // dividendInstrumentSums is one instrument's running total, with its net
 // as a decimal for the sort.
@@ -379,8 +401,7 @@ type dividendInstrumentSums struct {
 func dividendBuckets(m map[string]*dividendSums) []dividendBucket {
 	out := make([]dividendBucket, 0, len(m))
 	for _, period := range slices.Sorted(maps.Keys(m)) {
-		s := m[period]
-		out = append(out, dividendBucket{Period: period, Gross: s.gross.StringFixed(2), Tax: s.tax.StringFixed(2), Net: s.net.StringFixed(2), Interest: s.interest.StringFixed(2)})
+		out = append(out, bucketOf(period, m[period]))
 	}
 	return out
 }
