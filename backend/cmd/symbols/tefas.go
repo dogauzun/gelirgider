@@ -37,6 +37,7 @@ func runTEFAS() error {
 	}
 
 	byNameSymbol := make(map[string]string, len(funds))
+	typeBySymbol := make(map[string]string, len(funds))
 	for _, f := range funds {
 		if !f.Active {
 			continue
@@ -46,14 +47,17 @@ func runTEFAS() error {
 			continue
 		}
 		byNameSymbol[symbol] = strings.TrimSpace(f.Name)
+		typeBySymbol[symbol] = strings.TrimSpace(f.Type)
 	}
-	return writeCSV(tefasPath, byNameSymbol, nil)
+	return writeCSV(tefasPath, byNameSymbol, nil, typeBySymbol)
 }
 
 // fund is one entry of the fund list response; period returns are ignored.
+// Type is the fund type (fonTurAciklama), stored raw as the sector (ADR 0026).
 type fund struct {
 	Code   string `json:"fonKodu"`
 	Name   string `json:"fonUnvan"`
+	Type   string `json:"fonTurAciklama"`
 	Active bool   `json:"tefasDurum"`
 }
 

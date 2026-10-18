@@ -68,7 +68,7 @@ func runCrypto() error {
 	}
 
 	for denom, out := range outputs {
-		if err := writeCSV(out.path, rows[denom], nil); err != nil {
+		if err := writeCSV(out.path, rows[denom], nil, nil); err != nil {
 			return err
 		}
 	}

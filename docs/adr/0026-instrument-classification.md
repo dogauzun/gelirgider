@@ -60,7 +60,14 @@ folded. A new mapping needs no data migration. A position always carries a
 route, and wins over the mapped key.
 
 The sources: Finnhub's `finnhubIndustry` gives US sectors. A TEFAS fund's type
-is its sector; its map comes with the TEFAS fund type fetch. For BIST, the
+is its sector: the fund list's `fonTurAciklama` is stored raw in the seed's
+`sector` column. Its nine types map to six `fund_*` keys in `tefasFundTypes`:
+`Para Piyasası Şemsiye Fonu` to `fund_money_market`, `Hisse Senedi Şemsiye
+Fonu` to `fund_equity`, `Borçlanma Araçları Şemsiye Fonu` to `fund_debt`,
+`Kıymetli Madenler Şemsiye Fonu` to `fund_precious_metals`, `Değişken Şemsiye
+Fonu` and `Karma Şemsiye Fonu` to `fund_mixed`, `Serbest Şemsiye Fonu`,
+`Katılım Şemsiye Fonu` and `Fon Sepeti Şemsiye Fonu` to `fund_other`. The
+`fund_*` keys are not in the admin override list. For BIST, the
 İş Yatırım "Temel Değerler ve Oranlar" page, already fetched for capital
 increases (ADR 0008), lists one Turkish sector per equity for all of them. KAP
 is rejected: it sits behind a bot wall.

@@ -19,7 +19,7 @@ KAP or a broker mirror would be a worse copy of the same thing.
 ### Fund list
 
 `POST /api/funds/fonGetiriBazliBilgiGetir` returns every fund of one type in a
-single request: code, name, category and an active flag. Only `fonTipi=YAT`
+single request: code, name, type (`fonTurAciklama`) and an active flag. Only `fonTipi=YAT`
 (regular mutual funds) is read. Pension and exchange-traded funds are a
 different product. The request must be sent with its full payload: dropping
 the period flags makes the endpoint answer `200` with a null result and no
@@ -27,7 +27,8 @@ error. The payload is in `backend/cmd/symbols/tefas.go`.
 
 The list is fetched by `go run ./cmd/symbols -market tefas` from `backend/`,
 which writes the committed seed `tefas_symbols.csv` of active funds, currency
-`TRY`. The server does not call the list endpoint at run time. The seed only
+`TRY`, with three columns: `symbol`, `name` and `sector`, the raw
+`fonTurAciklama` (ADR 0026). The server does not call the list endpoint at run time. The seed only
 fills a fresh database.
 
 ### Daily NAV

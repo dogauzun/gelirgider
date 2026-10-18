@@ -53,7 +53,7 @@ func TestWriteCSVWritesAssetClassFromBulletinGroup(t *testing.T) {
 	}, io.Discard)
 
 	path := filepath.Join(t.TempDir(), "bist_symbols.csv")
-	if err := writeCSV(path, names, classes); err != nil {
+	if err := writeCSV(path, names, classes, nil); err != nil {
 		t.Fatalf("writeCSV: %v", err)
 	}
 	got, err := os.ReadFile(path)
@@ -65,6 +65,33 @@ func TestWriteCSVWritesAssetClassFromBulletinGroup(t *testing.T) {
 		"OPT25,OPTIMA PORTFOY,fund\n" +
 		"THYAO,TURK HAVA YOLLARI,equity\n" +
 		"XXX,OTHER,\n"
+	if string(got) != want {
+		t.Fatalf("csv = %q, want %q", got, want)
+	}
+}
+
+// TestWriteCSVWritesSector writes the TEFAS layout: a sector column, empty for
+// a symbol the map lacks. With a class map too, the sector comes after it.
+func TestWriteCSVWritesSector(t *testing.T) {
+	names := map[string]string{"BBB": "FUND B", "AAA": "FUND A"}
+	path := filepath.Join(t.TempDir(), "tefas_symbols.csv")
+	if err := writeCSV(path, names, nil, map[string]string{"AAA": "Karma Şemsiye Fonu"}); err != nil {
+		t.Fatalf("writeCSV: %v", err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read csv: %v", err)
+	}
+	want := "symbol,name,sector\nAAA,FUND A,Karma Şemsiye Fonu\nBBB,FUND B,\n"
+	if string(got) != want {
+		t.Fatalf("csv = %q, want %q", got, want)
+	}
+
+	if err := writeCSV(path, names, map[string]string{"AAA": "fund"}, map[string]string{"BBB": "x"}); err != nil {
+		t.Fatalf("writeCSV: %v", err)
+	}
+	got, _ = os.ReadFile(path)
+	want = "symbol,name,asset_class,sector\nAAA,FUND A,fund,\nBBB,FUND B,,x\n"
 	if string(got) != want {
 		t.Fatalf("csv = %q, want %q", got, want)
 	}

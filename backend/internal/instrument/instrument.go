@@ -522,15 +522,25 @@ func Seed(ctx context.Context, db *sql.DB) error {
 // seedFile inserts every row of one CSV under one market+currency. Rows
 // are inserted inside a single transaction: at ~13,000 rows for the US
 // file, one autocommit insert per row made startup noticeably slower (see
-// PR description for before/after timing).
+// PR description for before/after timing). The header is symbol,name with an
+// optional asset_class and then an optional sector column; a non-empty cell
+// updates that column of an existing row, an empty one leaves it alone.
 func seedFile(ctx context.Context, db *sql.DB, data []byte, market, currency string) error {
 	reader := csv.NewReader(strings.NewReader(string(data)))
 	header, err := reader.Read()
 	if err != nil {
 		return fmt.Errorf("read csv header: %w", err)
 	}
-	if len(header) < 2 || len(header) > 3 || header[0] != "symbol" || header[1] != "name" ||
-		(len(header) == 3 && header[2] != "asset_class") {
+	classCol, sectorCol := -1, -1
+	switch strings.Join(header, ",") {
+	case "symbol,name":
+	case "symbol,name,asset_class":
+		classCol = 2
+	case "symbol,name,sector":
+		sectorCol = 2
+	case "symbol,name,asset_class,sector":
+		classCol, sectorCol = 2, 3
+	default:
 		return fmt.Errorf("unexpected csv header: %v", header)
 	}
 
@@ -549,10 +559,7 @@ func seedFile(ctx context.Context, db *sql.DB, data []byte, market, currency str
 			return fmt.Errorf("read csv row: %w", err)
 		}
 		symbol, name := record[0], record[1]
-		class := sql.NullString{}
-		if len(record) == 3 && record[2] != "" {
-			class = sql.NullString{String: record[2], Valid: true}
-		}
+		class := seedCell(record, classCol)
 		_, err = tx.ExecContext(ctx,
 			`INSERT INTO instruments (symbol, market, name, currency, asset_class)
 			 SELECT ?, ?, ?, ?, ?
@@ -565,17 +572,35 @@ func seedFile(ctx context.Context, db *sql.DB, data []byte, market, currency str
 		if err != nil {
 			return fmt.Errorf("insert instrument %s: %w", symbol, err)
 		}
-		if !class.Valid {
-			continue
+		if class.Valid {
+			_, err = tx.ExecContext(ctx,
+				`UPDATE instruments SET asset_class = ?
+				 WHERE market = ? AND symbol = ? AND (asset_class IS NULL OR asset_class <> ?)`,
+				class, market, symbol, class,
+			)
+			if err != nil {
+				return fmt.Errorf("update asset class of %s: %w", symbol, err)
+			}
 		}
-		_, err = tx.ExecContext(ctx,
-			`UPDATE instruments SET asset_class = ?
-			 WHERE market = ? AND symbol = ? AND (asset_class IS NULL OR asset_class <> ?)`,
-			class, market, symbol, class,
-		)
-		if err != nil {
-			return fmt.Errorf("update asset class of %s: %w", symbol, err)
+		if sector := seedCell(record, sectorCol); sector.Valid {
+			_, err = tx.ExecContext(ctx,
+				`UPDATE instruments SET sector = ?
+				 WHERE market = ? AND symbol = ? AND (sector IS NULL OR sector <> ?)`,
+				sector, market, symbol, sector,
+			)
+			if err != nil {
+				return fmt.Errorf("update sector of %s: %w", symbol, err)
+			}
 		}
 	}
 	return tx.Commit()
+}
+
+// seedCell returns column col of a seed row, NULL when the file has no such
+// column (col -1) or the cell is empty.
+func seedCell(record []string, col int) sql.NullString {
+	if col < 0 || record[col] == "" {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: record[col], Valid: true}
 }
