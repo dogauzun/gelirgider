@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dogauzun/gelirgider/backend/internal/allocation"
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
 	"github.com/dogauzun/gelirgider/backend/internal/benchmark"
 	"github.com/dogauzun/gelirgider/backend/internal/bist"
@@ -93,17 +94,18 @@ type deps struct {
 	btcturkFetcher *btcturk.Fetcher
 	tefasFetcher   *tefas.Fetcher
 
-	users        *user.Repo
-	portfolios   *portfolio.Repo
-	instruments  *instrument.Repo
-	prices       *price.Repo
-	manualPrices *price.ManualRepo
-	transactions *transaction.Repo
-	fx           *fx.Repo
-	splits       *split.Repo
-	benchmarks   *benchmark.Repo
-	dividends    *dividend.Repo
-	deposits     *deposit.Repo
+	users             *user.Repo
+	portfolios        *portfolio.Repo
+	instruments       *instrument.Repo
+	prices            *price.Repo
+	manualPrices      *price.ManualRepo
+	transactions      *transaction.Repo
+	fx                *fx.Repo
+	splits            *split.Repo
+	benchmarks        *benchmark.Repo
+	dividends         *dividend.Repo
+	deposits          *deposit.Repo
+	allocationTargets *allocation.Repo
 }
 
 // priceSources is what the valuations read prices from: the fetched closes,
@@ -132,6 +134,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 	d.benchmarks = benchmark.NewRepo(conn)
 	d.dividends = dividend.NewRepo(conn)
 	d.deposits = deposit.NewRepo(conn)
+	d.allocationTargets = allocation.NewRepo(conn)
 	cfg, users, portfolios := d.cfg, d.users, d.portfolios
 	sessions := auth.NewRepo(conn)
 
@@ -214,6 +217,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 	registerPositionHistoryRoutes(protected, &d)
 	registerDividendRoutes(protected, &d)
 	registerDepositRoutes(protected, &d, onDemandFetch)
+	registerAllocationTargetRoutes(protected, &d)
 	mux.Handle("/api/", sessions.RequireUser(withJSONMiss(protected)))
 
 	return withRecover(logger, withLogging(logger, withCrossOriginProtection(withBodyLimit(mux))))
