@@ -133,6 +133,33 @@ func TestPositionHistory(t *testing.T) {
 		}
 	}
 
+	// Values 1100, 1100, 1200, 900 from the first close; the sell on day 5
+	// (flow -300) is the only flow.
+	if got.ReturnsFrom == nil || *got.ReturnsFrom != "2024-01-02" {
+		t.Errorf("returns_from = %v, want 2024-01-02", got.ReturnsFrom)
+	}
+	for name, r := range map[string]*string{"twr": got.Returns.TWR, "mwr": got.Returns.MWR} {
+		if r == nil {
+			t.Errorf("returns.%s = null, want 0.090909", name)
+		} else if *r != "0.090909" {
+			t.Errorf("returns.%s = %s, want 0.090909", name, *r)
+		}
+	}
+	// simple = (900 - 1100 + 300) / (1100 - 300), the sell leaving the base.
+	if got.Returns.Simple == nil || *got.Returns.Simple != "0.125000" {
+		t.Errorf("returns.simple = %v, want 0.125000", got.Returns.Simple)
+	}
+	wantTWR := []string{"null", "0.000000", "0.000000", "0.090909", "0.090909"}
+	for i, w := range wantTWR {
+		twr := "null"
+		if got.Points[i].Twr != nil {
+			twr = *got.Points[i].Twr
+		}
+		if twr != w {
+			t.Errorf("point[%d].twr = %s, want %s", i, twr, w)
+		}
+	}
+
 	if rec := get(bobSession.ID); rec.Code != http.StatusNotFound {
 		t.Errorf("bob status = %d, want 404", rec.Code)
 	}
@@ -159,6 +186,58 @@ func TestPositionHistoryDeposit(t *testing.T) {
 		p := got.Points[i]
 		if p.Close == nil || p.Date != w.date || *p.Close != w.close || p.Quantity != "1000" || p.MarketValue != w.value {
 			t.Errorf("point[%d] = %+v, want %+v", i, p, w)
+		}
+	}
+}
+
+// TestPositionFlow checks the money a row moves in or out of the position:
+// a buy and its fee in, a sell or a dividend net of its fee out, the rest zero.
+func TestPositionFlow(t *testing.T) {
+	tests := []struct {
+		name string
+		tx   transaction.Transaction
+		want string
+	}{
+		{"buy", transaction.Transaction{Type: transaction.TypeBuy, Amount: decimal.RequireFromString("1000"), Fee: decimal.RequireFromString("2")}, "1002"},
+		{"sell", transaction.Transaction{Type: transaction.TypeSell, Amount: decimal.RequireFromString("300"), Fee: decimal.RequireFromString("1")}, "-299"},
+		{"dividend", transaction.Transaction{Type: transaction.TypeDividend, Amount: decimal.RequireFromString("25"), Fee: decimal.RequireFromString("3.75")}, "-21.25"},
+		{"split", transaction.Transaction{Type: transaction.TypeSplit}, "0"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := positionFlow(tt.tx); !got.Equal(decimal.RequireFromString(tt.want)) {
+				t.Errorf("positionFlow = %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestPositionHistoryShortIsUndefined checks that a sell with no holding,
+// valued negative on the first day with a close, answers null returns and a
+// null twr on every point.
+func TestPositionHistoryShortIsUndefined(t *testing.T) {
+	e := newPeriodsEnv(t)
+	userID, session := e.user(t, "short@example.com")
+	portfolioID := e.portfolio(t, userID)
+	instrumentID := e.instrument(t, "SHORT")
+	sell := transaction.Transaction{PortfolioID: portfolioID, InstrumentID: &instrumentID, Type: transaction.TypeSell, Date: "2024-01-01", Quantity: decimal.RequireFromString("5"), Price: decimal.RequireFromString("100"), Amount: decimal.RequireFromString("500"), Fee: decimal.Zero, Currency: "TRY"}
+	if _, err := transaction.NewRepo(e.conn).Create(context.Background(), userID, sell); err != nil {
+		t.Fatalf("transactions.Create: %v", err)
+	}
+	if err := price.NewRepo(e.conn).Upsert(context.Background(), instrumentID, "2024-01-01", "100", "test"); err != nil {
+		t.Fatalf("prices.Upsert: %v", err)
+	}
+	var got positionHistoryResponse
+	e.get(t, session, fmt.Sprintf("/api/portfolios/%d/instruments/%d/history?to=2024-01-03", portfolioID, instrumentID), http.StatusOK, &got)
+	if got.ReturnsFrom == nil || *got.ReturnsFrom != "2024-01-01" {
+		t.Errorf("returns_from = %v, want 2024-01-01", got.ReturnsFrom)
+	}
+	if got.Returns.Simple != nil || got.Returns.TWR != nil || got.Returns.MWR != nil {
+		t.Errorf("returns = %+v, want all null", got.Returns)
+	}
+	for i, p := range got.Points {
+		if p.Twr != nil {
+			t.Errorf("point[%d].twr = %s, want null", i, *p.Twr)
 		}
 	}
 }
