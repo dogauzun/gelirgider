@@ -122,7 +122,12 @@ function mockApi() {
         cost_basis: '1005.00',
         market_value: '1200.00',
       })
-      return Response.json({ currency: 'TRY', points: [point('2026-09-25'), point('2026-09-26')] })
+      return Response.json({
+        currency: 'TRY',
+        returns: { simple: '0.125', twr: '0.090909', mwr: '0.090909' },
+        returns_from: '2026-09-25',
+        points: [point('2026-09-25'), point('2026-09-26')],
+      })
     }
     if (url.startsWith('/api/portfolios/1/transactions?limit=100&instrument_id=')) {
       // Seven, newest first, as the API pages them.

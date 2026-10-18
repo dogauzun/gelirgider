@@ -1,12 +1,13 @@
 import { useId, useState } from 'react'
 import { useParams } from 'react-router'
-import { RETURN_METHODS, usePeriodReturns, type Benchmark, type ReturnMethod } from '../api/history'
+import { usePeriodReturns, type Benchmark, type ReturnMethod } from '../api/history'
 import { usePortfolioSummary, type PortfolioScope } from '../api/summary'
 import { CashGapNotice } from '../components/CashGapNotice'
 import { DrawdownCard } from '../components/DrawdownCard'
 import { ReturnBars } from '../components/LazyChart'
 import { PeriodReturnsTable } from '../components/PeriodReturnsTable'
 import { PortfolioHeader } from '../components/PortfolioHeader'
+import { ReturnMethodSelect } from '../components/ReturnMethodSelect'
 import { ChartFrame } from '../components/ui/ChartFrame'
 import { Segmented } from '../components/ui/Segmented'
 import { FitSelect } from '../components/ui/Select'
@@ -38,12 +39,7 @@ export function PerformancePage() {
             onChange={(next) => setBenchmark((next as Benchmark) || null)}
             options={[{ value: '', label: t('chart.benchmark.none') }, ...options]}
           />
-          <FitSelect
-            aria-label={t('chart.return.method')}
-            value={method}
-            onChange={setMethod}
-            options={RETURN_METHODS.map((m) => ({ value: m, label: t(`chart.return.${m}`) }))}
-          />
+          <ReturnMethodSelect method={method} onChange={setMethod} />
         </div>
         <PeriodReturnsCard
           portfolioId={portfolioId}

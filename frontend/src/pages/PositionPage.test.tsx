@@ -124,6 +124,11 @@ const tx = (id: number, type: string, date: string, fee = '0') => ({
   import_id: null,
 })
 
+const RETURNS = {
+  returns: { simple: '0.125', twr: '0.090909', mwr: '0.090909' },
+  returns_from: '2026-09-25',
+}
+
 const point = (date: string, quantity: string, value: string) => ({
   date,
   close: '284.15',
@@ -140,6 +145,7 @@ function mockApi({
   dividends = timeline('30.00'),
   history = {
     currency: 'TRY',
+    ...RETURNS,
     points: [
       point('2026-09-25', '10', '1200.00'),
       point('2026-09-26', '10', '1250.00'),
@@ -218,6 +224,18 @@ it('leads with one title row: the Özet link, the symbol as the one h1, name, ma
   expect(within(row).getByRole('button', { name: 'Al' })).toBeInTheDocument()
   expect(within(row).getByRole('button', { name: 'Sat' })).toBeInTheDocument()
   expect(within(row).getByRole('button', { name: 'Fiyat gir' })).toBeInTheDocument()
+})
+
+it('shows the return card between the KPIs and the chart card', async () => {
+  mockApi()
+  renderPage('/portfolios/1/positions/7?range=1y')
+
+  const title = await screen.findByRole('heading', { name: 'Getiri' })
+  expect(await screen.findByText('+%9,09')).toBeInTheDocument()
+  expect(
+    title.closest('section')!.compareDocumentPosition(chartCard()) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy()
 })
 
 it('opens the trade dialog prefilled from Al, Sat and the header add, and the price editor from Fiyat gir', async () => {
@@ -532,6 +550,7 @@ it('draws nothing on the days nothing is held: before the first held day and in 
     transactions: [],
     history: {
       currency: 'TRY',
+      ...RETURNS,
       points: [
         p('2026-09-20', false),
         p('2026-09-21', true),
@@ -574,7 +593,7 @@ it('has exactly one h1 while loading and for an instrument not held (GLG-677)', 
     }
     if (url === '/api/portfolios/1/dividends/timeline') return Response.json(timeline(null))
     if (url.startsWith('/api/portfolios/1/instruments/16/history?')) {
-      return Response.json({ currency: 'TRY', points: [] })
+      return Response.json({ currency: 'TRY', ...RETURNS, points: [] })
     }
     if (url === '/api/portfolios/1/transactions?limit=100&instrument_id=16') {
       return Response.json([])

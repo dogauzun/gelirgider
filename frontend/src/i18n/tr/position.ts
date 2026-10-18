@@ -28,6 +28,9 @@ export const trPosition = {
   'position.price': 'Fiyat',
   'position.transactions': 'İşlemler',
   'position.allTransactions': 'Tüm işlemler',
+  'position.return.title': 'Getiri',
+  'position.return.annualized': 'yıllık {percent}',
+  'position.return.hint': '{currency} cinsinden, temettüler dahil',
   // The positions card's detail dialog.
   'position.dialog.close': 'Kapat',
   'position.dialog.previous': 'Önceki pozisyon',

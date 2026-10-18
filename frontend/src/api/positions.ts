@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '../api'
-import { historyQueryKey } from './history'
+import { historyQueryKey, type ReturnMethod } from './history'
 
 // One day of one holding (ADR 0016), in the instrument's own currency.
 // close is null before the first price; the rest are zero on a day the
@@ -12,11 +12,19 @@ export interface PositionHistoryPoint {
   avg_cost: string
   cost_basis: string
   market_value: string
+  // The position's time-weighted return from returns_from to this day, in
+  // the instrument's currency; null before it is defined.
+  twr?: string | null
 }
 
 export interface PositionHistoryResponse {
   currency: string
   points: PositionHistoryPoint[]
+  // Fractions over the range in the instrument's currency, dividends counted
+  // as flows out; null where a method is undefined. returns_from is the first
+  // counted date.
+  returns: Record<ReturnMethod, string | null>
+  returns_from: string | null
 }
 
 function fetchPositionHistory(
