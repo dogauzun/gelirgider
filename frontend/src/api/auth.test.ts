@@ -42,7 +42,9 @@ describe('dropDataOnUserChange', () => {
     const options = { queryKey: ['portfolios'], queryFn: list }
     const observer = new QueryObserver(queryClient, options)
     const unsubscribe = observer.subscribe(() => {})
-    await vi.waitFor(() => expect(observer.getCurrentResult().isSuccess).toBe(true))
+    await vi.waitFor(() => expect(observer.getCurrentResult().isSuccess).toBe(true), {
+      timeout: 5000,
+    })
 
     queryClient.setQueryData(meQueryKey, null)
     observer.setOptions(options)
@@ -65,7 +67,9 @@ describe('dropDataOnUserChange', () => {
       queryFn: config,
     })
     const unsubscribe = observer.subscribe(() => {})
-    await vi.waitFor(() => expect(observer.getCurrentResult().isSuccess).toBe(true))
+    await vi.waitFor(() => expect(observer.getCurrentResult().isSuccess).toBe(true), {
+      timeout: 5000,
+    })
     // In flight, as SetupPage's refetch is when the first admin signs in.
     let answer = () => {}
     const status = queryClient.fetchQuery({

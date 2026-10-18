@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SourcesTable } from './SourcesTable'
 
@@ -145,17 +145,17 @@ describe('SourcesTable', () => {
 
     const toggle = await screen.findByLabelText('tcmb açık')
     fireEvent.click(toggle)
-    await vi.waitFor(() => expect(writes()).toHaveLength(1))
+    await waitFor(() => expect(writes()).toHaveLength(1))
 
     const time = screen.getByLabelText('tcmb saati (İstanbul)')
     fireEvent.change(time, { target: { value: '20:15' } })
     fireEvent.blur(time)
-    await vi.waitFor(() => expect(writes()).toHaveLength(2))
+    await waitFor(() => expect(writes()).toHaveLength(2))
 
     fireEvent.click(screen.getByRole('button', { name: 'tcmb için şimdi çalıştır' }))
-    await vi.waitFor(() => expect(writes()).toHaveLength(3))
+    await waitFor(() => expect(writes()).toHaveLength(3))
     fireEvent.click(screen.getByRole('button', { name: 'tcmb için geçmişi doldur' }))
-    await vi.waitFor(() => expect(writes()).toHaveLength(4))
+    await waitFor(() => expect(writes()).toHaveLength(4))
 
     expect(writes()).toEqual([
       ['/api/admin/sources/tcmb', 'PUT', JSON.stringify({ enabled: false, at: '19:00' })],
@@ -235,7 +235,7 @@ describe('SourcesTable', () => {
     const label = (await screen.findByLabelText('tcmb açık')).closest('label')!
     expect(label).toHaveClass('size-11')
     fireEvent.click(label)
-    await vi.waitFor(() => expect(puts).toEqual(['/api/admin/sources/tcmb']))
+    await waitFor(() => expect(puts).toEqual(['/api/admin/sources/tcmb']))
   })
 
   // The toggle stays enabled and focused while it saves, and a
@@ -256,13 +256,13 @@ describe('SourcesTable', () => {
     const toggle = await screen.findByLabelText('tcmb açık')
     toggle.focus()
     fireEvent.click(toggle)
-    await vi.waitFor(() => expect(toggle).toHaveAttribute('aria-disabled', 'true'))
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-disabled', 'true'))
     expect(toggle).toBeEnabled()
     expect(toggle).toHaveFocus()
     fireEvent.click(toggle)
     expect(puts).toEqual(['/api/admin/sources/tcmb'])
     release()
-    await vi.waitFor(() => expect(toggle).toHaveAttribute('aria-disabled', 'false'))
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-disabled', 'false'))
   })
 
   // isPending reaches the controls a tick after the click, so a
@@ -284,7 +284,7 @@ describe('SourcesTable', () => {
     ]) {
       fireEvent.click(control)
       fireEvent.click(control)
-      await vi.waitFor(() => expect(control).toHaveAttribute('aria-disabled', 'true'))
+      await waitFor(() => expect(control).toHaveAttribute('aria-disabled', 'true'))
     }
     expect(sent).toEqual([
       'PUT /api/admin/sources/tcmb',

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -160,7 +160,7 @@ describe('PortfoliosTable', () => {
     renderTable()
     const kripto = within(rowOf('Kripto'))
     // Its summary answers but has no day change: a dash there too.
-    await vi.waitFor(() => expect(kripto.getAllByText('—')).toHaveLength(2))
+    await waitFor(() => expect(kripto.getAllByText('—')).toHaveLength(2))
     expect(kripto.getByText('₺100,00')).toBeInTheDocument()
     expect(kripto.getByText('%10,0')).toBeInTheDocument()
     expect(rowOf('Kripto').querySelector('svg')).toBeNull()
@@ -193,7 +193,7 @@ describe('PortfoliosTable', () => {
     renderTable()
     const ana = within(rowOf('Ana portföy'))
     expect(await ana.findByText('+%8,1')).toBeInTheDocument()
-    await vi.waitFor(() => expect(ana.getAllByText('•••')).toHaveLength(2))
+    await waitFor(() => expect(ana.getAllByText('•••')).toHaveLength(2))
     expect(ana.queryByText('₺600,00')).toBeNull()
   })
 })

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { ProvidersSection } from './ProvidersSection'
 
@@ -105,7 +105,7 @@ describe('ProvidersSection', () => {
     const button = await screen.findByRole('button', { name: 'Tiingo anahtarını test et' })
     button.focus()
     fireEvent.click(button)
-    await vi.waitFor(() => expect(button).toHaveAttribute('aria-disabled', 'true'))
+    await waitFor(() => expect(button).toHaveAttribute('aria-disabled', 'true'))
     expect(button).toBeEnabled()
     expect(button).toHaveFocus()
     fireEvent.click(button)
@@ -113,7 +113,7 @@ describe('ProvidersSection', () => {
     expect(tests()).toHaveLength(1)
 
     finish(json({ ok: true }))
-    await vi.waitFor(() => expect(button).not.toHaveAttribute('aria-disabled'))
+    await waitFor(() => expect(button).not.toHaveAttribute('aria-disabled'))
   })
 
   // isPending reaches the buttons a tick after the click, so a
@@ -140,7 +140,7 @@ describe('ProvidersSection', () => {
       const button = screen.getByRole('button', { name })
       fireEvent.click(button)
       fireEvent.click(button)
-      await vi.waitFor(() => expect(button).toHaveAttribute('aria-disabled', 'true'))
+      await waitFor(() => expect(button).toHaveAttribute('aria-disabled', 'true'))
     }
     expect(sent).toEqual([
       'PUT /api/admin/providers/tiingo',
