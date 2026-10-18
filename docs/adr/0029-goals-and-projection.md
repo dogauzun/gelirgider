@@ -49,17 +49,25 @@ reads or writes a goal.
 ### The projection reuses the history sweep
 
 The returns periods route already cuts one sweep into calendar months, each
-with its TWR and external flow ([ADR 0011](0011-portfolio-returns.md)). The
-projection takes from those buckets:
+with its TWR ([ADR 0011](0011-portfolio-returns.md)). The projection takes
+from that sweep:
 
 - the monthly TWRs of the last 36 full months, the partial first and current
   buckets left out (fewer than 36 are all used);
-- the net external flow of each of the last 12 full months (fewer than 12 are
-  all used);
+- the flow `f` of each of the last 12 full months, which is the sum of the
+  sweep's daily external flows over every day of the calendar month, the 1st
+  included (fewer than 12 are all used);
 - today's value, from the same sweep.
 
-With fewer than 6 full months there is no projection: the route says so and
-returns no paths.
+A month's `f` is not read from its periods bucket: a bucket treats its first
+day as the base, with that day's flow inside the base value, so a deposit made
+on the 1st of every month would show as a flow of zero and the one-line answer
+would ask for money the user already pays.
+
+A month whose TWR is `null` (ADR 0011: no positive base, or negative cash) is
+left out of the percentiles. Only full months with a TWR count toward the
+minimum: with fewer than 6 of them there is no projection, and the route says
+so and returns no paths.
 
 The recurrence, for month `k` from today up to the target month:
 
