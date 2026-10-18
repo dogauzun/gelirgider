@@ -499,6 +499,79 @@
                 }
             }
         },
+        "/admin/instruments/{id}": {
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Set or clear an instrument's sector override",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "instrument id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "sector_override is one of the 11 sector keys (energy, materials, industrials, consumer_discretionary, consumer_staples, health_care, financials, information_technology, communication_services, utilities, real_estate); null or an omitted key clears the override",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/instrument.sectorOverrideRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the instrument with its new override",
+                        "schema": {
+                            "$ref": "#/definitions/instrument.instrumentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; sector_override must be a sector key; term deposits have no classification",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "instrument not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/admin/providers": {
             "get": {
                 "description": "Each provider's key status: whether it is set and its last 4 characters, never the key. error is \"undecryptable\" when the stored key cannot be read.",
@@ -4551,7 +4624,20 @@
                 "name": {
                     "type": "string"
                 },
+                "sector_override": {
+                    "description": "SectorOverride is the sector key an admin set, null when none.",
+                    "type": "string"
+                },
                 "symbol": {
+                    "type": "string"
+                }
+            }
+        },
+        "instrument.sectorOverrideRequest": {
+            "type": "object",
+            "properties": {
+                "sector_override": {
+                    "description": "SectorOverride is a sector key; null or an omitted key clears it.",
                     "type": "string"
                 }
             }
