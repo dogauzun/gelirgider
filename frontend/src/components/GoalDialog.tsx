@@ -71,7 +71,8 @@ function GoalForm({
 }) {
   const units = unitsFor(currency)
   const [amount, setAmount] = useState(goal ? formatDecimalInput(goal.amount) : '')
-  // A stored unit the reporting currency no longer allows starts as nominal.
+  // A stored unit the reporting currency does not allow (a row stored before the 409 on a
+  // currency change, or racing it) starts as nominal.
   const [unit, setUnit] = useState<Goal['unit']>(
     goal && units.includes(goal.unit) ? goal.unit : 'nominal',
   )

@@ -326,7 +326,9 @@ func (h *goalHandler) projectionInput(ctx context.Context, userID int64, id stri
 
 // unitRate sets the CPI rate or the USD rate the goal's unit divides by.
 // found is false when the level or rate is missing, or the unit does not fit
-// the reporting currency (a goal set before the currency changed).
+// the reporting currency. The 409 on a currency change keeps a stored goal in
+// step with the currency, but this does not rely on it: a row stored before
+// that rule, or racing a currency change, can still be out of step.
 func (h *goalHandler) unitRate(ctx context.Context, in *goal.ProjectionInput, reporting string, today, created time.Time) (found bool, err error) {
 	switch in.Unit {
 	case "real":
