@@ -5319,7 +5319,7 @@
         },
         "/watchlist": {
             "get": {
-                "description": "Every row of the caller with its instrument, sorted by symbol then id.",
+                "description": "Every row of the caller with its instrument, sorted by symbol then id, and its last close (the caller's manual price wins on the same date), previous close and day change (last_price minus prev_close, 2 decimals), each null when missing.",
                 "produces": [
                     "application/json"
                 ],
@@ -5351,7 +5351,7 @@
                 }
             },
             "post": {
-                "description": "Watches the instrument for the caller, one row per user and instrument. Fetches the instrument's price dated 14 days back, best effort, so the row has closes at once. target_price and target_side are null until a target is set.",
+                "description": "Watches the instrument for the caller, one row per user and instrument. Fetches the instrument's price dated 14 days back, best effort, so the row has closes at once. last_price, price_date, price_source, prev_close, prev_price_date and day_change are null until a close exists. target_price and target_side are null until a target is set.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6989,11 +6989,19 @@
                 "currency": {
                     "type": "string"
                 },
+                "day_change": {
+                    "description": "last_price - prev_close with 2 decimals; null unless both exist.",
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
                 "instrument_id": {
                     "type": "integer"
+                },
+                "last_price": {
+                    "description": "The latest close on or before today (the caller's manual price wins on\nthe same date, else the newer row), scaled by the splits since its\ndate, in the instrument's currency; null without a close. Where it came\nfrom (\"manual\" or the fetched source) and its date.",
+                    "type": "string"
                 },
                 "market": {
                     "type": "string"
@@ -7002,6 +7010,19 @@
                     "type": "string"
                 },
                 "note": {
+                    "type": "string"
+                },
+                "prev_close": {
+                    "description": "The latest close dated before price_date, scaled the same way, and its\ndate; null without one.",
+                    "type": "string"
+                },
+                "prev_price_date": {
+                    "type": "string"
+                },
+                "price_date": {
+                    "type": "string"
+                },
+                "price_source": {
                     "type": "string"
                 },
                 "symbol": {

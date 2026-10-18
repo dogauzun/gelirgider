@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"slices"
@@ -8,10 +9,12 @@ import (
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
+	"github.com/dogauzun/gelirgider/backend/internal/holdings"
 	"github.com/dogauzun/gelirgider/backend/internal/instrument"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/dogauzun/gelirgider/backend/internal/watchlist"
+	"github.com/shopspring/decimal"
 )
 
 // watchlistFetchDays is how far back adding an instrument fetches its price,
@@ -49,10 +52,75 @@ type watchItemResponse struct {
 	TargetSide   *string `json:"target_side"`
 	Note         string  `json:"note"`
 	CreatedAt    string  `json:"created_at"`
+	// The latest close on or before today (the caller's manual price wins on
+	// the same date, else the newer row), scaled by the splits since its
+	// date, in the instrument's currency; null without a close. Where it came
+	// from ("manual" or the fetched source) and its date.
+	LastPrice   *string `json:"last_price"`
+	PriceDate   *string `json:"price_date"`
+	PriceSource *string `json:"price_source"`
+	// The latest close dated before price_date, scaled the same way, and its
+	// date; null without one.
+	PrevClose     *string `json:"prev_close"`
+	PrevPriceDate *string `json:"prev_price_date"`
+	// last_price - prev_close with 2 decimals; null unless both exist.
+	DayChange *string `json:"day_change"`
 }
 
-// toWatchItemResponse builds the response of it, whose instrument is in.
-func toWatchItemResponse(it watchlist.Item, in instrument.Instrument) watchItemResponse {
+// watchPrice is a watched instrument's last and previous close in today's
+// terms. lastDate and prevDate are empty when that close was not found.
+type watchPrice struct {
+	last, prev           decimal.Decimal
+	lastDate, lastSource string
+	prevDate             string
+}
+
+// watchPrices prices the instruments of items as the summary does: the
+// winning close as of today, then the previous close as of the day before the
+// winner's date, both scaled by the splits since their dates. Ids are grouped
+// by that day so each distinct date costs one LatestCloses call.
+func (h *watchlistHandler) watchPrices(ctx context.Context, userID int64, items []watchlist.Item) (map[int64]watchPrice, error) {
+	ids := make([]int64, len(items))
+	for i, it := range items {
+		ids[i] = it.InstrumentID
+	}
+	asOf := price.Today()
+	winners, err := holdings.LatestCloses(ctx, h.priceSources(), userID, ids, asOf)
+	if err != nil {
+		return nil, err
+	}
+	splits, err := h.splits.ListMany(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[int64]watchPrice, len(winners))
+	idsBefore := make(map[string][]int64)
+	for id, won := range winners {
+		day, err := time.Parse(time.DateOnly, won.Date)
+		if err != nil {
+			return nil, err
+		}
+		before := day.AddDate(0, 0, -1).Format(time.DateOnly)
+		idsBefore[before] = append(idsBefore[before], id)
+		out[id] = watchPrice{last: splitScaled(won.Close, splits[id], won.Date, asOf), lastDate: won.Date, lastSource: won.Source}
+	}
+	for before, ids := range idsBefore {
+		prevRows, err := holdings.LatestCloses(ctx, h.priceSources(), userID, ids, before)
+		if err != nil {
+			return nil, err
+		}
+		for id, prev := range prevRows {
+			wp := out[id]
+			wp.prev, wp.prevDate = splitScaled(prev.Close, splits[id], prev.Date, asOf), prev.Date
+			out[id] = wp
+		}
+	}
+	return out, nil
+}
+
+// toWatchItemResponse builds the response of it, whose instrument is in and
+// whose closes are wp (the zero value when it has none).
+func toWatchItemResponse(it watchlist.Item, in instrument.Instrument, wp watchPrice) watchItemResponse {
 	out := watchItemResponse{
 		ID: it.ID, InstrumentID: it.InstrumentID, Symbol: in.Symbol, Name: in.Name, Market: in.Market,
 		Currency: in.Currency, TargetSide: it.TargetSide, Note: it.Note, CreatedAt: it.CreatedAt.Format(time.RFC3339),
@@ -61,13 +129,22 @@ func toWatchItemResponse(it watchlist.Item, in instrument.Instrument) watchItemR
 		s := it.TargetPrice.String()
 		out.TargetPrice = &s
 	}
+	if wp.lastDate == "" {
+		return out
+	}
+	last := wp.last.String()
+	out.LastPrice, out.PriceDate, out.PriceSource = &last, &wp.lastDate, &wp.lastSource
+	if wp.prevDate != "" {
+		prev, change := wp.prev.String(), wp.last.Sub(wp.prev).StringFixed(2)
+		out.PrevClose, out.PrevPriceDate, out.DayChange = &prev, &wp.prevDate, &change
+	}
 	return out
 }
 
 // create adds an instrument to the caller's watchlist.
 //
 //	@Summary	Add an instrument to the watchlist
-//	@Description	Watches the instrument for the caller, one row per user and instrument. Fetches the instrument's price dated 14 days back, best effort, so the row has closes at once. target_price and target_side are null until a target is set.
+//	@Description	Watches the instrument for the caller, one row per user and instrument. Fetches the instrument's price dated 14 days back, best effort, so the row has closes at once. last_price, price_date, price_source, prev_close, prev_price_date and day_change are null until a close exists. target_price and target_side are null until a target is set.
 //	@Tags		watchlist
 //	@Accept		json
 //	@Produce	json
@@ -109,13 +186,18 @@ func (h *watchlistHandler) create(w http.ResponseWriter, r *http.Request) {
 	transaction.EnsurePrice(r.Context(), h.onDemandFetch, in, transaction.Transaction{
 		InstrumentID: &in.ID, Currency: in.Currency, Date: from.AddDate(0, 0, -watchlistFetchDays).Format(time.DateOnly),
 	})
-	auth.WriteJSON(w, http.StatusCreated, toWatchItemResponse(it, in))
+	prices, err := h.watchPrices(r.Context(), it.UserID, []watchlist.Item{it})
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	auth.WriteJSON(w, http.StatusCreated, toWatchItemResponse(it, in, prices[in.ID]))
 }
 
 // list returns the caller's watchlist.
 //
 //	@Summary	List the watchlist
-//	@Description	Every row of the caller with its instrument, sorted by symbol then id.
+//	@Description	Every row of the caller with its instrument, sorted by symbol then id, and its last close (the caller's manual price wins on the same date), previous close and day change (last_price minus prev_close, 2 decimals), each null when missing.
 //	@Tags		watchlist
 //	@Produce	json
 //	@Success	200	{array}		server.watchItemResponse
@@ -136,12 +218,17 @@ func (h *watchlistHandler) list(w http.ResponseWriter, r *http.Request) {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
+	prices, err := h.watchPrices(r.Context(), auth.MustUserID(r.Context()), items)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
 	slices.SortStableFunc(items, func(a, b watchlist.Item) int {
 		return strings.Compare(ins[a.InstrumentID].Symbol, ins[b.InstrumentID].Symbol)
 	})
 	out := make([]watchItemResponse, len(items))
 	for i, it := range items {
-		out[i] = toWatchItemResponse(it, ins[it.InstrumentID])
+		out[i] = toWatchItemResponse(it, ins[it.InstrumentID], prices[it.InstrumentID])
 	}
 	auth.WriteJSON(w, http.StatusOK, out)
 }
