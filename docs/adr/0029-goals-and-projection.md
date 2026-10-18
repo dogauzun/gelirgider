@@ -21,39 +21,44 @@ decimal text, `unit`, `target_date` as a market date
 (`Europe/Istanbul`) and `created_at`. `portfolio_id` NULL is the
 all-portfolios goal. A scope has at most one goal and a new goal replaces the
 old one. Like the other per-user tables, every query filters by `user_id`.
-The target date must fall in a later calendar month than today, so the
-projection always has at least one month to run.
+The amount must be positive and the target date must be after today. A target
+date later this month is therefore valid; the projection then has no month to
+run (see "The projection").
 
 ### Units are relative to the reporting currency
 
 - `nominal`: the amount is in the reporting currency.
-- `real`: the amount is in the reporting currency at the prices of the month
-  the goal was set (`created_at`), deflated by TÜFE. The anchor is fixed at
-  write time and does not move on a read, so inflation alone never raises
-  progress. Allowed only when the reporting currency is TRY.
+- `real`: the amount is in the reporting currency at today's prices, deflated
+  by TÜFE. Allowed only when the reporting currency is TRY.
 - `usd`: the amount is in US dollars. Allowed only when the reporting
   currency is not USD.
 
-The backend rejects any other combination with 400. A real unit for another
+The write path rejects any other combination with 400. A real unit for another
 reporting currency is out of v1: the app holds no price index for it.
 
-The goal row stores no currency, so a change of the reporting currency would
-silently change what its amount means. `PUT /api/me/reporting-currency`
-therefore deletes all of the user's goals in the same transaction as the
-change, and the response and the settings screen say so. The projection route
-never meets a unit and currency combination that the write path rejects.
+The goal row stores no currency, and changing the reporting currency does not
+touch the user's goals: `PUT /api/me/reporting-currency` only updates the
+setting. A stored goal can therefore meet a reporting currency its unit would
+not be accepted for. The projection route handles that without an error. A
+`real` goal under a reporting currency other than TRY answers an empty fan (see
+"The projection"). A `nominal` amount is read in the new currency, and a `usd`
+goal under a USD reporting currency converts at 1. The user replaces or deletes
+the goal.
 
 ### Routes
 
 `GET`, `PUT` and `DELETE /api/portfolios/{id}/goal` and
-`GET /api/portfolios/{id}/projection`. `{id}` is a number or `all`. The goal
-routes and the allocation targets routes of
-[ADR 0028](0028-target-allocation.md) are the exceptions to the read-only `all` view of
-[ADR 0014](0014-all-portfolios-view.md): `PUT` and `DELETE` on `all` write the
-goal whose `portfolio_id` is NULL. These routes resolve `{id}` to a nullable
-portfolio id with `scopePortfolioID`, since the scope resolver of ADR 0014
-yields only transaction lists. The all-portfolios goal costs no extra route.
-Only the owner reads or writes a goal.
+`GET /api/portfolios/{id}/projection`. `{id}` is a number or `all`. A scope with
+no goal answers 404 on the `GET` and `DELETE` of the goal and on the
+projection. The goal routes, the allocation targets routes of
+[ADR 0028](0028-target-allocation.md) and the cash-gaps `POST` of ADR 0011 are
+the routes that accept `all` for writing
+([ADR 0014](0014-all-portfolios-view.md)): `PUT` and `DELETE` on `all` write the
+goal whose `portfolio_id` is NULL. The goal and allocation targets routes
+resolve `{id}` to a nullable portfolio id with `scopePortfolioID`; the
+projection resolves it with the transaction-list resolver of ADR 0014, as a
+history read does. The all-portfolios goal costs no extra route. Only the owner
+reads or writes a goal.
 
 ### The projection reuses the history sweep
 
@@ -74,73 +79,82 @@ on the 1st of every month would show as a flow of zero and the one-line answer
 would ask for money the user already pays.
 
 A month whose TWR is `null` (ADR 0011: no positive base, or negative cash) is
-left out of the percentiles. Only full months with a TWR count toward the
-minimum: with fewer than 6 of them there is no projection, and the route says
-so and returns no paths.
+left out of the percentiles. With fewer than 6 months that have a TWR there is
+no projection: the route answers an empty `months` and the count of usable
+months in `history_months`.
 
-The recurrence, for month `k` from today up to the target month:
+The recurrence, for month `k` from 1 up to the target month, where month 1 is
+the month after today:
 
 ```
 v[0] = today's value
-v[k+1] = v[k] * (1 + r) + f
+v[k] = v[k-1] * (1 + r) + f
 ```
 
-`f` is the median of the monthly flows. `r` is a percentile of the monthly
-TWRs, by linear interpolation between ranks: the 25th for the pessimistic
-path, the 50th for the median path and the 75th for the optimistic path. The
-three paths share `f`. The paths are a fan from past behaviour, not a
-forecast: they say what the same pace would give, and nothing more.
+`f` is the median of the monthly flows, by nearest rank. `r` is a percentile of
+the monthly TWRs, by nearest rank (the value at position `ceil(p * n)` of the
+sorted list): the 25th for the pessimistic path, the 50th for the median path
+and the 75th for the optimistic path. The three paths share `f`. The paths are
+a fan from past behaviour, not a forecast: they say what the same pace would
+give, and nothing more.
 
 Floats are fine here. A projection is an estimate, not money, and the same
-argument as for the return ratios in ADR 0011 applies; today's value and the
-goal's amount stay decimal at the edges.
+argument as for the return ratios in ADR 0011 applies; the goal's amount stays
+decimal text in the table and in the response.
+
+The fan is empty, with no `reached_at` and no `monthly_gap`, in these cases:
+
+- the scope has fewer than 6 usable months (`history_months` says how many);
+- the target month is the current month or an earlier one, since the months
+  start next month; `progress` and `history_months` are still answered;
+- there is nothing to project from: the scope has no transactions or its first
+  transaction is after today, the unit's TÜFE level or USD rate is missing, or
+  the goal is `real` under a reporting currency other than TRY. `progress` and
+  `history_months` are 0.
 
 ### Real and USD conversions
 
+Every projected value is converted into the goal's unit. Today's value is
+converted at month 0.
+
 - `nominal`: the path as it is.
-- `real`: a nominal value at month `k` becomes real by multiplying it with
-  `L_c / (L_today * (1 + m)^k)`. `L` is the TÜFE level of ADR 0012, its
-  estimated part included, `L_c` its level in the month of `created_at` (the
-  earliest level if the series starts later) and `L_today` its level now. TÜFE
-  is extended past today at the trailing 12-month rate, so
-  `m = (L_today / L_12ago)^(1/12) − 1`. Month 0 is today, whose real value is
-  today's value times `L_c / L_today`: it falls below the nominal value as
-  prices rise after `created_at`, and equals it on the day the goal is set.
+- `real`: a nominal value at month `k` is multiplied by `(1 + m)^-k`, so the
+  fan is in today's prices. `m` is the monthly rate of TÜFE over the last year,
+  `m = (L_today / L_12ago)^(1/12) − 1`, with `L` the daily TÜFE level of
+  ADR 0012, its estimated part included. The rate is held constant for every
+  future month. A goal set long ago is not re-anchored: the amount means
+  today's prices whenever the projection is read.
 - `usd`: every month is divided by today's USD rate, held constant. No
   currency forecast is made.
 
-The conversion is applied to the paths and to today's value, and the
-comparison with the goal's amount is in the goal's unit. For `real` the
-comparison is the same as asking whether the nominal path reaches
-`amount * L_today * (1 + m)^k / L_c`.
+The comparison with the goal's amount is in the goal's unit.
 
 ### The one-line answer
 
-The answer comes from the median path, in the goal's unit. The target month
-rule of the write path holds only on the day of the write, so the projection
-route checks the target month on every read. When the target month is the
-current month or a past one, it skips the comparison and the bisection
-and answers "the target date has passed", with no one-line answer. Otherwise:
+The answer comes from the median path, in the goal's unit, over the months 1 to
+the target month:
 
-- When some month up to the target date reaches the amount, the answer is the
-  first such month: "at this pace the goal is reached in <month>". A portfolio
-  that already is at the amount answers with month 0.
-- Otherwise the answer is the extra monthly flow `x` that makes it: the
+- When some month reaches the amount, `reached_at` is the first such month.
+  Month 0 is not tested, so `reached_at` is never the current month, even for a
+  portfolio that already is at the amount; `progress` shows that.
+- Otherwise `monthly_gap` is the extra monthly flow `x` that makes it: the
   smallest `x` for which the median path, run with `f + x` in place of `f`,
-  reaches the amount in the target month. On this path the target month is at
-  least month 1, so at least one step adds `f + x` and the value there grows
-  without bound with `x`. `x` is found by bisection on the same recurrence,
-  the upper bound doubling until the amount is reached, which therefore always
-  ends. The line reads "the goal needs <x> more per month", in the reporting
-  currency.
+  reaches the amount in the target month. `x` is found by bisection on the same
+  recurrence over `0` to the amount converted back to the reporting currency at
+  the target month, in 40 halvings, and the answer is rounded up to a whole
+  unit of the reporting currency.
+
+`reached_at` and `monthly_gap` are never both set. The card words them as "at
+this pace the goal is reached in <month>" and "the goal needs <x> more a
+month".
 
 ### Progress
 
-Progress is today's value in the goal's unit over the amount; for `real`
-that is today's value times `L_c / L_today`, so a nominal gain that only matches
-inflation leaves progress where it was. The projection
-route serves it, and the portfolio header shows it as a pill. It has no route
-of its own, so the header and the card cannot disagree.
+Progress is today's value in the goal's unit over the amount. For `real` that
+equals the nominal value over the amount, since today's prices are the unit, so
+inflation alone never moves it. The projection route serves it, and the
+portfolio header shows it as a pill next to the name on the summary page. It
+has no route of its own, so the header and the card cannot disagree.
 
 ## Out of scope
 
