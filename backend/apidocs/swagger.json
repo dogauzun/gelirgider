@@ -2823,6 +2823,123 @@
                 }
             }
         },
+        "/plans/{id}": {
+            "put": {
+                "description": "Sets amount, day_of_month, end_date, fund and note from the body; an omitted or empty end_date clears the stored one. The instrument, currency and start_date are fixed: delete the plan and create it again to change them. next_date becomes the first occurrence of the new day on or after the old next_date.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "plans"
+                ],
+                "summary": "Edit a saving plan",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "plan id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "amount \u003e 0; day_of_month 1 to 31; end_date on or after the plan's start_date or omitted",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.planEditRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.planResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; amount: required; amount: must be a non-negative number with at most 15 integer and 9 fraction digits; amount: must be a positive number; day_of_month: must be between 1 and 31; end_date: must be YYYY-MM-DD; end_date: must be on or after start_date; note: must be at most 500 characters; note: must not contain control characters",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "plan not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Removes the plan. The transactions and deposits it booked are left as they are.",
+                "tags": [
+                    "plans"
+                ],
+                "summary": "Delete a saving plan",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "plan id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "plan not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/portfolios": {
             "get": {
                 "description": "Every portfolio of the caller, with total value, cash and unrealized P/L in the reporting currency. unrealized_pl is null when every currency contributing to it has no rate.",
@@ -5914,6 +6031,26 @@
                     "items": {
                         "$ref": "#/definitions/server.periodBucket"
                     }
+                }
+            }
+        },
+        "server.planEditRequest": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "string"
+                },
+                "day_of_month": {
+                    "type": "integer"
+                },
+                "end_date": {
+                    "type": "string"
+                },
+                "fund": {
+                    "type": "boolean"
+                },
+                "note": {
+                    "type": "string"
                 }
             }
         },
