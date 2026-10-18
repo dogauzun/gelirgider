@@ -19,6 +19,8 @@ The view reuses the existing portfolio routes with the reserved id `all`:
 - `GET /api/portfolios/all/history`, with `from`, `to` and `benchmark`
   unchanged.
 - `GET /api/portfolios/all/returns/periods`
+- `GET /api/portfolios/all/projection` (the real-terms projection of
+  [ADR 0029](0029-goals-and-projection.md)), a read like the others.
 - The page `/portfolios/all`.
 
 Portfolio ids are numeric, so `all` never clashes with a real one. One scope
@@ -31,8 +33,8 @@ portfolio, is `portfolio.ErrNotFound`, the 404 the routes return today.
 Every other `/api/portfolios/{id}/*` route keeps parsing `{id}` as a number
 and keeps returning 404 for `all`: transactions, expected dividends, rename,
 delete, and the position history
-(`/api/portfolios/{id}/instruments/{instrument_id}/history`). The one
-deliberate exception is the goal routes of
+(`/api/portfolios/{id}/instruments/{instrument_id}/history`). The only
+deliberate exception to the 404 rule is the goal routes of
 [ADR 0029](0029-goals-and-projection.md), `GET`, `PUT` and `DELETE`
 `/api/portfolios/{id}/goal`: they accept `all` and resolve it to a nullable
 portfolio id, so a user can set one goal for the whole view. That goal is a
@@ -133,8 +135,8 @@ buttons, no links to transactions or imports, and no position page (ADR 0016).
 The "Dikkat" card still books or dismisses an expected dividend and enters a
 manual price, each through the owning portfolio's own route
 (`/api/portfolios/{n}/...`) or the user's price route; the `all` routes stay
-read-only. The one exception is the goal routes of ADR 0029, which accept `all`
-for writing too.
+read-only. The only write on an `all` route is the goal routes of ADR 0029, which
+accept `all` for writing too; the projection is a normal read `all` route.
 
 Per portfolio: transactions (listing, adding, editing, deleting), statement
 imports, expected dividends and their dismissal. Manual prices are stored per
