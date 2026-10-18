@@ -57,8 +57,11 @@ Rules:
   rolls the whole file back and leaves the database at the previous version.
 - **File names are `NNN_short_name.sql`** with a zero-padded three-digit
   prefix (`007_add_fx_rates.sql`). Filename order is application order. Two
-  PRs that both add `007_` conflict on merge, which is the intended signal to
-  renumber one of them.
+  PRs that both add `007_` do not always conflict in git (the slugs differ), so
+  `TestSchemaFiles_UniquePrefixes` fails the build on a repeated prefix;
+  renumber the newer file. `032_stopaj_rates.sql` and `032_term_deposits.sql`
+  are the one named exception: both are already applied and recorded, so
+  neither can be renamed.
 - Files must be portable SQL per `docs/PRINCIPLES.md`: no SQLite-only
   pragmas, triggers, or stored procedures inside migration files. One
   exception: a table rebuild (copy, drop, create, copy back, as in

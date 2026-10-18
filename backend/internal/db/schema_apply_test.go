@@ -550,3 +550,34 @@ func TestSchema024ConvertsBulletinDates(t *testing.T) {
 		t.Fatalf("prices = %v, want %v", got, want)
 	}
 }
+
+// TestSchemaFiles_UniquePrefixes fails when two embedded schema files share a
+// numeric prefix. Git does not conflict when the slugs differ, so this test is
+// the signal ADR 0002 relies on.
+func TestSchemaFiles_UniquePrefixes(t *testing.T) {
+	// Both 032 files are already recorded by name and checksum in deployed
+	// databases and cannot be renamed. No new prefix gets an exception.
+	allowed := map[string]int{"032": 2}
+
+	entries, err := fs.ReadDir(schemaFS, "schema")
+	if err != nil {
+		t.Fatalf("read schema dir: %v", err)
+	}
+	byPrefix := map[string][]string{}
+	for _, e := range entries {
+		prefix, _, ok := strings.Cut(e.Name(), "_")
+		if !ok {
+			t.Fatalf("schema file %q has no NNN_ prefix", e.Name())
+		}
+		byPrefix[prefix] = append(byPrefix[prefix], e.Name())
+	}
+	for prefix, names := range byPrefix {
+		limit := 1
+		if n, ok := allowed[prefix]; ok {
+			limit = n
+		}
+		if len(names) > limit {
+			t.Errorf("prefix %s is used by %d schema files %v, renumber the newer one", prefix, len(names), names)
+		}
+	}
+}
