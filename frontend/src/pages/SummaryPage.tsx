@@ -31,6 +31,7 @@ import { PortfoliosTable } from '../components/PortfoliosTable'
 import { PositionsTable } from '../components/PositionsTable'
 import { PriceDialog } from '../components/PriceDialog'
 import { ReturnCard } from '../components/ReturnCard'
+import { ReturnSplitCard } from '../components/ReturnSplitCard'
 import { toInput } from '../components/transactionForm'
 import { Button } from '../components/ui/Button'
 import { FitFigure, KPI_FIGURE, KpiCell, KpiStrip } from '../components/ui/Kpi'
@@ -461,18 +462,21 @@ export function SummaryPage() {
                       portfolio, truncates instead of widening the page
                       below lg or taking the return card's room from lg. */}
                   <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
-                    <ReturnCard
-                      currency={data.currency}
-                      query={history}
-                      range={range}
-                      onRange={setRange}
-                      firstDate={data.stats?.first_transaction_date ?? undefined}
-                      benchmark={benchmark}
-                      benchmarks={benchmarkOptions}
-                      onBenchmark={setBenchmark}
-                      method={method}
-                      onMethod={setMethod}
-                    />
+                    <div className="flex flex-col gap-4">
+                      <ReturnCard
+                        currency={data.currency}
+                        query={history}
+                        range={range}
+                        onRange={setRange}
+                        firstDate={data.stats?.first_transaction_date ?? undefined}
+                        benchmark={benchmark}
+                        benchmarks={benchmarkOptions}
+                        onBenchmark={setBenchmark}
+                        method={method}
+                        onMethod={setMethod}
+                      />
+                      <ReturnSplitCard scope={portfolioId} range={range} />
+                    </div>
                     {(!isAll || portfolios) && (
                       <Attention
                         portfolios={isAll ? (portfolios ?? []) : [{ id: portfolioId }]}
