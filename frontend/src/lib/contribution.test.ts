@@ -1,40 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { Position } from '../api/summary'
 import { contributionRows } from './contribution'
 
-function position(
-  instrumentId: number,
-  symbol: string,
-  pl: string | null,
-  day: string | null = null,
-): Position {
-  return {
-    instrument_id: instrumentId,
-    symbol,
-    name: symbol,
-    market: 'BIST',
-    asset_class: null,
-    currency: 'TRY',
-    quantity: '1',
-    avg_cost: '0',
-    cost_basis: '0',
-    last_price: null,
-    has_price: true,
-    price_source: null,
-    price_date: null,
-    prev_close: null,
-    prev_price_date: null,
-    day_change: day,
-    day_change_reporting: day,
-    market_value: '0',
-    unrealized_pl: pl ?? '0',
-    realized_pl: '0',
-    market_value_reporting: '0',
-    unrealized_pl_reporting: pl,
-    realized_pl_reporting: '0',
-    total_pl_reporting: pl,
-    closed: false,
-  }
+function position(instrumentId: number, symbol: string, amount: string | null) {
+  return { instrumentId, symbol, amount }
 }
 
 const brief = (rows: ReturnType<typeof contributionRows>['rows']) =>
@@ -93,33 +61,52 @@ describe('contributionRows', () => {
     ])
   })
 
-  it('leaves out positions without the chosen value', () => {
-    const positions = [
-      position(1, 'A', '3.00', null),
-      position(2, 'B', null, '1.50'),
-      position(3, 'C', '-1.00', '-0.50'),
-    ]
-    expect(brief(contributionRows(positions, 'total', 4).rows)).toEqual([
+  it('leaves out a row without an amount', () => {
+    const rows = [position(1, 'A', '3.00'), position(2, 'B', null), position(3, 'C', '-1.00')]
+    expect(brief(contributionRows(rows, 'total', 4).rows)).toEqual([
       ['A', '3.00', 1],
       ['C', '-1.00', 0.3333],
     ])
-    expect(brief(contributionRows(positions, 'day', 4).rows)).toEqual([
-      ['B', '1.50', 1],
-      ['C', '-0.50', 0.3333],
-    ])
-    expect(contributionRows([position(1, 'A', null)], 'total', 4)).toEqual({ rows: [], hidden: 0 })
+    expect(contributionRows([position(1, 'A', null)], 'day', 4)).toEqual({ rows: [], hidden: 0 })
   })
 
-  it('leaves out a position without a price, whose P/L the API sends as 0.00', () => {
-    const unpriced = { ...position(9, 'QAN', '0.00', null), has_price: false }
-    const positions = [
-      ...Array.from({ length: 10 }, (_, i) => position(i + 1, `S${i}`, String(i + 1))),
-      unpriced,
+  it('range mode keeps a closed position among the open ones and puts a null total last', () => {
+    const rows = [
+      position(1, 'OPEN', '10.00'),
+      position(2, 'ZNULL', null),
+      position(3, 'CLOSED', '40.00'),
+      position(4, 'ANULL', null),
+      position(5, 'LOSS', '-20.00'),
     ]
-    expect(contributionRows(positions, 'total', null).rows.map((row) => row.symbol)).not.toContain(
-      'QAN',
-    )
-    expect(contributionRows(positions, 'total', 4).hidden).toBe(2)
+    const { rows: out, hidden } = contributionRows(rows, 'range', null)
+    expect(brief(out)).toEqual([
+      ['CLOSED', '40.00', 1],
+      ['OPEN', '10.00', 0.25],
+      ['LOSS', '-20.00', 0.5],
+      ['ANULL', null, 0],
+      ['ZNULL', null, 0],
+    ])
+    expect(hidden).toBe(0)
+  })
+
+  it('range mode keeps null totals outside the limit', () => {
+    const rows = [
+      ...Array.from({ length: 10 }, (_, i) => position(i + 1, `S${i}`, String(i + 1))),
+      position(11, 'NONE', null),
+    ]
+    const { rows: out, hidden } = contributionRows(rows, 'range', 4)
+    expect(out.map((row) => row.symbol)).toEqual([
+      'S9',
+      'S8',
+      'S7',
+      'S6',
+      'S3',
+      'S2',
+      'S1',
+      'S0',
+      'NONE',
+    ])
+    expect(hidden).toBe(2)
   })
 
   it('gives every bar length 0 when everything is zero', () => {

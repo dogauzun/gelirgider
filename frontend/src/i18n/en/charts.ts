@@ -51,6 +51,7 @@ export const enCharts: AreaStrings<typeof trCharts> = {
   'contribution.mode.label': 'Contribution measure',
   'contribution.mode.total': 'Total',
   'contribution.mode.day': 'Today',
+  'contribution.mode.range': 'Range',
   'contribution.showAll': 'Show all',
   'contribution.empty': 'No profit or loss to show',
   'drawdown.title': 'Drawdown',

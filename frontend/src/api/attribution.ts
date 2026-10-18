@@ -37,8 +37,9 @@ interface AttributionResponse {
 
 // Keyed under historyQueryKey, so what invalidates the history (a
 // transaction, a manual price) refetches the split too.
-export function useAttribution(scope: PortfolioScope, from: string, to: string) {
+export function useAttribution(scope: PortfolioScope, from: string, to: string, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: [...historyQueryKey(scope), 'attribution', from, to] as const,
     queryFn: () => {
       const params = new URLSearchParams({ to })
