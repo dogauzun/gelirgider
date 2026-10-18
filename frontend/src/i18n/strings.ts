@@ -15,6 +15,7 @@ import { trDeposits } from './tr/deposits'
 import { trDividends } from './tr/dividends'
 import { trErrors } from './tr/errors'
 import { trImport } from './tr/import'
+import { trPlans } from './tr/plans'
 import { trPortfolios } from './tr/portfolios'
 import { trPosition } from './tr/position'
 import { trSummary } from './tr/summary'
@@ -28,6 +29,7 @@ import { enDeposits } from './en/deposits'
 import { enDividends } from './en/dividends'
 import { enErrors } from './en/errors'
 import { enImport } from './en/import'
+import { enPlans } from './en/plans'
 import { enPortfolios } from './en/portfolios'
 import { enPosition } from './en/position'
 import { enSummary } from './en/summary'
@@ -43,6 +45,7 @@ export const tr = {
   ...trDividends,
   ...trErrors,
   ...trImport,
+  ...trPlans,
   ...trPortfolios,
   ...trPosition,
   ...trSummary,
@@ -65,6 +68,7 @@ const en: Strings = {
   ...enDividends,
   ...enErrors,
   ...enImport,
+  ...enPlans,
   ...enPortfolios,
   ...enPosition,
   ...enSummary,

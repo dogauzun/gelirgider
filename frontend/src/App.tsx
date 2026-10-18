@@ -34,6 +34,7 @@ const AdminPage = lazyNamed(() => import('./pages/AdminPage'), 'AdminPage')
 const DepositsPage = lazyNamed(() => import('./pages/DepositsPage'), 'DepositsPage')
 const DividendsPage = lazyNamed(() => import('./pages/DividendsPage'), 'DividendsPage')
 const ImportPage = lazyNamed(() => import('./pages/ImportPage'), 'ImportPage')
+const PlansPage = lazyNamed(() => import('./pages/PlansPage'), 'PlansPage')
 const PerformancePage = lazyNamed(() => import('./pages/PerformancePage'), 'PerformancePage')
 const PositionPage = lazyNamed(() => import('./pages/PositionPage'), 'PositionPage')
 const SummaryPage = lazyNamed(() => import('./pages/SummaryPage'), 'SummaryPage')
@@ -183,6 +184,7 @@ export function App() {
                       <Route path="positions/:instrumentId" element={<PositionPage />} />
                       <Route path="dividends" element={<DividendsPage />} />
                       <Route path="deposits" element={<DepositsPage />} />
+                      <Route path="plans" element={<PlansPage />} />
                       <Route path="import" element={<ImportPage />} />
                     </Route>
                   </Route>

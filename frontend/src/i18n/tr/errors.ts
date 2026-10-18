@@ -93,4 +93,11 @@ export const trErrors = {
     'Paylar % 0-100, gün sayısı 1-365, hareketliler 0-10 arasında tam sayı, sapma 0-100 puan olmalı.',
   'error.field.reporting_currency': 'Geçersiz para birimi.',
   'error.field.note': 'Not en fazla 500 karakter olmalı.',
+  'error.planNotFound': 'Plan bulunamadı.',
+  'error.planNotDue': 'Planın tarihi henüz gelmedi.',
+  'error.planEnded': 'Plan bitti.',
+  'error.planNoClose':
+    '{date} tarihinde ya da öncesinde kapanış fiyatı yok; işlemi elle kaydet ve bu dönemi atla.',
+  'error.planNoUnit': '{price} fiyatıyla tutar bir birim bile almıyor.',
+  'error.field.day_of_month': 'Gün 1 ile 31 arasında olmalı.',
 } as const

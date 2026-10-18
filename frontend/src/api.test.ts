@@ -59,6 +59,13 @@ describe('translateError', () => {
       'Mevduat işlemleri Mevduat sekmesinden değiştirilir.',
     )
     expect(translateError('rate: must be greater than 0 and at most 10')).toMatch(/Faiz oranı/)
+    // A plan's 409s carry the date or the price in the message.
+    expect(translateError('plan has ended')).toBe('Plan bitti.')
+    expect(translateError('no close on or before 2026-10-05')).toMatch(/^2026-10-05 tarihinde/)
+    expect(translateError('amount buys no unit at 123.45')).toMatch(/^123.45 fiyatıyla/)
+    expect(translateError('day_of_month: must be between 1 and 31')).toBe(
+      'Gün 1 ile 31 arasında olmalı.',
+    )
     expect(translateError('goals depend on the reporting currency')).toBe(
       'Raporlama para birimini değiştirmeden önce hedeflerini sil; tutarları şu anki para birimindedir.',
     )

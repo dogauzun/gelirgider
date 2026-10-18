@@ -488,6 +488,9 @@ export function PortfolioHeader({
               <NavLink to={`/portfolios/${portfolioId}/deposits`} {...tab}>
                 {t('deposits.tab')}
               </NavLink>
+              <NavLink to={`/portfolios/${portfolioId}/plans`} {...tab}>
+                {t('plans.tab')}
+              </NavLink>
               <NavLink to={`/portfolios/${portfolioId}/import`} {...tab}>
                 {t('import.title')}
               </NavLink>

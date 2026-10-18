@@ -47,6 +47,9 @@ const messageKeys: Record<string, StringKey> = {
   'deposit is matured': 'deposits.error.matured',
   'deposit is not due yet': 'deposits.error.notDue',
   'deposit is already renewed': 'deposits.error.renewed',
+  'plan not found': 'error.planNotFound',
+  'plan is not due yet': 'error.planNotDue',
+  'plan has ended': 'error.planEnded',
   'name already used': 'error.portfolioNameTaken',
   'instrument not found': 'error.instrumentNotFound',
   'market and currency must be a supported pair': 'error.instrumentPair',
@@ -114,6 +117,8 @@ const fieldKeys: Record<string, StringKey> = {
   currency_share: 'error.attentionRule',
   movers: 'error.attentionRule',
   note: 'error.field.note',
+  day_of_month: 'error.field.day_of_month',
+  end_date: 'plans.error.endDate',
   principal: 'deposits.error.principal',
   rate: 'deposits.error.rate',
   stopaj_rate: 'deposits.error.stopaj',
@@ -173,6 +178,10 @@ export function translateError(
     const label = digits[1] === 'fee' ? feeLabel : digitLabels[digits[1]]
     return t('decimal.error.tooManyDigits', { field: t(label), fraction: digits[2] })
   }
+  const noClose = /^no close on or before (.*)$/.exec(message)
+  if (noClose) return t('error.planNoClose', { date: noClose[1] })
+  const noUnit = /^amount buys no unit at (.*)$/.exec(message)
+  if (noUnit) return t('error.planNoUnit', { price: noUnit[1] })
   const key = messageKeys[message] ?? fieldKeys[message.split(': ')[0]]
   return t(key ?? 'error.unknown', { field: t(feeLabel) })
 }

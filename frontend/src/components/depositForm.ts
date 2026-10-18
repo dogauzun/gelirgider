@@ -14,7 +14,7 @@ import { useOneAtATime } from '../lib/useOneAtATime'
 
 // How a decimal field is checked. `fraction` is the digits after the point it
 // may have: percent fields keep 7, so the fraction sent has the server's 9.
-type Rule = {
+export type Rule = {
   label: StringKey
   fraction: number
   ok: (parsed: string) => boolean

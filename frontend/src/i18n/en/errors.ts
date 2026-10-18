@@ -97,4 +97,11 @@ export const enErrors: AreaStrings<typeof trErrors> = {
     'Shares must be 0-100 %, days a whole number from 1 to 365, movers a whole number from 0 to 10, drift 0-100 points.',
   'error.field.reporting_currency': 'Invalid currency.',
   'error.field.note': 'Note must be at most 500 characters.',
+  'error.planNotFound': 'Plan not found.',
+  'error.planNotDue': "The plan's date has not come yet.",
+  'error.planEnded': 'The plan has ended.',
+  'error.planNoClose':
+    'No close on or before {date}; book the transaction by hand and skip this occurrence.',
+  'error.planNoUnit': 'The amount buys no unit at {price}.',
+  'error.field.day_of_month': 'Day must be between 1 and 31.',
 }
