@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -44,6 +45,39 @@ func TestWriteInternalErrorClientCancel(t *testing.T) {
 	}
 	if !strings.Contains(logs.String(), `"level":"ERROR"`) {
 		t.Errorf("live request not logged at ERROR: %q", logs.String())
+	}
+}
+
+// TestWriteJSON: a value that encodes keeps the chosen status; one that
+// cannot (+Inf) is a logged 500, never a 200 with an empty body.
+func TestWriteJSON(t *testing.T) {
+	rec := httptest.NewRecorder()
+	WriteJSON(rec, http.StatusCreated, map[string]float64{"x": 1.5})
+	if rec.Code != http.StatusCreated {
+		t.Errorf("status = %d, want 201", rec.Code)
+	}
+	if got := rec.Header().Get("Content-Type"); got != "application/json" {
+		t.Errorf("Content-Type = %q, want application/json", got)
+	}
+	if got := rec.Body.String(); got != "{\"x\":1.5}\n" {
+		t.Errorf("body = %q", got)
+	}
+
+	var logs bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+
+	rec = httptest.NewRecorder()
+	WriteJSON(rec, http.StatusOK, map[string]float64{"x": math.Inf(1)})
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("unencodable: status = %d, want 500", rec.Code)
+	}
+	if got := strings.TrimSpace(rec.Body.String()); got != `{"error":"internal error"}` {
+		t.Errorf("unencodable: body = %q", got)
+	}
+	if n := strings.Count(logs.String(), `"level":"ERROR"`); n != 1 {
+		t.Errorf("unencodable: %d ERROR lines, want 1: %s", n, logs.String())
 	}
 }
 
