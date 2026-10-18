@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,11 +18,14 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 )
 
-// registerPlanRoutes wires POST and GET /api/portfolios/{id}/plans.
+// registerPlanRoutes wires POST and GET /api/portfolios/{id}/plans, and PUT
+// and DELETE /api/plans/{id}.
 func registerPlanRoutes(mux *http.ServeMux, d *deps) {
-	h := &planHandler{deps: d}
+	h := &planHandler{d}
 	mux.HandleFunc("POST /api/portfolios/{id}/plans", h.create)
 	mux.HandleFunc("GET /api/portfolios/{id}/plans", h.list)
+	mux.HandleFunc("PUT /api/plans/{id}", h.update)
+	mux.HandleFunc("DELETE /api/plans/{id}", h.delete)
 }
 
 type planHandler struct{ *deps }
@@ -239,4 +243,113 @@ func (h *planHandler) list(w http.ResponseWriter, r *http.Request) {
 		out = append(out, toPlanResponse(p, in, today))
 	}
 	auth.WriteJSON(w, http.StatusOK, out)
+}
+
+// planEditRequest is the PUT body: the editable fields of a plan, every one
+// set from the body. An omitted or empty end_date clears the stored one.
+type planEditRequest struct {
+	Amount     string `json:"amount"`
+	DayOfMonth int    `json:"day_of_month"`
+	EndDate    string `json:"end_date"`
+	Fund       bool   `json:"fund"`
+	Note       string `json:"note"`
+}
+
+// planID returns the {id} path value, ok false when it is not a number.
+func planID(r *http.Request) (int64, bool) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	return id, err == nil
+}
+
+// update edits a saving plan.
+//
+//	@Summary	Edit a saving plan
+//	@Description	Sets amount, day_of_month, end_date, fund and note from the body; an omitted or empty end_date clears the stored one. The instrument, currency and start_date are fixed: delete the plan and create it again to change them. next_date becomes the first occurrence of the new day on or after the old next_date.
+//	@Tags		plans
+//	@Accept		json
+//	@Produce	json
+//	@Param		id		path		int						true	"plan id"
+//	@Param		body	body		server.planEditRequest	true	"amount > 0; day_of_month 1 to 31; end_date on or after the plan's start_date or omitted"
+//	@Success	200		{object}	server.planResponse
+//	@Failure	400		{object}	object{error=string}	"invalid request body; amount: required; amount: must be a non-negative number with at most 15 integer and 9 fraction digits; amount: must be a positive number; day_of_month: must be between 1 and 31; end_date: must be YYYY-MM-DD; end_date: must be on or after start_date; note: must be at most 500 characters; note: must not contain control characters"
+//	@Failure	404		{object}	object{error=string}	"plan not found"
+//	@Failure	500		{object}	object{error=string}	"internal error"
+//	@Router		/plans/{id} [put]
+func (h *planHandler) update(w http.ResponseWriter, r *http.Request) {
+	id, ok := planID(r)
+	if !ok {
+		auth.WriteError(w, http.StatusNotFound, "plan not found")
+		return
+	}
+	var req planEditRequest
+	if !auth.DecodeJSON(w, r, &req) {
+		return
+	}
+	userID := auth.MustUserID(r.Context())
+	old, err := h.plans.Get(r.Context(), userID, id)
+	if errors.Is(err, plan.ErrNotFound) {
+		auth.WriteError(w, http.StatusNotFound, "plan not found")
+		return
+	}
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	p, err := parsePlanRequest(planRequest{
+		InstrumentID: old.InstrumentID, Currency: old.Currency, Amount: req.Amount, DayOfMonth: req.DayOfMonth,
+		StartDate: old.StartDate, EndDate: req.EndDate, Fund: req.Fund, Note: req.Note,
+	}, nil)
+	if err != nil {
+		auth.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	p.ID, p.UserID, p.PortfolioID, p.CreatedAt = old.ID, userID, old.PortfolioID, old.CreatedAt
+	p.NextDate = plan.FirstOnOrAfter(old.NextDate, p.DayOfMonth)
+	err = h.plans.Update(r.Context(), p)
+	if errors.Is(err, plan.ErrNotFound) {
+		auth.WriteError(w, http.StatusNotFound, "plan not found")
+		return
+	}
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	var in *instrument.Instrument
+	if p.InstrumentID != nil {
+		got, err := h.instruments.Get(r.Context(), *p.InstrumentID)
+		if err != nil {
+			auth.WriteInternalError(w, r, err)
+			return
+		}
+		in = &got
+	}
+	auth.WriteJSON(w, http.StatusOK, toPlanResponse(p, in, price.Today()))
+}
+
+// delete removes a saving plan. The transactions it booked stay.
+//
+//	@Summary	Delete a saving plan
+//	@Description	Removes the plan. The transactions and deposits it booked are left as they are.
+//	@Tags		plans
+//	@Param		id	path	int	true	"plan id"
+//	@Success	204
+//	@Failure	404	{object}	object{error=string}	"plan not found"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/plans/{id} [delete]
+func (h *planHandler) delete(w http.ResponseWriter, r *http.Request) {
+	id, ok := planID(r)
+	if !ok {
+		auth.WriteError(w, http.StatusNotFound, "plan not found")
+		return
+	}
+	err := h.plans.Delete(r.Context(), auth.MustUserID(r.Context()), id)
+	if errors.Is(err, plan.ErrNotFound) {
+		auth.WriteError(w, http.StatusNotFound, "plan not found")
+		return
+	}
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

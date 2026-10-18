@@ -7,11 +7,16 @@ package plan
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/dogauzun/gelirgider/backend/internal/db"
 	"github.com/shopspring/decimal"
 )
+
+// ErrNotFound is returned when no plan matches the user and id.
+var ErrNotFound = errors.New("plan not found")
 
 // Plan is a stored saving plan. InstrumentID is nil for a cash deposit plan.
 // Amount is in Currency, which is the instrument's currency for a buy plan.
@@ -143,4 +148,39 @@ func (r *Repo) Insert(ctx context.Context, p Plan) (Plan, error) {
 // List returns userID's plans in portfolioID, the soonest next_date first.
 func (r *Repo) List(ctx context.Context, userID, portfolioID int64) ([]Plan, error) {
 	return r.queryPlans(ctx, `user_id = ? AND portfolio_id = ? ORDER BY next_date, id`, userID, portfolioID)
+}
+
+// Get returns userID's plan with the given id, or ErrNotFound.
+func (r *Repo) Get(ctx context.Context, userID, id int64) (Plan, error) {
+	ps, err := r.queryPlans(ctx, `user_id = ? AND id = ?`, userID, id)
+	if err != nil {
+		return Plan{}, err
+	}
+	if len(ps) == 0 {
+		return Plan{}, ErrNotFound
+	}
+	return ps[0], nil
+}
+
+// Update writes the editable fields of p (amount, day_of_month, end_date,
+// next_date, fund, note) to the plan with p.ID and p.UserID, or returns
+// ErrNotFound.
+func (r *Repo) Update(ctx context.Context, p Plan) error {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE saving_plans SET amount = ?, day_of_month = ?, end_date = ?, next_date = ?, fund = ?, note = ?
+		 WHERE id = ? AND user_id = ?`,
+		p.Amount.String(), p.DayOfMonth, p.EndDate, p.NextDate, p.Fund, p.Note, p.ID, p.UserID)
+	if err != nil {
+		return fmt.Errorf("update plan: %w", err)
+	}
+	return db.CheckAffected(res, ErrNotFound)
+}
+
+// Delete removes userID's plan with the given id, or returns ErrNotFound.
+func (r *Repo) Delete(ctx context.Context, userID, id int64) error {
+	res, err := r.db.ExecContext(ctx, `DELETE FROM saving_plans WHERE id = ? AND user_id = ?`, id, userID)
+	if err != nil {
+		return fmt.Errorf("delete plan: %w", err)
+	}
+	return db.CheckAffected(res, ErrNotFound)
 }

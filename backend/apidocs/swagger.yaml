@@ -653,6 +653,19 @@ definitions:
           $ref: '#/definitions/server.periodBucket'
         type: array
     type: object
+  server.planEditRequest:
+    properties:
+      amount:
+        type: string
+      day_of_month:
+        type: integer
+      end_date:
+        type: string
+      fund:
+        type: boolean
+      note:
+        type: string
+    type: object
   server.planRequest:
     properties:
       amount:
@@ -3474,6 +3487,92 @@ paths:
       summary: Set reporting currency
       tags:
       - auth
+  /plans/{id}:
+    delete:
+      description: Removes the plan. The transactions and deposits it booked are left
+        as they are.
+      parameters:
+      - description: plan id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: plan not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Delete a saving plan
+      tags:
+      - plans
+    put:
+      consumes:
+      - application/json
+      description: 'Sets amount, day_of_month, end_date, fund and note from the body;
+        an omitted or empty end_date clears the stored one. The instrument, currency
+        and start_date are fixed: delete the plan and create it again to change them.
+        next_date becomes the first occurrence of the new day on or after the old
+        next_date.'
+      parameters:
+      - description: plan id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: amount > 0; day_of_month 1 to 31; end_date on or after the plan's
+          start_date or omitted
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/server.planEditRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.planResponse'
+        "400":
+          description: 'invalid request body; amount: required; amount: must be a
+            non-negative number with at most 15 integer and 9 fraction digits; amount:
+            must be a positive number; day_of_month: must be between 1 and 31; end_date:
+            must be YYYY-MM-DD; end_date: must be on or after start_date; note: must
+            be at most 500 characters; note: must not contain control characters'
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: plan not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Edit a saving plan
+      tags:
+      - plans
   /portfolios:
     get:
       description: Every portfolio of the caller, with total value, cash and unrealized
