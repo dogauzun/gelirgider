@@ -12,7 +12,9 @@ import (
 	"testing"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
+	"github.com/dogauzun/gelirgider/backend/internal/benchmark"
 	"github.com/dogauzun/gelirgider/backend/internal/db"
+	"github.com/dogauzun/gelirgider/backend/internal/fx"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/dogauzun/gelirgider/backend/internal/settings"
@@ -30,7 +32,8 @@ import (
 //	day 4: 2:1 split, price 60        -> 20 @ avg 50, cost 1000, 20 * 60 = 1200
 //	day 5: sell 5                     -> 15, cost 1000 - 5*50 = 750, 15 * 60 = 900
 //
-// Another user asking for the portfolio gets a 404.
+// XU100 is 1000 on day 2 and 1100 on day 5, the dollar 30 then 33 TRY. Another
+// user asking for the portfolio gets a 404.
 func TestPositionHistory(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
@@ -92,8 +95,24 @@ func TestPositionHistory(t *testing.T) {
 		t.Fatalf("splits.Upsert: %v", err)
 	}
 
-	get := func(session string) *httptest.ResponseRecorder {
+	for _, date := range []string{"2024-01-02", "2024-01-05"} {
+		level, rate := "1000", "30"
+		if date == "2024-01-05" {
+			level, rate = "1100", "33"
+		}
+		if err := benchmark.NewRepo(conn).UpsertMany(ctx, []benchmark.Row{{Code: benchmark.CodeXU100, Date: date, Value: level, Source: "test"}}); err != nil {
+			t.Fatalf("benchmarks.UpsertMany: %v", err)
+		}
+		if err := fx.NewRepo(conn).Upsert(ctx, "USD", date, rate, "manual"); err != nil {
+			t.Fatalf("fx.Upsert: %v", err)
+		}
+	}
+
+	get := func(session string, query ...string) *httptest.ResponseRecorder {
 		url := fmt.Sprintf("/api/portfolios/%d/instruments/%d/history?to=2024-01-05", pf.ID, instrumentID)
+		for _, q := range query {
+			url += "&" + q
+		}
 		r := httptest.NewRequest(http.MethodGet, url, nil)
 		r.AddCookie(&http.Cookie{Name: "session", Value: session})
 		rec := httptest.NewRecorder()
@@ -157,6 +176,51 @@ func TestPositionHistory(t *testing.T) {
 		}
 		if twr != w {
 			t.Errorf("point[%d].twr = %s, want %s", i, twr, w)
+		}
+	}
+
+	if got.Benchmark != nil {
+		t.Errorf("benchmark = %+v, want null without ?benchmark=", got.Benchmark)
+	}
+
+	// The shadow buys 1100 / 1000 units on day 2 and sells 300 / 1100 of them
+	// on day 5, so its twr is the benchmark's own 10%. The dollar, level 1,
+	// goes 30 to 33 the same way; GOLD has no level stored.
+	str := func(s *string) string {
+		if s == nil {
+			return "null"
+		}
+		return *s
+	}
+	for _, tt := range []struct {
+		code   string
+		twr    string
+		points []string
+	}{
+		{"XU100", "0.100000", []string{"null", "0.000000", "0.000000", "0.000000", "0.100000"}},
+		{"USD", "0.100000", []string{"null", "0.000000", "0.000000", "0.000000", "0.100000"}},
+		{"GOLD", "null", []string{"null", "null", "null", "null", "null"}},
+	} {
+		rec := get(aliceSession.ID, "benchmark="+tt.code)
+		var b positionHistoryResponse
+		if rec.Code != http.StatusOK || json.NewDecoder(rec.Body).Decode(&b) != nil || b.Benchmark == nil {
+			t.Fatalf("%s: status = %d, benchmark %+v; body: %s", tt.code, rec.Code, b.Benchmark, rec.Body.String())
+		}
+		if b.Benchmark.Code != tt.code || str(b.Benchmark.Returns.TWR) != tt.twr {
+			t.Errorf("%s: benchmark = %s twr %s, want twr %s", tt.code, b.Benchmark.Code, str(b.Benchmark.Returns.TWR), tt.twr)
+		}
+		if tt.twr == "null" && (b.Benchmark.Returns.Simple != nil || b.Benchmark.Returns.MWR != nil) {
+			t.Errorf("%s: returns = %+v, want all null", tt.code, b.Benchmark.Returns)
+		}
+		for i, w := range tt.points {
+			if g := str(b.Points[i].BenchmarkTwr); g != w {
+				t.Errorf("%s: point[%d].benchmark_twr = %s, want %s", tt.code, i, g, w)
+			}
+		}
+	}
+	for _, code := range []string{"instrument:1", "bogus"} {
+		if rec := get(aliceSession.ID, "benchmark="+code); rec.Code != http.StatusBadRequest {
+			t.Errorf("%s: status = %d, want 400", code, rec.Code)
 		}
 	}
 

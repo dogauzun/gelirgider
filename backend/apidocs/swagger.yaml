@@ -791,6 +791,12 @@ definitions:
     properties:
       avg_cost:
         type: string
+      benchmark_twr:
+        description: |-
+          BenchmarkTwr is the same for the benchmark's shadow series, null without
+          a benchmark, when the shadow has no value, or when benchmark.returns.twr
+          is null (ADR 0012).
+        type: string
       close:
         description: latest close on or before date, null before the first price
         type: string
@@ -809,6 +815,10 @@ definitions:
     type: object
   server.positionHistoryResponse:
     properties:
+      benchmark:
+        allOf:
+        - $ref: '#/definitions/server.benchmarkResponse'
+        description: the ?benchmark= shadow position, null when none was requested
       currency:
         type: string
       points:
@@ -4656,18 +4666,24 @@ paths:
       - portfolios
   /portfolios/{id}/instruments/{instrument_id}/history:
     get:
-      description: One point per day from `from` to `to` for one instrument of the
-        portfolio, in the instrument's own currency (no fx). `returns` holds the range's
-        simple, time-weighted and money-weighted returns of the position, in that
-        currency, as 6-decimal fractions or null when undefined (a non-positive value
-        on the first day, or a time-weighted factor below zero); buys and their fees
-        are flows in, sells and dividends (net of stopaj and fee) flows out. They
-        start at `returns_from`, the first day with a close (null when there is none),
-        whose value is the base; each point's `twr` is the running time-weighted return
-        from that day, null before it. A `from` before the instrument's first transaction
-        moves to it, unless that transaction is after `to`. Without `from` the range
-        starts at the instrument's first transaction (at most 3660 days back); a `to`
-        after today is clamped to today.
+      description: 'One point per day from `from` to `to` for one instrument of the
+        portfolio, in the instrument''s own currency (no fx). `returns` holds the
+        range''s simple, time-weighted and money-weighted returns of the position,
+        in that currency, as 6-decimal fractions or null when undefined (a non-positive
+        value on the first day, or a time-weighted factor below zero); buys and their
+        fees are flows in, sells and dividends (net of stopaj and fee) flows out.
+        They start at `returns_from`, the first day with a close (null when there
+        is none), whose value is the base; each point''s `twr` is the running time-weighted
+        return from that day, null before it. A `from` before the instrument''s first
+        transaction moves to it, unless that transaction is after `to`. Without `from`
+        the range starts at the instrument''s first transaction (at most 3660 days
+        back); a `to` after today is clamped to today. `benchmark` lays a shadow position
+        over it: the benchmark''s level converted into the instrument''s currency,
+        bought with the position''s value on `returns_from` and fed with its flows
+        (ADR 0012); `benchmark` answers its code, its three returns (null when a day
+        from `returns_from` has no level or no rate) and `estimated_from`, the first
+        extrapolated TUFE day, and each point''s `benchmark_twr` is its running time-weighted
+        return, null when the returns are. `benchmark` is null without the parameter.'
       parameters:
       - description: portfolio id
         in: path
@@ -4687,6 +4703,10 @@ paths:
         in: query
         name: to
         type: string
+      - description: USD, EUR, XU100, TUFE or GOLD
+        in: query
+        name: benchmark
+        type: string
       produces:
       - application/json
       responses:
@@ -4695,8 +4715,8 @@ paths:
           schema:
             $ref: '#/definitions/server.positionHistoryResponse'
         "400":
-          description: to must be YYYY-MM-DD; from must be YYYY-MM-DD; from must not
-            be after to; range exceeds 3660 days
+          description: unknown benchmark; to must be YYYY-MM-DD; from must be YYYY-MM-DD;
+            from must not be after to; range exceeds 3660 days
           schema:
             properties:
               error:
