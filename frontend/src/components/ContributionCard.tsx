@@ -6,6 +6,7 @@ import { t } from '../i18n/strings'
 import {
   CONTRIBUTION_MODES,
   contributionRows,
+  dayRemainder,
   type ContributionInput,
   type ContributionMode,
 } from '../lib/contribution'
@@ -38,15 +39,21 @@ function positionInputs(positions: Position[], mode: 'total' | 'day'): Contribut
 // amounts; the bars keep their lengths. On the read-only `all` scope there is
 // no position page, so the symbols are plain text, as in PositionsTable. The
 // `range` mode reads the attribution of the page's range, closed positions
-// included; until it answers, or when it fails, the card reads as empty.
+// included; until it answers, or when it fails, the card reads as empty. The
+// `day` mode adds an "Other / sold" row with the part of the summary's day
+// change that no open row holds, so the card adds up to the figure above it.
 export function ContributionCard({
   positions,
   currency,
   portfolioId,
+  dayChange,
 }: {
   positions: Position[]
   currency: string
   portfolioId: PortfolioScope
+  // The summary's day_change, which also holds positions sold out on or after
+  // the price date; the `day` mode shows what the open rows leave of it.
+  dayChange: string | null
 }) {
   const [mode, setMode] = useState<ContributionMode>('total')
   const [all, setAll] = useState(false)
@@ -62,7 +69,8 @@ export function ContributionCard({
           amount: p.total,
         }))
       : positionInputs(positions, mode)
-  const { rows, hidden } = contributionRows(inputs, mode, all ? null : LIMIT)
+  const other = mode === 'day' ? dayRemainder(dayChange, inputs, t('contribution.other')) : null
+  const { rows, hidden } = contributionRows(inputs, mode, all ? null : LIMIT, other)
 
   return (
     <section className="card">
@@ -89,7 +97,7 @@ export function ContributionCard({
           <ul className="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-2 text-xs">
             {rows.map((row) => (
               <li key={row.instrumentId} className="col-span-3 grid grid-cols-subgrid items-center">
-                {portfolioId === 'all' ? (
+                {portfolioId === 'all' || row.other ? (
                   <span className="font-semibold text-ink">{row.symbol}</span>
                 ) : (
                   <Link

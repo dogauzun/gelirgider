@@ -1,3 +1,4 @@
+import { addDecimal, decimalUnits, subDecimal } from './decimal'
 import { sortRows } from './sortRows'
 
 // The Katkı card's three figures: the open P/L, today's move, or the page
@@ -14,11 +15,40 @@ export interface ContributionRow {
   amount: string | null
   value: number
   fraction: number
+  // The day mode's remainder row: no position behind it, so no link.
+  other?: boolean
 }
 
 // What contributionRows takes: one position's amount in the reporting
 // currency, from Position or from the attribution response.
-export type ContributionInput = Pick<ContributionRow, 'instrumentId' | 'symbol' | 'amount'>
+export type ContributionInput = Pick<
+  ContributionRow,
+  'instrumentId' | 'symbol' | 'amount' | 'other'
+>
+
+// Half a cent, in the API's 1e-9 units: the summary's day_change is rounded
+// once and each row on its own, so each of them may be off by that much.
+const HALF_CENT = 5_000_000n
+
+// dayRemainder is the day change the open rows do not hold: the price-date move
+// of positions sold out on or after it. Null when the rows add up to the total
+// within the rounding of the rows and the total (half a cent each), or when
+// there is no total. Sums every open row, shown or not.
+export function dayRemainder(
+  dayChange: string | null,
+  inputs: ContributionInput[],
+  symbol: string,
+): ContributionInput | null {
+  if (dayChange === null) return null
+  const amounts = inputs.flatMap((row) => (row.amount === null ? [] : [row.amount]))
+  const sum = amounts.reduce(addDecimal, '0')
+  const amount = subDecimal(dayChange, sum)
+  const units = decimalUnits(amount)
+  const tolerance = BigInt(amounts.length + 1) * HALF_CENT
+  return units > tolerance || units < -tolerance
+    ? { instrumentId: 0, symbol, amount, other: true }
+    : null
+}
 
 // contributionRows orders the inputs by amount, best first, ties by symbol.
 // A row without an amount (no price, no FX rate, no day change) is left out,
@@ -26,10 +56,13 @@ export type ContributionInput = Pick<ContributionRow, 'instrumentId' | 'symbol' 
 // outside the limit. With a limit, more than twice as many rows keep only the
 // `limit` best and the `limit` worst: with a mostly winning portfolio the
 // worst are its smallest gains. hidden counts the rows the limit left out.
+// other, the day mode's remainder row, goes last, outside the limit, and its
+// bar counts toward the scale.
 export function contributionRows(
   inputs: ContributionInput[],
   mode: ContributionMode,
   limit: number | null,
+  other: ContributionInput | null = null,
 ): { rows: ContributionRow[]; hidden: number } {
   const rows = inputs
     .filter((row): row is ContributionInput & { amount: string } => row.amount !== null)
@@ -43,7 +76,8 @@ export function contributionRows(
       ? [...sorted.slice(0, limit), ...sorted.slice(-limit)]
       : sorted
   // The largest absolute value is the best or the worst row, so it is kept.
-  const max = Math.max(0, ...kept.map((row) => Math.abs(row.value)))
+  const tail = other ? [{ ...other, value: Number(other.amount) }] : []
+  const max = Math.max(0, ...[...kept, ...tail].map((row) => Math.abs(row.value)))
   const missing =
     mode === 'range'
       ? sortRows(
@@ -54,7 +88,10 @@ export function contributionRows(
       : []
   return {
     rows: [
-      ...kept.map((row) => ({ ...row, fraction: max > 0 ? Math.abs(row.value) / max : 0 })),
+      ...[...kept, ...tail].map((row) => ({
+        ...row,
+        fraction: max > 0 ? Math.abs(row.value) / max : 0,
+      })),
       ...missing,
     ],
     hidden: sorted.length - kept.length,

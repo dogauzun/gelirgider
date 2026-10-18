@@ -592,6 +592,7 @@ export function SummaryPage() {
                       positions={positions}
                       currency={data.currency}
                       portfolioId={portfolioId}
+                      dayChange={data.day_change ?? null}
                     />
                   </div>
                 </div>

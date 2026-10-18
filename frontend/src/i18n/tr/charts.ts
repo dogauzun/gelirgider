@@ -74,6 +74,7 @@ export const trCharts = {
   'contribution.mode.range': 'Dönem',
   'contribution.showAll': 'Tümünü göster',
   'contribution.empty': 'Gösterilecek kâr veya zarar yok',
+  'contribution.other': 'Diğer / satılan',
   // The drawdown card on the Performans tab.
   'drawdown.title': 'Zirveden düşüş',
   'drawdown.subtitle': 'para giriş çıkışları hariç',
