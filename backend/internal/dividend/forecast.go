@@ -51,7 +51,8 @@ func ForecastPeriods(today string) []string {
 // every dividend transaction dated from the first day of the month eleven
 // months before today's through today projects its per-share amount (its
 // amount over the quantity held at the start of its date; a row with no
-// holding then is skipped) times the quantity held now, in its month plus
+// holding then is skipped, divided by the ratio of every split of the
+// instrument dated after it) times the quantity held now, in its month plus
 // twelve. The planned rows of Upcoming whose period is in ForecastPeriods
 // replace the projected rows of the same period. rows and divs are ordered as
 // for Expected; the result is sorted by period, then date.
@@ -61,13 +62,26 @@ func Forecast(rows []transaction.Transaction, divs []Dividend, today string) []F
 	// walk has passed every row dated on or before today.
 	var out []ForecastRow
 	state := holdings.NewState(nil)
+	// A split after a projected row's date scales its per-share amount down
+	// by the ratio, so the gross stays the recorded amount (ADR 0008).
+	apply := func(t transaction.Transaction) {
+		state.Apply(t)
+		if t.Type != transaction.TypeSplit {
+			return
+		}
+		for i := range out {
+			if out[i].InstrumentID == *t.InstrumentID {
+				out[i].PerShare = out[i].PerShare.Div(t.Quantity)
+			}
+		}
+	}
 	next := 0
 	for _, t := range rows {
 		if t.Type != transaction.TypeDividend || t.InstrumentID == nil || t.Date < from || t.Date > today {
 			continue
 		}
 		for next < len(rows) && rows[next].Date < t.Date {
-			state.Apply(rows[next])
+			apply(rows[next])
 			next++
 		}
 		if qty := state.Quantity(*t.InstrumentID); qty.IsPositive() {
@@ -75,7 +89,7 @@ func Forecast(rows []transaction.Transaction, divs []Dividend, today string) []F
 		}
 	}
 	for ; next < len(rows) && rows[next].Date <= today; next++ {
-		state.Apply(rows[next])
+		apply(rows[next])
 	}
 	kept := out[:0]
 	for _, r := range out {

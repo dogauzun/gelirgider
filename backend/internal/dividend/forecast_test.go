@@ -50,6 +50,16 @@ func TestForecast(t *testing.T) {
 			rows: []transaction.Transaction{tx(transaction.TypeBuy, "2026-01-05", "10"), paid("2026-03-10", "25.00"), tx(transaction.TypeSell, "2026-06-01", "10")},
 		},
 		{
+			name: "a split after the dividend scales the per-share down and keeps the gross",
+			rows: []transaction.Transaction{tx(transaction.TypeBuy, "2026-10-02", "90"), paid("2026-10-12", "450.00"), tx(transaction.TypeSplit, "2026-10-14", "2")},
+			want: []string{"2027-10 - false 180 2.5 450.00"},
+		},
+		{
+			name: "a split before the dividend leaves the per-share as it is",
+			rows: []transaction.Transaction{tx(transaction.TypeBuy, "2026-10-02", "90"), tx(transaction.TypeSplit, "2026-10-05", "2"), paid("2026-10-12", "450.00")},
+			want: []string{"2027-10 - false 180 2.5 450.00"},
+		},
+		{
 			name: "a planned ex-date replaces the projected row of its period",
 			rows: []transaction.Transaction{tx(transaction.TypeBuy, "2025-01-05", "20"), paid("2025-11-05", "10.00"), paid("2026-01-05", "4.00")},
 			divs: []dividend.Dividend{planned},
