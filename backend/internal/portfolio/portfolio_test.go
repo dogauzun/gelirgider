@@ -260,6 +260,48 @@ func TestDeleteRemovesStatementImports(t *testing.T) {
 	}
 }
 
+// TestDeleteRemovesAllocationTargets checks that deleting a portfolio takes
+// its allocation targets with it and leaves the all-portfolios set, the
+// user's other portfolio and another user's targets alone.
+func TestDeleteRemovesAllocationTargets(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	for _, q := range []string{
+		`INSERT INTO users (id, email, password_hash, created_at) VALUES
+		 (1, 'a@example.com', 'x', '2026-01-01T00:00:00Z'),
+		 (2, 'b@example.com', 'x', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO portfolios (id, user_id, name, created_at) VALUES
+		 (1, 1, 'Gone', '2026-01-01T00:00:00Z'),
+		 (2, 1, 'Kept', '2026-01-01T00:00:00Z'),
+		 (3, 2, 'Other', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO allocation_targets (user_id, portfolio_id, asset_class, weight) VALUES
+		 (1, 1, 'bist', '0.4'),
+		 (1, 2, 'bist', '0.5'),
+		 (1, NULL, 'bist', '0.6'),
+		 (2, 3, 'bist', '0.7')`,
+	} {
+		if _, err := conn.Exec(q); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+
+	if _, err := NewRepo(conn).Delete(context.Background(), 1, 1, false); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+
+	var got string
+	if err := conn.QueryRow("SELECT group_concat(weight) FROM (SELECT weight FROM allocation_targets ORDER BY weight)").Scan(&got); err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if got != "0.5,0.6,0.7" {
+		t.Fatalf("weights left = %q, want 0.5,0.6,0.7", got)
+	}
+}
+
 // TestDeleteRemovesTermDeposits checks that deleting a portfolio takes its
 // term deposits and their DEPOSIT instruments with it, and leaves the
 // deposits of the user's other portfolio and of another user alone.
