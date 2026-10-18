@@ -24,7 +24,14 @@ it('switches only a fallback currency to the picked instrument', () => {
     { ...row, key: 'trade-0' },
     { ...row, key: 'trade-1', currency_fallback: true },
   ]
-  const btc = { id: 7, symbol: 'BTC-USD', market: 'CRYPTO', name: 'Bitcoin', currency: 'USD' }
+  const btc = {
+    id: 7,
+    symbol: 'BTC-USD',
+    market: 'CRYPTO',
+    name: 'Bitcoin',
+    currency: 'USD',
+    sector_override: null,
+  }
 
   const [given, fallback] = resolveRows(rows, 'trade-0', btc)
 
@@ -55,7 +62,14 @@ it('edits a contradicting row in the instrument currency', () => {
     fee: '0',
     currency: 'TRY',
   }
-  const btc = { id: 7, symbol: 'BTC-USD', market: 'CRYPTO', name: 'Bitcoin', currency: 'USD' }
+  const btc = {
+    id: 7,
+    symbol: 'BTC-USD',
+    market: 'CRYPTO',
+    name: 'Bitcoin',
+    currency: 'USD',
+    sector_override: null,
+  }
   const [picked] = resolveRows([row], 'trade-0', btc)
 
   const form = fromTransaction(asTransaction(picked, 1, '', 'TRY'))
@@ -96,14 +110,28 @@ it('re-picks a contradicting row against the new instrument', () => {
     fee: '0',
     currency: 'TRY',
   }
-  const thyao = { id: 3, symbol: 'THYAO', market: 'BIST', name: 'THY', currency: 'TRY' }
+  const thyao = {
+    id: 3,
+    symbol: 'THYAO',
+    market: 'BIST',
+    name: 'THY',
+    currency: 'TRY',
+    sector_override: null,
+  }
   const [repicked] = resolveRows([row], 'trade-0', thyao)
 
   expect(repicked).toMatchObject({ status: 'ok', checked: true, instrument_id: 3 })
   expect(repicked.message).toBeUndefined()
   expect(fromTransaction(asTransaction(repicked, 1, '', 'TRY')).instrumentCurrency).toBe('TRY')
   // And back to a USD one: a mismatch again, naming the new currency.
-  const btc = { id: 7, symbol: 'BTC-USD', market: 'CRYPTO', name: 'Bitcoin', currency: 'USD' }
+  const btc = {
+    id: 7,
+    symbol: 'BTC-USD',
+    market: 'CRYPTO',
+    name: 'Bitcoin',
+    currency: 'USD',
+    sector_override: null,
+  }
   expect(resolveRows([repicked], 'trade-0', btc)[0]).toMatchObject({
     status: 'error',
     message: 'currency: must match instrument currency (USD)',

@@ -3,6 +3,7 @@ import type { Position } from '../api/summary'
 import { trCharts } from '../i18n/tr/charts'
 import { enCharts } from '../i18n/en/charts'
 import { allocationRows } from './allocation'
+import { SECTOR_KEYS } from './sectors'
 
 function position(
   instrumentId: number,
@@ -230,20 +231,10 @@ describe('allocationRows', () => {
   })
 })
 
-// Every key the backend can send as a position's sector: the 11 keys of
-// backend/internal/instrument/sector.go, unknown, and the TEFAS fund keys.
-const SECTOR_KEYS = [
-  'energy',
-  'materials',
-  'industrials',
-  'consumer_discretionary',
-  'consumer_staples',
-  'health_care',
-  'financials',
-  'information_technology',
-  'communication_services',
-  'utilities',
-  'real_estate',
+// Every key the backend can send as a position's sector: the 11 keys an admin
+// can pin (lib/sectors.ts), unknown, and the TEFAS fund keys.
+const SECTOR_KEYS_WITH_FUNDS = [
+  ...SECTOR_KEYS,
   'unknown',
   'fund_money_market',
   'fund_equity',
@@ -258,7 +249,7 @@ describe('sector labels', () => {
     ['tr', trCharts],
     ['en', enCharts],
   ])('has a sector.<key> label for every sector key in %s', (_locale, labels) => {
-    const missing = SECTOR_KEYS.filter((key) => !(`sector.${key}` in labels))
+    const missing = SECTOR_KEYS_WITH_FUNDS.filter((key) => !(`sector.${key}` in labels))
     expect(missing).toEqual([])
   })
 })

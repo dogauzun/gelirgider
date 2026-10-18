@@ -104,4 +104,12 @@ export const enAdmin: AreaStrings<typeof trAdmin> = {
   'admin.instruments.currency': 'Currency',
   'admin.instruments.submit': 'Add',
   'admin.instruments.saved': 'Saved: {symbol} · {name} · {market} · {currency}',
+  'admin.instruments.sectorTitle': 'Sector override',
+  'admin.instruments.sectorDescription':
+    'Pin the sector of an instrument, or pick the provider value to clear the override.',
+  'admin.instruments.sectorInstrument': 'Instrument',
+  'admin.instruments.sector': 'Sector',
+  'admin.instruments.sectorProvider': 'Provider value',
+  'admin.instruments.sectorSubmit': 'Save sector',
+  'admin.instruments.sectorSaved': 'Saved: {symbol} · {sector}',
 }

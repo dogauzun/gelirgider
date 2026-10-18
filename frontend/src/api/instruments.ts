@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../api'
+import { invalidatePortfolios } from './transactions'
 
 export interface Instrument {
   id: number
@@ -7,6 +8,8 @@ export interface Instrument {
   market: string
   name: string
   currency: string
+  // The sector key an admin pinned, null when none.
+  sector_override: string | null
 }
 
 // GET /api/instruments returns at most this many matches (searchLimit in
@@ -47,5 +50,32 @@ export function useCreateInstrument() {
   return useMutation({
     mutationFn: createInstrument,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['instruments'] }),
+  })
+}
+
+// Admin only. A null sector clears the override.
+function updateInstrument({
+  id,
+  sector,
+}: {
+  id: number
+  sector: string | null
+}): Promise<Instrument> {
+  return apiFetch<Instrument>(`/api/admin/instruments/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ sector_override: sector }),
+  })
+}
+
+// Refreshes the searches (the override) and every summary (the sector view).
+export function useUpdateInstrument() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateInstrument,
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['instruments'] }),
+        invalidatePortfolios(queryClient),
+      ]),
   })
 }
