@@ -527,8 +527,10 @@ func (h *planHandler) advance(ctx context.Context, p plan.Plan, today string, wr
 	if msg := dueConflict(cur, today); msg != "" {
 		return p, planConflict(msg)
 	}
-	// The amount behind a suggested quantity must still be the stored one.
-	if !cur.Amount.Equal(p.Amount) {
+	// The occurrence and the amount behind a suggested quantity must still be
+	// the stored ones, else a stale call books the next occurrence at the
+	// previous date's close.
+	if cur.NextDate != p.NextDate || !cur.Amount.Equal(p.Amount) {
 		return p, planConflict("plan changed, try again")
 	}
 	if write != nil {

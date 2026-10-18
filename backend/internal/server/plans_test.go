@@ -1,6 +1,9 @@
 package server
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +14,7 @@ import (
 
 	"github.com/dogauzun/gelirgider/backend/internal/plan"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
+	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 )
 
 // twoMonthsAgo returns the first day of the month two months before today.
@@ -467,5 +471,37 @@ func TestBookAndSkipPlanAreScopedToTheirUser(t *testing.T) {
 	}
 	if got := decodeJSON[[]planResponse](t, b.do(b.session, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/plans", b.portfolio), nil).Body.Bytes()); got[0].NextDate != b.next {
 		t.Errorf("A's plan next_date = %s, want %s untouched", got[0].NextDate, b.next)
+	}
+}
+
+// A stale call (a double-clicked Book on a plan with two missed occurrences)
+// must not book the occurrence after the one it priced.
+func TestAdvanceRefusesAStalePlan(t *testing.T) {
+	b := newBookEnv(t)
+	p := b.newPlan(nil)
+	ctx := context.Background()
+	var userID int64
+	if err := b.db.QueryRow(`SELECT user_id FROM saving_plans WHERE id = ?`, p.ID).Scan(&userID); err != nil {
+		t.Fatalf("plan owner: %v", err)
+	}
+	h := &planHandler{deps: &deps{conn: b.db, plans: plan.NewRepo(b.db), transactions: transaction.NewRepo(b.db)}}
+	stale, err := h.plans.Get(ctx, userID, p.ID)
+	if err != nil {
+		t.Fatalf("get plan: %v", err)
+	}
+	if rec := b.act(b.session, p.ID, "book"); rec.Code != http.StatusOK {
+		t.Fatalf("first book = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+
+	var conflict planConflict
+	_, err = h.advance(ctx, stale, price.Today(), func(tx *sql.Tx, cur plan.Plan) error {
+		t.Error("write ran for a stale plan")
+		return nil
+	})
+	if !errors.As(err, &conflict) || string(conflict) != "plan changed, try again" {
+		t.Fatalf("advance on a stale plan = %v, want the conflict %q", err, "plan changed, try again")
+	}
+	if n := len(listTransactions(b.transactionTestEnv, b.session, b.portfolio)); n != 1 {
+		t.Errorf("transactions after the stale call = %d, want the one buy", n)
 	}
 }
