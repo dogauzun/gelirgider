@@ -88,8 +88,8 @@ function GoalForm({
     ? t('decimal.error.ambiguousThousands')
     : t('goal.error.amount')
   const amountError = amount.trim() === '' || amountValue !== null ? undefined : amountMessage
-  // YYYY-MM-DD sorts as text, so a string compare is a date compare.
-  const dateOk = date > todayIstanbul()
+  // YYYY-MM-DD sorts as text, so comparing the YYYY-MM prefixes compares the months.
+  const dateOk = date.slice(0, 7) > todayIstanbul().slice(0, 7)
   const dateError = date === '' || dateOk ? undefined : t('goal.error.targetDate')
   const valid = amountValue !== null && dateOk
 

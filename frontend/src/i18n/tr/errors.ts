@@ -35,6 +35,8 @@ export const trErrors = {
   'error.loginExpired': 'Süre doldu, yeniden giriş yap.',
   'error.portfolioNotFound': 'Portföy bulunamadı.',
   'error.portfolioHasTransactions': 'İşlemi olan portföy silinemez. Önce işlemleri sil.',
+  'error.reportingCurrencyGoals':
+    'Raporlama para birimini değiştirmeden önce hedeflerini sil; tutarları şu anki para birimindedir.',
   'error.portfolioName': 'Portföy adı 1-100 karakter olmalı.',
   'error.nameControl': 'Ad görünmeyen karakterler içeremez.',
   'error.noteControl': 'Not görünmeyen karakterler içeremez.',

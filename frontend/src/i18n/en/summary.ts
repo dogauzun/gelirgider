@@ -96,7 +96,7 @@ export const enSummary: AreaStrings<typeof trSummary> = {
   'goal.loading': 'Loading the goal...',
   'goal.loadError': 'Could not load the goal',
   'goal.error.amount': 'The amount must be a number greater than 0.',
-  'goal.error.targetDate': 'The target date must be after today.',
+  'goal.error.targetDate': 'The target date must be in a later month than today.',
   'goal.error.unit': 'This unit does not fit your reporting currency.',
   'goal.error.notFound': 'Goal not found.',
   // The goal card on Özet.

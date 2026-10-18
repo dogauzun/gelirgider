@@ -49,6 +49,42 @@ func TestProject(t *testing.T) {
 		}
 	})
 
+	t.Run("a negative flow gets a gap past the amount", func(t *testing.T) {
+		in := base
+		in.MonthlyFlows, in.Months = flat(12, -3000), 3
+		p := Project(in)
+		if p.ReachedAt != nil || p.MonthlyGap == nil || *p.MonthlyGap != 3167 {
+			t.Fatalf("ReachedAt %v MonthlyGap %v, want nil and 3167", p.ReachedAt, p.MonthlyGap)
+		}
+	})
+
+	t.Run("a negative return compounds the gap", func(t *testing.T) {
+		in := base
+		in.MonthlyReturns, in.Months = flat(12, -0.1), 3
+		p := Project(in)
+		if p.ReachedAt != nil || p.MonthlyGap == nil || *p.MonthlyGap != 185 {
+			t.Fatalf("ReachedAt %v MonthlyGap %v, want nil and 185", p.ReachedAt, p.MonthlyGap)
+		}
+	})
+
+	t.Run("a portfolio at the amount reached it this month", func(t *testing.T) {
+		in := base
+		in.Value = 1500
+		p := Project(in)
+		if p.ReachedAt == nil || *p.ReachedAt != "2026-10" || p.MonthlyGap != nil {
+			t.Fatalf("ReachedAt %v MonthlyGap %v, want 2026-10 and nil", p.ReachedAt, p.MonthlyGap)
+		}
+	})
+
+	t.Run("a portfolio at the amount with a negative median return", func(t *testing.T) {
+		in := base
+		in.Value, in.MonthlyReturns, in.MonthlyFlows = 1500, flat(12, -0.05), flat(12, 0)
+		p := Project(in)
+		if p.ReachedAt == nil || *p.ReachedAt != "2026-10" || p.MonthlyGap != nil {
+			t.Fatalf("ReachedAt %v MonthlyGap %v, want 2026-10 and nil", p.ReachedAt, p.MonthlyGap)
+		}
+	})
+
 	t.Run("an exact gap is not rounded past itself", func(t *testing.T) {
 		in := base
 		in.Months, in.Amount = 3, 1480

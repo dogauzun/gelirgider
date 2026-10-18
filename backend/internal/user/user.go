@@ -143,10 +143,45 @@ func clearTOTP(ctx context.Context, tx *sql.Tx, id int64) error {
 	return nil
 }
 
+// ErrGoalsDependOnCurrency is returned by UpdateReportingCurrency when the
+// user has a goal the new currency would break or re-denominate.
+var ErrGoalsDependOnCurrency = errors.New("goals depend on the reporting currency")
+
 // UpdateReportingCurrency sets the reporting currency for the user with the
-// given id. Callers are responsible for validating currency before calling.
+// given id, or returns a MissingError when the user is gone. A goal stores no
+// currency: any nominal or real goal changes meaning under another one, and a
+// usd goal is void under USD. So a change to a different currency is refused
+// with ErrGoalsDependOnCurrency while such a goal exists; setting the current
+// currency again is allowed. Callers are responsible for validating currency
+// before calling.
 func (r *Repo) UpdateReportingCurrency(ctx context.Context, id int64, currency string) error {
-	return r.exec(ctx, "update reporting currency", "UPDATE users SET reporting_currency = ? WHERE id = ?", currency, id)
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin update reporting currency: %w", err)
+	}
+	defer tx.Rollback()
+	var current string
+	err = tx.QueryRowContext(ctx, "SELECT reporting_currency FROM users WHERE id = ?", id).Scan(&current)
+	if errors.Is(err, sql.ErrNoRows) {
+		return MissingError{ID: id}
+	}
+	if err != nil {
+		return fmt.Errorf("query reporting currency: %w", err)
+	}
+	if current != currency {
+		var n int
+		if err := tx.QueryRowContext(ctx,
+			"SELECT COUNT(*) FROM goals WHERE user_id = ? AND (unit <> 'usd' OR ? = 'USD')", id, currency).Scan(&n); err != nil {
+			return fmt.Errorf("count goals: %w", err)
+		}
+		if n > 0 {
+			return ErrGoalsDependOnCurrency
+		}
+	}
+	if _, err := tx.ExecContext(ctx, "UPDATE users SET reporting_currency = ? WHERE id = ?", currency, id); err != nil {
+		return fmt.Errorf("update reporting currency: %w", err)
+	}
+	return tx.Commit()
 }
 
 // ErrTOTPOn is returned by SetTOTPPending when the user already has TOTP on.

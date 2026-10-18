@@ -802,7 +802,8 @@ definitions:
       reached_at:
         description: |-
           ReachedAt is the first month of the median path at or above the
-          amount, null when none is.
+          amount, the current month when today's value already is at the amount,
+          null when none is.
         type: string
       target_date:
         type: string
@@ -3325,7 +3326,8 @@ paths:
     put:
       consumes:
       - application/json
-      description: Needs a session.
+      description: 'Needs a session. Refused with 409 while the user has a goal the
+        new currency would break: delete the goals first.'
       parameters:
       - description: TRY, USD or EUR
         in: body
@@ -3343,6 +3345,13 @@ paths:
         "400":
           description: 'invalid request body; reporting_currency: must be one of TRY,
             USD, EUR'
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: goals depend on the reporting currency
           schema:
             properties:
               error:
@@ -4142,7 +4151,7 @@ paths:
       description: Replaces the goal of the scope and answers the stored goal. unit
         is nominal (the reporting currency), real (inflation-adjusted, only with a
         TRY reporting currency) or usd (only with a non-USD reporting currency). target_date
-        is YYYY-MM-DD and after today (Europe/Istanbul).
+        is YYYY-MM-DD and in a later calendar month than today (Europe/Istanbul).
       parameters:
       - description: numeric id or `all`
         in: path
@@ -4165,8 +4174,8 @@ paths:
         "400":
           description: 'invalid request body; amount: must be a positive number; unit:
             must be one of nominal, real, usd; unit: real needs a TRY reporting currency;
-            unit: usd needs a non-USD reporting currency; target_date: must be after
-            today'
+            unit: usd needs a non-USD reporting currency; target_date: must be in
+            a later month than today'
           schema:
             properties:
               error:
@@ -4324,10 +4333,11 @@ paths:
         counting the usable months, when fewer than 6 full months have a return, and
         empty with history_months 0 when the scope has no history or the unit lacks
         its TUFE level or USD rate. reached_at is the first month of the median path
-        at or above the amount; monthly_gap is the extra monthly flow in the reporting
-        currency, rounded up, that the median path needs to reach the amount by the
-        target month, null when reached_at is set. progress is today''s value in the
-        unit divided by the amount.'
+        at or above the amount, the current month when today''s value already is at
+        the amount; monthly_gap is the extra monthly flow in the reporting currency,
+        rounded up, that the median path needs to reach the amount by the target month,
+        null when reached_at is set. progress is today''s value in the unit divided
+        by the amount.'
       parameters:
       - description: numeric id or `all`
         in: path

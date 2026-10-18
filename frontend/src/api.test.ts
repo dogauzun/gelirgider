@@ -59,6 +59,9 @@ describe('translateError', () => {
       'Mevduat işlemleri Mevduat sekmesinden değiştirilir.',
     )
     expect(translateError('rate: must be greater than 0 and at most 10')).toMatch(/Faiz oranı/)
+    expect(translateError('goals depend on the reporting currency')).toBe(
+      'Raporlama para birimini değiştirmeden önce hedeflerini sil; tutarları şu anki para birimindedir.',
+    )
     // A currency that contradicts the instrument names its currency,
     // in a preview row and in a commit error.
     expect(translateError('currency: must match instrument currency (USD)')).toBe(
