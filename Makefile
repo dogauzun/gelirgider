@@ -1,7 +1,8 @@
 # Local overrides and secrets (gitignored, optional). See .env.example.
 -include .env
 # The backend refuses to start without SECRET_KEY: generate one into .env the
-# first time a dev target runs, and keep it (it encrypts the provider keys).
+# first time a dev target runs, and keep it (it encrypts the provider keys and
+# the users' two-step login secrets).
 # Skipped when SECRET_KEY_FILE is set: the backend reads the key from that file.
 ifneq ($(filter dev dev-backend,$(MAKECMDGOALS)),)
 ifeq ($(SECRET_KEY)$(SECRET_KEY_FILE),)

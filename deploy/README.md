@@ -105,7 +105,8 @@ admin (`deploy/RUNBOOK.md`, First deploy).
 
 - `deploy/.env` (see `deploy/.env.example`): `DOMAIN`, the hostname Caddy
   requests a certificate for, and `SECRET_KEY`, base64 of 32 random bytes
-  that encrypts the provider API keys stored in the database. Generate it
+  that encrypts the provider API keys and the users' two-step login secrets
+  stored in the database. Generate it
   once and keep it; see `deploy/RUNBOOK.md`, Prerequisites. To keep the key
   out of the environment, mount it as a Docker secret and set
   `SECRET_KEY_FILE` instead, as the commented example in `deploy/compose.yml`
