@@ -35,6 +35,7 @@ of a phase epic, or a workflow rule.
 | 0025 | [Two-step login with TOTP](0025-two-step-login.md)                                                                 | accepted 2026-10-18                               |
 | 0026 | [Instrument classification](0026-instrument-classification.md)                                                     | accepted 2026-10-18                               |
 | 0027 | [Return attribution](0027-return-attribution.md)                                                                   | accepted 2026-10-18                               |
+| 0028 | [Target allocation and the contribution planner](0028-target-allocation.md)                                        | accepted 2026-10-18                               |
 
 ## Convention
 
