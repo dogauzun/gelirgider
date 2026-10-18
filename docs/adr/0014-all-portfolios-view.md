@@ -31,8 +31,14 @@ portfolio, is `portfolio.ErrNotFound`, the 404 the routes return today.
 Every other `/api/portfolios/{id}/*` route keeps parsing `{id}` as a number
 and keeps returning 404 for `all`: transactions, expected dividends, rename,
 delete, and the position history
-(`/api/portfolios/{id}/instruments/{instrument_id}/history`). The view is
-read-only by construction, not by a check that could be forgotten. Statement
+(`/api/portfolios/{id}/instruments/{instrument_id}/history`). The one
+deliberate exception is the goal routes of
+[ADR 0029](0029-goals-and-projection.md), `GET`, `PUT` and `DELETE`
+`/api/portfolios/{id}/goal`: they accept `all` and resolve it to a nullable
+portfolio id, so a user can set one goal for the whole view. That goal is a
+setting stored beside the portfolios, not a change to any portfolio's
+transactions. The portfolio data the view shows stays read-only by
+construction, not by a check that could be forgotten. Statement
 imports live under `/api/imports` with the portfolio id in the body, which
 must stay a real portfolio.
 
