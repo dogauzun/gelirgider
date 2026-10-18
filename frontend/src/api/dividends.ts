@@ -50,7 +50,7 @@ export function useExpectedDividendsOf(portfolioIds: number[]) {
 // One non-empty month ("2026-09") or year ("2026") of dividends received,
 // in the reporting currency at each row's own-date rate. Amounts have 2
 // decimals; `interest` is dividend rows with no instrument.
-export interface DividendBucket {
+interface DividendBucket {
   period: string
   gross: string
   tax: string
@@ -75,6 +75,8 @@ export interface DividendTimeline {
   years: DividendBucket[]
   // The current month and the eleven before it, summed before rounding.
   last_12_months: DividendBucket
+  // Every dividend recorded in one bucket (period empty), summed before rounding.
+  total: DividendBucket
   by_instrument: DividendInstrumentTotal[]
   missing_rates: string[]
 }

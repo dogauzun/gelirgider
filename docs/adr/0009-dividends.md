@@ -92,7 +92,10 @@ Each `dividend` transaction converts at the latest `fx_rates` rate on or
 before its own date. A row with no such rate is left out and its currency is
 listed in `missing_rates`. `last_12_months` is the window the tab's "Son 12
 ay net" shows, summed before rounding: the monthly buckets are each rounded,
-so adding them can differ from it by a cent. The route takes a numeric portfolio id only; the
+so adding them can differ from it by a cent. `total` is one bucket over every
+recorded dividend, summed before rounding; the tab's "Toplam net", "Toplam
+stopaj" and "Faiz toplam" show it, because the yearly buckets are each
+rounded too. The route takes a numeric portfolio id only; the
 `all` scope is a 404 (ADR 0014).
 
 The Temettü tab shows the timeline. Its first card, "Onay bekleyen

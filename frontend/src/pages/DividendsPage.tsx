@@ -4,7 +4,6 @@ import {
   expectedNetOf,
   useDividendForecast,
   useDividendTimeline,
-  type DividendBucket,
   type DividendInstrumentTotal,
 } from '../api/dividends'
 import { usePortfolioSummary } from '../api/summary'
@@ -78,11 +77,6 @@ function pickValue(
   if (key === 'net') return row.net
   if (key === 'expected') return expected
   return Date.parse(row.last_date)
-}
-
-// The exact sum of one field over the buckets, as a decimal string.
-function total(buckets: DividendBucket[], pick: (b: DividendBucket) => string): string {
-  return unitsToDecimal(buckets.reduce((sum, b) => sum + decimalUnits(pick(b)), 0n))
 }
 
 // The `count` months ("YYYY-MM") ending with `last`, oldest first.
@@ -224,23 +218,11 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
           </KpiCell>
           {money(
             'dividends.page.thisYear',
-            total(
-              years.filter((b) => b.period === today.slice(0, 4)),
-              (b) => b.net,
-            ),
+            years.find((b) => b.period === today.slice(0, 4))?.net ?? '0.00',
           )}
-          {money(
-            'dividends.page.totalNet',
-            total(years, (b) => b.net),
-          )}
-          {money(
-            'dividends.page.totalTax',
-            total(years, (b) => b.tax),
-          )}
-          {money(
-            'dividends.page.interest',
-            total(years, (b) => b.interest),
-          )}
+          {money('dividends.page.totalNet', data.total.net)}
+          {money('dividends.page.totalTax', data.total.tax)}
+          {money('dividends.page.interest', data.total.interest)}
         </KpiStrip>
 
         <section className="mb-6 card">
