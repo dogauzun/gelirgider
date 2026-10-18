@@ -486,6 +486,47 @@ it('has one chart card that switches between the price chart with markers and th
   )
 })
 
+// Getiri (%): the held days' twr as a percent line from 0%, or why there is none.
+const days = (twr: (string | null)[]) => ({
+  currency: 'TRY',
+  ...RETURNS,
+  points: [
+    { ...point('2026-09-25', '10', '1200.00'), twr: twr[0] },
+    { ...point('2026-09-26', '10', '1250.00'), twr: twr[1] },
+    point('2026-09-27', '0', '0.00'),
+  ],
+})
+it('draws the time-weighted return of the held days in percent', async () => {
+  mockApi({ history: days(['0', '0.0416']) })
+  renderPage()
+  await screen.findByRole('heading', { level: 1, name: 'THYAO' })
+
+  const card = chartCard()
+  fireEvent.click(within(card).getByRole('radio', { name: 'Getiri (%)' }))
+  // From 0% on the first held day to 4,2% on the second: the stroked path
+  // is closed along the zero baseline, so the line is its first two points.
+  await waitFor(() => expect(runs(card, 'value')[0]).toBeDefined())
+  const [start, end] = runs(card, 'value')[0].map((xy) => xy.split(',').map(Number))
+  expect(end[0]).toBeGreaterThan(start[0])
+  expect(end[1]).toBeLessThan(start[1])
+  expect(card.querySelector('[data-marker]')).toBeNull()
+  fireEvent.keyDown(within(card).getByRole('application'), { key: 'ArrowRight' })
+  fireEvent.keyDown(within(card).getByRole('application'), { key: 'ArrowRight' })
+  const tooltip = card.querySelector('[role="tooltip"]')?.textContent ?? ''
+  expect(tooltip).toContain('Pozisyon (zaman ağırlıklı)')
+  expect(tooltip).toContain('+%4,2')
+  expect(within(card).queryByText('Bu aralık için tanımsız')).toBeNull()
+})
+
+it('says why the return chart is empty when no held day has a twr', async () => {
+  mockApi({ history: days([null, null]) })
+  renderPage()
+  await screen.findByRole('heading', { level: 1, name: 'THYAO' })
+  fireEvent.click(within(chartCard()).getByRole('radio', { name: 'Getiri (%)' }))
+  expect(await within(chartCard()).findByText('Bu aralık için tanımsız')).toBeInTheDocument()
+  expect(chartCard().querySelector('.recharts-wrapper')).toBeNull()
+})
+
 it('sets the range from a drag on the chart, and the clear button returns to the range before it', async () => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date('2026-09-28T09:00:00Z'))

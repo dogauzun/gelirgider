@@ -25,6 +25,8 @@ export const trPosition = {
   'position.backToSummary': 'Özete dön',
   'position.valueVsCost': 'Değer ve maliyet',
   'position.priceChart': 'Fiyat',
+  'position.returnChart': 'Getiri (%)',
+  'position.returnLine': 'Pozisyon (zaman ağırlıklı)',
   'position.price': 'Fiyat',
   'position.transactions': 'İşlemler',
   'position.allTransactions': 'Tüm işlemler',

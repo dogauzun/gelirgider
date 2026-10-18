@@ -17,6 +17,7 @@ import { PositionTransactions } from '../components/PositionTransactions'
 import { RangePicker } from '../components/RangePicker'
 import { ChartFrame } from '../components/ui/ChartFrame'
 import { LoadError } from '../components/ui/LoadError'
+import { Notice } from '../components/ui/Notice'
 import { Segmented } from '../components/ui/Segmented'
 import { Skeleton } from '../components/ui/Skeleton'
 import { TAP_Y } from '../components/ui/tap'
@@ -30,17 +31,21 @@ import { usePortfolioTitle } from '../lib/useTitle'
 
 const CARD_HEAD = 'flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3'
 
-const CHARTS = ['price', 'value'] as const
+const CHARTS = ['price', 'value', 'return'] as const
 type ChartView = (typeof CHARTS)[number]
-const CHART_LABEL = { price: 'position.priceChart', value: 'position.valueVsCost' } as const
+const CHART_LABEL = {
+  price: 'position.priceChart',
+  value: 'position.valueVsCost',
+  return: 'position.returnChart',
+} as const
 
 // One holding of one portfolio (ADR 0016), led by the owner's result on it
 // (core pages spec, "Position page"): a title row with the last price and the
 // trade buttons; its figures in the reporting currency, from the cached
 // summary and the dividends timeline; one chart card switching between its
 // price, with the user's trades and splits marked, and its value against its
-// cost, both in the instrument's own currency over the selected range; and
-// its own transactions, read-only.
+// cost, both in the instrument's own currency, and its time-weighted return in
+// percent, over the selected range; and its own transactions, read-only.
 export function PositionPage() {
   const params = useParams()
   const portfolioId = Number(params.id)
@@ -75,6 +80,14 @@ export function PositionPage() {
     date: p.date,
     total_value: isHeld(p) ? p.market_value : null,
     cost_basis: isHeld(p) ? p.cost_basis : null,
+    cash: '0',
+  }))
+  // The return view reads twr as the line's fraction; unit="percent" draws
+  // total_value that way (ReturnCard's percent mode).
+  const returnPoints = points.slice(first, last + 1).map((p) => ({
+    date: p.date,
+    total_value: p.twr ?? null,
+    cost_basis: null,
     cash: '0',
   }))
 
@@ -162,20 +175,35 @@ export function PositionPage() {
                 />
               </div>
               <div className="p-4">
-                {chart === 'price' ? (
+                {chart === 'price' && (
                   <PositionPriceChart
                     history={history}
                     position={position}
                     transactions={rows}
                     onZoom={zoom.onZoom}
                   />
-                ) : (
+                )}
+                {chart === 'value' && (
                   <ChartFrame query={history}>
                     <LineChart
                       points={chartPoints}
                       labels={{ value: t('position.marketValue'), cost: t('chart.costBasis') }}
                       onZoom={zoom.onZoom}
                     />
+                  </ChartFrame>
+                )}
+                {chart === 'return' && (
+                  <ChartFrame query={history}>
+                    {returnPoints.some((p) => p.total_value !== null) ? (
+                      <LineChart
+                        unit="percent"
+                        points={returnPoints}
+                        labels={{ value: t('position.returnLine') }}
+                        onZoom={zoom.onZoom}
+                      />
+                    ) : (
+                      <Notice>{t('chart.return.undefined')}</Notice>
+                    )}
                   </ChartFrame>
                 )}
               </div>

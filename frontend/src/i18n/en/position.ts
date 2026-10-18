@@ -27,6 +27,8 @@ export const enPosition: AreaStrings<typeof trPosition> = {
   'position.backToSummary': 'Back to summary',
   'position.valueVsCost': 'Value vs cost',
   'position.priceChart': 'Price',
+  'position.returnChart': 'Return (%)',
+  'position.returnLine': 'Position (time-weighted)',
   'position.price': 'Price',
   'position.transactions': 'Transactions',
   'position.allTransactions': 'All transactions',
