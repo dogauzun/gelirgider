@@ -31,7 +31,7 @@ When you are not sure whether a behavior is intended, or what the right behavior
 1. The ADR for the area. An ADR states what holds now (no dated notes since GLG-1406); a later ADR overrides an earlier one, and the index in docs/adr/README.md says which is superseded.
 2. docs/PRINCIPLES.md and CLAUDE.md: exact decimal money, `user_id` on every query, UTC timestamps, Istanbul market dates, i18n keys in tr and en, semantic tokens, laziest working solution.
 3. README.md, deploy/README.md, deploy/RUNBOOK.md and .env.example, for what was shipped and promised to users and operators; the Done epics in Jira for what each phase delivered.
-4. The route's swag annotation, code comments that name a GLG ticket, and the tests. A test that asserts the behavior means someone chose it.
+4. The route's swag annotation, code comments that state the rule, and the tests. A test that asserts the behavior means someone chose it.
 5. The ticket that introduced the behavior: `git log -S`, `git blame` (both reach only commits after the public move of 2026-10-14; before that use the ADRs, a Jira text search or the archived repository; code comments carry no ticket ids), then getJiraIssue and its comments. The owner's decisions are often recorded in a comment, and a ticket closed as won't do is a decision too.
 6. The same rule elsewhere in the app. The transaction form, the CSV import, the statement import and the API should treat the same input the same way; BIST, US, TEFAS, CRYPTO and gold should behave alike unless an ADR says why not; the i18n text on screen says what the UI promises.
 
@@ -92,7 +92,7 @@ What counts as a finding:
 
 Not a finding: wording taste; a typo that changes no meaning; an ADR sentence that is still true. The fix for a stale ADR statement is to rewrite that statement to what holds now (git history keeps the old text), never a dated note.
 
-Section 3 decides which side is wrong. The document is stale: file a Task with the labels qa and docs. The document records a decision still in force and the code drifted: file a Bug against the code. You cannot tell: needs-decision. Priority Medium when following the document fails or does harm (a README or RUNBOOK command that errors, a backup or restore step that would lose data, a rule in CLAUDE.md, PRINCIPLES or pr-reviewer.md that would make an agent do the wrong thing); Low otherwise. One ticket per stale fact, naming every file and line that states it; unrelated small fixes in the same file may share one ticket. In the ticket quote the stale text, show why it is wrong (the command output, the code, the ticket that changed the behavior), and give the replacement text or the note to add.
+Section 3 decides which side is wrong. The document is stale: file a Task with the labels qa and docs. The document records a decision still in force and the code drifted: file a Bug against the code. You cannot tell: needs-decision. Priority Medium when following the document fails or does harm (a README or RUNBOOK command that errors, a backup or restore step that would lose data, a rule in CLAUDE.md, PRINCIPLES or pr-reviewer.md that would make an agent do the wrong thing); Low otherwise. One ticket per stale fact, naming every file and line that states it; unrelated small fixes in the same file may share one ticket. In the ticket quote the stale text, show why it is wrong (the command output, the code, the ticket that changed the behavior), and give the replacement text.
 
 ## 6. Confirm before filing
 
@@ -111,7 +111,7 @@ Found in the QA run on <date> (main <sha>).
 **Expected:** what should happen, and why: the ADR section, ticket, principle or sibling behavior from section 3. For money, show the hand computation.
 **Where:** the layer (frontend, backend, both or docs), file paths and function names with approximate lines, every other place that shares the cause, and whether you confirmed the cause in the code or it is a guess.
 **Suggested fix:** one paragraph, labeled as a hypothesis; the implementer decides.
-**Acceptance:** two to four statements someone can check: the behavior after the fix, the one test that should fail without it, the nearby deliberate behavior that must stay as it is, and the document to update (ADR note, swag annotation, README) when the fix changes what one says.
+**Acceptance:** two to four statements someone can check: the behavior after the fix, the one test that should fail without it, the nearby deliberate behavior that must stay as it is, and the document to update (ADR statement to rewrite, swag annotation, README) when the fix changes what one says.
 
 Rules that keep a ticket usable:
 
