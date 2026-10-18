@@ -164,3 +164,86 @@ func TestWatchlistPricesSplit(t *testing.T) {
 		t.Errorf("POST response = prev_close %s, day_change %s, want 50, 60.00", val(created.PrevClose), val(created.DayChange))
 	}
 }
+
+// TestWatchlistTarget walks PUT: the side fixed by the latest close (110), the
+// reached flag on PUT and GET, a new close, clearing, the refusals and
+// another user's id.
+func TestWatchlistTarget(t *testing.T) {
+	e := newTransactionTestEnv(t)
+	res, err := e.db.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES ('NOPX', 'BIST', 'No price', 'TRY')`)
+	if err != nil {
+		t.Fatalf("insert instrument: %v", err)
+	}
+	noPrice, _ := res.LastInsertId()
+	seedWatchCloses(t, e)
+	a, b := e.login("a@example.com"), e.login("b@example.com")
+	add := func(instrumentID int64) string {
+		rec := e.do(a, http.MethodPost, "/api/watchlist", map[string]any{"instrument_id": instrumentID, "note": "keep"})
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("POST = %d %s", rec.Code, rec.Body.String())
+		}
+		return "/api/watchlist/" + strconv.FormatInt(decodeJSON[watchItemResponse](t, rec.Body.Bytes()).ID, 10)
+	}
+	path, noPricePath := add(e.instrumentID), add(noPrice)
+	put := func(session, path string, body any) watchItemResponse {
+		t.Helper()
+		rec := e.do(session, http.MethodPut, path, body)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("PUT %v = %d %s, want 200", body, rec.Code, rec.Body.String())
+		}
+		return decodeJSON[watchItemResponse](t, rec.Body.Bytes())
+	}
+	state := func(r watchItemResponse) string {
+		return val(r.TargetPrice) + " " + val(r.TargetSide) + " " + strconv.FormatBool(r.TargetReached) + " " + r.Note
+	}
+	check := func(what, got, want string) {
+		t.Helper()
+		if got != want {
+			t.Errorf("%s = %q, want %q", what, got, want)
+		}
+	}
+
+	check("target 150", state(put(a, path, map[string]any{"target_price": "150"})), "150 above false keep")
+	check("target 110", state(put(a, path, map[string]any{"target_price": "110", "note": " new "})), "110 below true new")
+	check("target 150 again", state(put(a, path, map[string]any{"target_price": "150", "note": ""})), "150 above false ")
+
+	today := price.Today()
+	if err := price.NewRepo(e.db).Upsert(context.Background(), e.instrumentID, today, "160", "test"); err != nil {
+		t.Fatalf("seed price: %v", err)
+	}
+	list := decodeJSON[[]watchItemResponse](t, e.do(a, http.MethodGet, "/api/watchlist", nil).Body.Bytes())
+	check("GET after close 160", state(list[1]), "150 above true ")
+
+	check("cleared by null", state(put(a, path, map[string]any{"target_price": nil})), "<null> <null> false ")
+	put(a, path, map[string]any{"target_price": "150"})
+	check("cleared by omitting", state(put(a, path, map[string]any{})), "<null> <null> false ")
+
+	for name, c := range map[string]struct {
+		path, want string
+		body       map[string]any
+	}{
+		"no close":    {noPricePath, "target_price: no close to compare with", map[string]any{"target_price": "5"}},
+		"zero":        {path, "target_price: must be a positive decimal", map[string]any{"target_price": "0"}},
+		"digits":      {path, "target_price: must have at most 15 integer and 8 fraction digits", map[string]any{"target_price": "12345678901234567890"}},
+		"long note":   {path, "note: must be at most 500 characters", map[string]any{"note": strings.Repeat("x", 501)}},
+		"number body": {path, "invalid request body", map[string]any{"target_price": 5}},
+	} {
+		rec := e.do(a, http.MethodPut, c.path, c.body)
+		if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), c.want) {
+			t.Errorf("PUT %s = %d %s, want 400 %s", name, rec.Code, rec.Body.String(), c.want)
+		}
+	}
+	// A refused PUT leaves the row (NOPX, sorted first) alone.
+	check("row after refusals", state(decodeJSON[[]watchItemResponse](t, e.do(a, http.MethodGet, "/api/watchlist", nil).Body.Bytes())[0]), "<null> <null> false keep")
+
+	for name, p := range map[string]string{"another user's id": path, "unknown id": "/api/watchlist/9999", "malformed id": "/api/watchlist/x"} {
+		who := b
+		if name != "another user's id" {
+			who = a
+		}
+		rec := e.do(who, http.MethodPut, p, map[string]any{"target_price": "5"})
+		if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), "watchlist item not found") {
+			t.Errorf("PUT %s = %d %s, want 404 watchlist item not found", name, rec.Code, rec.Body.String())
+		}
+	}
+}

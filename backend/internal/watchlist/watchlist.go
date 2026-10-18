@@ -20,6 +20,12 @@ var ErrNotFound = errors.New("watchlist item not found")
 // ErrDuplicate is returned by Insert when the user already watches the instrument.
 var ErrDuplicate = errors.New("already on the watchlist")
 
+// The two TargetSide values.
+const (
+	SideAbove = "above"
+	SideBelow = "below"
+)
+
 // Item is a stored watchlist row. TargetPrice is in the instrument's
 // currency; TargetSide is "above" or "below". Both are nil without a target.
 type Item struct {
@@ -47,16 +53,11 @@ func NewRepo(db *sql.DB) *Repo {
 // watches the instrument. The instrument's existence is the caller's to check.
 func (r *Repo) Insert(ctx context.Context, it Item) (Item, error) {
 	it.CreatedAt = time.Now().UTC().Truncate(time.Second)
-	var target *string
-	if it.TargetPrice != nil {
-		s := it.TargetPrice.String()
-		target = &s
-	}
 	res, err := r.db.ExecContext(ctx,
 		`INSERT INTO watchlist (user_id, instrument_id, target_price, target_side, note, created_at)
 		 SELECT ?, ?, ?, ?, ?, ?
 		 WHERE NOT EXISTS (SELECT 1 FROM watchlist WHERE user_id = ? AND instrument_id = ?)`,
-		it.UserID, it.InstrumentID, target, it.TargetSide, it.Note, it.CreatedAt.Format(time.RFC3339),
+		it.UserID, it.InstrumentID, targetText(it.TargetPrice), it.TargetSide, it.Note, it.CreatedAt.Format(time.RFC3339),
 		it.UserID, it.InstrumentID,
 	)
 	if err != nil {
@@ -69,6 +70,39 @@ func (r *Repo) Insert(ctx context.Context, it Item) (Item, error) {
 		return Item{}, fmt.Errorf("get inserted watchlist item id: %w", err)
 	}
 	return it, nil
+}
+
+// targetText is the stored form of a target price, nil without one.
+func targetText(d *decimal.Decimal) *string {
+	if d == nil {
+		return nil
+	}
+	s := d.String()
+	return &s
+}
+
+// Get returns userID's item with the given id, or ErrNotFound.
+func (r *Repo) Get(ctx context.Context, userID, id int64) (Item, error) {
+	items, err := r.query(ctx, `user_id = ? AND id = ?`, userID, id)
+	if err != nil {
+		return Item{}, err
+	}
+	if len(items) == 0 {
+		return Item{}, ErrNotFound
+	}
+	return items[0], nil
+}
+
+// Update writes it's target price, target side and note to userID's row, or
+// returns ErrNotFound. The instrument is fixed.
+func (r *Repo) Update(ctx context.Context, it Item) error {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE watchlist SET target_price = ?, target_side = ?, note = ? WHERE id = ? AND user_id = ?`,
+		targetText(it.TargetPrice), it.TargetSide, it.Note, it.ID, it.UserID)
+	if err != nil {
+		return fmt.Errorf("update watchlist item: %w", err)
+	}
+	return db.CheckAffected(res, ErrNotFound)
 }
 
 // List returns userID's items, oldest id first.
