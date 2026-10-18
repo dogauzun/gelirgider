@@ -1646,6 +1646,65 @@
                 }
             }
         },
+        "/deposits/{id}": {
+            "delete": {
+                "description": "Deletes the deposit, its buy, its funding cash deposit (when it was opened with fund true and the user has not deleted that row) and its hidden instrument, in one SQL transaction. A matured deposit (one with a sell) cannot be deleted. The interest row of a maturity is a plain dividend and is not touched here.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "deposits"
+                ],
+                "summary": "Delete a term deposit",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "deposit id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "deleted"
+                    },
+                    "404": {
+                        "description": "deposit not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "deposit is matured",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/deposits/{id}/mature": {
             "post": {
                 "description": "Books a sell of the principal at price 1 on the maturity date (no realized profit or loss) and, when the gross interest is above zero, a dividend with no instrument for it: amount the gross interest, fee the stopaj, deposit currency, note the deposit's name. Both rows are written in one SQL transaction. 409 when today is before the maturity date or the deposit is already matured.",
@@ -4178,7 +4237,7 @@
                         }
                     },
                     "400": {
-                        "description": "invalid request body; type: must be one of buy, sell, dividend, deposit, withdrawal, fee; date: must be YYYY-MM-DD; date: must not be in the future; date: must be on or after 1990-01-01; instrument_id: required for \u003ctype\u003e; instrument_id: not allowed for \u003ctype\u003e; instrument_id: unknown instrument; quantity|price|amount|fee: required; quantity|price|amount|fee: must have at most 15 integer and 9 fraction digits; quantity|price|amount|fee: must be a positive|non-negative number with at most 15 integer and 9 fraction digits; amount: must be 0 when price is 0; fee: must not exceed amount; fee: must be 0 for a fee transaction; currency: must be one of TRY, USD, EUR; currency: must match instrument currency (\u003ccurrency\u003e); note: must be at most 500 characters; note: must not contain control characters",
+                        "description": "invalid request body; type: must be one of buy, sell, dividend, deposit, withdrawal, fee; date: must be YYYY-MM-DD; date: must not be in the future; date: must be on or after 1990-01-01; instrument_id: required for \u003ctype\u003e; instrument_id: not allowed for \u003ctype\u003e; instrument_id: unknown instrument; quantity|price|amount|fee: required; quantity|price|amount|fee: must have at most 15 integer and 9 fraction digits; quantity|price|amount|fee: must be a positive|non-negative number with at most 15 integer and 9 fraction digits; amount: must be 0 when price is 0; fee: must not exceed amount; fee: must be 0 for a fee transaction; currency: must be one of TRY, USD, EUR; currency: must match instrument currency (\u003ccurrency\u003e); note: must be at most 500 characters; note: must not contain control characters; deposit rows are changed through the deposit routes",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -4232,6 +4291,17 @@
                 "responses": {
                     "204": {
                         "description": "deleted"
+                    },
+                    "400": {
+                        "description": "deposit rows are changed through the deposit routes",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
                     },
                     "404": {
                         "description": "transaction not found",

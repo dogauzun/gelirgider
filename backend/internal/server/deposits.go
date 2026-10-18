@@ -26,7 +26,8 @@ import (
 const maxDepositTermYears = 10
 
 // registerDepositRoutes wires POST and GET /api/portfolios/{id}/deposits,
-// GET .../deposits/due and POST /api/deposits/{id}/mature.
+// GET .../deposits/due, POST /api/deposits/{id}/mature and
+// DELETE /api/deposits/{id}.
 // onDemandFetch is the transaction routes' price and FX hook.
 func registerDepositRoutes(mux *http.ServeMux, d *deps, onDemandFetch transaction.OnDemandFetch) {
 	h := &depositHandler{deps: d, onDemandFetch: onDemandFetch}
@@ -34,6 +35,7 @@ func registerDepositRoutes(mux *http.ServeMux, d *deps, onDemandFetch transactio
 	mux.HandleFunc("GET /api/portfolios/{id}/deposits", h.list)
 	mux.HandleFunc("GET /api/portfolios/{id}/deposits/due", h.due)
 	mux.HandleFunc("POST /api/deposits/{id}/mature", h.mature)
+	mux.HandleFunc("DELETE /api/deposits/{id}", h.delete)
 }
 
 type depositHandler struct {
@@ -443,6 +445,69 @@ func (h *depositHandler) book(r *http.Request, dep deposit.Deposit, name string)
 		if err != nil {
 			return false, err
 		}
+	}
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("commit: %w", err)
+	}
+	return true, nil
+}
+
+// delete removes an open deposit with the rows it booked.
+//
+//	@Summary	Delete a term deposit
+//	@Description	Deletes the deposit, its buy, its funding cash deposit (when it was opened with fund true and the user has not deleted that row) and its hidden instrument, in one SQL transaction. A matured deposit (one with a sell) cannot be deleted. The interest row of a maturity is a plain dividend and is not touched here.
+//	@Tags		deposits
+//	@Produce	json
+//	@Param		id	path	int	true	"deposit id"
+//	@Success	204	"deleted"
+//	@Failure	404	{object}	object{error=string}	"deposit not found"
+//	@Failure	409	{object}	object{error=string}	"deposit is matured"
+//	@Failure	500	{object}	object{error=string}	"internal error"
+//	@Router		/deposits/{id} [delete]
+func (h *depositHandler) delete(w http.ResponseWriter, r *http.Request) {
+	userID := auth.MustUserID(r.Context())
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		auth.WriteError(w, http.StatusNotFound, "deposit not found")
+		return
+	}
+	dep, err := h.deposits.Get(r.Context(), userID, id)
+	if errors.Is(err, deposit.ErrNotFound) {
+		auth.WriteError(w, http.StatusNotFound, "deposit not found")
+		return
+	}
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	removed, err := h.remove(r, dep)
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
+	}
+	if !removed {
+		auth.WriteError(w, http.StatusConflict, "deposit is matured")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// remove deletes dep in one SQL transaction. It is false, having deleted
+// nothing, when the deposit has a sell. BeginTx takes the write lock, so a
+// mature cannot slip in between the check and the delete.
+func (h *depositHandler) remove(r *http.Request, dep deposit.Deposit) (bool, error) {
+	ctx := r.Context()
+	tx, err := h.conn.BeginTx(ctx, nil)
+	if err != nil {
+		return false, fmt.Errorf("begin: %w", err)
+	}
+	defer tx.Rollback()
+	sold, err := h.deposits.SoldTx(ctx, tx, dep.UserID, dep.InstrumentID)
+	if err != nil || sold {
+		return false, err
+	}
+	if err := h.deposits.DeleteTx(ctx, tx, dep); err != nil {
+		return false, err
 	}
 	if err := tx.Commit(); err != nil {
 		return false, fmt.Errorf("commit: %w", err)

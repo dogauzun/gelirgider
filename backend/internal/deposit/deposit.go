@@ -189,6 +189,25 @@ func (r *Repo) SoldTx(ctx context.Context, tx *sql.Tx, userID, instrumentID int6
 	return n > 0, nil
 }
 
+// DeleteTx deletes d inside tx: the user's rows on its instrument, its funding
+// cash deposit when it has one (a row that is already gone or is not the
+// user's is left alone), the deposit row and the DEPOSIT instrument, which
+// nothing else references.
+func (r *Repo) DeleteTx(ctx context.Context, tx *sql.Tx, d Deposit) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM transactions WHERE user_id = ? AND instrument_id = ?`, d.UserID, d.InstrumentID); err != nil {
+		return fmt.Errorf("delete deposit transactions: %w", err)
+	}
+	if d.FundingTransactionID != nil {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM transactions WHERE id = ? AND user_id = ?`, *d.FundingTransactionID, d.UserID); err != nil {
+			return fmt.Errorf("delete deposit funding transaction: %w", err)
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM term_deposits WHERE id = ? AND user_id = ?`, d.ID, d.UserID); err != nil {
+		return fmt.Errorf("delete deposit: %w", err)
+	}
+	return db.DeleteInstruments(ctx, tx, []int64{d.InstrumentID})
+}
+
 // InsertTx stores d inside tx and returns it with its id and creation time
 // set; d's ID and CreatedAt are ignored. Ownership of the portfolio and the
 // instrument is the caller's to check.

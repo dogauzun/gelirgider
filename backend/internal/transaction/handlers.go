@@ -3,6 +3,7 @@ package transaction
 import (
 	"archive/zip"
 	"context"
+	"database/sql"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -851,6 +852,27 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 	auth.WriteJSON(w, http.StatusCreated, toResponse(created))
 }
 
+// refuseDepositRow loads the caller's transaction id and answers for update
+// and delete when they must stop: 404 when it is not there, 400 when it is a
+// row on a term deposit's instrument, which only the deposit routes change. It
+// reports whether it answered.
+func (h *handler) refuseDepositRow(w http.ResponseWriter, r *http.Request, userID, id int64) bool {
+	t, err := h.repo.get(r.Context(), userID, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		auth.WriteError(w, http.StatusNotFound, "transaction not found")
+		return true
+	}
+	if err != nil {
+		auth.WriteInternalError(w, r, fmt.Errorf("get transaction: %w", err))
+		return true
+	}
+	if t.InstrumentMarket != nil && *t.InstrumentMarket == instrument.MarketDeposit {
+		auth.WriteError(w, http.StatusBadRequest, "deposit rows are changed through the deposit routes")
+		return true
+	}
+	return false
+}
+
 // update replaces one of the caller's transactions. Its portfolio stays.
 //
 //	@Summary	Update a transaction
@@ -860,7 +882,7 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 //	@Param		id		path		int					true	"transaction id"
 //	@Param		body	body		transaction.Request	true	"the whole transaction, as on create; instrument_id is optional for dividend (none is interest income)"
 //	@Success	200		{object}	transaction.transactionResponse
-//	@Failure	400		{object}	object{error=string}	"invalid request body; type: must be one of buy, sell, dividend, deposit, withdrawal, fee; date: must be YYYY-MM-DD; date: must not be in the future; date: must be on or after 1990-01-01; instrument_id: required for <type>; instrument_id: not allowed for <type>; instrument_id: unknown instrument; quantity|price|amount|fee: required; quantity|price|amount|fee: must have at most 15 integer and 9 fraction digits; quantity|price|amount|fee: must be a positive|non-negative number with at most 15 integer and 9 fraction digits; amount: must be 0 when price is 0; fee: must not exceed amount; fee: must be 0 for a fee transaction; currency: must be one of TRY, USD, EUR; currency: must match instrument currency (<currency>); note: must be at most 500 characters; note: must not contain control characters"
+//	@Failure	400		{object}	object{error=string}	"invalid request body; type: must be one of buy, sell, dividend, deposit, withdrawal, fee; date: must be YYYY-MM-DD; date: must not be in the future; date: must be on or after 1990-01-01; instrument_id: required for <type>; instrument_id: not allowed for <type>; instrument_id: unknown instrument; quantity|price|amount|fee: required; quantity|price|amount|fee: must have at most 15 integer and 9 fraction digits; quantity|price|amount|fee: must be a positive|non-negative number with at most 15 integer and 9 fraction digits; amount: must be 0 when price is 0; fee: must not exceed amount; fee: must be 0 for a fee transaction; currency: must be one of TRY, USD, EUR; currency: must match instrument currency (<currency>); note: must be at most 500 characters; note: must not contain control characters; deposit rows are changed through the deposit routes"
 //	@Failure	404		{object}	object{error=string}	"transaction not found"
 //	@Failure	500		{object}	object{error=string}	"internal error"
 //	@Router		/transactions/{id} [put]
@@ -869,6 +891,10 @@ func (h *handler) update(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		auth.WriteError(w, http.StatusNotFound, "transaction not found")
+		return
+	}
+
+	if h.refuseDepositRow(w, r, userID, id) {
 		return
 	}
 
@@ -902,6 +928,7 @@ func (h *handler) update(w http.ResponseWriter, r *http.Request) {
 //	@Produce	json
 //	@Param		id	path	int	true	"transaction id"
 //	@Success	204	"deleted"
+//	@Failure	400	{object}	object{error=string}	"deposit rows are changed through the deposit routes"
 //	@Failure	404	{object}	object{error=string}	"transaction not found"
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/transactions/{id} [delete]
@@ -910,6 +937,9 @@ func (h *handler) delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		auth.WriteError(w, http.StatusNotFound, "transaction not found")
+		return
+	}
+	if h.refuseDepositRow(w, r, userID, id) {
 		return
 	}
 	if err := h.repo.Delete(r.Context(), userID, id); err != nil {
