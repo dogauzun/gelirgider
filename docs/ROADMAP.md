@@ -21,6 +21,8 @@ Nothing at the moment.
   - Deferred: the Katkı card's range mode.
 - Phase 35, allocation by asset class (GLG-1463): group the allocation card by equity, fund, commodity, crypto, deposit and cash.
   - Deferred: the sector view, if GLG-1475 finds no BIST sector source.
+- Phase 38, target allocation and rebalancing (GLG-1566): target weights per asset class, drift next to the actual share, a drift Dikkat rule and a buy-only planner that splits a contribution across the under-weight classes.
+- Phase 39, goals and real-terms projection (GLG-1567): a goal per portfolio in TRY, real TRY or USD, projected from the portfolio's own returns and contributions as a fan to the target date, with the month it is reached or the monthly gap.
 
 A new phase is added here, together with its Jira epic, once it is planned.
 
