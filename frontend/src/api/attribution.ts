@@ -13,7 +13,7 @@ interface AttributionBuckets {
   cash_fx: string | null
 }
 
-interface AttributionPosition {
+export interface AttributionPosition {
   instrument_id: number
   symbol: string
   // Quantity zero on the last day of the range.

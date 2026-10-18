@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
+import { useAttribution } from '../api/attribution'
 import { useDividendTimeline } from '../api/dividends'
 import { usePositionHistory } from '../api/positions'
 import { usePortfolioSummary } from '../api/summary'
@@ -49,6 +50,7 @@ export function PositionPage() {
   const zoom = useZoom(range, setRange)
   const { search } = useLocation()
   const { from, to } = resolveRange(range, todayIstanbul())
+  const attribution = useAttribution(portfolioId, from, to)
   const history = usePositionHistory(portfolioId, instrumentId, from, to)
   const transactions = useTransactions(portfolioId, { instrumentId })
   const [chart, setChart] = useState<ChartView>('price')
@@ -130,6 +132,9 @@ export function PositionPage() {
               position={position}
               summary={data}
               dividends={dividends.data}
+              attribution={attribution.data?.positions.find(
+                (p) => p.instrument_id === instrumentId,
+              )}
             />
 
             <section className="mb-6 card">

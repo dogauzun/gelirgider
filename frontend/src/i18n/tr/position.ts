@@ -6,6 +6,8 @@ export const trPosition = {
   'position.avgCost': 'Ort. maliyet',
   'position.total': 'Toplam sonuç',
   'position.totalHint': 'K/Z + temettü, tüm zamanlar',
+  'position.rangeSplit': 'Seçilen aralık',
+  'position.fxSinceCost': 'Maliyetten bu yana kur',
   'position.marketValue': 'Piyasa değeri',
   'position.units': '{quantity} adet',
   'position.unrealized': 'Gerçekleşmemiş',

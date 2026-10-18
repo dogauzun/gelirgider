@@ -57,3 +57,42 @@ it('keeps the Turkish adet for a quantity of 1', () => {
   render(<PositionKpis position={p} summary={{ ...summary, positions: [p] }} dividends={null} />)
   expect(screen.getByText(/^1 adet/)).toBeInTheDocument()
 })
+
+// A closed position has no fx_pl_reporting hint, so the range's currency
+// figure comes from its attribution entry; a null figure reads MISSING.
+it('shows the range split under the total of a closed USD position', () => {
+  const p = {
+    ...position,
+    currency: 'USD',
+    quantity: '0',
+    closed: true,
+    fx_pl_reporting: null,
+  } as unknown as Position
+  const attribution = {
+    instrument_id: 7,
+    symbol: 'THYAO',
+    closed: true,
+    price: '120.00',
+    income: null,
+    fx: '-35.00',
+    total: null,
+  }
+  render(
+    <PositionKpis
+      position={p}
+      summary={{ ...summary, positions: [p] }}
+      dividends={null}
+      attribution={attribution}
+    />,
+  )
+  const row = (label: string) => screen.getByText(label, { selector: 'span' }).parentElement!
+  expect(row('Kur farkı')).toHaveTextContent('₺35,00')
+  expect(row('Kur farkı')).not.toHaveTextContent('—')
+  expect(row('Fiyat')).toHaveTextContent('+₺120,00')
+  expect(row('Gelir')).toHaveTextContent('—')
+})
+
+it('shows no range split without an attribution entry', () => {
+  render(<PositionKpis position={position} summary={summary} dividends={null} />)
+  expect(screen.queryByText('Seçilen aralık')).toBeNull()
+})

@@ -148,12 +148,14 @@ function mockApi({
     ],
   } as unknown,
   transactions = [tx(2, 'sell', '2026-09-27', '1.50'), tx(1, 'buy', '2026-09-25')] as unknown[],
+  attribution = undefined as unknown,
 }: {
   positions?: Pos[]
   cash?: string
   dividends?: unknown
   history?: unknown
   transactions?: unknown[]
+  attribution?: unknown
 } = {}) {
   const urls: string[] = []
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
@@ -165,6 +167,9 @@ function mockApi({
     if (url === '/api/portfolios/1/summary') return Response.json(summary(positions, cash))
     if (url === '/api/portfolios/1/dividends/timeline') return Response.json(dividends)
     if (url.startsWith('/api/portfolios/1/instruments/7/history?')) return Response.json(history)
+    if (url.startsWith('/api/portfolios/1/attribution?') && attribution) {
+      return Response.json(attribution)
+    }
     if (url === '/api/portfolios/1/transactions?limit=100&instrument_id=7') {
       return Response.json(transactions)
     }
@@ -271,10 +276,36 @@ it('shows six KPI cells: the total counts the dividends inside realized P/L once
   expect(within(cell('Gerçekleşmemiş')).getByText('+₺245,00')).toBeInTheDocument()
   expect(within(cell('Gerçekleşmemiş')).getByText('+%24,4')).toBeInTheDocument()
   // Özet's phone row leaves the currency gain to this page.
-  expect(within(cell('Gerçekleşmemiş')).getByText('Kur farkı +₺40,00')).toBeInTheDocument()
+  expect(
+    within(cell('Gerçekleşmemiş')).getByText('Maliyetten bu yana kur +₺40,00'),
+  ).toBeInTheDocument()
   expect(
     within(cell('Ort. maliyet')).getByText(formatUnitPrice('100.5', 'TRY', 6)),
   ).toBeInTheDocument()
+})
+
+// The range's split is read for the page's range and matched by instrument.
+it('shows the range split of this position under the total', async () => {
+  const urls = mockApi({
+    attribution: {
+      currency: 'TRY',
+      from: '2026-01-01',
+      to: '2026-03-31',
+      total: {},
+      positions: [
+        { instrument_id: 3, price: '999.00', income: '0.00', fx: '0.00' },
+        { instrument_id: 7, price: '120.00', income: '10.00', fx: '-35.00' },
+      ],
+      missing_rates: [],
+    },
+  })
+  renderPage('/portfolios/1/positions/7?range=1y')
+  await screen.findByRole('heading', { level: 1, name: 'THYAO' })
+  const total = cell('Toplam sonuç')
+  expect(await within(total).findByText('+₺120,00')).toBeInTheDocument()
+  expect(within(total).getByText('+₺10,00')).toBeInTheDocument()
+  expect(within(total).getByText('-₺35,00')).toBeInTheDocument()
+  expect(urls.some((u) => u.startsWith('/api/portfolios/1/attribution?'))).toBe(true)
 })
 
 // The server sums unrealized 1526.875 and realized 531.975 before

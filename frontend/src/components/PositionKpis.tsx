@@ -1,6 +1,7 @@
+import type { AttributionPosition } from '../api/attribution'
 import type { DividendTimeline } from '../api/dividends'
 import type { Position, Summary } from '../api/summary'
-import { t } from '../i18n/strings'
+import { t, type StringKey } from '../i18n/strings'
 import { SHARE_FORMAT } from '../lib/allocation'
 import { formatQuantity } from '../lib/decimal'
 import { formatMoney, formatNumber, formatUnitPrice, plTone, signedMoney } from '../lib/format'
@@ -16,19 +17,28 @@ function kpiColumns(closed: boolean, withDividends: boolean) {
   return withDividends ? 'grid-cols-2 lg:grid-cols-6' : 'grid-cols-2 lg:grid-cols-5'
 }
 
+const RANGE_ROWS = [
+  ['price', 'summary.returnSplit.price'],
+  ['income', 'summary.returnSplit.income'],
+  ['fx', 'summary.returnSplit.fx'],
+] as const satisfies readonly (readonly [keyof AttributionPosition, StringKey])[]
+
 // One position's figures, in the summary's reporting currency. `dividends`
 // is the dividends timeline: undefined while it loads, null to leave the
 // dividends cell out (the read-only `all` scope has no dividends route,
-// ADR 0014).
+// ADR 0014). `attribution` is the position's entry in the selected range's
+// return split; without one nothing extra shows.
 export function PositionKpis({
   position,
   summary,
   dividends,
+  attribution,
   className = '',
 }: {
   position: Position
   summary: Summary
   dividends: DividendTimeline | undefined | null
+  attribution?: AttributionPosition
   className?: string
 }) {
   const closed = position.closed === true
@@ -65,6 +75,19 @@ export function PositionKpis({
           text={signedMoney(total, reporting)}
         />
         <p className="text-[12px] text-muted">{t('position.totalHint')}</p>
+        {attribution && (
+          <div className="mt-1 text-[12px]">
+            <p className="text-muted">{t('position.rangeSplit')}</p>
+            {RANGE_ROWS.map(([key, label]) => (
+              <p key={key} className="flex justify-between gap-2">
+                <span className="text-muted">{t(label)}</span>
+                <span className={`tabular-nums ${plTone(attribution[key])}`}>
+                  {signedMoney(attribution[key], reporting)}
+                </span>
+              </p>
+            ))}
+          </div>
+        )}
       </KpiCell>
       {!closed && (
         <>
@@ -92,7 +115,7 @@ export function PositionKpis({
                 position page. */}
             {position.fx_pl_reporting != null && (
               <p className={`text-[12px] ${plTone(position.fx_pl_reporting)}`}>
-                {`${t('summary.fxPl')} ${signedMoney(position.fx_pl_reporting, reporting)}`}
+                {`${t('position.fxSinceCost')} ${signedMoney(position.fx_pl_reporting, reporting)}`}
               </p>
             )}
           </KpiCell>
