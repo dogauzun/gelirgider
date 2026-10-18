@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Position } from '../api/summary'
 import { trCharts } from '../i18n/tr/charts'
 import { enCharts } from '../i18n/en/charts'
-import { allocationRows } from './allocation'
+import { allocationRows, driftRows } from './allocation'
 import { SECTOR_KEYS } from './sectors'
 
 function position(
@@ -251,5 +251,43 @@ describe('sector labels', () => {
   ])('has a sector.<key> label for every sector key in %s', (_locale, labels) => {
     const missing = SECTOR_KEYS_WITH_FUNDS.filter((key) => !(`sector.${key}` in labels))
     expect(missing).toEqual([])
+  })
+})
+
+describe('driftRows', () => {
+  it('adds target and drift per class, null without a target, and appends a class with no row', () => {
+    const { rows } = allocationRows({
+      positions: [
+        position(1, 'THYAO', '600.00'),
+        position(2, 'TCF', '200.00', 'TEFAS'),
+        position(3, 'BTC', '100.00', 'CRYPTO'),
+      ],
+      cash: '100.00',
+      cashByCurrencyReporting: { TRY: '100.00' },
+      view: 'assetClass',
+    })
+
+    const out = driftRows(rows, [
+      { asset_class: 'equity', weight: '50' },
+      { asset_class: 'fund', weight: '30' },
+      { asset_class: 'deposit', weight: '20' },
+    ])
+
+    const pick = (key: string) => out.find((row) => row.key === key)!
+    expect(pick('class-equity').target).toBe(0.5)
+    expect(pick('class-equity').drift).toBeCloseTo(10)
+    expect(pick('class-fund').drift).toBeCloseTo(-10)
+    expect(pick('class-crypto')).toMatchObject({ target: null, drift: null })
+    expect(pick('cash')).toMatchObject({ target: null, drift: null })
+    expect(out.at(-1)).toMatchObject({
+      key: 'class-deposit',
+      label: 'Mevduat',
+      share: 0,
+      value: 0,
+      amount: '0',
+      target: 0.2,
+      drift: -20,
+    })
+    expect(out).toHaveLength(rows.length + 1)
   })
 })

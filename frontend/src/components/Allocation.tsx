@@ -1,15 +1,20 @@
 import { useState } from 'react'
-import type { Position } from '../api/summary'
+import { useAllocationTargets } from '../api/allocationTargets'
+import type { PortfolioScope, Position } from '../api/summary'
 import { t } from '../i18n/strings'
 import {
   ALLOCATION_VIEWS,
   allocationRows,
+  DRIFT_FORMAT,
+  driftRows,
   SHARE_FORMAT,
   type AllocationView,
 } from '../lib/allocation'
 import { decimalUnits } from '../lib/decimal'
-import { formatCompactMoney, formatMoney, formatNumber } from '../lib/format'
+import { formatCompactMoney, formatMoney, formatNumber, plTone } from '../lib/format'
+import { AllocationTargetsDialog } from './AllocationTargetsDialog'
 import { AllocationDonut } from './LazyChart'
+import { Button } from './ui/Button'
 import { Segmented } from './ui/Segmented'
 import { TAP_Y } from './ui/tap'
 
@@ -29,6 +34,7 @@ import { TAP_Y } from './ui/tap'
 // `cashByCurrencyReporting` is `cash` split by currency, for the currency
 // view. `currency` is the reporting currency the amounts are in.
 export function Allocation({
+  portfolioId,
   positions,
   cash,
   cashByCurrency,
@@ -36,6 +42,7 @@ export function Allocation({
   missingRates,
   currency,
 }: {
+  portfolioId: PortfolioScope
   positions: Position[]
   cash: string
   cashByCurrency: Record<string, string>
@@ -46,6 +53,8 @@ export function Allocation({
   const [view, setView] = useState<AllocationView>('symbol')
   // The highlighted row, shared by the donut and the legend.
   const [active, setActive] = useState<string | null>(null)
+  const [settingTargets, setSettingTargets] = useState(false)
+  const targets = useAllocationTargets(portfolioId).data ?? []
   const { rows, total, other } = allocationRows({ positions, cash, cashByCurrencyReporting, view })
 
   // Positions with no FX rate for their currency (Summary.missing_rates)
@@ -53,6 +62,8 @@ export function Allocation({
   // they stay out of the donut -- but dropping them silently would make the
   // remaining slices sum to 100% over only part of the portfolio. Surface
   // the count instead.
+  const showDrift = view === 'assetClass' && targets.length > 0
+  const legendRows = driftRows(rows, showDrift ? targets : [])
   const omittedCount = positions.filter((p) => p.market_value_reporting === null).length
 
   // Same defect, cash side: a currency in missingRates has no rate to convert
@@ -89,16 +100,23 @@ export function Allocation({
             </span>
           )}
         </div>
-        <Segmented
-          options={ALLOCATION_VIEWS}
-          value={view}
-          onChange={setView}
-          label={(option) => t(`allocation.view.${option}`)}
-          aria-label={t('allocation.view.label')}
-          itemClassName={`${TAP_Y} whitespace-nowrap`}
-          // Five options outgrow a phone-width card: wrap them inside the track.
-          className="flex-wrap"
-        />
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          {view === 'assetClass' && (
+            <Button variant="secondary" onClick={() => setSettingTargets(true)}>
+              {t('allocation.setTargets')}
+            </Button>
+          )}
+          <Segmented
+            options={ALLOCATION_VIEWS}
+            value={view}
+            onChange={setView}
+            label={(option) => t(`allocation.view.${option}`)}
+            aria-label={t('allocation.view.label')}
+            itemClassName={`${TAP_Y} whitespace-nowrap`}
+            // Five options outgrow a phone-width card: wrap them inside the track.
+            className="flex-wrap"
+          />
+        </div>
       </div>
       <div className="@container p-4">
         {rows.length === 0 ? (
@@ -116,7 +134,7 @@ export function Allocation({
               onActive={setActive}
             />
             <ul className="w-full min-w-0 flex-1 text-xs">
-              {rows.map((row) => (
+              {legendRows.map((row) => (
                 <li
                   key={row.key}
                   title={row.key === 'other' ? other.join(', ') : undefined}
@@ -136,6 +154,32 @@ export function Allocation({
                   <span className="w-12 text-right font-medium text-ink tabular-nums">
                     {formatNumber(row.share, SHARE_FORMAT)}
                   </span>
+                  {showDrift && (
+                    <>
+                      <span
+                        title={t('allocation.target')}
+                        className="w-12 text-right text-muted tabular-nums"
+                      >
+                        {row.target !== null && (
+                          <>
+                            <span className="sr-only">{t('allocation.target')} </span>
+                            {formatNumber(row.target, SHARE_FORMAT)}
+                          </>
+                        )}
+                      </span>
+                      <span
+                        title={t('allocation.drift')}
+                        className={`w-16 text-right tabular-nums ${plTone(row.drift === null ? null : Number(row.drift.toFixed(1)))}`}
+                      >
+                        {row.drift !== null && (
+                          <>
+                            <span className="sr-only">{t('allocation.drift')} </span>
+                            {formatNumber(row.drift, DRIFT_FORMAT)} {t('allocation.points')}
+                          </>
+                        )}
+                      </span>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
@@ -152,6 +196,13 @@ export function Allocation({
           </p>
         )}
       </div>
+      {settingTargets && (
+        <AllocationTargetsDialog
+          portfolioId={portfolioId}
+          targets={targets}
+          onClose={() => setSettingTargets(false)}
+        />
+      )}
     </section>
   )
 }

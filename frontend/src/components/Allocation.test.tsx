@@ -1,6 +1,8 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Allocation } from './Allocation'
+import type { AllocationTarget } from '../api/allocationTargets'
 import type { Position } from '../api/summary'
 import { setPrivacy } from '../lib/privacy'
 import { mockChartSize } from '../test/chartSize'
@@ -8,6 +10,11 @@ import { mockChartSize } from '../test/chartSize'
 let restoreSize: () => void
 beforeEach(() => {
   restoreSize = mockChartSize()
+  // jsdom has no showModal() on <dialog>; this only flips the open state.
+  HTMLDialogElement.prototype.showModal = function () {
+    this.open = true
+  }
+  mockTargets([])
   // Reduced motion: Recharts draws the final slices at once (see
   // AllocationDonut.test.tsx).
   vi.stubGlobal('matchMedia', (query: string) => ({
@@ -17,10 +24,19 @@ beforeEach(() => {
   }))
 })
 afterEach(() => {
+  vi.restoreAllMocks()
   restoreSize()
   vi.unstubAllGlobals()
   setPrivacy(false)
 })
+
+function mockTargets(targets: AllocationTarget[]) {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url === '/api/portfolios/1/allocation-targets') return Response.json({ targets })
+    throw new Error(`unexpected request: ${url}`)
+  })
+}
 
 function position(
   instrumentId: number,
@@ -66,15 +82,18 @@ type Props = Parameters<typeof Allocation>[0]
 // across cases, so every assertion is scoped to the render's own container.
 function renderAllocation(props: Partial<Props> = {}) {
   const { container } = render(
-    <Allocation
-      positions={[position(1, 'THYAO', '300.00'), position(2, 'GARAN', '100.00')]}
-      cash="100.00"
-      cashByCurrency={{ TRY: '100.00' }}
-      cashByCurrencyReporting={{ TRY: '100.00' }}
-      missingRates={[]}
-      currency="TRY"
-      {...props}
-    />,
+    <QueryClientProvider client={new QueryClient()}>
+      <Allocation
+        portfolioId={1}
+        positions={[position(1, 'THYAO', '300.00'), position(2, 'GARAN', '100.00')]}
+        cash="100.00"
+        cashByCurrency={{ TRY: '100.00' }}
+        cashByCurrencyReporting={{ TRY: '100.00' }}
+        missingRates={[]}
+        currency="TRY"
+        {...props}
+      />
+    </QueryClientProvider>,
   )
   return { container, scoped: within(container) }
 }
@@ -273,5 +292,33 @@ describe('Allocation', () => {
 
     expect(legend(scoped)[0]).toBe('THYAO•••%60,0')
     expect(container.querySelector('[data-allocation-donut]')).toHaveTextContent('Toplam•••')
+  })
+
+  it('shows the target and drift in the asset class view and opens the target dialog', async () => {
+    mockTargets([
+      { asset_class: 'equity', weight: '70' },
+      { asset_class: 'cash', weight: '20' },
+      { asset_class: 'deposit', weight: '10' },
+    ])
+    const { scoped } = renderAllocation()
+
+    expect(scoped.queryByRole('button', { name: 'Hedef belirle' })).toBeNull()
+    fireEvent.click(scoped.getByRole('radio', { name: 'Varlık sınıfı' }))
+
+    await waitFor(() => expect(scoped.getAllByRole('listitem')).toHaveLength(3))
+    const [equity, cash, deposit] = scoped.getAllByRole('listitem')
+    expect(equity).toHaveTextContent('Hisse senedi₺400,00%80,0Hedef %70,0Sapma +10,0 p')
+    expect(cash).toHaveTextContent('Nakit₺100,00%20,0Hedef %20,0Sapma 0,0 p')
+    expect(deposit).toHaveTextContent('Mevduat₺0,00%0,0Hedef %10,0Sapma -10,0 p')
+    expect(equity.querySelector('.text-gain')).not.toBeNull()
+    expect(deposit.querySelector('.text-loss')).not.toBeNull()
+
+    fireEvent.click(scoped.getByRole('button', { name: 'Hedef belirle' }))
+    expect(scoped.getByText('Toplam: %100')).toBeInTheDocument()
+    const save = scoped.getByRole('button', { name: 'Kaydet' })
+    expect(save).toBeEnabled()
+    fireEvent.change(scoped.getByLabelText('Hisse senedi'), { target: { value: '60' } })
+    expect(scoped.getByText('Toplam: %90')).toBeInTheDocument()
+    expect(save).toBeDisabled()
   })
 })
