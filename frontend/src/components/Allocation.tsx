@@ -149,14 +149,19 @@ export function Allocation({
                   title={row.key === 'other' ? other.join(', ') : undefined}
                   onMouseEnter={() => setActive(row.key)}
                   onMouseLeave={() => setActive(null)}
-                  className={`flex items-center gap-2 rounded px-2 py-1 ${active === row.key ? 'bg-well' : ''}`}
+                  className={`flex items-center gap-2 rounded px-2 py-1 ${showDrift ? 'flex-wrap' : ''} ${active === row.key ? 'bg-well' : ''}`}
                 >
                   <span
                     aria-hidden="true"
                     className="size-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: row.color }}
                   />
-                  <span className="min-w-0 flex-1 truncate text-ink-2">{row.label}</span>
+                  {/* With targets the card is too narrow for the name beside amount, share, target and drift: the name wraps and the target and drift take a line of their own. */}
+                  <span
+                    className={`min-w-0 flex-1 text-ink-2 ${showDrift ? 'break-words' : 'truncate'}`}
+                  >
+                    {row.label}
+                  </span>
                   <span className="text-muted tabular-nums">
                     {formatMoney(row.amount, currency)}
                   </span>
@@ -164,30 +169,29 @@ export function Allocation({
                     {formatNumber(row.share, SHARE_FORMAT)}
                   </span>
                   {showDrift && (
-                    <>
+                    <span className="flex basis-full justify-end gap-3">
                       <span
                         title={t('allocation.target')}
-                        className="w-12 text-right text-muted tabular-nums"
+                        className="text-right text-muted tabular-nums"
                       >
                         {row.target !== null && (
                           <>
-                            <span className="sr-only">{t('allocation.target')} </span>
-                            {formatNumber(row.target, SHARE_FORMAT)}
+                            {t('allocation.target')} {formatNumber(row.target, SHARE_FORMAT)}
                           </>
                         )}
                       </span>
                       <span
                         title={t('allocation.drift')}
-                        className={`w-16 text-right tabular-nums ${plTone(row.drift === null ? null : Number(row.drift.toFixed(1)))}`}
+                        className={`text-right tabular-nums ${plTone(row.drift === null ? null : Number(row.drift.toFixed(1)))}`}
                       >
                         {row.drift !== null && (
                           <>
-                            <span className="sr-only">{t('allocation.drift')} </span>
-                            {formatNumber(row.drift, DRIFT_FORMAT)} {t('allocation.points')}
+                            {t('allocation.drift')} {formatNumber(row.drift, DRIFT_FORMAT)}{' '}
+                            {t('allocation.points')}
                           </>
                         )}
                       </span>
-                    </>
+                    </span>
                   )}
                 </li>
               ))}
