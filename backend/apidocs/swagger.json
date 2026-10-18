@@ -4154,7 +4154,7 @@
                 }
             },
             "put": {
-                "description": "Replaces the goal of the scope and answers the stored goal. unit is nominal (the reporting currency), real (the amount at the prices of the day the goal is set, only with a TRY reporting currency) or usd (only with a non-USD reporting currency). target_date is YYYY-MM-DD and in a later calendar month than today (Europe/Istanbul).",
+                "description": "Replaces the goal of the scope and answers the stored goal. unit is nominal (the reporting currency), real (the amount at the prices of the day the goal is set, only with a TRY reporting currency) or usd (only with a non-USD reporting currency). target_date is YYYY-MM-DD, in a later calendar month than today and at most 50 years ahead (Europe/Istanbul).",
                 "consumes": [
                     "application/json"
                 ],
@@ -4191,7 +4191,7 @@
                         }
                     },
                     "400": {
-                        "description": "invalid request body; amount: must be a positive number; unit: must be one of nominal, real, usd; unit: real needs a TRY reporting currency; unit: usd needs a non-USD reporting currency; target_date: must be in a later month than today",
+                        "description": "invalid request body; amount: must be a positive number; unit: must be one of nominal, real, usd; unit: real needs a TRY reporting currency; unit: usd needs a non-USD reporting currency; target_date: must be in a later month than today; target_date: must be at most 50 years after today",
                         "schema": {
                             "type": "object",
                             "properties": {

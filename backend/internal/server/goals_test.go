@@ -88,6 +88,8 @@ func TestGoalValidation(t *testing.T) {
 	date := futureDate()
 	today := price.Today()
 	later := "target_date: must be in a later month than today"
+	tooFar := "target_date: must be at most 50 years after today"
+	capMonth := fmt.Sprintf("%d%s", time.Now().In(price.Istanbul).Year()+50, today[4:7])
 	tests := []struct {
 		name     string
 		currency string
@@ -105,6 +107,9 @@ func TestGoalValidation(t *testing.T) {
 		{"this month", "TRY", goalReq("100", "nominal", today[:8]+"28"), later},
 		{"past", "TRY", goalReq("100", "nominal", "2020-01-01"), later},
 		{"not a date", "TRY", goalReq("100", "nominal", "soon"), later},
+		{"year 5000", "TRY", goalReq("100", "nominal", "5000-12-01"), tooFar},
+		{"year 9999", "TRY", goalReq("100", "nominal", "9999-12-31"), tooFar},
+		{"month after the cap", "TRY", goalReq("100", "nominal", nextMonthOf(capMonth)+"-01"), tooFar},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -140,6 +145,49 @@ func TestGoalValidation(t *testing.T) {
 	nextMonth := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, time.UTC).Format(time.DateOnly)
 	if rec := e.do(session, http.MethodPut, path, goalReq("100", "nominal", nextMonth)); rec.Code != http.StatusOK {
 		t.Errorf("first day of next month = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+	// The same month 50 years ahead is the latest target the server accepts.
+	if rec := e.do(session, http.MethodPut, path, goalReq("100", "nominal", capMonth+"-28")); rec.Code != http.StatusOK {
+		t.Errorf("cap month = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+}
+
+// nextMonthOf returns the YYYY-MM after month.
+func nextMonthOf(month string) string {
+	m, err := time.Parse("2006-01", month)
+	if err != nil {
+		panic(err)
+	}
+	return m.AddDate(0, 1, 0).Format("2006-01")
+}
+
+// TestGoalProjectionAtCap checks that a goal at the latest accepted target
+// month, over a portfolio whose median monthly return is positive, projects
+// to a finite fan that decodes. Before the cap a far target let the
+// compounded path pass math.MaxFloat64, which encoding/json refuses, so the
+// route answered an empty 200.
+func TestGoalProjectionAtCap(t *testing.T) {
+	e := newTransactionTestEnv(t)
+	session := e.login("a@example.com")
+	id := e.createPortfolio(session, "Deposit")
+	body := map[string]any{
+		"currency": "TRY", "principal": "20000", "rate": "0.5", "stopaj_rate": "0",
+		"start_date": daysFromToday(t, -240), "maturity_date": daysFromToday(t, 3000), "fund": true,
+	}
+	if rec := e.do(session, http.MethodPost, fmt.Sprintf("/api/portfolios/%d/deposits", id), body); rec.Code != http.StatusCreated {
+		t.Fatalf("create deposit = %d %s", rec.Code, rec.Body.String())
+	}
+	capDate := fmt.Sprintf("%d%s-28", time.Now().In(price.Istanbul).Year()+50, price.Today()[4:7])
+	if rec := e.do(session, http.MethodPut, goalPath(id), goalReq("10000000", "nominal", capDate)); rec.Code != http.StatusOK {
+		t.Fatalf("put goal = %d %s", rec.Code, rec.Body.String())
+	}
+	rec := e.do(session, http.MethodGet, fmt.Sprintf("/api/portfolios/%d/projection", id), nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("projection = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+	got := decodeJSON[projectionResponse](t, rec.Body.Bytes())
+	if got.HistoryMonths < 6 || len(got.Months) != 600 {
+		t.Errorf("projection = %d history months, %d months, want 6 or more and 600", got.HistoryMonths, len(got.Months))
 	}
 }
 

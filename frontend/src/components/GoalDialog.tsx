@@ -90,8 +90,15 @@ function GoalForm({
     : t('goal.error.amount')
   const amountError = amount.trim() === '' || amountValue !== null ? undefined : amountMessage
   // YYYY-MM-DD sorts as text, so comparing the YYYY-MM prefixes compares the months.
-  const dateOk = date.slice(0, 7) > todayIstanbul().slice(0, 7)
-  const dateError = date === '' || dateOk ? undefined : t('goal.error.targetDate')
+  const today = todayIstanbul()
+  const later = date.slice(0, 7) > today.slice(0, 7)
+  // The same calendar month 50 years ahead is the latest the server accepts.
+  const near = date.slice(0, 7) <= `${Number(today.slice(0, 4)) + 50}${today.slice(4, 7)}`
+  const dateOk = later && near
+  const dateError =
+    date === '' || dateOk
+      ? undefined
+      : t(later ? 'goal.error.targetDateFar' : 'goal.error.targetDate')
   const valid = amountValue !== null && dateOk
 
   function done(key: 'goal.saved' | 'goal.deleted') {

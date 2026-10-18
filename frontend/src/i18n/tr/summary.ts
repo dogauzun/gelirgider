@@ -115,6 +115,7 @@ export const trSummary = {
   'goal.loadError': 'Hedef yüklenemedi',
   'goal.error.amount': 'Tutar 0’dan büyük bir sayı olmalı.',
   'goal.error.targetDate': 'Hedef tarih bugünden sonraki bir ayda olmalı.',
+  'goal.error.targetDateFar': 'Hedef tarih bugünden en fazla 50 yıl sonra olabilir.',
   'goal.error.unit': 'Bu birim, raporlama para birimiyle kullanılamaz.',
   'goal.error.notFound': 'Hedef bulunamadı.',
   // The goal card on Özet.
