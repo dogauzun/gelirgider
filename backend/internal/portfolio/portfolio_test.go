@@ -344,6 +344,43 @@ func TestDeleteRemovesGoals(t *testing.T) {
 	}
 }
 
+// TestDeleteRemovesSavingPlans checks that deleting a portfolio takes its
+// saving plans with it and leaves the user's other portfolio's plan alone.
+func TestDeleteRemovesSavingPlans(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	for _, q := range []string{
+		`INSERT INTO users (id, email, password_hash, created_at) VALUES
+		 (1, 'a@example.com', 'x', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO portfolios (id, user_id, name, created_at) VALUES
+		 (1, 1, 'Gone', '2026-01-01T00:00:00Z'),
+		 (2, 1, 'Kept', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO saving_plans (user_id, portfolio_id, currency, amount, day_of_month, start_date, next_date, created_at) VALUES
+		 (1, 1, 'TRY', '100', 5, '2026-01-05', '2026-01-05', '2026-01-01T00:00:00Z'),
+		 (1, 2, 'TRY', '200', 5, '2026-01-05', '2026-01-05', '2026-01-01T00:00:00Z')`,
+	} {
+		if _, err := conn.Exec(q); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+
+	if _, err := NewRepo(conn).Delete(context.Background(), 1, 1, false); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+
+	var got string
+	if err := conn.QueryRow("SELECT group_concat(amount) FROM (SELECT amount FROM saving_plans ORDER BY amount)").Scan(&got); err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if got != "200" {
+		t.Fatalf("amounts left = %q, want 200", got)
+	}
+}
+
 // TestDeleteRemovesTermDeposits checks that deleting a portfolio takes its
 // term deposits and their DEPOSIT instruments with it, and leaves the
 // deposits of the user's other portfolio and of another user alone.
