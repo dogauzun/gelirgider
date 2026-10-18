@@ -27,6 +27,7 @@ import { todayIstanbul } from '../lib/date'
 import { isHeld, positionLabel } from '../lib/positions'
 import { resolveRange } from '../lib/ranges'
 import { rangeSearch, useRange, useZoom } from '../lib/useRange'
+import { benchmarkNames, useBenchmark } from '../lib/useReturnSettings'
 import { usePortfolioTitle } from '../lib/useTitle'
 
 const CARD_HEAD = 'flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3'
@@ -58,7 +59,10 @@ export function PositionPage() {
   const { search } = useLocation()
   const { from, to } = resolveRange(range, todayIstanbul())
   const attribution = useAttribution(portfolioId, from, to)
-  const history = usePositionHistory(portfolioId, instrumentId, from, to)
+  // Fixed benchmarks only (useBenchmark without a summary): a stored position
+  // benchmark counts as none.
+  const { benchmark, options, setBenchmark } = useBenchmark(undefined)
+  const history = usePositionHistory(portfolioId, instrumentId, { from, to }, benchmark)
   const transactions = useTransactions(portfolioId, { instrumentId })
   const [chart, setChart] = useState<ChartView>('price')
   const { openTrade, openPrice, dialogs } = usePositionActions(portfolioId)
@@ -89,7 +93,10 @@ export function PositionPage() {
     total_value: p.twr ?? null,
     cost_basis: null,
     cash: '0',
+    benchmark_value: p.benchmark_twr ?? undefined,
   }))
+  const historyBenchmark = history.data?.benchmark ?? null
+  const names = benchmarkNames(historyBenchmark?.code, options)
 
   const rows = transactions.data ?? []
 
@@ -154,7 +161,13 @@ export function PositionPage() {
               )}
             />
 
-            <PositionReturnCard history={history} currency={position.currency} />
+            <PositionReturnCard
+              history={history}
+              currency={position.currency}
+              benchmark={benchmark}
+              benchmarks={options}
+              onBenchmark={setBenchmark}
+            />
 
             <section className="my-6 card">
               <div className={CARD_HEAD}>
@@ -198,7 +211,9 @@ export function PositionPage() {
                       <LineChart
                         unit="percent"
                         points={returnPoints}
-                        labels={{ value: t('position.returnLine') }}
+                        labels={{ value: t('position.returnLine'), excess: names.excess }}
+                        benchmarkLabel={names.label}
+                        estimatedFrom={historyBenchmark?.estimated_from}
                         onZoom={zoom.onZoom}
                       />
                     ) : (

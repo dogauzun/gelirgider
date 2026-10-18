@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '../api'
-import { historyQueryKey, type ReturnMethod } from './history'
+import { historyQueryKey, type Benchmark, type ReturnMethod } from './history'
 
 // One day of one holding (ADR 0016), in the instrument's own currency.
 // close is null before the first price; the rest are zero on a day the
@@ -15,6 +15,9 @@ export interface PositionHistoryPoint {
   // The position's time-weighted return from returns_from to this day, in
   // the instrument's currency; null before it is defined.
   twr?: string | null
+  // The same for the requested benchmark's shadow series, in the
+  // instrument's currency; null without a benchmark or where it has no value.
+  benchmark_twr?: string | null
 }
 
 export interface PositionHistoryResponse {
@@ -25,16 +28,25 @@ export interface PositionHistoryResponse {
   // counted date.
   returns: Record<ReturnMethod, string | null>
   returns_from: string | null
+  // The requested benchmark's returns by method over the same range, null
+  // where undefined; estimated_from is the first day whose level is
+  // extrapolated. null when no benchmark was requested.
+  benchmark: {
+    code: Benchmark
+    returns: Record<ReturnMethod, string | null>
+    estimated_from: string | null
+  } | null
 }
 
 function fetchPositionHistory(
   portfolioId: number,
   instrumentId: number,
-  from: string,
-  to: string,
+  { from, to }: { from: string; to: string },
+  benchmark?: Benchmark | null,
 ): Promise<PositionHistoryResponse> {
   const params = new URLSearchParams({ to })
   if (from) params.set('from', from)
+  if (benchmark) params.set('benchmark', benchmark)
   return apiFetch<PositionHistoryResponse>(
     `/api/portfolios/${portfolioId}/instruments/${instrumentId}/history?${params}`,
   )
@@ -45,12 +57,19 @@ function fetchPositionHistory(
 export function usePositionHistory(
   portfolioId: number,
   instrumentId: number,
-  from: string,
-  to: string,
+  { from, to }: { from: string; to: string },
+  benchmark?: Benchmark | null,
 ) {
   return useQuery({
-    queryKey: [...historyQueryKey(portfolioId), 'position', instrumentId, from, to] as const,
-    queryFn: () => fetchPositionHistory(portfolioId, instrumentId, from, to),
+    queryKey: [
+      ...historyQueryKey(portfolioId),
+      'position',
+      instrumentId,
+      from,
+      to,
+      benchmark ?? null,
+    ] as const,
+    queryFn: () => fetchPositionHistory(portfolioId, instrumentId, { from, to }, benchmark),
     // As usePortfolioHistory: the same position's last range stays on screen
     // while a new one loads, another position starts empty.
     placeholderData: (previous, previousQuery) =>

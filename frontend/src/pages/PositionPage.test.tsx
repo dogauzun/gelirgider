@@ -28,6 +28,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   restoreSize()
+  localStorage.clear()
   setPrivacy(false)
   vi.restoreAllMocks()
   vi.useRealTimers()
@@ -525,6 +526,31 @@ it('says why the return chart is empty when no held day has a twr', async () => 
   fireEvent.click(within(chartCard()).getByRole('radio', { name: 'Getiri (%)' }))
   expect(await within(chartCard()).findByText('Bu aralık için tanımsız')).toBeInTheDocument()
   expect(chartCard().querySelector('.recharts-wrapper')).toBeNull()
+})
+
+it('requests the stored benchmark, shows its pill and draws its dotted line on the return view', async () => {
+  localStorage.setItem('benchmark', 'XU100')
+  const withBenchmark = {
+    ...days(['0', '0.0416']),
+    benchmark: {
+      code: 'XU100',
+      returns: { simple: '0.1', twr: '0.1', mwr: '0.1' },
+      estimated_from: null,
+    },
+  }
+  withBenchmark.points[0] = { ...withBenchmark.points[0], benchmark_twr: '0' } as never
+  withBenchmark.points[1] = { ...withBenchmark.points[1], benchmark_twr: '0.1' } as never
+  const urls = mockApi({ history: withBenchmark })
+  renderPage()
+  await screen.findByRole('heading', { level: 1, name: 'THYAO' })
+
+  await waitFor(() =>
+    expect(urls.some((u) => u.includes('/history?') && u.includes('benchmark=XU100'))).toBe(true),
+  )
+  expect(await screen.findByText(/BIST 100 \+%10,00/)).toBeInTheDocument()
+  const card = chartCard()
+  fireEvent.click(within(card).getByRole('radio', { name: 'Getiri (%)' }))
+  await waitFor(() => expect(card.querySelector('.series-benchmark')).not.toBeNull())
 })
 
 it('sets the range from a drag on the chart, and the clear button returns to the range before it', async () => {

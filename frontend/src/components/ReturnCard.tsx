@@ -15,6 +15,8 @@ import {
 import { RANGES, resolveRange, type RangeValue } from '../lib/ranges'
 import { annualize, excessReturn } from '../lib/returns'
 import { useZoom } from '../lib/useRange'
+import { benchmarkNames } from '../lib/useReturnSettings'
+import { BenchmarkSelect } from './BenchmarkSelect'
 import { LineChart } from './LazyChart'
 import { RangePicker } from './RangePicker'
 import { ReturnMethodSelect } from './ReturnMethodSelect'
@@ -22,7 +24,7 @@ import { useStoredChoice } from '../lib/useStoredChoice'
 import { ChartFrame } from './ui/ChartFrame'
 import { Notice } from './ui/Notice'
 import { Pill } from './ui/Pill'
-import { FitSelect, type SelectOption } from './ui/Select'
+import type { SelectOption } from './ui/Select'
 import { Segmented } from './ui/Segmented'
 import { TAP_Y } from './ui/tap'
 
@@ -132,14 +134,9 @@ export function ReturnCard({
     !!history?.inflation_estimated_from &&
     !!lastDate &&
     history.inflation_estimated_from <= lastDate
-  // A position reads as its symbol.
-  const benchmarkLabel = historyBenchmark
-    ? (benchmarks.find((b) => b.value === historyBenchmark.code)?.label ?? historyBenchmark.code)
-    : undefined
-  // Above inflation the difference is the real return, in the pill and the
-  // chart's tooltip alike.
-  const excessLabel = t(
-    historyBenchmark?.code === 'TUFE' ? 'chart.benchmark.real' : 'chart.benchmark.excess',
+  const { label: benchmarkLabel, excess: excessLabel } = benchmarkNames(
+    historyBenchmark?.code,
+    benchmarks,
   )
   // A range of a year or more also shows the returns annualized,
   // over the days between the first and last point. A range 364 to 366 days
@@ -199,14 +196,7 @@ export function ReturnCard({
           {`${t('chart.return.title')} · ${rangeLabel}`}
         </h2>
         <div className="flex gap-2 max-sm:order-last max-sm:mt-1">
-          <FitSelect
-            aria-label={t('chart.benchmark.label')}
-            // '' is none, and Base UI keeps it as a value: its label shows
-            // and picking it reports ''.
-            value={benchmark ?? ''}
-            onChange={(next) => onBenchmark((next as Benchmark) || null)}
-            options={[{ value: '', label: t('chart.benchmark.none') }, ...benchmarks]}
-          />
+          <BenchmarkSelect benchmark={benchmark} benchmarks={benchmarks} onChange={onBenchmark} />
           <ReturnMethodSelect method={method} onChange={onMethod} />
         </div>
         <div className="min-w-0 sm:col-span-2">
