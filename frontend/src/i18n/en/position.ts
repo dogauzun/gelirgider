@@ -17,6 +17,8 @@ export const enPosition: AreaStrings<typeof trPosition> = {
   'position.realizedHint': 'Includes dividends',
   'position.dividends': 'Dividends',
   'position.dividendsHint': 'inside Realized',
+  'position.dividendForecast': '~{amount} a year expected · yield {yield}',
+  'position.dividendForecastNoYield': '~{amount} a year expected',
   'position.today': '{change} today',
   'position.chart': 'Chart',
   'position.closed': 'Closed',
