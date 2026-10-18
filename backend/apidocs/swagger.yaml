@@ -216,6 +216,65 @@ definitions:
       note:
         type: string
     type: object
+  server.depositRequest:
+    properties:
+      currency:
+        type: string
+      fund:
+        description: Fund books a cash deposit of the principal on the start date
+          as well.
+        type: boolean
+      maturity_date:
+        type: string
+      note:
+        type: string
+      principal:
+        type: string
+      rate:
+        type: string
+      start_date:
+        type: string
+      stopaj_rate:
+        type: string
+    type: object
+  server.depositResponse:
+    properties:
+      accrued_interest:
+        description: AccruedInterest is Value minus the principal.
+        type: string
+      currency:
+        type: string
+      id:
+        type: integer
+      instrument_id:
+        type: integer
+      maturity_date:
+        type: string
+      net_interest_at_maturity:
+        description: NetInterestAtMaturity is the interest over the whole term, after
+          stopaj.
+        type: string
+      payout:
+        description: Payout is the principal plus NetInterestAtMaturity.
+        type: string
+      principal:
+        type: string
+      rate:
+        type: string
+      start_date:
+        type: string
+      status:
+        description: |-
+          Status is matured (a sell is recorded on the deposit), else due (today is
+          on or after the maturity date), else active.
+        type: string
+      stopaj_rate:
+        type: string
+      value:
+        description: Value is the principal plus the net interest accrued up to today,
+          2 decimals.
+        type: string
+    type: object
   server.dividendBucket:
     properties:
       gross:
@@ -3189,6 +3248,107 @@ paths:
       summary: Record the cash gaps as deposits
       tags:
       - portfolios
+  /portfolios/{id}/deposits:
+    get:
+      description: Newest start date first. value is today's net value (principal
+        plus the net interest accrued), payout the principal plus the net interest
+        at maturity, both 2 decimals. status is matured when a sell is recorded on
+        the deposit, else due from the maturity date, else active.
+      parameters:
+      - description: portfolio id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/server.depositResponse'
+            type: array
+        "404":
+          description: portfolio not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: List a portfolio's term deposits
+      tags:
+      - deposits
+    post:
+      consumes:
+      - application/json
+      description: Books a buy of quantity = principal at price 1 on a new hidden
+        DEPOSIT instrument, valued from the deposit's terms (simple interest, actual/365,
+        net of stopaj). With fund true it also books a cash deposit of the principal
+        on the start date, before the buy; leave it off when the cash is already recorded,
+        or the cash counts twice. Decimals are strings with at most 15 integer and
+        9 fraction digits; rate and stopaj_rate are fractions (0.45 for 45%).
+      parameters:
+      - description: portfolio id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: principal > 0, rate > 0 and at most 10, stopaj_rate from 0 up
+          to but not including 1, start_date not in the future, maturity_date after
+          it and at most 10 years later
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/server.depositRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/server.depositResponse'
+        "400":
+          description: 'invalid request body; currency: must be one of TRY, USD, EUR;
+            principal|rate|stopaj_rate: required; principal|rate|stopaj_rate: must
+            be a non-negative number with at most 15 integer and 9 fraction digits;
+            principal: must be a positive number; rate: must be greater than 0 and
+            at most 10; stopaj_rate: must be at least 0 and below 1; start_date: must
+            be YYYY-MM-DD; start_date: must not be in the future; start_date: must
+            be on or after 1990-01-01; maturity_date: must be YYYY-MM-DD; maturity_date:
+            must be after start_date; maturity_date: must be at most 10 years after
+            start_date; note: must be at most 500 characters; note: must not contain
+            control characters'
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: portfolio not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Open a term deposit
+      tags:
+      - deposits
   /portfolios/{id}/dividends/expected:
     get:
       description: Ex-dates up to today on which the portfolio held the instrument,

@@ -83,6 +83,9 @@ func New(logger *slog.Logger, conn *sql.DB, cookieSecure bool, cfg *settings.Rep
 type deps struct {
 	cfg  *settings.Repo
 	runs *scheduler.RunLog
+	// conn is the database, for a handler that writes several rows in one SQL
+	// transaction. newHandler sets it.
+	conn *sql.DB
 
 	bistFetcher    *bist.Fetcher
 	usFetcher      *us.Fetcher
@@ -117,6 +120,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", handleHealth(logger, conn))
 
+	d.conn = conn
 	d.users = user.NewRepo(conn)
 	d.portfolios = portfolio.NewRepo(conn)
 	d.instruments = instrument.NewRepo(conn)
@@ -209,6 +213,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 	registerCashGapRoutes(protected, &d)
 	registerPositionHistoryRoutes(protected, &d)
 	registerDividendRoutes(protected, &d)
+	registerDepositRoutes(protected, &d, onDemandFetch)
 	mux.Handle("/api/", sessions.RequireUser(withJSONMiss(protected)))
 
 	return withRecover(logger, withLogging(logger, withCrossOriginProtection(withBodyLimit(mux))))

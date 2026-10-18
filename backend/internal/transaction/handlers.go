@@ -239,7 +239,7 @@ func fromRequest(req Request) (Transaction, error) {
 
 	t := Transaction{Type: req.Type, Date: req.Date, Fee: fee}
 	if req.Note != nil {
-		if t.Note, err = parseNote(*req.Note); err != nil {
+		if t.Note, err = ParseNote(*req.Note); err != nil {
 			return Transaction{}, err
 		}
 	}
@@ -259,8 +259,8 @@ func fromRequest(req Request) (Transaction, error) {
 	return t, nil
 }
 
-// parseNote trims and validates a transaction note.
-func parseNote(raw string) (string, error) {
+// ParseNote trims and validates a transaction note.
+func ParseNote(raw string) (string, error) {
 	// Trim first so surrounding whitespace neither counts against the
 	// limit nor gets stored as an empty-looking note.
 	note := strings.TrimSpace(raw)
@@ -421,6 +421,13 @@ func parseDecimal(s *string, minimum string) (decimal.Decimal, error) {
 
 func parseNonNegativeDecimal(s *string) (decimal.Decimal, error) {
 	return parseDecimal(s, "non-negative")
+}
+
+// ParseNonNegative parses s with the limits of a transaction's decimals, for
+// a request that has decimals of its own (the term deposit routes). The
+// error is a bare message tail the caller prefixes with its field.
+func ParseNonNegative(s string) (decimal.Decimal, error) {
+	return parseNonNegativeDecimal(&s)
 }
 
 func parsePositiveDecimal(s *string) (decimal.Decimal, error) {
