@@ -9,6 +9,14 @@ export const trSummary = {
   // The currency move on foreign cash and on the cost of foreign positions,
   // which neither P/L figure holds.
   'summary.fxPl': 'Kur farkı',
+  // The card under the return card: the range's return by cause.
+  'summary.returnSplit.title': 'Getiri dağılımı',
+  'summary.returnSplit.error': 'Getiri dağılımı yüklenemedi',
+  'summary.returnSplit.price': 'Fiyat',
+  'summary.returnSplit.income': 'Gelir',
+  'summary.returnSplit.incomeHint': 'Net temettü ve faiz',
+  'summary.returnSplit.fx': 'Kur farkı',
+  'summary.returnSplit.cashFx': 'Nakit kur farkı',
   'summary.value': 'Değer',
   // Qualifies the percentage next to it: the return is measured against
   // what the positions cost, not against the total value.

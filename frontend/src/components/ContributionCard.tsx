@@ -5,6 +5,7 @@ import { t } from '../i18n/strings'
 import { CONTRIBUTION_MODES, contributionRows, type ContributionMode } from '../lib/contribution'
 import { plTone, signedMoney } from '../lib/format'
 import { usePositionPath } from '../lib/useRange'
+import { SignedBar } from './SignedBar'
 import { Segmented } from './ui/Segmented'
 import { TAP_Y } from './ui/tap'
 
@@ -67,16 +68,7 @@ export function ContributionCard({
                     {row.symbol}
                   </Link>
                 )}
-                <span aria-hidden="true" className="relative h-3.5">
-                  <span className="absolute -inset-y-0.5 left-1/2 w-px bg-line-strong" />
-                  <span
-                    data-bar
-                    className={`absolute inset-y-0 rounded-[3px] ${
-                      row.value < 0 ? 'right-1/2 bg-loss' : 'left-1/2 bg-gain'
-                    }`}
-                    style={{ width: `${row.fraction * 50}%` }}
-                  />
-                </span>
+                <SignedBar negative={row.value < 0} fraction={row.fraction} />
                 <span className={`text-right tabular-nums ${plTone(row.amount)}`}>
                   {signedMoney(row.amount, currency)}
                 </span>

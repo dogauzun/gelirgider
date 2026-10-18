@@ -34,6 +34,18 @@ beforeAll(() => {
   }
 })
 
+// The return split card's endpoint, answered with four zeros wherever a test
+// does not look at the card.
+const attribution = () =>
+  Response.json({
+    currency: 'TRY',
+    from: '2026-01-01',
+    to: '2026-03-31',
+    total: { price: '0.00', income: '0.00', fx: '0.00', cash_fx: '0.00' },
+    positions: [],
+    missing_rates: [],
+  })
+
 // A KPI sub-line by its whole text: each money figure in it is its own
 // nowrap span, and the hero's ▲/▼ arrow is left out.
 const subLine = (text: string) => (_: string, el: Element | null) =>
@@ -146,6 +158,7 @@ describe('SummaryPage', () => {
         )
       }
       // Mocked so the history query never fails and retries into the next test.
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -248,6 +261,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -316,6 +330,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -410,6 +425,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -511,6 +527,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -605,6 +622,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -688,6 +706,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/all/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/all/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -754,6 +773,7 @@ describe('SummaryPage', () => {
           positions: [],
         })
       }
+      if (url.startsWith('/api/portfolios/3/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/3/history?')) {
         return Response.json({ currency: 'TRY', points: [] })
       }
@@ -824,6 +844,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -896,6 +917,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -975,6 +997,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -1036,6 +1059,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -1091,6 +1115,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -1173,6 +1198,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -1228,6 +1254,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(
           JSON.stringify({ currency: 'TRY', points: [], missing_prices: ['AAPL'] }),
@@ -1280,6 +1307,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(
           JSON.stringify({
@@ -1346,6 +1374,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(
           JSON.stringify({
@@ -1420,6 +1449,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(
           JSON.stringify({
@@ -1513,6 +1543,7 @@ describe('SummaryPage', () => {
             { status: 200 },
           )
         }
+        if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
         if (url.startsWith('/api/portfolios/1/history?')) {
           const code = new URL(url, 'http://x').searchParams.get('benchmark')
           const withValues = code !== null && benchmarkValues
@@ -1736,6 +1767,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -1796,6 +1828,7 @@ describe('SummaryPage', () => {
       // but the chart must still surface any other history-query failure
       // (e.g. a network error, or a future regression) instead of quietly
       // rendering nothing. The retry then answers.
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         historyCalls++
         if (historyCalls === 1) {
@@ -1853,6 +1886,7 @@ describe('SummaryPage', () => {
           positions: [],
         })
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         const empty = Response.json({ currency: 'TRY', points: [] })
         // 3M is the default; the 1Y answer is held until the test sends it.
@@ -1903,6 +1937,7 @@ describe('SummaryPage', () => {
       if (url === '/api/portfolios/999/summary') {
         return new Response(JSON.stringify({ error: 'portfolio not found' }), { status: 404 })
       }
+      if (url.startsWith('/api/portfolios/999/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/999/history?')) {
         return new Response(JSON.stringify({ error: 'portfolio not found' }), { status: 404 })
       }
@@ -1977,6 +2012,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -2103,6 +2139,7 @@ describe('SummaryPage', () => {
       }
       if (url === '/api/portfolios/all/summary')
         return Response.json(summary([position(4, 'SISE'), position(6, 'THYAO')]))
+      if (/^\/api\/portfolios\/(all|1|2)\/attribution\?/.test(url)) return attribution()
       if (/^\/api\/portfolios\/(all|1|2)\/history\?/.test(url))
         return Response.json({
           currency: 'TRY',
@@ -2213,6 +2250,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -2297,6 +2335,7 @@ describe('SummaryPage', () => {
         if (url === '/api/portfolios/1/summary') {
           return new Response(JSON.stringify(summary(!deleted)), { status: 200 })
         }
+        if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
         if (url.startsWith('/api/portfolios/1/history?')) {
           return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
         }
@@ -2439,6 +2478,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -2495,6 +2535,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(
           JSON.stringify({ currency: 'TRY', points: [], missing_rates: historyMissingRates }),
@@ -2560,6 +2601,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -2687,6 +2729,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -2774,6 +2817,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -2842,6 +2886,7 @@ describe('SummaryPage', () => {
           { status: 200 },
         )
       }
+      if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
       if (url.startsWith('/api/portfolios/1/history?')) {
         return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
       }
@@ -2898,6 +2943,7 @@ describe('SummaryPage', () => {
             { status: 200 },
           )
         }
+        if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
         if (url.startsWith('/api/portfolios/1/history?')) {
           return new Response(JSON.stringify({ currency: 'TRY', points: [] }), { status: 200 })
         }
@@ -3049,6 +3095,7 @@ describe('SummaryPage', () => {
           await created
           return new Response(JSON.stringify({ id: 99 }), { status: 201 })
         }
+        if (url.startsWith('/api/portfolios/1/attribution?')) return attribution()
         if (url.startsWith('/api/portfolios/1/history?')) {
           return new Response(
             JSON.stringify({
@@ -3123,7 +3170,8 @@ describe('SummaryPage', () => {
       mockApi(twoPositions)
       renderPage()
       const sections = [
-        await screen.findByRole('heading', { name: /^Getiri/ }),
+        await screen.findByRole('heading', { name: /^Getiri ·/ }),
+        await screen.findByRole('heading', { name: 'Getiri dağılımı' }),
         await screen.findByRole('heading', { name: 'Dikkat' }),
         screen.getByText('Toplam değer', { selector: 'p' }),
         screen.getByRole('heading', { name: 'İstatistikler' }),
@@ -3131,25 +3179,30 @@ describe('SummaryPage', () => {
         screen.getByRole('heading', { name: 'Dağılım' }),
         screen.getByRole('heading', { name: 'Katkı' }),
       ]
+      const [ret, split, attention, , stats, , allocation, contribution] = sections
       for (let i = 1; i < sections.length; i++) {
         expect(
           sections[i - 1].compareDocumentPosition(sections[i]) & Node.DOCUMENT_POSITION_FOLLOWING,
         ).toBeTruthy()
       }
-      // Return and attention share a row, about 2:1, from lg.
-      const top = sections[0].closest('section')!.parentElement!
+      // Return and attention share a row, about 2:1, from lg, with the split
+      // under the return in its column.
+      const column = ret.closest('section')!.parentElement!
+      expect(column).toContainElement(split)
+      const top = column.parentElement!
       expect(top).toHaveClass('lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]')
-      expect(top).toContainElement(sections[1])
+      expect(top).toContainElement(attention)
+      expect(column).not.toContainElement(attention)
       // İstatistikler a full-width strip of five under the KPI strip, in view
       // without scrolling.
-      expect(sections[3].closest('section')).toHaveClass('lg:grid-cols-5')
+      expect(stats.closest('section')).toHaveClass('lg:grid-cols-5')
       // Dağılım and Katkı side by side from lg, stretched to one height.
-      const bottom = sections[5].closest('section')!.parentElement!
+      const bottom = allocation.closest('section')!.parentElement!
       expect(bottom).toHaveClass('lg:grid-cols-2')
       expect(bottom).not.toHaveClass('lg:items-start')
-      expect(bottom).toContainElement(sections[6])
+      expect(bottom).toContainElement(contribution)
       // The Katkı rows link to the position page.
-      const katki = within(sections[6].closest('section')!)
+      const katki = within(contribution.closest('section')!)
       expect(katki.getAllByRole('listitem').map((li) => li.textContent)).toEqual([
         'AKBNK+₺100,00',
         'SISE+₺23,45',
@@ -3340,6 +3393,7 @@ describe('SummaryPage', () => {
           if (url === '/api/portfolios/2/dividends/expected') return Response.json([])
           if (url === '/api/portfolios/1/transactions' && method === 'POST')
             return Response.json({ id: 99 }, { status: 201 })
+          if (/^\/api\/portfolios\/(all|1|2)\/attribution\?/.test(url)) return attribution()
           if (/^\/api\/portfolios\/(all|1|2)\/history\?/.test(url)) return Response.json(history)
           throw new Error(`unexpected request: ${url}`)
         })
