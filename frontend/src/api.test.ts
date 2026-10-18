@@ -63,6 +63,14 @@ describe('translateError', () => {
     expect(translateError('plan has ended')).toBe('Plan bitti.')
     expect(translateError('no close on or before 2026-10-05')).toMatch(/^2026-10-05 tarihinde/)
     expect(translateError('amount buys no unit at 123.45')).toMatch(/^123.45 fiyatıyla/)
+    // start_date is shared by plans (up to a year ahead) and deposits (never in the future).
+    expect(translateError('start_date: must be at most 1 year after today')).toBe(
+      'Başlangıç tarihi geçerli bir tarih olmalı, en fazla 1 yıl sonra olabilir.',
+    )
+    expect(translateError('start_date: must not be in the future')).toBe(
+      'Vade başı geçerli bir tarih olmalı, gelecekte olamaz.',
+    )
+    expect(translateError('start_date: must be YYYY-MM-DD')).toBe('Tarih geçersiz.')
     expect(translateError('day_of_month: must be between 1 and 31')).toBe(
       'Gün 1 ile 31 arasında olmalı.',
     )
