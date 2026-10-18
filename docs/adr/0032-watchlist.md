@@ -114,6 +114,8 @@ list.
   profit together.
 - Acknowledging or snoozing a reached target.
 - Per-portfolio watchlists.
+- Several lists, and ordering the list by hand.
+- A target on a held position's row on Özet.
 - Reporting-currency conversion of the prices.
 - Charts or history of a watched instrument beyond what the position page
   shows for a holding.
