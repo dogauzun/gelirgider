@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/db"
@@ -28,7 +29,8 @@ type Terms struct {
 }
 
 // Deposit is a stored term deposit. FundingTransactionID is nil when opening
-// it booked no cash deposit.
+// it booked no cash deposit. RenewedFrom is the id of the deposit this one
+// renews, nil for a deposit opened on its own.
 type Deposit struct {
 	ID                   int64
 	UserID               int64
@@ -38,6 +40,7 @@ type Deposit struct {
 	Principal            decimal.Decimal
 	Terms                Terms
 	FundingTransactionID *int64
+	RenewedFrom          *int64
 	CreatedAt            time.Time
 }
 
@@ -89,6 +92,10 @@ func Interest(principal decimal.Decimal, terms Terms) (gross, stopaj decimal.Dec
 // user, including when the id belongs to another user.
 var ErrNotFound = errors.New("deposit not found")
 
+// ErrAlreadyRenewed is returned by InsertTx when another deposit already
+// renews the same one.
+var ErrAlreadyRenewed = errors.New("deposit already renewed")
+
 // Repo persists deposits.
 type Repo struct {
 	db *sql.DB
@@ -102,14 +109,14 @@ func NewRepo(db *sql.DB) *Repo {
 // columns is the term_deposits column list every SELECT reads, in the order
 // scanDeposit scans it.
 const columns = `id, user_id, portfolio_id, instrument_id, currency, principal, rate, stopaj_rate,
-	start_date, maturity_date, funding_transaction_id, created_at`
+	start_date, maturity_date, funding_transaction_id, renewed_from, created_at`
 
 func scanDeposit(rows *sql.Rows) (Deposit, error) {
 	var d Deposit
 	var createdAt string
 	if err := rows.Scan(&d.ID, &d.UserID, &d.PortfolioID, &d.InstrumentID, &d.Currency, &d.Principal,
 		&d.Terms.Rate, &d.Terms.StopajRate, &d.Terms.StartDate, &d.Terms.MaturityDate,
-		&d.FundingTransactionID, &createdAt); err != nil {
+		&d.FundingTransactionID, &d.RenewedFrom, &createdAt); err != nil {
 		return Deposit{}, fmt.Errorf("scan deposit: %w", err)
 	}
 	var err error
@@ -179,12 +186,22 @@ func (r *Repo) Get(ctx context.Context, userID, id int64) (Deposit, error) {
 // SoldTx reports whether userID has a sell on the deposit instrument, read
 // inside tx so the answer holds until tx ends.
 func (r *Repo) SoldTx(ctx context.Context, tx *sql.Tx, userID, instrumentID int64) (bool, error) {
+	return existsTx(ctx, tx, "sell",
+		`SELECT COUNT(*) FROM transactions WHERE user_id = ? AND instrument_id = ? AND type = 'sell'`, userID, instrumentID)
+}
+
+// RenewedTx reports whether userID has a deposit that renews the deposit with
+// the given id, read inside tx so the answer holds until tx ends.
+func (r *Repo) RenewedTx(ctx context.Context, tx *sql.Tx, userID, id int64) (bool, error) {
+	return existsTx(ctx, tx, "renewal",
+		`SELECT COUNT(*) FROM term_deposits WHERE user_id = ? AND renewed_from = ?`, userID, id)
+}
+
+// existsTx reports whether the COUNT query returns above zero.
+func existsTx(ctx context.Context, tx *sql.Tx, what, query string, args ...any) (bool, error) {
 	var n int
-	err := tx.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM transactions WHERE user_id = ? AND instrument_id = ? AND type = 'sell'`,
-		userID, instrumentID).Scan(&n)
-	if err != nil {
-		return false, fmt.Errorf("query deposit sell: %w", err)
+	if err := tx.QueryRowContext(ctx, query, args...).Scan(&n); err != nil {
+		return false, fmt.Errorf("query deposit %s: %w", what, err)
 	}
 	return n > 0, nil
 }
@@ -209,18 +226,24 @@ func (r *Repo) DeleteTx(ctx context.Context, tx *sql.Tx, d Deposit) error {
 }
 
 // InsertTx stores d inside tx and returns it with its id and creation time
-// set; d's ID and CreatedAt are ignored. Ownership of the portfolio and the
-// instrument is the caller's to check.
+// set; d's ID and CreatedAt are ignored. Ownership of the portfolio, the
+// instrument and RenewedFrom is the caller's to check. It returns
+// ErrAlreadyRenewed when another deposit already renews RenewedFrom.
 func (r *Repo) InsertTx(ctx context.Context, tx *sql.Tx, d Deposit) (Deposit, error) {
 	d.CreatedAt = time.Now().UTC().Truncate(time.Second)
 	res, err := tx.ExecContext(ctx,
 		`INSERT INTO term_deposits (user_id, portfolio_id, instrument_id, currency, principal, rate, stopaj_rate,
-		                            start_date, maturity_date, funding_transaction_id, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		                            start_date, maturity_date, funding_transaction_id, renewed_from, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		d.UserID, d.PortfolioID, d.InstrumentID, d.Currency, d.Principal.String(), d.Terms.Rate.String(),
 		d.Terms.StopajRate.String(), d.Terms.StartDate, d.Terms.MaturityDate, d.FundingTransactionID,
-		d.CreatedAt.Format(time.RFC3339),
+		d.RenewedFrom, d.CreatedAt.Format(time.RFC3339),
 	)
+	// Matched on the message, as the user and import repos do: instrument_id
+	// is fresh, so renewed_from is the only unique column that can fail.
+	if err != nil && strings.Contains(strings.ToLower(err.Error()), "unique constraint") {
+		return Deposit{}, ErrAlreadyRenewed
+	}
 	if err != nil {
 		return Deposit{}, fmt.Errorf("insert deposit: %w", err)
 	}

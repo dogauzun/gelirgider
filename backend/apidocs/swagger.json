@@ -1840,6 +1840,91 @@
                 }
             }
         },
+        "/deposits/{id}/renew": {
+            "post": {
+                "description": "Opens a new deposit of the old principal plus its net interest (gross minus stopaj, 2 decimals), starting on the old maturity date in the same portfolio and currency, with a buy of that principal dated that day and renewed_from set to the old deposit. When the old deposit has no sell yet, its maturity is booked first, as POST /deposits/{id}/mature does. Everything is written in one SQL transaction. A deposit can be renewed once. rate and stopaj_rate are fractions (0.45 for 45%).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "deposits"
+                ],
+                "summary": "Renew a term deposit",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "deposit id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "rate \u003e 0 and at most 10, stopaj_rate from 0 up to but not including 1, maturity_date after the old maturity date and at most 10 years later",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.renewRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/server.depositResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; rate|stopaj_rate: required; rate|stopaj_rate: must be a non-negative number with at most 15 integer and 9 fraction digits; rate: must be greater than 0 and at most 10; stopaj_rate: must be at least 0 and below 1; maturity_date: must be YYYY-MM-DD; maturity_date: must be after start_date; maturity_date: must be at most 10 years after start_date",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "deposit not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "deposit is not due yet; deposit is already renewed",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/export.zip": {
             "get": {
                 "produces": [
@@ -4885,6 +4970,10 @@
                 "rate": {
                     "type": "string"
                 },
+                "renewed_from": {
+                    "description": "RenewedFrom is the id of the deposit this one renews, null for a deposit\nopened on its own.",
+                    "type": "integer"
+                },
                 "start_date": {
                     "type": "string"
                 },
@@ -5372,6 +5461,20 @@
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.renewRequest": {
+            "type": "object",
+            "properties": {
+                "maturity_date": {
+                    "type": "string"
+                },
+                "rate": {
+                    "type": "string"
+                },
+                "stopaj_rate": {
                     "type": "string"
                 }
             }
