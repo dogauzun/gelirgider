@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { AllocationTarget } from '../api/allocationTargets'
 import type { ExpectedDividend } from '../api/dividends'
 import type { Position, Summary } from '../api/summary'
-import { attentionItems, type AttentionRules } from './attention'
+import type { WatchItem } from '../api/watchlist'
+import { attentionItems, watchTargetItems, type AttentionRules } from './attention'
 
 const TODAY = '2026-10-05'
 
@@ -485,5 +486,35 @@ describe('allocation drift rule', () => {
     expect(drift(split('46', '54'), { allocation_drift: { value: 3 } })).toHaveLength(2)
     expect(drift(split('44', '56'), { allocation_drift: { enabled: false } })).toEqual([])
     expect(drift([])).toEqual([])
+  })
+})
+
+describe('watchTargetItems', () => {
+  const watch = (symbol: string, reached: boolean): WatchItem => ({
+    id: 1,
+    instrument_id: 1,
+    symbol,
+    name: symbol,
+    market: 'BIST',
+    currency: 'TRY',
+    last_price: '312.50',
+    price_date: '2026-10-16',
+    price_source: 'bist',
+    prev_close: null,
+    prev_price_date: null,
+    day_change: null,
+    target_price: '300.00',
+    target_side: 'above',
+    target_reached: reached,
+    note: '',
+    created_at: '2026-10-01T00:00:00Z',
+  })
+
+  it('keeps the reached rows only, ordered by symbol', () => {
+    const rows = [watch('THYAO', true), watch('ASELS', false), watch('GARAN', true)]
+    expect(watchTargetItems(rows)).toEqual([
+      { kind: 'watch-target', item: rows[2] },
+      { kind: 'watch-target', item: rows[0] },
+    ])
   })
 })

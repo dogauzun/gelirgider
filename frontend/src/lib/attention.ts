@@ -3,6 +3,7 @@ import type { DueDeposit } from '../api/deposits'
 import type { ExpectedDividend } from '../api/dividends'
 import type { DuePlan } from '../api/plans'
 import type { Summary } from '../api/summary'
+import type { WatchItem } from '../api/watchlist'
 import { allocationRows, driftRows } from './allocation'
 import { daysBetween } from './date'
 import { compareDecimal, decimalUnits } from './decimal'
@@ -66,6 +67,7 @@ export type AttentionItem = { portfolio?: string } & (
   | { kind: 'dividend'; dividend: ExpectedDividend }
   | { kind: 'due-deposit'; deposit: DueDeposit }
   | { kind: 'due-plan'; plan: DuePlan }
+  | { kind: 'watch-target'; item: WatchItem }
   // amount is day_change_reporting in `currency`; ratio is dayRatio, the
   // percent the Günlük cell shows, null without a previous close.
   | {
@@ -281,6 +283,16 @@ export function attentionItems(input: {
   }
 
   return portfolioName ? items.map((item) => ({ ...item, portfolio: portfolioName })) : items
+}
+
+// One item per watchlist row whose target the close has reached, by symbol. A
+// data item like the due plans: no rule turns it off. The list belongs to no
+// portfolio, so only Tüm portföyler shows it.
+export function watchTargetItems(items: WatchItem[]): AttentionItem[] {
+  return items
+    .filter((item) => item.target_reached)
+    .sort((a, b) => a.symbol.localeCompare(b.symbol))
+    .map((item) => ({ kind: 'watch-target', item }))
 }
 
 // The items of several portfolios on one card (Tüm portföyler): each list

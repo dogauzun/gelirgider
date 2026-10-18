@@ -27,4 +27,9 @@ export const trWatchlist = {
   'watchlist.targetDialog.field': 'Hedef fiyat · {currency}',
   'watchlist.targetDialog.save': 'Kaydet',
   'watchlist.targetDialog.clear': 'Hedefi kaldır',
+  // The Dikkat card's group of reached targets.
+  'attention.group.watchlist': 'İzleme listesi',
+  'attention.watch.above': '{target} hedefinin üstünde: {last}',
+  'attention.watch.below': '{target} hedefinin altında: {last}',
+  'attention.watch.open': 'Listeye git',
 } as const

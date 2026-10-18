@@ -30,4 +30,9 @@ export const enWatchlist: AreaStrings<typeof trWatchlist> = {
   'watchlist.targetDialog.field': 'Target price · {currency}',
   'watchlist.targetDialog.save': 'Save',
   'watchlist.targetDialog.clear': 'Clear target',
+  // The Dikkat card's group of reached targets.
+  'attention.group.watchlist': 'Watchlist',
+  'attention.watch.above': 'above its {target} target: {last}',
+  'attention.watch.below': 'below its {target} target: {last}',
+  'attention.watch.open': 'Open list',
 }

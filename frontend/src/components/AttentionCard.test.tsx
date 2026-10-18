@@ -20,6 +20,29 @@ const dividend: ExpectedDividend = {
   currency: 'TRY',
 }
 
+const watched: AttentionItem & { kind: 'watch-target' } = {
+  kind: 'watch-target',
+  item: {
+    id: 1,
+    instrument_id: 7,
+    symbol: 'THYAO',
+    name: 'Türk Hava Yolları',
+    market: 'BIST',
+    currency: 'TRY',
+    last_price: '312.50',
+    price_date: '2026-10-16',
+    price_source: 'bist',
+    prev_close: null,
+    prev_price_date: null,
+    day_change: null,
+    target_price: '300.00',
+    target_side: 'above',
+    target_reached: true,
+    note: '',
+    created_at: '2026-10-01T00:00:00Z',
+  },
+}
+
 // Out of display order on purpose: the card groups them.
 const items: AttentionItem[] = [
   { kind: 'concentration', subject: 'cash', label: 'TRY', share: 0.466 },
@@ -32,6 +55,7 @@ const items: AttentionItem[] = [
     ratio: 0.018,
   },
   { kind: 'dividend', dividend },
+  watched,
   { kind: 'missing-rate', currency: 'EUR', positions: 1 },
   { kind: 'missing-price', instrument_id: 4, symbol: 'XYZ' },
   { kind: 'stale-manual-prices', count: 3, days: 7, instrument_id: 5, symbol: 'ABC' },
@@ -94,6 +118,30 @@ describe('AttentionCard', () => {
     expect(screen.getByText(/brüt ₺3\.829,18 · stopaj ₺574,38/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /^Vadeyi kapat/ }))
     expect(handlers.onCloseDeposit).toHaveBeenCalledWith(deposit)
+  })
+
+  describe('watch targets', () => {
+    it('lists a reached target under İzleme listesi with a link to the list', () => {
+      renderCard([watched])
+      expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+        'İzleme listesi',
+      ])
+      expect(screen.getByText('THYAO')).toHaveClass('font-semibold')
+      expect(screen.getByText(/hedefinin üstünde: ₺312,50/)).toHaveTextContent(
+        'THYAO ₺300,00 hedefinin üstünde: ₺312,50',
+      )
+      expect(screen.getByRole('link', { name: 'Listeye git' })).toHaveAttribute(
+        'href',
+        '/watchlist',
+      )
+      // It asks for no click, so the header shows no count.
+      expect(screen.queryByRole('img')).toBeNull()
+    })
+
+    it('words a target on the below side', () => {
+      renderCard([{ kind: 'watch-target', item: { ...watched.item, target_side: 'below' } }])
+      expect(screen.getByText(/hedefinin altında: ₺312,50/)).toBeTruthy()
+    })
   })
 
   describe('due plans', () => {
@@ -209,6 +257,7 @@ describe('AttentionCard', () => {
     expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
       'Veri',
       'Temettü onayı',
+      'İzleme listesi',
       'Bugün',
       'Yoğunlaşma',
     ])
@@ -371,7 +420,8 @@ describe('AttentionCard', () => {
     renderCard(items)
     expect(screen.queryByText(/4\.080/)).toBeNull()
     expect(screen.queryByText(/5\.600/)).toBeNull()
-    expect(screen.getAllByText(/•••/)).toHaveLength(2)
+    expect(screen.queryByText(/312/)).toBeNull()
+    expect(screen.getAllByText(/•••/)).toHaveLength(3)
     // A share is not an amount and stays.
     expect(screen.getByText('%46,6')).toBeTruthy()
   })
