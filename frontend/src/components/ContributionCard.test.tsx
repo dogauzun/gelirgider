@@ -1,11 +1,15 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Position } from '../api/summary'
 import { setPrivacy } from '../lib/privacy'
 import { ContributionCard } from './ContributionCard'
 
-afterEach(() => setPrivacy(false))
+afterEach(() => {
+  setPrivacy(false)
+  vi.restoreAllMocks()
+})
 
 function position(instrumentId: number, symbol: string, pl: string | null, day: string | null) {
   return {
@@ -39,9 +43,13 @@ function position(instrumentId: number, symbol: string, pl: string | null, day: 
 
 function renderCard(positions: Position[], portfolioId: number | 'all' = 7) {
   render(
-    <MemoryRouter initialEntries={['/portfolios/7?range=1y']}>
-      <ContributionCard positions={positions} currency="TRY" portfolioId={portfolioId} />
-    </MemoryRouter>,
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <MemoryRouter initialEntries={['/portfolios/7?range=1y']}>
+        <ContributionCard positions={positions} currency="TRY" portfolioId={portfolioId} />
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
   return screen.getByRole('heading', { name: /^Katkı/ }).closest('section') as HTMLElement
 }
@@ -131,5 +139,64 @@ describe('ContributionCard', () => {
     const [gain, loss] = within(card).getAllByRole('listitem')
     expect(bar(gain).style.width).toBe('50%')
     expect(bar(loss).style.width).toBe('25%')
+  })
+
+  it('leaves out a position without a price, whose P/L the API sends as 0.00', () => {
+    const unpriced = { ...position(9, 'QAN', '0.00', null), has_price: false }
+    const card = renderCard([position(1, 'AKBNK', '5.00', null), unpriced])
+    expect(items(card)).toEqual(['AKBNK+₺5,00'])
+  })
+
+  describe('range mode', () => {
+    const attribution = (positions: object[]) => ({
+      currency: 'TRY',
+      from: '2025-10-18',
+      to: '2026-10-18',
+      total: { price: null, income: null, fx: null, cash_fx: null },
+      positions,
+      missing_rates: [],
+    })
+    const row = (id: number, symbol: string, total: string | null, closed = false) => ({
+      instrument_id: id,
+      symbol,
+      closed,
+      price: null,
+      income: null,
+      fx: null,
+      total,
+    })
+
+    it('lists the range totals, closed positions and a MISSING row included, and keeps the range in links', async () => {
+      const fetch = vi
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(async () =>
+          Response.json(
+            attribution([
+              row(1, 'ZZZ', null),
+              row(2, 'OLD', '80.00', true),
+              row(3, 'THYAO', '40.00'),
+            ]),
+          ),
+        )
+      const card = renderCard([position(3, 'THYAO', '1.00', null)])
+      expect(fetch).not.toHaveBeenCalled()
+      fireEvent.click(within(card).getByRole('radio', { name: 'Dönem' }))
+      await within(card).findByText('OLD')
+      expect(String(fetch.mock.calls[0][0])).toMatch(/^\/api\/portfolios\/7\/attribution\?to=/)
+      expect(items(card)).toEqual(['OLD+₺80,00', 'THYAO+₺40,00', 'ZZZ—'])
+      const [, , missing] = within(card).getAllByRole('listitem')
+      expect(missing.querySelector('[data-bar]')).toBeNull()
+      expect(within(card).getByRole('link', { name: 'OLD' })).toHaveAttribute(
+        'href',
+        '/portfolios/7/positions/2?range=1y',
+      )
+    })
+
+    it('reads as empty while the attribution has not answered', () => {
+      vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => {}))
+      const card = renderCard([position(3, 'THYAO', '1.00', null)])
+      fireEvent.click(within(card).getByRole('radio', { name: 'Dönem' }))
+      expect(within(card).getByText('Gösterilecek kâr veya zarar yok')).toBeInTheDocument()
+    })
   })
 })

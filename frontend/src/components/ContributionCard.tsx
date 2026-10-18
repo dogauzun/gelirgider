@@ -1,10 +1,19 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { useAttribution } from '../api/attribution'
 import type { PortfolioScope, Position } from '../api/summary'
 import { t } from '../i18n/strings'
-import { CONTRIBUTION_MODES, contributionRows, type ContributionMode } from '../lib/contribution'
+import {
+  CONTRIBUTION_MODES,
+  contributionRows,
+  type ContributionInput,
+  type ContributionMode,
+} from '../lib/contribution'
+import { todayIstanbul } from '../lib/date'
 import { plTone, signedMoney } from '../lib/format'
-import { usePositionPath } from '../lib/useRange'
+import { unrealized } from '../lib/positions'
+import { resolveRange } from '../lib/ranges'
+import { usePositionPath, useRange } from '../lib/useRange'
 import { SignedBar } from './SignedBar'
 import { Segmented } from './ui/Segmented'
 import { TAP_Y } from './ui/tap'
@@ -12,13 +21,24 @@ import { TAP_Y } from './ui/tap'
 // How many of the best and of the worst the card shows before "Tümünü göster".
 const LIMIT = 4
 
+// The rows of the `total` and `day` modes, from the open positions.
+function positionInputs(positions: Position[], mode: 'total' | 'day'): ContributionInput[] {
+  return positions.map((p) => ({
+    instrumentId: p.instrument_id,
+    symbol: p.symbol,
+    amount: mode === 'total' ? unrealized(p).amount : p.day_change_reporting,
+  }))
+}
+
 // The Katkı card: one bar per open position on a shared zero line,
 // a gain to the right and a loss to the left, the longest spanning half the
 // track, with the signed amount in the reporting currency at the row's end.
 // Plain HTML, not Recharts: the card does not wait for the charts chunk, and
 // the list with its numbers is the accessible content. Privacy mode masks the
 // amounts; the bars keep their lengths. On the read-only `all` scope there is
-// no position page, so the symbols are plain text, as in PositionsTable.
+// no position page, so the symbols are plain text, as in PositionsTable. The
+// `range` mode reads the attribution of the page's range, closed positions
+// included; until it answers, or when it fails, the card reads as empty.
 export function ContributionCard({
   positions,
   currency,
@@ -31,7 +51,18 @@ export function ContributionCard({
   const [mode, setMode] = useState<ContributionMode>('total')
   const [all, setAll] = useState(false)
   const positionPath = usePositionPath()
-  const { rows, hidden } = contributionRows(positions, mode, all ? null : LIMIT)
+  const [range] = useRange()
+  const { from, to } = resolveRange(range, todayIstanbul())
+  const attribution = useAttribution(portfolioId, from, to, mode === 'range')
+  const inputs =
+    mode === 'range'
+      ? (attribution.data?.positions ?? []).map((p) => ({
+          instrumentId: p.instrument_id,
+          symbol: p.symbol,
+          amount: p.total,
+        }))
+      : positionInputs(positions, mode)
+  const { rows, hidden } = contributionRows(inputs, mode, all ? null : LIMIT)
 
   return (
     <section className="card">
@@ -68,7 +99,11 @@ export function ContributionCard({
                     {row.symbol}
                   </Link>
                 )}
-                <SignedBar negative={row.value < 0} fraction={row.fraction} />
+                {row.amount === null ? (
+                  <span aria-hidden="true" />
+                ) : (
+                  <SignedBar negative={row.value < 0} fraction={row.fraction} />
+                )}
                 <span className={`text-right tabular-nums ${plTone(row.amount)}`}>
                   {signedMoney(row.amount, currency)}
                 </span>

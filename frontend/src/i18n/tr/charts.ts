@@ -52,6 +52,7 @@ export const trCharts = {
   'contribution.mode.label': 'Katkı ölçüsü',
   'contribution.mode.total': 'Toplam',
   'contribution.mode.day': 'Bugün',
+  'contribution.mode.range': 'Dönem',
   'contribution.showAll': 'Tümünü göster',
   'contribution.empty': 'Gösterilecek kâr veya zarar yok',
   // The drawdown card on the Performans tab.
