@@ -49,6 +49,7 @@ const timeline = {
   // 2024-06 is older than the chart's 24 months and the last 12 months.
   months: [bucket('2024-06', '50.00', '7.50'), bucket('2026-05', '100.00', '15.00', '5.00')],
   years: [bucket('2024', '50.00', '7.50'), bucket('2026', '100.00', '15.00', '5.00')],
+  last_12_months: bucket('2025-10', '100.00', '15.00', '5.00'),
   by_instrument: [
     {
       instrument_id: 7,
@@ -223,10 +224,12 @@ it('has no confirm card when nothing is expected', async () => {
 })
 
 it('shows the KPI cells with the yield on the open positions’ cost', async () => {
-  mockApi()
+  // The server's last_12_months is summed before rounding, so it can differ
+  // from the month bucket by a cent; the KPI shows it.
+  mockApi({ data: { ...timeline, last_12_months: bucket('2025-10', '100.01', '15.00', '5.00') } })
   renderPage()
 
-  expect(await kpi('dividends.page.last12')).toBe('₺100,00')
+  expect(await kpi('dividends.page.last12')).toBe('₺100,01')
   // ₺100 over the open positions' ₺1.000 cost.
   await waitFor(async () => expect(await kpi('dividends.page.yieldOnCost')).toBe('%10,0'))
   expect(screen.getByText(t('dividends.page.yieldOnCostHint'))).toBeInTheDocument()
