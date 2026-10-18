@@ -120,7 +120,7 @@ func (h *goalHandler) get(w http.ResponseWriter, r *http.Request) {
 // put replaces the goal of the scope.
 //
 //	@Summary	Set a portfolio's goal
-//	@Description	Replaces the goal of the scope and answers the stored goal. unit is nominal (the reporting currency), real (inflation-adjusted, only with a TRY reporting currency) or usd (only with a non-USD reporting currency). target_date is YYYY-MM-DD and in a later calendar month than today (Europe/Istanbul).
+//	@Description	Replaces the goal of the scope and answers the stored goal. unit is nominal (the reporting currency), real (the amount at the prices of the day the goal is set, only with a TRY reporting currency) or usd (only with a non-USD reporting currency). target_date is YYYY-MM-DD and in a later calendar month than today (Europe/Istanbul).
 //	@Tags		portfolios
 //	@Accept		json
 //	@Produce	json
@@ -221,7 +221,7 @@ type projectionResponse struct {
 // projection answers the projection fan of the scope's goal.
 //
 //	@Summary	Projection of a portfolio's goal
-//	@Description	Projects the scope's value month by month from the next month through the target month, with the 25th, 50th and 75th percentile of the monthly time-weighted returns of the last 36 full calendar months (nearest rank) and the median net external flow of the last 12 full months. Month values are in the goal's unit: real is divided by the TUFE rate of the last 12 months compounded, usd by today's USD rate. months is empty, with history_months counting the usable months, when fewer than 6 full months have a return, and empty with history_months 0 when the scope has no history or the unit lacks its TUFE level or USD rate. reached_at is the first month of the median path at or above the amount, the current month when today's value already is at the amount; monthly_gap is the extra monthly flow in the reporting currency, rounded up, that the median path needs to reach the amount by the target month, null when reached_at is set. progress is today's value in the unit divided by the amount.
+//	@Description	Projects the scope's value month by month from the next month through the target month, with the 25th, 50th and 75th percentile of the monthly time-weighted returns of the last 36 full calendar months (nearest rank) and the median net external flow of the last 12 full months. Month values are in the goal's unit: real is the reporting currency at the prices of the day the goal was set: a nominal value is multiplied by the TUFE level of that day over today's level and divided by the TUFE rate of the last 12 months compounded for each month ahead, usd by today's USD rate. months is empty, with history_months counting the usable months, when fewer than 6 full months have a return, and empty with history_months 0 when the scope has no history or the unit lacks its TUFE level or USD rate. reached_at is the first month of the median path at or above the amount, the current month when today's value already is at the amount; monthly_gap is the extra monthly flow in the reporting currency, rounded up, that the median path needs to reach the amount by the target month, null when reached_at is set. progress is today's value in the unit divided by the amount.
 //	@Tags		portfolios
 //	@Produce	json
 //	@Param		id	path		string	true	"numeric id or `all`"
@@ -281,8 +281,9 @@ func (h *goalHandler) projectionInput(ctx context.Context, userID int64, id stri
 	if err != nil || from.After(today) {
 		return in, false, err
 	}
+	c := price.Yesterday(g.CreatedAt).AddDate(0, 0, 1) // the Istanbul date of created_at
 	in = goal.ProjectionInput{Amount: g.Amount.InexactFloat64(), Unit: g.Unit}
-	if found, err = h.unitRate(ctx, &in, reporting, today); !found || err != nil {
+	if found, err = h.unitRate(ctx, &in, reporting, today, time.Date(c.Year(), c.Month(), c.Day(), 0, 0, 0, 0, time.UTC)); !found || err != nil {
 		return in, false, err
 	}
 	s, err := (&historyHandler{h.deps}).sweep(ctx, userID, txs, from, today, sweepOpts{})
@@ -326,7 +327,7 @@ func (h *goalHandler) projectionInput(ctx context.Context, userID int64, id stri
 // unitRate sets the CPI rate or the USD rate the goal's unit divides by.
 // found is false when the level or rate is missing, or the unit does not fit
 // the reporting currency (a goal set before the currency changed).
-func (h *goalHandler) unitRate(ctx context.Context, in *goal.ProjectionInput, reporting string, today time.Time) (found bool, err error) {
+func (h *goalHandler) unitRate(ctx context.Context, in *goal.ProjectionInput, reporting string, today, created time.Time) (found bool, err error) {
 	switch in.Unit {
 	case "real":
 		if reporting != "TRY" {
@@ -337,6 +338,12 @@ func (h *goalHandler) unitRate(ctx context.Context, in *goal.ProjectionInput, re
 			return false, err
 		}
 		in.MonthlyCPIRate = math.Pow(levels[len(levels)-1]/levels[0], 1.0/12) - 1
+		anchors, _, err := benchmarkLevels(ctx, h.benchmarks, benchmark.CodeTUFE, created, today)
+		first := slices.IndexFunc(anchors, func(l float64) bool { return l > 0 })
+		if err != nil || first < 0 {
+			return false, err
+		}
+		in.RealBase = anchors[first] / anchors[len(anchors)-1]
 	case "usd":
 		rates, err := h.fx.Latest(ctx, []string{"USD", reporting}, today.Format(time.DateOnly))
 		if err != nil {

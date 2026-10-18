@@ -103,7 +103,7 @@ export const trSummary = {
   'goal.amount': 'Hedef tutar',
   'goal.unit': 'Birim',
   'goal.unit.nominal': '{currency}',
-  'goal.unit.real': 'TRY, bugünkü fiyatlarla',
+  'goal.unit.real': 'TRY, hedefin konduğu günün fiyatlarıyla',
   'goal.unit.usd': 'USD',
   'goal.date': 'Hedef tarih',
   'goal.save': 'Kaydet',
