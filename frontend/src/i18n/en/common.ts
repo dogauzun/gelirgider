@@ -11,6 +11,7 @@ export const enCommon: AreaStrings<typeof trCommon> = {
   'app.name': 'gelirgider',
   'nav.portfolios': 'Portfolios',
   'nav.admin': 'Administration',
+  'nav.watchlist': 'Watchlist',
   'nav.label': 'Main menu',
   'nav.version': 'Version {version}',
   'nav.skip': 'Skip to content',

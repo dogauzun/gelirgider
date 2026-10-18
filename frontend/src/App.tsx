@@ -39,6 +39,7 @@ const PerformancePage = lazyNamed(() => import('./pages/PerformancePage'), 'Perf
 const PositionPage = lazyNamed(() => import('./pages/PositionPage'), 'PositionPage')
 const SummaryPage = lazyNamed(() => import('./pages/SummaryPage'), 'SummaryPage')
 const TransactionsPage = lazyNamed(() => import('./pages/TransactionsPage'), 'TransactionsPage')
+const WatchlistPage = lazyNamed(() => import('./pages/WatchlistPage'), 'WatchlistPage')
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: shouldRetryQuery } },
@@ -168,6 +169,7 @@ export function App() {
                     {/* Tüm portföyler is the home page. */}
                     <Route path="/" element={<Navigate to="/portfolios/all" replace />} />
                     <Route path="/account" element={<AccountPage />} />
+                    <Route path="/watchlist" element={<WatchlistPage />} />
                     <Route path="/admin" element={<AdminPage />} />
                     {/* The sidebar keeps the tab on a portfolio switch,
                        Back and Forward cross portfolios too, and

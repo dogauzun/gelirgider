@@ -113,6 +113,16 @@ describe('Sidebar', () => {
     expect(within(all).getByRole('img', { name: mark('EUR, USD') })).toBeInTheDocument()
   })
 
+  it('links to the watchlist', async () => {
+    mockApi()
+    renderSidebar()
+
+    expect(await screen.findByRole('link', { name: t('nav.watchlist') })).toHaveAttribute(
+      'href',
+      '/watchlist',
+    )
+  })
+
   it('marks the open portfolio and keeps the tab', async () => {
     mockApi()
     renderSidebar('/portfolios/1/transactions')

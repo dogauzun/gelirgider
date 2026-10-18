@@ -20,6 +20,7 @@ import { trPortfolios } from './tr/portfolios'
 import { trPosition } from './tr/position'
 import { trSummary } from './tr/summary'
 import { trTransactions } from './tr/transactions'
+import { trWatchlist } from './tr/watchlist'
 import { enAccount } from './en/account'
 import { enAdmin } from './en/admin'
 import { enAuth } from './en/auth'
@@ -34,6 +35,7 @@ import { enPortfolios } from './en/portfolios'
 import { enPosition } from './en/position'
 import { enSummary } from './en/summary'
 import { enTransactions } from './en/transactions'
+import { enWatchlist } from './en/watchlist'
 
 export const tr = {
   ...trAccount,
@@ -50,6 +52,7 @@ export const tr = {
   ...trPosition,
   ...trSummary,
   ...trTransactions,
+  ...trWatchlist,
 } as const
 
 export type StringKey = keyof typeof tr
@@ -73,6 +76,7 @@ const en: Strings = {
   ...enPosition,
   ...enSummary,
   ...enTransactions,
+  ...enWatchlist,
 }
 
 export type Locale = 'tr' | 'en'

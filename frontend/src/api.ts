@@ -48,6 +48,9 @@ const messageKeys: Record<string, StringKey> = {
   'deposit is matured': 'deposits.error.matured',
   'deposit is not due yet': 'deposits.error.notDue',
   'deposit is already renewed': 'deposits.error.renewed',
+  'already on the watchlist': 'error.watchDuplicate',
+  'watchlist item not found': 'error.watchNotFound',
+  'target_price: no close to compare with': 'error.watchNoClose',
   'plan not found': 'error.planNotFound',
   'plan is not due yet': 'error.planNotDue',
   'plan has ended': 'error.planEnded',
@@ -120,6 +123,7 @@ const fieldKeys: Record<string, StringKey> = {
   currency_share: 'error.attentionRule',
   movers: 'error.attentionRule',
   note: 'error.field.note',
+  target_price: 'error.field.target_price',
   day_of_month: 'error.field.day_of_month',
   end_date: 'plans.error.endDate',
   principal: 'deposits.error.principal',
@@ -143,6 +147,7 @@ const digitLabels: Record<string, StringKey> = {
   amount: 'transactions.amount',
   fee: 'transactions.fee',
   close: 'transactions.price',
+  target_price: 'watchlist.target',
 }
 
 // The instrument's currency in a "currency contradicts the instrument" error,

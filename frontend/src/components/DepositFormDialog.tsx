@@ -59,6 +59,7 @@ export function DepositFormDialog({
   error,
   pending,
   submitLabel,
+  submitDisabled = false,
   onSubmit,
   onEdit,
   onClose,
@@ -69,6 +70,8 @@ export function DepositFormDialog({
   error: { field: string | null; message: string } | null
   pending: boolean
   submitLabel: string
+  // Set until the form can be sent at all, such as no instrument picked.
+  submitDisabled?: boolean
   onSubmit: (event: FormEvent) => void
   // An edit drops the error, which belonged to the form as submitted.
   onEdit: () => void
@@ -97,7 +100,7 @@ export function DepositFormDialog({
           <Button variant="secondary" onClick={onClose}>
             {t('transactions.cancel')}
           </Button>
-          <Button type="submit" pending={pending}>
+          <Button type="submit" pending={pending} disabled={submitDisabled}>
             {submitLabel}
           </Button>
         </div>
