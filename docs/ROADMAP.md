@@ -12,7 +12,12 @@ Nothing at the moment.
 
 ## Next
 
-Nothing at the moment.
+- Phase 42, Watchlist with target prices (GLG-1639): follow instruments
+  without holding them, with a last close, the day's move and a target price
+  that the Dikkat card reports when a close reaches it.
+- Phase 43, Per-position returns with a benchmark (GLG-1640): simple,
+  time-weighted and money-weighted returns of one holding in its own currency
+  on the position page, with a benchmark laid over its return chart.
 
 A new phase is added here, together with its Jira epic, once it is planned.
 
