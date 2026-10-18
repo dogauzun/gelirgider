@@ -33,6 +33,8 @@ export const trErrors = {
   'error.currentPasswordIncorrect': 'Mevcut şifre hatalı.',
   'error.invalidCode': 'Kod hatalı.',
   'error.loginExpired': 'Süre doldu, yeniden giriş yap.',
+  'error.totpSecretUnreadable':
+    'İki adımlı giriş anahtarı okunamıyor. Yöneticinden şifreni sıfırlamasını iste.',
   'error.portfolioNotFound': 'Portföy bulunamadı.',
   'error.portfolioHasTransactions': 'İşlemi olan portföy silinemez. Önce işlemleri sil.',
   'error.reportingCurrencyGoals':

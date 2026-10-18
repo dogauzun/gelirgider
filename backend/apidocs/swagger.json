@@ -120,7 +120,7 @@
                         }
                     },
                     "409": {
-                        "description": "two-factor authentication is off",
+                        "description": "two-factor authentication is off; two-step secret unreadable, ask an admin to reset your password",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -198,7 +198,7 @@
                         }
                     },
                     "409": {
-                        "description": "no pending two-factor setup",
+                        "description": "no pending two-factor setup; two-step secret unreadable, ask an admin to reset your password",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -276,7 +276,7 @@
                         }
                     },
                     "409": {
-                        "description": "two-factor authentication is off",
+                        "description": "two-factor authentication is off; two-step secret unreadable, ask an admin to reset your password",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -1528,7 +1528,7 @@
         },
         "/auth/login/totp": {
             "post": {
-                "description": "Trades the token login returned for a session, given the current 6-digit code or an unused recovery code, and sets the `session` cookie. A code that is not 6 digits is tried as a recovery code and is spent by a match; it counts against the token's 5 checks like any other. A token allows 5 code checks and lives 5 minutes; an unknown, expired or used-up token, and one whose user turned two-factor off since, all answer 401 login expired. An authenticator code at or below the last accepted step is a replay and answers 401 invalid code. Rate-limited per client IP, 10 per minute.",
+                "description": "Trades the token login returned for a session, given the current 6-digit code or an unused recovery code, and sets the `session` cookie. A code that is not 6 digits is tried as a recovery code and is spent by a match; it counts against the token's 5 checks like any other. A token allows 5 code checks and lives 5 minutes; an unknown, expired or used-up token, and one whose user turned two-factor off since, all answer 401 login expired. An authenticator code at or below the last accepted step is a replay and answers 401 invalid code. A secret sealed under another SECRET_KEY answers 401 two-step secret unreadable; an admin's password reset turns two-step login off (ADR 0025). Rate-limited per client IP, 10 per minute.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1575,7 +1575,7 @@
                         }
                     },
                     "401": {
-                        "description": "login expired; invalid code",
+                        "description": "login expired; invalid code; two-step secret unreadable, ask an admin to reset your password",
                         "schema": {
                             "type": "object",
                             "properties": {

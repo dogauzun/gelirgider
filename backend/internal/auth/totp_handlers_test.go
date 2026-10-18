@@ -208,6 +208,18 @@ func (e *totpEnv) totpEnabled() bool {
 	return me.TOTPEnabled
 }
 
+func TestTOTPDisableUnreadableSecret(t *testing.T) {
+	e := newTOTPEnv(t)
+	key, step := e.enrol()
+	mux := http.NewServeMux()
+	RegisterProtectedRoutes(mux, e.users, e.sessions, settings.NewRepo(e.conn, bytes.Repeat([]byte{2}, 32)))
+	e.srv = e.sessions.RequireUser(mux)
+	rec := e.do(http.MethodDelete, "/api/account/totp", map[string]string{"password": "right-password", "code": totpCode(key, step+1)})
+	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "two-step secret unreadable") {
+		t.Fatalf("disable under another SECRET_KEY = %d %s, want 409 two-step secret unreadable", rec.Code, rec.Body)
+	}
+}
+
 func TestTOTPDisable(t *testing.T) {
 	e := newTOTPEnv(t)
 	disable := func(password, code string) *httptest.ResponseRecorder {

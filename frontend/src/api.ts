@@ -35,6 +35,7 @@ const messageKeys: Record<string, StringKey> = {
   'current password is incorrect': 'error.currentPasswordIncorrect',
   'invalid code': 'error.invalidCode',
   'login expired': 'error.loginExpired',
+  'two-step secret unreadable, ask an admin to reset your password': 'error.totpSecretUnreadable',
   'portfolio not found': 'error.portfolioNotFound',
   'portfolio has transactions': 'error.portfolioHasTransactions',
   'goals depend on the reporting currency': 'error.reportingCurrencyGoals',

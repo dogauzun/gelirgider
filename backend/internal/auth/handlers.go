@@ -312,7 +312,7 @@ type loginTOTPRequest struct {
 // loginTOTP handles POST /api/auth/login/totp.
 //
 //	@Summary	Sign in, second step
-//	@Description	Trades the token login returned for a session, given the current 6-digit code or an unused recovery code, and sets the `session` cookie. A code that is not 6 digits is tried as a recovery code and is spent by a match; it counts against the token's 5 checks like any other. A token allows 5 code checks and lives 5 minutes; an unknown, expired or used-up token, and one whose user turned two-factor off since, all answer 401 login expired. An authenticator code at or below the last accepted step is a replay and answers 401 invalid code. Rate-limited per client IP, 10 per minute.
+//	@Description	Trades the token login returned for a session, given the current 6-digit code or an unused recovery code, and sets the `session` cookie. A code that is not 6 digits is tried as a recovery code and is spent by a match; it counts against the token's 5 checks like any other. A token allows 5 code checks and lives 5 minutes; an unknown, expired or used-up token, and one whose user turned two-factor off since, all answer 401 login expired. An authenticator code at or below the last accepted step is a replay and answers 401 invalid code. A secret sealed under another SECRET_KEY answers 401 two-step secret unreadable; an admin's password reset turns two-step login off (ADR 0025). Rate-limited per client IP, 10 per minute.
 //	@Tags		auth
 //	@Accept		json
 //	@Produce	json
@@ -320,7 +320,7 @@ type loginTOTPRequest struct {
 //	@Success	200	{object}	auth.userResponse
 //	@Header		200	{string}	Set-Cookie	"session=<id>; Path=/; Expires=<30 days>; HttpOnly; SameSite=Lax; Secure when COOKIE_SECURE=true"
 //	@Failure	400	{object}	object{error=string}	"invalid request body"
-//	@Failure	401	{object}	object{error=string}	"login expired; invalid code"
+//	@Failure	401	{object}	object{error=string}	"login expired; invalid code; two-step secret unreadable, ask an admin to reset your password"
 //	@Failure	403	{object}	object{error=string}	"setup_required"
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/auth/login/totp [post]
@@ -355,7 +355,7 @@ func (h *handler) loginTOTP(w http.ResponseWriter, r *http.Request) {
 	}
 	ok, err = h.checkSecondFactor(r.Context(), userID, state, req.Code)
 	if err != nil {
-		WriteInternalError(w, r, err)
+		writeSecretError(w, r, userID, http.StatusUnauthorized, err)
 		return
 	}
 	if !ok {

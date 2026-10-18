@@ -1565,7 +1565,8 @@ paths:
                 type: string
             type: object
         "409":
-          description: two-factor authentication is off
+          description: two-factor authentication is off; two-step secret unreadable,
+            ask an admin to reset your password
           schema:
             properties:
               error:
@@ -1618,7 +1619,8 @@ paths:
                 type: string
             type: object
         "409":
-          description: no pending two-factor setup
+          description: no pending two-factor setup; two-step secret unreadable, ask
+            an admin to reset your password
           schema:
             properties:
               error:
@@ -1672,7 +1674,8 @@ paths:
                 type: string
             type: object
         "409":
-          description: two-factor authentication is off
+          description: two-factor authentication is off; two-step secret unreadable,
+            ask an admin to reset your password
           schema:
             properties:
               error:
@@ -2526,7 +2529,9 @@ paths:
         checks and lives 5 minutes; an unknown, expired or used-up token, and one
         whose user turned two-factor off since, all answer 401 login expired. An authenticator
         code at or below the last accepted step is a replay and answers 401 invalid
-        code. Rate-limited per client IP, 10 per minute.
+        code. A secret sealed under another SECRET_KEY answers 401 two-step secret
+        unreadable; an admin's password reset turns two-step login off (ADR 0025).
+        Rate-limited per client IP, 10 per minute.
       parameters:
       - description: token from login and a 6-digit code from the authenticator or
           a recovery code
@@ -2555,7 +2560,8 @@ paths:
                 type: string
             type: object
         "401":
-          description: login expired; invalid code
+          description: login expired; invalid code; two-step secret unreadable, ask
+            an admin to reset your password
           schema:
             properties:
               error:
