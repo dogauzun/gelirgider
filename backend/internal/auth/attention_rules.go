@@ -23,6 +23,7 @@ type attentionRules struct {
 	Movers          *attentionRule `json:"movers,omitempty"`
 	TryCashShare    *attentionRule `json:"try_cash_share,omitempty"`
 	NoHedge         *attentionRule `json:"no_hedge,omitempty"`
+	AllocationDrift *attentionRule `json:"allocation_drift,omitempty"`
 }
 
 // validate returns a 400 message, or "" when every value is in range.
@@ -39,6 +40,7 @@ func (a attentionRules) validate() string {
 		{"currency_share", a.CurrencyShare, 0, 1, false},
 		{"movers", a.Movers, 0, 10, true},
 		{"try_cash_share", a.TryCashShare, 0, 1, false},
+		{"allocation_drift", a.AllocationDrift, 0, 100, false},
 	} {
 		if c.rule == nil || c.rule.Value == nil {
 			continue
@@ -78,7 +80,7 @@ func (h *handler) getAttentionRules(w http.ResponseWriter, r *http.Request) {
 // updateAttentionRules handles PUT /api/me/attention-rules.
 //
 //	@Summary	Replace attention rule overrides
-//	@Description	Needs a session. Replaces the whole object; keys are optional, and so are `enabled` and `value` inside a key. `no_hedge` takes `enabled` only. Shares are 0-1, `stale_manual_days` an integer 1-365, `movers` an integer 0-10.
+//	@Description	Needs a session. Replaces the whole object; keys are optional, and so are `enabled` and `value` inside a key. `no_hedge` takes `enabled` only. Shares are 0-1, `allocation_drift` is points 0-100, `stale_manual_days` an integer 1-365, `movers` an integer 0-10.
 //	@Tags		auth
 //	@Accept		json
 //	@Produce	json

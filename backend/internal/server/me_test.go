@@ -163,6 +163,8 @@ func TestAttentionRules(t *testing.T) {
 		"stale days zero":      {"stale_manual_days": m{"value": 0}},
 		"stale days above 365": {"stale_manual_days": m{"value": 366}},
 		"movers above 10":      {"movers": m{"value": 11}},
+		"drift above 100":      {"allocation_drift": m{"value": 100.5}},
+		"drift below 0":        {"allocation_drift": m{"value": -1}},
 		"no_hedge with value":  {"no_hedge": m{"enabled": true, "value": 1}},
 	} {
 		if resp := putJSON(t, client, url, body); resp.StatusCode != http.StatusBadRequest {
@@ -177,12 +179,13 @@ func TestAttentionRules(t *testing.T) {
 		"position_share":    m{"enabled": false, "value": 0.5},
 		"stale_manual_days": m{"value": 30},
 		"no_hedge":          m{"enabled": true},
+		"allocation_drift":  m{"value": 7.5},
 	}
 	if resp := putJSON(t, client, url, valid); resp.StatusCode != http.StatusOK {
 		t.Fatalf("valid PUT status = %d, want 200", resp.StatusCode)
 	}
 	// GET returns the stored text, keys in the order of auth.attentionRules.
-	want := `{"stale_manual_days":{"value":30},"position_share":{"enabled":false,"value":0.5},"no_hedge":{"enabled":true}}`
+	want := `{"stale_manual_days":{"value":30},"position_share":{"enabled":false,"value":0.5},"no_hedge":{"enabled":true},"allocation_drift":{"value":7.5}}`
 	if got := get(); got != want {
 		t.Fatalf("GET = %s, want %s", got, want)
 	}

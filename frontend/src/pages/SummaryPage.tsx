@@ -6,6 +6,7 @@ import {
   useExpectedDividendsOf,
   type ExpectedDividend,
 } from '../api/dividends'
+import { useAllocationTargets } from '../api/allocationTargets'
 import { useAttentionRules } from '../api/auth'
 import { useDueDepositsOf, useMatureDeposit, type DueDeposit } from '../api/deposits'
 import { usePortfolioHistory } from '../api/history'
@@ -142,6 +143,10 @@ function Attention({
 }) {
   const ids = portfolios.map((p) => p.id)
   const summaries = usePortfolioSummaries(ids)
+  // The drift rule reads the page's own scope: the portfolio, or every portfolio together.
+  const scope = linkTo ?? 'all'
+  const scopeSummary = usePortfolioSummary(scope).data
+  const targets = useAllocationTargets(scope).data
   const expected = useExpectedDividendsOf(ids)
   const dueDeposits = useDueDepositsOf(ids)
   const invalidatePortfolios = useInvalidatePortfolios()
@@ -154,21 +159,29 @@ function Attention({
   const today = todayIstanbul()
   // Which portfolio each dividend item came from, for Ekle and Yoksay.
   const owners = new Map<ExpectedDividend, number>()
+  const drift = scopeSummary
+    ? attentionItems({ summary: scopeSummary, expected: [], today, rules, targets }).filter(
+        (item) => item.kind === 'allocation-drift',
+      )
+    : []
   const items = mergeAttention(
-    portfolios.map((p, i) => {
-      const summary = summaries[i].data
-      if (!summary) return []
-      const dividends = expected[i].data ?? []
-      for (const d of dividends) owners.set(d, p.id)
-      return attentionItems({
-        summary,
-        expected: dividends,
-        dueDeposits: dueDeposits[i].data,
-        today,
-        portfolioName: p.name,
-        rules,
-      })
-    }),
+    [
+      ...portfolios.map((p, i) => {
+        const summary = summaries[i].data
+        if (!summary) return []
+        const dividends = expected[i].data ?? []
+        for (const d of dividends) owners.set(d, p.id)
+        return attentionItems({
+          summary,
+          expected: dividends,
+          dueDeposits: dueDeposits[i].data,
+          today,
+          portfolioName: p.name,
+          rules,
+        })
+      }),
+      drift,
+    ],
     estimatedFrom,
     moverCount(rules),
   )

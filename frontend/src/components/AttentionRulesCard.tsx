@@ -13,7 +13,7 @@ import { LoadError } from './ui/LoadError'
 const ruleDefs: {
   key: keyof AttentionRules
   label: Parameters<typeof t>[0]
-  unit: 'days' | 'percent' | 'count' | 'toggle'
+  unit: 'days' | 'percent' | 'count' | 'points' | 'toggle'
   fallback: number
 }[] = [
   {
@@ -46,6 +46,12 @@ const ruleDefs: {
     unit: 'toggle',
     // No value: the draft stays at the fallback, which is never sent.
     fallback: 0,
+  },
+  {
+    key: 'allocation_drift',
+    label: 'account.attention.allocationDrift',
+    unit: 'points',
+    fallback: ATTENTION.allocationDrift,
   },
   {
     key: 'currency_share',

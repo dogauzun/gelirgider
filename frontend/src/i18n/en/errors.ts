@@ -92,7 +92,7 @@ export const enErrors: AreaStrings<typeof trErrors> = {
   'error.dateRange': 'Invalid date range.',
   'error.limit': 'Limit must be a positive whole number.',
   'error.attentionRule':
-    'Shares must be 0-100 %, days a whole number from 1 to 365, movers a whole number from 0 to 10.',
+    'Shares must be 0-100 %, days a whole number from 1 to 365, movers a whole number from 0 to 10, drift 0-100 points.',
   'error.field.reporting_currency': 'Invalid currency.',
   'error.field.note': 'Note must be at most 500 characters.',
 }

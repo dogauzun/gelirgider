@@ -58,6 +58,7 @@ export const enAccount: AreaStrings<typeof trAccount> = {
   'account.attention.cashShare': 'Cash share',
   'account.attention.tryCashShare': 'TRY cash share',
   'account.attention.noHedge': 'No FX or gold hedge',
+  'account.attention.allocationDrift': 'Allocation drift from target (points)',
   'account.attention.currencyShare': 'Single currency share',
   'account.attention.movers': "Today's movers (count)",
   'account.attention.saved': 'Saved',

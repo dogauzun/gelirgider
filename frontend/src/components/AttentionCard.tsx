@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import type { DueDeposit } from '../api/deposits'
 import type { ExpectedDividend } from '../api/dividends'
 import { t, type StringKey } from '../i18n/strings'
-import { SHARE_FORMAT } from '../lib/allocation'
+import { DRIFT_FORMAT, SHARE_FORMAT } from '../lib/allocation'
 import type { AttentionItem } from '../lib/attention'
 import { formatMarketDate, formatShortMarketDate } from '../lib/date'
 import { formatMoney, formatNumber, plTone, signedMoney, signedPercent } from '../lib/format'
@@ -20,7 +20,10 @@ const GROUPS: [StringKey, AttentionItem['kind'][]][] = [
   ['attention.group.dividends', ['dividend']],
   ['attention.group.deposits', ['due-deposit']],
   ['attention.group.today', ['mover']],
-  ['attention.group.concentration', ['concentration', 'try-cash-share', 'no-hedge']],
+  [
+    'attention.group.concentration',
+    ['concentration', 'try-cash-share', 'no-hedge', 'allocation-drift'],
+  ],
 ]
 
 function Dot({ tone }: { tone: 'warn' | 'accent' }) {
@@ -65,6 +68,20 @@ function concentrationLabel(item: AttentionItem & { kind: 'concentration' }) {
   return item.label
 }
 
+// The text of the items that are one sentence and have no action.
+function noticeText(
+  item: AttentionItem & { kind: 'try-cash-share' | 'no-hedge' | 'allocation-drift' },
+) {
+  if (item.kind === 'try-cash-share') {
+    return t('attention.tryCashShare', { share: formatNumber(item.share, SHARE_FORMAT) })
+  }
+  if (item.kind === 'no-hedge') return t('attention.noHedge')
+  return t('attention.allocationDrift', {
+    assetClass: item.assetClass,
+    drift: formatNumber(item.drift, DRIFT_FORMAT),
+  })
+}
+
 // The line of one item: its text, under the portfolio's name on Tüm
 // portföyler. The name has a line of its own, so a long one never hides the
 // item's own facts; it truncates and carries its full text as a title.
@@ -75,7 +92,8 @@ function Label({ item, children }: { item: AttentionItem; children: ReactNode })
       {item.kind !== 'mover' &&
         item.kind !== 'concentration' &&
         item.kind !== 'try-cash-share' &&
-        item.kind !== 'no-hedge' && (
+        item.kind !== 'no-hedge' &&
+        item.kind !== 'allocation-drift' && (
           <Dot tone={item.kind === 'dividend' || item.kind === 'due-deposit' ? 'accent' : 'warn'} />
         )}
       {item.portfolio ? (
@@ -357,17 +375,11 @@ export function AttentionCard({
           </Row>
         )
       case 'try-cash-share':
-        return (
-          <Row>
-            <Label item={item}>
-              {t('attention.tryCashShare', { share: formatNumber(item.share, SHARE_FORMAT) })}
-            </Label>
-          </Row>
-        )
       case 'no-hedge':
+      case 'allocation-drift':
         return (
           <Row>
-            <Label item={item}>{t('attention.noHedge')}</Label>
+            <Label item={item}>{noticeText(item)}</Label>
           </Row>
         )
     }
