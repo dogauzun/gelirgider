@@ -7,6 +7,7 @@ import {
   type ExpectedDividend,
 } from '../api/dividends'
 import { useAttentionRules } from '../api/auth'
+import { useDueDepositsOf, useMatureDeposit, type DueDeposit } from '../api/deposits'
 import { usePortfolioHistory } from '../api/history'
 import { usePortfolios } from '../api/portfolios'
 import { useDeletePrice } from '../api/prices'
@@ -142,6 +143,7 @@ function Attention({
   const ids = portfolios.map((p) => p.id)
   const summaries = usePortfolioSummaries(ids)
   const expected = useExpectedDividendsOf(ids)
+  const dueDeposits = useDueDepositsOf(ids)
   const invalidatePortfolios = useInvalidatePortfolios()
   // Undefined while loading or on a failure: attentionItems then uses the defaults.
   const rules = useAttentionRules().data
@@ -158,7 +160,14 @@ function Attention({
       if (!summary) return []
       const dividends = expected[i].data ?? []
       for (const d of dividends) owners.set(d, p.id)
-      return attentionItems({ summary, expected: dividends, today, portfolioName: p.name, rules })
+      return attentionItems({
+        summary,
+        expected: dividends,
+        dueDeposits: dueDeposits[i].data,
+        today,
+        portfolioName: p.name,
+        rules,
+      })
     }),
     estimatedFrom,
     moverCount(rules),
@@ -167,7 +176,8 @@ function Attention({
   // Busy until the expected list has refetched (useAddExpectedDividend).
   const add = useAddExpectedDividend()
   const dismissal = useDismissExpectedDividend()
-  const busy = add.isPending || dismissal.isPending
+  const maturity = useMatureDeposit()
+  const busy = add.isPending || dismissal.isPending || maturity.isPending
   const once = useOneAtATime()
   function run(
     dividend: ExpectedDividend,
@@ -178,6 +188,17 @@ function Attention({
       try {
         await action(owners.get(dividend) as number)
         toast(done)
+      } catch (error) {
+        toast((error as Error).message, { error: true })
+      }
+    })
+  }
+
+  function closeDeposit(deposit: DueDeposit) {
+    once(async () => {
+      try {
+        await maturity.mutateAsync(deposit.id)
+        toast(t('attention.deposit.closed'))
       } catch (error) {
         toast((error as Error).message, { error: true })
       }
@@ -222,6 +243,7 @@ function Attention({
             t('dividends.expected.dismissed'),
           )
         }
+        onCloseDeposit={closeDeposit}
         onEditPrice={(instrumentId) => {
           for (const [i, p] of portfolios.entries()) {
             const position = summaries[i].data?.positions.find(

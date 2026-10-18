@@ -37,7 +37,12 @@ const items: AttentionItem[] = [
 ]
 
 function renderCard(list: AttentionItem[]) {
-  const handlers = { onAddDividend: vi.fn(), onDismissDividend: vi.fn(), onEditPrice: vi.fn() }
+  const handlers = {
+    onAddDividend: vi.fn(),
+    onDismissDividend: vi.fn(),
+    onCloseDeposit: vi.fn(),
+    onEditPrice: vi.fn(),
+  }
   render(
     <MemoryRouter>
       <AttentionCard items={list} portfolioId={1} {...handlers} />
@@ -58,6 +63,26 @@ describe('AttentionCard', () => {
     expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
       'Yoğunlaşma',
     ])
+  })
+
+  it('lists a due deposit with its net, gross and stopaj under its own group', () => {
+    const deposit = {
+      id: 5,
+      currency: 'TRY',
+      principal: '20000.00',
+      maturity_date: '2026-10-12',
+      gross: '3829.18',
+      stopaj: '574.38',
+      net: '3254.80',
+    }
+    const handlers = renderCard([{ kind: 'due-deposit', deposit }])
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+      'Vadesi gelen mevduat',
+    ])
+    expect(screen.getByText('₺3.254,80')).toBeTruthy()
+    expect(screen.getByText(/brüt ₺3\.829,18 · stopaj ₺574,38/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /^Vadeyi kapat/ }))
+    expect(handlers.onCloseDeposit).toHaveBeenCalledWith(deposit)
   })
 
   it('renders the groups in order with their headings', () => {
@@ -87,6 +112,7 @@ describe('AttentionCard', () => {
           portfolioId={1}
           onAddDividend={vi.fn()}
           onDismissDividend={vi.fn()}
+          onCloseDeposit={vi.fn()}
           onEditPrice={vi.fn()}
         />
       </MemoryRouter>,
@@ -163,7 +189,12 @@ describe('AttentionCard', () => {
     // As SummaryPage drives the card: busy while the request and the
     // refetch run, then the list without the acted-on dividend.
     function act(initial: AttentionItem[], after: AttentionItem[], button: () => HTMLElement) {
-      const handlers = { onAddDividend: vi.fn(), onDismissDividend: vi.fn(), onEditPrice: vi.fn() }
+      const handlers = {
+        onAddDividend: vi.fn(),
+        onDismissDividend: vi.fn(),
+        onCloseDeposit: vi.fn(),
+        onEditPrice: vi.fn(),
+      }
       const card = (list: AttentionItem[], busy: boolean) => (
         <MemoryRouter>
           <AttentionCard items={list} busy={busy} {...handlers} />

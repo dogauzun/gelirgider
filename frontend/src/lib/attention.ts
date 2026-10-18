@@ -1,3 +1,4 @@
+import type { DueDeposit } from '../api/deposits'
 import type { ExpectedDividend } from '../api/dividends'
 import type { Summary } from '../api/summary'
 import { daysBetween } from './date'
@@ -58,6 +59,7 @@ export type AttentionItem = { portfolio?: string } & (
     }
   | { kind: 'estimated-benchmark'; from: string }
   | { kind: 'dividend'; dividend: ExpectedDividend }
+  | { kind: 'due-deposit'; deposit: DueDeposit }
   // amount is day_change_reporting in `currency`; ratio is dayRatio, the
   // percent the Günlük cell shows, null without a previous close.
   | {
@@ -90,7 +92,7 @@ function above(part: bigint, whole: bigint, share: number): boolean {
 }
 
 // attentionItems lists what needs the owner's attention, in display order:
-// Veri, Temettü onayı, Bugün, Yoğunlaşma. Closed positions take no part. A
+// Veri, Temettü onayı, Vadesi gelen mevduat, Bugün, Yoğunlaşma. Closed positions take no part. A
 // position without a price is a Veri item and is never a mover or a share,
 // but it counts in the totals at the value the summary gives it (its cost),
 // as in Allocation. Shares are of the total in the reporting currency
@@ -99,12 +101,21 @@ function above(part: bigint, whole: bigint, share: number): boolean {
 export function attentionItems(input: {
   summary: Summary
   expected: ExpectedDividend[]
+  dueDeposits?: DueDeposit[]
   estimatedFrom?: string | null
   today: string
   portfolioName?: string
   rules?: AttentionRules
 }): AttentionItem[] {
-  const { summary, expected, estimatedFrom, today, portfolioName, rules = {} } = input
+  const {
+    summary,
+    expected,
+    dueDeposits = [],
+    estimatedFrom,
+    today,
+    portfolioName,
+    rules = {},
+  } = input
   const staleDays = threshold(rules, 'stale_manual_days', ATTENTION.staleManualDays)
   const positionShare = threshold(rules, 'position_share', ATTENTION.positionShare)
   const cashShare = threshold(rules, 'cash_share', ATTENTION.cashShare)
@@ -148,6 +159,9 @@ export function attentionItems(input: {
 
   // Temettü onayı.
   for (const dividend of expected) items.push({ kind: 'dividend', dividend })
+
+  // Vadesi gelen mevduat. Data items, like the dividends: no rule turns them off.
+  for (const deposit of dueDeposits) items.push({ kind: 'due-deposit', deposit })
 
   // Bugün.
   const movers = priced

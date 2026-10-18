@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../api'
-import { invalidatePortfolio } from './transactions'
+import { invalidatePortfolio, invalidatePortfolios } from './transactions'
 
 // A term deposit of a portfolio. Decimals are exact strings; rate and
 // stopaj_rate are fractions (0.45 for 45%); the money fields have 2 decimals.
@@ -65,5 +65,43 @@ export function useDeleteDeposit(portfolioId: number) {
   return useMutation({
     mutationFn: (id: number) => apiFetch<void>(`/api/deposits/${id}`, { method: 'DELETE' }),
     onSuccess: () => invalidatePortfolio(queryClient, portfolioId),
+  })
+}
+
+// A deposit at or past its maturity with no sell yet. gross, stopaj and net
+// are the interest over the whole term, 2 decimals.
+export interface DueDeposit {
+  id: number
+  currency: string
+  principal: string
+  maturity_date: string
+  gross: string
+  stopaj: string
+  net: string
+}
+
+// Under the deposits key, so every deposit edit refetches it too. The all
+// scope has no route: Tüm portföyler asks each portfolio.
+const dueDepositsQueryKey = (portfolioId: number) =>
+  [...depositsQueryKey(portfolioId), 'due'] as const
+
+// Each portfolio's due deposits, in the order given.
+export function useDueDepositsOf(portfolioIds: number[]) {
+  return useQueries({
+    queries: portfolioIds.map((id) => ({
+      queryKey: dueDepositsQueryKey(id),
+      queryFn: () => apiFetch<DueDeposit[]>(`/api/portfolios/${id}/deposits/due`),
+    })),
+  })
+}
+
+// Books the principal back to cash and the interest as a dividend. It
+// changes the summary, history and transactions of the deposit's portfolio
+// and of the all scope, so every portfolio query is refreshed.
+export function useMatureDeposit() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<void>(`/api/deposits/${id}/mature`, { method: 'POST' }),
+    onSettled: () => invalidatePortfolios(queryClient),
   })
 }

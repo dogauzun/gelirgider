@@ -40,4 +40,10 @@ export const trDeposits = {
   'deposits.error.maturityDate': 'Vade sonu vade başından sonra olmalı, en fazla 10 yıl sonra.',
   'deposits.error.matured': 'Vadesi dolmuş mevduat silinemez.',
   'deposits.error.notFound': 'Mevduat bulunamadı.',
+  // The Dikkat card's due deposits.
+  'attention.group.deposits': 'Vadesi gelen mevduat',
+  'attention.deposit.close': 'Vadeyi kapat',
+  'attention.deposit.closeLabel': 'Vadeyi kapat: {principal} mevduat, vade {date}',
+  'attention.deposit.detail': 'net · brüt {gross} · stopaj {stopaj}',
+  'attention.deposit.closed': 'Mevduat kapatıldı',
 } as const
