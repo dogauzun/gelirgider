@@ -321,4 +321,27 @@ describe('Allocation', () => {
     expect(scoped.getByText('Toplam: %90')).toBeInTheDocument()
     expect(save).toBeDisabled()
   })
+
+  it('lists the planned buys for a typed contribution in the asset class view', async () => {
+    mockTargets([
+      { asset_class: 'equity', weight: '70' },
+      { asset_class: 'cash', weight: '20' },
+      { asset_class: 'deposit', weight: '10' },
+    ])
+    const { scoped } = renderAllocation()
+
+    expect(scoped.queryByLabelText(/Katkı planla/)).toBeNull()
+    fireEvent.click(scoped.getByRole('radio', { name: 'Varlık sınıfı' }))
+    const input = await scoped.findByLabelText(/Katkı planla/)
+    expect(scoped.getAllByRole('listitem')).toHaveLength(3)
+
+    // Total 600: equity needs 20, cash 20, deposit 60; the gaps fill the amount.
+    fireEvent.change(input, { target: { value: '100' } })
+    const items = scoped.getAllByRole('listitem').slice(3)
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Hisse senedi₺20,00',
+      'Nakit₺20,00',
+      'Mevduat₺60,00',
+    ])
+  })
 })

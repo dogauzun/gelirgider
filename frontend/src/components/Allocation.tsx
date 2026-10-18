@@ -7,12 +7,15 @@ import {
   allocationRows,
   DRIFT_FORMAT,
   driftRows,
+  planContribution,
   SHARE_FORMAT,
   type AllocationView,
+  type AssetClass,
 } from '../lib/allocation'
-import { decimalUnits } from '../lib/decimal'
+import { decimalUnits, parseDecimalInput, unitsToDecimal } from '../lib/decimal'
 import { formatCompactMoney, formatMoney, formatNumber, plTone } from '../lib/format'
 import { AllocationTargetsDialog } from './AllocationTargetsDialog'
+import { DecimalInput } from './DepositFormDialog'
 import { AllocationDonut } from './LazyChart'
 import { Button } from './ui/Button'
 import { Segmented } from './ui/Segmented'
@@ -54,6 +57,7 @@ export function Allocation({
   // The highlighted row, shared by the donut and the legend.
   const [active, setActive] = useState<string | null>(null)
   const [settingTargets, setSettingTargets] = useState(false)
+  const [contribution, setContribution] = useState('')
   const targets = useAllocationTargets(portfolioId).data ?? []
   const { rows, total, other } = allocationRows({ positions, cash, cashByCurrencyReporting, view })
 
@@ -64,6 +68,11 @@ export function Allocation({
   // the count instead.
   const showDrift = view === 'assetClass' && targets.length > 0
   const legendRows = driftRows(rows, showDrift ? targets : [])
+  const parsedContribution = parseDecimalInput(contribution)
+  const plan =
+    showDrift && parsedContribution !== null
+      ? planContribution(legendRows, decimalUnits(parsedContribution))
+      : []
   const omittedCount = positions.filter((p) => p.market_value_reporting === null).length
 
   // Same defect, cash side: a currency in missingRates has no rate to convert
@@ -183,6 +192,34 @@ export function Allocation({
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+        {showDrift && rows.length > 0 && (
+          <div className="mt-4 border-t border-line pt-4">
+            <label className="block text-[13px] font-medium text-ink-2">
+              {t('allocation.planContribution')}
+              <span className="mt-1.5 flex items-center gap-2">
+                <DecimalInput
+                  value={contribution}
+                  onChange={(event) => setContribution(event.target.value)}
+                />
+                <span className="text-muted">{currency}</span>
+              </span>
+            </label>
+            {plan.length > 0 && (
+              <ul className="mt-2 text-xs">
+                {plan.map(({ assetClass, amount }) => (
+                  <li key={assetClass} className="flex justify-between gap-2 px-2 py-1">
+                    <span className="text-ink-2">
+                      {t(`allocation.assetClass.${assetClass as AssetClass}`)}
+                    </span>
+                    <span className="text-ink tabular-nums">
+                      {formatMoney(unitsToDecimal(amount), currency)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
         {omittedCount > 0 && (

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { Position } from '../api/summary'
 import { trCharts } from '../i18n/tr/charts'
 import { enCharts } from '../i18n/en/charts'
-import { allocationRows, driftRows } from './allocation'
+import { allocationRows, driftRows, planContribution } from './allocation'
+import { decimalUnits, unitsToDecimal } from './decimal'
 import { SECTOR_KEYS } from './sectors'
 
 function position(
@@ -289,5 +290,80 @@ describe('driftRows', () => {
       drift: -20,
     })
     expect(out).toHaveLength(rows.length + 1)
+  })
+})
+
+describe('planContribution', () => {
+  // Equity and fund holdings; a target on a class with no holding adds a row.
+  function plan(targets: [string, string][], amount: string, holdings = [600, 400]) {
+    const { rows } = allocationRows({
+      positions: [
+        position(1, 'THYAO', String(holdings[0])),
+        position(2, 'TCF', String(holdings[1]), 'TEFAS'),
+      ],
+      cash: '0',
+      cashByCurrencyReporting: {},
+      view: 'assetClass',
+    })
+    const drift = driftRows(
+      rows,
+      targets.map(([asset_class, weight]) => ({ asset_class, weight })),
+    )
+    return planContribution(drift, decimalUnits(amount)).map((x) => [
+      x.assetClass,
+      unitsToDecimal(x.amount),
+    ])
+  }
+
+  it('puts the whole amount in the one class under its target', () => {
+    expect(
+      plan(
+        [
+          ['equity', '50'],
+          ['fund', '50'],
+        ],
+        '200',
+      ),
+    ).toEqual([['fund', '200']])
+  })
+
+  it('splits an amount smaller than the gaps by gap and sums to the amount', () => {
+    // Total 900: gaps equity 0, fund 170, crypto 270; the 100 in proportion,
+    // the unit rounding leaves over goes to crypto.
+    expect(
+      plan(
+        [
+          ['equity', '40'],
+          ['fund', '30'],
+          ['crypto', '30'],
+        ],
+        '100',
+        [700, 100],
+      ),
+    ).toEqual([
+      ['fund', '38.636363636'],
+      ['crypto', '61.363636364'],
+    ])
+  })
+
+  it('fills the gaps and splits the remainder by target weight when the amount is larger', () => {
+    // Targets sum to 80: total 1400, gaps equity 100 and fund 20, 280 left over at 50:30.
+    expect(
+      plan(
+        [
+          ['equity', '50'],
+          ['fund', '30'],
+        ],
+        '400',
+      ),
+    ).toEqual([
+      ['equity', '275'],
+      ['fund', '125'],
+    ])
+  })
+
+  it('gives nothing without targets or without an amount', () => {
+    expect(plan([], '100')).toEqual([])
+    expect(plan([['equity', '100']], '0')).toEqual([])
   })
 })

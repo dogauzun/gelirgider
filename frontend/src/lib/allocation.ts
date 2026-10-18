@@ -9,7 +9,7 @@ import { currencyTotals, holdingsTotal, shareOf, shareUnits } from './positions'
 export const ALLOCATION_VIEWS = ['symbol', 'market', 'assetClass', 'sector', 'currency'] as const
 export type AllocationView = (typeof ALLOCATION_VIEWS)[number]
 
-type AssetClass = 'equity' | 'fund' | 'commodity' | 'crypto' | 'cash' | 'deposit' | 'unknown'
+export type AssetClass = 'equity' | 'fund' | 'commodity' | 'crypto' | 'cash' | 'deposit' | 'unknown'
 
 // A position's asset class when its instrument stores none, read from its
 // market. shortcut: US ETFs count as equity because their instruments carry
@@ -173,4 +173,56 @@ export function driftRows(
     })
   }
   return out
+}
+
+// A row's target as an integer count of 1e-12, so the planner stays in bigint.
+const TARGET_SCALE = 10n ** 12n
+
+// planContribution splits a buy of `amount` (units) across the classes under
+// their target: with T = holdings + amount, a class's gap is
+// max(0, target * T - current). Gaps that fit in the amount are filled and the
+// remainder goes by target weight; otherwise the amount is split in
+// proportion to the gaps. Rounding leftovers go to the largest gap, so the
+// parts sum to the amount. Rows without a target are left out.
+export function planContribution(
+  rows: ReturnType<typeof driftRows>,
+  amount: bigint,
+): { assetClass: string; amount: bigint }[] {
+  const classes = rows.flatMap((row) =>
+    row.target === null
+      ? []
+      : [
+          {
+            assetClass: classOfRow(row.key),
+            weight: BigInt(Math.round(row.target * Number(TARGET_SCALE))),
+            current: decimalUnits(row.amount),
+          },
+        ],
+  )
+  if (classes.length === 0 || amount <= 0n) return []
+
+  const total = rows.reduce((sum, row) => sum + decimalUnits(row.amount), 0n) + amount
+  // Gaps in units * TARGET_SCALE, to divide only once.
+  const gaps = classes.map(({ weight, current }) => {
+    const gap = weight * total - current * TARGET_SCALE
+    return gap > 0n ? gap : 0n
+  })
+  const gapSum = gaps.reduce((sum, gap) => sum + gap, 0n)
+
+  let parts: bigint[]
+  if (gapSum <= amount * TARGET_SCALE) {
+    const filled = gaps.map((gap) => gap / TARGET_SCALE)
+    const rest = amount - filled.reduce((sum, part) => sum + part, 0n)
+    const weightSum = classes.reduce((sum, { weight }) => sum + weight, 0n)
+    parts = classes.map(({ weight }, i) => filled[i] + (rest * weight) / weightSum)
+  } else {
+    parts = gaps.map((gap) => (amount * gap) / gapSum)
+  }
+
+  const largest = gaps.reduce((best, gap, i) => (gap > gaps[best] ? i : best), 0)
+  parts[largest] += amount - parts.reduce((sum, part) => sum + part, 0n)
+
+  return classes.flatMap(({ assetClass }, i) =>
+    parts[i] > 0n ? [{ assetClass, amount: parts[i] }] : [],
+  )
 }
