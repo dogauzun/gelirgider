@@ -90,11 +90,16 @@ type Instrument struct {
 	// AssetClass is the stored class (equity, fund or commodity), unset when
 	// none is stored and the class follows from the market (ADR 0026).
 	AssetClass sql.NullString
+	// Sector is the provider's raw sector string: unset means not fetched yet,
+	// empty means the provider has none. SectorOverride is a sector key the
+	// admin set, unset when none (ADR 0026).
+	Sector         sql.NullString
+	SectorOverride sql.NullString
 }
 
 // columns is the instrument column list every SELECT reads, in the order
 // query scans it.
-const columns = "id, symbol, market, name, currency, asset_class"
+const columns = "id, symbol, market, name, currency, asset_class, sector, sector_override"
 
 // Repo provides access to instruments.
 type Repo struct {
@@ -268,7 +273,7 @@ func (r *Repo) query(ctx context.Context, query string, args ...any) ([]Instrume
 	out := []Instrument{}
 	for rows.Next() {
 		var in Instrument
-		if err := rows.Scan(&in.ID, &in.Symbol, &in.Market, &in.Name, &in.Currency, &in.AssetClass); err != nil {
+		if err := rows.Scan(&in.ID, &in.Symbol, &in.Market, &in.Name, &in.Currency, &in.AssetClass, &in.Sector, &in.SectorOverride); err != nil {
 			return nil, fmt.Errorf("scan instrument: %w", err)
 		}
 		out = append(out, in)
@@ -284,7 +289,7 @@ func (r *Repo) Get(ctx context.Context, id int64) (Instrument, error) {
 	var in Instrument
 	err := r.db.QueryRowContext(ctx,
 		"SELECT "+columns+" FROM instruments WHERE id = ?", id,
-	).Scan(&in.ID, &in.Symbol, &in.Market, &in.Name, &in.Currency, &in.AssetClass)
+	).Scan(&in.ID, &in.Symbol, &in.Market, &in.Name, &in.Currency, &in.AssetClass, &in.Sector, &in.SectorOverride)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Instrument{}, ErrNotFound
 	}
@@ -332,7 +337,7 @@ func (r *Repo) BySymbol(ctx context.Context, market, symbol string) (Instrument,
 	err := r.db.QueryRowContext(ctx,
 		"SELECT "+columns+" FROM instruments WHERE market = ? AND symbol = ?",
 		market, symbol,
-	).Scan(&in.ID, &in.Symbol, &in.Market, &in.Name, &in.Currency, &in.AssetClass)
+	).Scan(&in.ID, &in.Symbol, &in.Market, &in.Name, &in.Currency, &in.AssetClass, &in.Sector, &in.SectorOverride)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Instrument{}, ErrNotFound
 	}

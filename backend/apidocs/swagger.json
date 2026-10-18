@@ -5246,6 +5246,10 @@
                 "realized_pl_reporting": {
                     "type": "string"
                 },
+                "sector": {
+                    "description": "a sector key (financials, ...); \"unknown\" when there is no data",
+                    "type": "string"
+                },
                 "splits": {
                     "description": "The splits the holdings engine applied to this position, oldest\nfirst: dated after the instrument's first transaction in this\nportfolio, on or before today, and while shares were held.\nNever null.",
                     "type": "array",

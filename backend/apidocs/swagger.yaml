@@ -703,6 +703,9 @@ definitions:
         type: string
       realized_pl_reporting:
         type: string
+      sector:
+        description: a sector key (financials, ...); "unknown" when there is no data
+        type: string
       splits:
         description: |-
           The splits the holdings engine applied to this position, oldest
