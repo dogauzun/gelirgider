@@ -59,9 +59,10 @@ Rules:
   prefix (`007_add_fx_rates.sql`). Filename order is application order. Two
   PRs that both add `007_` do not always conflict in git (the slugs differ), so
   `TestSchemaFiles_UniquePrefixes` fails the build on a repeated prefix;
-  renumber the newer file. `032_stopaj_rates.sql` and `032_term_deposits.sql`
-  are the one named exception: both are already applied and recorded, so
-  neither can be renamed.
+  renumber the newer file. `032_stopaj_rates.sql` and `032_term_deposits.sql`,
+  and `038_goals.sql` and `038_term_deposit_renewal.sql`, are the named
+  exceptions: all four are already applied and recorded, so none can be
+  renamed.
 - Files must be portable SQL per `docs/PRINCIPLES.md`: no SQLite-only
   pragmas, triggers, or stored procedures inside migration files. One
   exception: a table rebuild (copy, drop, create, copy back, as in
