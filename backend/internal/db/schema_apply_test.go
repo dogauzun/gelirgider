@@ -555,9 +555,10 @@ func TestSchema024ConvertsBulletinDates(t *testing.T) {
 // numeric prefix. Git does not conflict when the slugs differ, so this test is
 // the signal ADR 0002 relies on.
 func TestSchemaFiles_UniquePrefixes(t *testing.T) {
-	// Both 032 files are already recorded by name and checksum in deployed
-	// databases and cannot be renamed. No new prefix gets an exception.
-	allowed := map[string]int{"032": 2}
+	// Both the 032 and the 038 files are already recorded by name and checksum
+	// in deployed databases and cannot be renamed. No new prefix gets an
+	// exception.
+	allowed := map[string]int{"032": 2, "038": 2}
 
 	entries, err := fs.ReadDir(schemaFS, "schema")
 	if err != nil {
