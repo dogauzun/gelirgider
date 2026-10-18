@@ -1071,6 +1071,38 @@ func TestBackfillCryptoSkippedPairDoesNotHideFailure(t *testing.T) {
 	}
 }
 
+// TestBackfillTrackedSkipsWatchedInstrumentWithoutTransaction checks that
+// a watched instrument nobody holds has no start date, so the backfill
+// skips it: sync is not called, and it does not make the run a failed one.
+func TestBackfillTrackedSkipsWatchedInstrumentWithoutTransaction(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+	ctx := context.Background()
+	for _, stmt := range []string{
+		`INSERT INTO instruments (id, symbol, market, name, currency)
+			VALUES (1, 'AAPL', 'US', 'Apple Inc', 'USD')`,
+		`INSERT INTO users (id, email, password_hash, created_at)
+			VALUES (1, 'u@example.com', 'x', '2024-01-01T00:00:00Z')`,
+		`INSERT INTO watchlist (user_id, instrument_id, note, created_at)
+			VALUES (1, 1, '', '2024-01-01T00:00:00Z')`,
+	} {
+		if _, err := conn.ExecContext(ctx, stmt); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+
+	now := time.Date(2024, 1, 9, 12, 0, 0, 0, price.Istanbul)
+	_, err = testRun(conn, now).backfillTracked(ctx, "US", "us instruments", 0, func(in instrument.Instrument, start string) (int, bool, error) {
+		return 0, false, errors.New("bad start date " + start)
+	})
+	if err != nil {
+		t.Fatalf("backfillTracked error = %v, want nil: a watched instrument has no start date and is skipped", err)
+	}
+}
+
 // TestBackfillRangeSkipsHolidayOnRerun checks that a weekday whose
 // bulletin 404s between two days that have one is a holiday. The first
 // walk requests it once and remembers it; the next walk must not request
