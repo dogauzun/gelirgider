@@ -35,9 +35,9 @@ export function UpcomingDividends({ portfolioId }: { portfolioId: number }) {
             </span>
           </div>
           <ul>
-            {rows.map((row) => (
+            {rows.map((row, i) => (
               <li
-                key={`${row.instrument_id}-${row.date ?? row.period}`}
+                key={`${row.instrument_id}-${row.date ?? row.period}-${i}`}
                 className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-line px-4 py-2.5 last:border-0"
               >
                 <span className="flex items-baseline gap-3">
