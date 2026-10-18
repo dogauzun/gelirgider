@@ -54,14 +54,17 @@ never shows it.
   Turkish number format. Rows with no bonus part are skipped, and so are
   bonus issues dated after today, because a split must not apply before its
   ex-date. The same fetch also feeds dividends, planned ones included (ADR
-  0009).
+  0009), and each equity's sector from the page's summary table (ADR 0026):
+  one request serves all three, and a failure of one part does not stop the
+  others.
 - **CRYPTO, TEFAS and GOLD:** never split, no source (GOLD per ADR 0017).
 
 The page keeps only the current calendar year. Its year filter lives under
 `/_layouts/`, which robots.txt disallows, so the fetcher never calls that path
 and older bonus issues go through `-add-split`. The page is meant for a
-browser: the fetcher matches cells by class name and fails loudly when the
-table or a class is missing, and if the page disappears BIST splits fall back
+browser: the fetcher matches cells by class name (the sector table, whose
+cells have no class, by header text) and fails loudly when the table, a class
+or a header is missing, and if the page disappears BIST splits fall back
 to `-add-split`.
 
 Rejected: the Borsa Istanbul bulletin (ex-date flag but no ratio), KAP and

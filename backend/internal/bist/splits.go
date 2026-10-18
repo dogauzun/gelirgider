@@ -54,25 +54,27 @@ var (
 	htmlTag   = regexp.MustCompile(`<[^>]*>`)
 )
 
-// FetchCapitalEvents downloads the capital increase table and returns its
-// bonus issues and cash dividends. Rows with neither (rights issues) are
-// dropped; rows dated in the future are kept for the caller to handle.
-func (f *Fetcher) FetchCapitalEvents(ctx context.Context) ([]CapitalEvent, error) {
+// FetchPage downloads the "Temel Değerler ve Oranlar" page once. The capital
+// increase table and the sector table are both read from this one body, so the
+// daily source stays one request.
+func (f *Fetcher) FetchPage(ctx context.Context) (string, error) {
 	url := cmp.Or(f.CapitalURL, defaultCapitalURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("build capital increase request: %w", err)
+		return "", fmt.Errorf("build capital increase request: %w", err)
 	}
 	body, err := httpbody.Fetch(f.HTTPClient, req, maxPageBytes)
 	if err != nil {
-		return nil, fmt.Errorf("fetch capital increases: %w", err)
+		return "", fmt.Errorf("fetch capital increases: %w", err)
 	}
-	return parseCapitalTable(string(body))
+	return string(body), nil
 }
 
-// parseCapitalTable reads the SermayeRow rows of the capital increase table.
-// A missing table or a row missing one of the read cells is an error, so a
-// page redesign is noticed instead of silently storing nothing.
+// parseCapitalTable reads the SermayeRow rows of the capital increase table
+// and returns its bonus issues and cash dividends. Rows with neither (rights
+// issues) are dropped; rows dated in the future are kept for the caller to
+// handle. A missing table or a row missing one of the read cells is an error,
+// so a page redesign is noticed instead of silently storing nothing.
 func parseCapitalTable(page string) ([]CapitalEvent, error) {
 	start := strings.Index(page, capitalTableStart)
 	if start < 0 {
@@ -139,15 +141,15 @@ func parseTurkishDecimal(s string) (decimal.Decimal, error) {
 	return d, nil
 }
 
-// SyncCapitalEvents stores every bonus issue dated on or before today's date
+// SyncCapitalEvents reads page (FetchPage's body) and stores every bonus issue dated on or before today's date
 // (the caller passes an Europe/Istanbul time) in splitRepo, and every cash
 // dividend, planned ones dated after today included, in dividendRepo in TRY,
 // both with source "isyatirim". A planned bonus issue is skipped: a split must
 // not apply before its ex-date. The page is re-read daily, so a changed
 // announcement updates its row in place. Symbols with no BIST instrument are
 // skipped, never inserted. Returns the number of splits plus dividends written.
-func SyncCapitalEvents(ctx context.Context, fetcher *Fetcher, instrumentRepo *instrument.Repo, splitRepo *split.Repo, dividendRepo *dividend.Repo, today time.Time) (int, error) {
-	events, err := fetcher.FetchCapitalEvents(ctx)
+func SyncCapitalEvents(ctx context.Context, page string, instrumentRepo *instrument.Repo, splitRepo *split.Repo, dividendRepo *dividend.Repo, today time.Time) (int, error) {
+	events, err := parseCapitalTable(page)
 	if err != nil {
 		return 0, err
 	}

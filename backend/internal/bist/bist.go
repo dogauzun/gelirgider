@@ -100,7 +100,7 @@ type Fetcher struct {
 	// so tests can point at an httptest.Server. Defaults to defaultBaseURL
 	// when empty.
 	BaseURL string
-	// CapitalURL is the capital increase page read by FetchCapitalEvents.
+	// CapitalURL is the capital increase page read by FetchPage.
 	// Overridable for tests. Defaults to defaultCapitalURL when empty.
 	CapitalURL string
 }

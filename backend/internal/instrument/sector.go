@@ -25,7 +25,87 @@ const sectorUnknown = "unknown"
 // sectorMaps maps a market's folded, lower-case raw sector strings to a sector
 // key. A market without a map has no sector source yet and answers unknown.
 var sectorMaps = map[string]map[string]string{
-	"US": finnhubSectors,
+	"US":   finnhubSectors,
+	"BIST": foldKeys(isYatirimSectors),
+}
+
+// foldKeys returns m with its keys folded the way SectorKey folds a raw
+// string, so a map can be written with the source's own spelling.
+func foldKeys(m map[string]string) map[string]string {
+	out := make(map[string]string, len(m))
+	for k, v := range m {
+		out[strings.ToLower(turkishFold.Replace(strings.TrimSpace(k)))] = v
+	}
+	return out
+}
+
+// isYatirimSectors maps the "Sektör" column of İş Yatırım's "Temel Değerler ve
+// Oranlar" summary table (ADR 0008) to the 11 sector keys. The page has a
+// closed list of 53 names; "Diğer" is left out on purpose and answers
+// unknown. Holdingler, Pazarlama and Perakande - Ticaret are judgment calls.
+var isYatirimSectors = map[string]string{
+	"Petrol": "energy",
+
+	"Boya":                "materials",
+	"Cam":                 "materials",
+	"Çimento":             "materials",
+	"Demir-Çelik Döküm":   "materials",
+	"Demir-Çelik Temel":   "materials",
+	"Kağıt Ürünleri":      "materials",
+	"Kimyasal Ürün":       "materials",
+	"Madencilik":          "materials",
+	"Seramik":             "materials",
+	"Tarım Kimyasalları":  "materials",
+	"Endüstriyel Tekstil": "materials",
+
+	"Endüstriyel Makine -Teçhizat Üretim":    "industrials",
+	"Elektrik Enerji Ürt.Teçh/Tesis Kurulum": "industrials",
+	"Kablo":                "industrials",
+	"İnşaat Malzemeleri":   "industrials",
+	"İnşaat- Taahhüt":      "industrials",
+	"Savunma":              "industrials",
+	"Ulaştırma-Lojistik":   "industrials",
+	"Havayolları ve Hizm.": "industrials",
+	"Holdingler":           "industrials",
+	"Pazarlama":            "industrials",
+
+	"Dayanıklı Tüketim":  "consumer_discretionary",
+	"Deri Giyim":         "consumer_discretionary",
+	"Eğlence Hizmetleri": "consumer_discretionary",
+	"Kırtasiye":          "consumer_discretionary",
+	"Mobilya":            "consumer_discretionary",
+	"Otomotiv":           "consumer_discretionary",
+	"Otomotiv Lastiği":   "consumer_discretionary",
+	"Otomotiv Parçası":   "consumer_discretionary",
+	"Spor":               "consumer_discretionary",
+	"Tekstil Entegre":    "consumer_discretionary",
+	"Turizm":             "consumer_discretionary",
+
+	"Gıda":                "consumer_staples",
+	"Meşrubat / İçecek":   "consumer_staples",
+	"Hayvancılık":         "consumer_staples",
+	"Perakande - Ticaret": "consumer_staples",
+
+	"Sağlık ve İlaç": "health_care",
+
+	"Bankacılık":                "financials",
+	"Aracı Kurumlar":            "financials",
+	"Fin.Kiralama ve Faktoring": "financials",
+	"Sigorta":                   "financials",
+	"Varlık Yönetim":            "financials",
+	"Yatırım Ortaklıkları":      "financials",
+
+	"Teknoloji":               "information_technology",
+	"Bilgisayar Toptancılığı": "information_technology",
+	"İletişim Cihazları":      "information_technology",
+
+	"İletişim": "communication_services",
+	"Medya":    "communication_services",
+
+	"Elektrik Üretim":             "utilities",
+	"Elektrik - Doğalgaz Dağıtım": "utilities",
+
+	"GYO": "real_estate",
 }
 
 // finnhubSectors maps the finnhubIndustry values of Finnhub's company profile

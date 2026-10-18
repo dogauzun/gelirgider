@@ -48,7 +48,11 @@ func TestSyncCapitalEventsStoresPastSplitsAndAllDividendsOfKnownSymbols(t *testi
 	splits := split.NewRepo(conn)
 	dividends := dividend.NewRepo(conn)
 
-	n, err := bist.SyncCapitalEvents(ctx, &bist.Fetcher{CapitalURL: srv.URL}, instrument.NewRepo(conn), splits, dividends,
+	body, err := (&bist.Fetcher{CapitalURL: srv.URL}).FetchPage(ctx)
+	if err != nil {
+		t.Fatalf("FetchPage: %v", err)
+	}
+	n, err := bist.SyncCapitalEvents(ctx, body, instrument.NewRepo(conn), splits, dividends,
 		time.Date(2026, 9, 23, 19, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatalf("SyncCapitalEvents: %v", err)
@@ -103,13 +107,15 @@ func TestSyncCapitalEventsStoresPastSplitsAndAllDividendsOfKnownSymbols(t *testi
 
 // A page without the capital increase table fails instead of storing
 // nothing, so a redesign is noticed.
-func TestFetchCapitalEventsFailsWithoutTable(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("<html><body>redesigned</body></html>"))
-	}))
-	defer srv.Close()
+func TestSyncCapitalEventsFailsWithoutTable(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
 
-	if _, err := (&bist.Fetcher{CapitalURL: srv.URL}).FetchCapitalEvents(context.Background()); err == nil {
-		t.Fatal("FetchCapitalEvents: want error for a page without the table")
+	if _, err := bist.SyncCapitalEvents(context.Background(), "<html><body>redesigned</body></html>", instrument.NewRepo(conn),
+		split.NewRepo(conn), dividend.NewRepo(conn), time.Now()); err == nil {
+		t.Fatal("SyncCapitalEvents: want error for a page without the table")
 	}
 }
