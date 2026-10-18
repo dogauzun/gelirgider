@@ -153,7 +153,8 @@ export function driftRows(
 ): (AllocationRow & { target: number | null; drift: number | null })[] {
   const weights = new Map(targets.map((x) => [x.asset_class, Number(x.weight) / 100]))
   const out = rows.map((row) => {
-    const target = weights.get(classOfRow(row.key)) ?? null
+    // With targets set, a held class the set leaves out counts as 0 (the dialog says so).
+    const target = weights.get(classOfRow(row.key)) ?? (targets.length > 0 ? 0 : null)
     return { ...row, target, drift: target === null ? null : (row.share - target) * 100 }
   })
   for (const [assetClass, target] of weights) {
@@ -183,13 +184,13 @@ const TARGET_SCALE = 10n ** 12n
 // max(0, target * T - current). Gaps that fit in the amount are filled and the
 // remainder goes by target weight; otherwise the amount is split in
 // proportion to the gaps. Rounding leftovers go to the largest gap, so the
-// parts sum to the amount. Rows without a target are left out.
+// parts sum to the amount. Rows with no target or a target of 0 are left out.
 export function planContribution(
   rows: ReturnType<typeof driftRows>,
   amount: bigint,
 ): { assetClass: string; amount: bigint }[] {
   const classes = rows.flatMap((row) =>
-    row.target === null
+    !row.target
       ? []
       : [
           {
