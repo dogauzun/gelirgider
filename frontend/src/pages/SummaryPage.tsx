@@ -581,6 +581,7 @@ export function SummaryPage() {
                   {/* Side by side with equal heights from lg, stacked below. */}
                   <div className="grid gap-4 lg:grid-cols-2">
                     <Allocation
+                      portfolioId={portfolioId}
                       positions={positions}
                       cash={data.cash}
                       cashByCurrency={data.cash_by_currency}

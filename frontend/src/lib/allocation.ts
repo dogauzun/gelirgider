@@ -1,3 +1,4 @@
+import type { AllocationTarget } from '../api/allocationTargets'
 import type { Position } from '../api/summary'
 import { marketLabel, sectorLabel, t } from '../i18n/strings'
 import { compareUnits, decimalUnits, unitsToDecimal } from './decimal'
@@ -33,6 +34,12 @@ export const SHARE_FORMAT: Intl.NumberFormatOptions = {
   style: 'percent',
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
+}
+
+export const DRIFT_FORMAT: Intl.NumberFormatOptions = {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+  signDisplay: 'exceptZero',
 }
 
 // One row of the donut and its legend. value and share are for drawing and
@@ -136,4 +143,34 @@ export function allocationRows(input: {
     return { ...row, value: Number(amount), amount, share: shareOf(units, totalUnits) }
   })
   return { rows, total, other }
+}
+
+const classOfRow = (key: string) => (key.startsWith('class-') ? key.slice('class-'.length) : key)
+
+export function driftRows(
+  rows: AllocationRow[],
+  targets: AllocationTarget[],
+): (AllocationRow & { target: number | null; drift: number | null })[] {
+  const weights = new Map(targets.map((x) => [x.asset_class, Number(x.weight) / 100]))
+  const out = rows.map((row) => {
+    const target = weights.get(classOfRow(row.key)) ?? null
+    return { ...row, target, drift: target === null ? null : (row.share - target) * 100 }
+  })
+  for (const [assetClass, target] of weights) {
+    if (rows.some((row) => classOfRow(row.key) === assetClass)) continue
+    out.push({
+      key: assetClass === 'cash' ? 'cash' : `class-${assetClass}`,
+      label:
+        assetClass === 'cash'
+          ? t('summary.cash')
+          : t(`allocation.assetClass.${assetClass as AssetClass}`),
+      value: 0,
+      amount: '0',
+      share: 0,
+      color: CASH_COLOR,
+      target,
+      drift: -target * 100,
+    })
+  }
+  return out
 }
