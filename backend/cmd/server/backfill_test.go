@@ -390,7 +390,9 @@ func TestBackfillHistoryStartsBISTAtFirstBISTTransaction(t *testing.T) {
 func TestBackfillUSWritesLatestCloseOnce(t *testing.T) {
 	requests := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requests++
+		if r.URL.Path == "/quote" { // the sector profile request is not a quote
+			requests++
+		}
 		w.Write([]byte(`{"c":230.5,"pc":229,"t":1788811200}`)) // Mon 2026-09-07 16:00 NY
 	}))
 	defer srv.Close()

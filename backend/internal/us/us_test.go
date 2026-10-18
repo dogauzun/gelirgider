@@ -514,3 +514,74 @@ func TestSyncRecentStoresClosesAndSplits(t *testing.T) {
 		t.Fatalf("splits = %+v, want one AAPL (2026-09-22, 2, tiingo)", got)
 	}
 }
+
+// TestSyncStoresSectorOfHeldInstrumentsOnce checks the profile pass of Sync:
+// a held instrument with an unset sector gets Finnhub's raw industry, an
+// empty profile stores "" and is not requested on the next run, and an
+// instrument whose sector is set is never requested.
+func TestSyncStoresSectorOfHeldInstrumentsOnce(t *testing.T) {
+	profiles := map[string]int{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sym := r.URL.Query().Get("symbol")
+		if r.URL.Path != "/stock/profile2" {
+			w.Write([]byte(`{"c":10,"pc":9,"t":1790107200}`))
+			return
+		}
+		profiles[sym]++
+		if sym == "AAPL" {
+			w.Write([]byte(`{"finnhubIndustry":"Technology"}`))
+			return
+		}
+		w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+	ctx := context.Background()
+	for _, q := range []string{
+		`INSERT INTO instruments (id, symbol, market, name, currency, sector) VALUES
+			(1, 'AAPL', 'US', 'Apple Inc', 'USD', NULL),
+			(2, 'ZZZZ', 'US', 'No Profile Inc', 'USD', NULL),
+			(3, 'MSFT', 'US', 'Microsoft Corp', 'USD', 'Technology'),
+			(4, 'NVDA', 'US', 'Nvidia Corp', 'USD', NULL)`,
+		`INSERT INTO users (id, email, password_hash, created_at) VALUES (1, 'u@example.com', 'x', '2026-09-11T00:00:00Z')`,
+		`INSERT INTO portfolios (id, user_id, name, created_at) VALUES (1, 1, 'Main', '2026-09-11T00:00:00Z')`,
+		`INSERT INTO transactions (id, user_id, portfolio_id, instrument_id, type, date, quantity, price, amount, fee, currency, created_at) VALUES
+			(1, 1, 1, 1, 'buy', '2026-09-10', '1', '200', '200', '0', 'USD', '2026-09-10T00:00:00Z'),
+			(2, 1, 1, 2, 'buy', '2026-09-10', '1', '5', '5', '0', 'USD', '2026-09-10T00:00:00Z'),
+			(3, 1, 1, 3, 'buy', '2026-09-10', '1', '400', '400', '0', 'USD', '2026-09-10T00:00:00Z')`,
+	} {
+		if _, err := conn.ExecContext(ctx, q); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+
+	instruments := instrument.NewRepo(conn)
+	f := &us.Fetcher{BaseURL: srv.URL, APIKey: "test-key"}
+	for range 2 {
+		if _, err := us.Sync(ctx, f, instruments, price.NewRepo(conn), time.Unix(1790107200, 0)); err != nil {
+			t.Fatalf("Sync: %v", err)
+		}
+	}
+
+	want := map[int64]string{1: "Technology", 2: "", 3: "Technology"}
+	for id, w := range want {
+		in, err := instruments.Get(ctx, id)
+		if err != nil {
+			t.Fatalf("Get %d: %v", id, err)
+		}
+		if !in.Sector.Valid || in.Sector.String != w {
+			t.Errorf("instrument %d sector = %+v, want %q", id, in.Sector, w)
+		}
+	}
+	if in, _ := instruments.Get(ctx, 4); in.Sector.Valid {
+		t.Errorf("untracked NVDA sector = %+v, want unset", in.Sector)
+	}
+	if profiles["AAPL"] != 1 || profiles["ZZZZ"] != 1 || len(profiles) != 2 {
+		t.Errorf("profile requests = %v, want one each for AAPL and ZZZZ only", profiles)
+	}
+}

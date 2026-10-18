@@ -78,6 +78,10 @@ the scheduler's retry.
   close is dated by the quote's own timestamp: after 16:00 New York on that
   date it is that session's close, otherwise the previous close is stored under
   the earlier session (weekends and the NYSE holidays are skipped).
+- **Sector**: after the quotes, the daily run requests Finnhub
+  `/stock/profile2` for each tracked US instrument whose `instruments.sector`
+  is unset and stores `finnhubIndustry` raw, `''` for an empty profile so it is
+  not asked again (ADR 0026). No key skips it.
 - **History, splits, dividends**: Tiingo daily prices, one request per symbol
   for any range, unadjusted `close` stored with `source = 'tiingo'`. Its
   robots.txt blocks only `/admin`. The key is an admin setting too, and an unset
