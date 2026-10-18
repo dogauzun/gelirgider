@@ -15,6 +15,8 @@ export const trPosition = {
   'position.realizedHint': 'Temettü dahil',
   'position.dividends': 'Temettü',
   'position.dividendsHint': 'Gerçekleşmiş içinde',
+  'position.dividendForecast': 'yılda ~{amount} bekleniyor · verim {yield}',
+  'position.dividendForecastNoYield': 'yılda ~{amount} bekleniyor',
   'position.today': '{change} bugün',
   'position.chart': 'Grafik',
   'position.closed': 'Kapandı',

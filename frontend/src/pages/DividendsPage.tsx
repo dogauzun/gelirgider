@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
 import {
+  expectedNetOf,
   useDividendForecast,
   useDividendTimeline,
   type DividendBucket,
@@ -41,7 +42,7 @@ const GROUPS: { key: Group; labelKey: StringKey }[] = [
   { key: 'forecast', labelKey: 'dividends.page.forecast' },
 ]
 
-type SortKey = 'symbol' | 'count' | 'net' | 'last_date'
+type SortKey = 'symbol' | 'count' | 'net' | 'expected' | 'last_date'
 
 // The instrument table's columns. Text sorts A to Z first, figures and dates
 // largest or newest first. Pay, the share of the net, sorts as net does, so
@@ -53,18 +54,29 @@ const COLUMNS: { key: SortKey | 'share'; labelKey: StringKey; className: string 
   { key: 'count', labelKey: 'dividends.page.payments', className: 'text-right max-sm:hidden' },
   { key: 'share', labelKey: 'dividends.page.share', className: 'text-right max-sm:hidden' },
   { key: 'net', labelKey: 'dividends.page.net', className: 'text-right' },
+  {
+    key: 'expected',
+    labelKey: 'dividends.page.expectedAnnual',
+    className: 'text-right max-sm:hidden',
+  },
   { key: 'last_date', labelKey: 'dividends.page.lastPayment', className: 'text-right' },
 ]
 
 // A ratio as a percent with one decimal: 0.14 -> "%14,0".
 const percent = (ratio: number) => formatNumber(ratio, SHARE_FORMAT)
 
-// The sort value of a row's column. The API's order (net largest first, then
+// The sort value of a row's column; `expected` is the row's expected annual
+// net, null when it has no forecast. The API's order (net largest first, then
 // symbol) is kept for equal values.
-function pickValue(key: SortKey, row: DividendInstrumentTotal): string | number {
+function pickValue(
+  key: SortKey,
+  row: DividendInstrumentTotal,
+  expected: string | null,
+): string | number | null {
   if (key === 'symbol') return row.symbol
   if (key === 'count') return row.count
   if (key === 'net') return row.net
+  if (key === 'expected') return expected
   return Date.parse(row.last_date)
 }
 
@@ -178,6 +190,10 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
       </KpiCell>
     )
     const netUnits = data.by_instrument.reduce((sum, row) => sum + decimalUnits(row.net), 0n)
+    // Each instrument's expected annual net; instruments only the forecast
+    // knows are not rows of this table.
+    const expectedNet = (id: number) =>
+      expectedNetOf((forecast.data?.rows ?? []).filter((r) => r.instrument_id === id))
     const share = (net: string) =>
       netUnits > 0n ? percent(Number(net) / Number(unitsToDecimal(netUnits))) : MISSING
     body = (
@@ -273,7 +289,11 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
               </tr>
             </thead>
             <tbody>
-              {sortRows(data.by_instrument, (row) => pickValue(sort.key, row), sort).map((row) => (
+              {sortRows(
+                data.by_instrument,
+                (row) => pickValue(sort.key, row, expectedNet(row.instrument_id)),
+                sort,
+              ).map((row) => (
                 <tr key={row.instrument_id} className={ROW_44}>
                   <td className={TD}>
                     <Link
@@ -297,6 +317,9 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
                   <td className={`${TD_NUM} max-sm:hidden`}>{share(row.net)}</td>
                   <td className={`${TD_NUM} font-medium text-plum`}>
                     {formatMoney(row.net, currency)}
+                  </td>
+                  <td className={`${TD_NUM} max-sm:hidden`}>
+                    {formatMoney(expectedNet(row.instrument_id), currency)}
                   </td>
                   <td className={TD_NUM}>
                     {formatMarketDate(row.last_date, {

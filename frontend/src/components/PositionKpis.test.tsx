@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { afterEach, expect, it } from 'vitest'
+import type { DividendForecastRow, DividendTimeline } from '../api/dividends'
 import type { Position, Summary } from '../api/summary'
 import { setLocale } from '../i18n/strings'
 import { PositionKpis } from './PositionKpis'
@@ -95,4 +96,50 @@ it('shows the range split under the total of a closed USD position', () => {
 it('shows no range split without an attribution entry', () => {
   render(<PositionKpis position={position} summary={summary} dividends={null} />)
   expect(screen.queryByText('Seçilen aralık')).toBeNull()
+})
+
+const forecastRow = (net_reporting: string | null) =>
+  ({ instrument_id: 7, net_reporting }) as unknown as DividendForecastRow
+
+const timeline = {
+  currency: 'TRY',
+  months: [],
+  years: [],
+  by_instrument: [{ instrument_id: 7, symbol: 'THYAO', name: 'THY', count: 2, net: '80.00' }],
+  missing_rates: [],
+} as unknown as DividendTimeline
+
+// The rows' net adds up exactly; the yield is that over the market value.
+it('shows the expected annual dividend with its yield on the market value', () => {
+  const p = { ...position, market_value_reporting: '2000.00' }
+  render(
+    <PositionKpis
+      position={p}
+      summary={{ ...summary, positions: [p] }}
+      dividends={timeline}
+      forecast={[forecastRow('20.10'), forecastRow('29.90'), forecastRow(null)]}
+    />,
+  )
+  expect(screen.getByText('yılda ~₺50,00 bekleniyor · verim %2,5')).toBeInTheDocument()
+})
+
+it('leaves the yield out when the market value is null or zero', () => {
+  for (const market_value_reporting of [null, '0.00']) {
+    const p = { ...position, market_value_reporting } as unknown as Position
+    const { unmount } = render(
+      <PositionKpis
+        position={p}
+        summary={{ ...summary, positions: [p] }}
+        dividends={timeline}
+        forecast={[forecastRow('50.00')]}
+      />,
+    )
+    expect(screen.getByText('yılda ~₺50,00 bekleniyor')).toBeInTheDocument()
+    unmount()
+  }
+})
+
+it('shows no forecast line without a forecast row', () => {
+  render(<PositionKpis position={position} summary={summary} dividends={timeline} />)
+  expect(screen.queryByText(/bekleniyor/)).toBeNull()
 })

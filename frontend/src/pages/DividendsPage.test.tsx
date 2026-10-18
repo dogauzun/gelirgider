@@ -279,8 +279,18 @@ it('shows the twelve-month forecast net and yield, and charts it', async () => {
   expect(localStorage.getItem('dividendsGroup')).toBe('forecast')
 })
 
-it('lists payments, share and the last payment with its year per instrument', async () => {
-  mockApi()
+it('lists payments, share, expected annual and the last payment per instrument', async () => {
+  // Only THYAO has a forecast row; the one for 9 (not in the table) adds no row.
+  const row = { ...expectedRow, period: '2026-10', date: '2026-10-05', planned: true }
+  mockApi({
+    forecastData: {
+      ...forecast,
+      rows: [
+        { ...row, net_reporting: '50.00' },
+        { ...row, instrument_id: 9, symbol: 'ASELS', net_reporting: '70.00' },
+      ],
+    },
+  })
   renderPage()
 
   const table = (await screen.findByRole('link', { name: 'THYAO' })).closest('table')!
@@ -288,7 +298,7 @@ it('lists payments, share and the last payment with its year per instrument', as
     within(table)
       .getAllByRole('columnheader')
       .map((th) => th.textContent),
-  ).toEqual(['Enstrüman', 'Ödeme sayısı', 'Pay', 'Net↓', 'Son ödeme'])
+  ).toEqual(['Enstrüman', 'Ödeme sayısı', 'Pay', 'Net↓', 'Yıllık beklenen', 'Son ödeme'])
   const cells = (symbol: string) =>
     Array.from(within(table).getByRole('link', { name: symbol }).closest('tr')!.cells).map(
       (td) => td.textContent,
@@ -301,9 +311,11 @@ it('lists payments, share and the last payment with its year per instrument', as
     '2',
     '%75,0',
     '₺150,00',
+    '₺50,00',
     '04 May 2026',
   ])
-  expect(cells('AKBNK')).toEqual(['AKBNKAkbank1 ödeme', '1', '%25,0', '₺50,00', '03 Haz 2024'])
+  expect(cells('AKBNK')).toEqual(['AKBNKAkbank1 ödeme', '1', '%25,0', '₺50,00', '—', '03 Haz 2024'])
+  expect(screen.queryByRole('link', { name: 'ASELS' })).toBeNull()
   expect(screen.getByRole('link', { name: 'THYAO' })).toHaveAttribute(
     'href',
     '/portfolios/1/positions/7',
@@ -322,6 +334,14 @@ it('lists payments, share and the last payment with its year per instrument', as
   expect(symbols()).toEqual(['AKBNK', 'THYAO'])
   expect(netHeader.closest('th')).toHaveAttribute('aria-sort', 'none')
   fireEvent.click(within(table).getByRole('button', { name: t('dividends.page.lastPayment') }))
+  expect(symbols()).toEqual(['THYAO', 'AKBNK'])
+  // An instrument without a forecast row sorts last in either direction.
+  const expectedHeader = within(table).getByRole('button', {
+    name: t('dividends.page.expectedAnnual'),
+  })
+  fireEvent.click(expectedHeader)
+  expect(symbols()).toEqual(['THYAO', 'AKBNK'])
+  fireEvent.click(expectedHeader)
   expect(symbols()).toEqual(['THYAO', 'AKBNK'])
 })
 

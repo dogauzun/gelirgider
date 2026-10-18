@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { useAttribution } from '../api/attribution'
-import { useDividendTimeline } from '../api/dividends'
+import { useDividendForecast, useDividendTimeline } from '../api/dividends'
 import { usePositionHistory } from '../api/positions'
 import { usePortfolioSummary } from '../api/summary'
 import { useTransactions } from '../api/transactions'
@@ -46,6 +46,7 @@ export function PositionPage() {
   const instrumentId = Number(params.instrumentId)
   const { data, isLoading, isError, error, refetch, isFetching } = usePortfolioSummary(portfolioId)
   const dividends = useDividendTimeline(portfolioId)
+  const forecast = useDividendForecast(portfolioId)
   const [range, setRange] = useRange()
   const zoom = useZoom(range, setRange)
   const { search } = useLocation()
@@ -132,6 +133,7 @@ export function PositionPage() {
               position={position}
               summary={data}
               dividends={dividends.data}
+              forecast={forecast.data?.rows.filter((r) => r.instrument_id === instrumentId)}
               attribution={attribution.data?.positions.find(
                 (p) => p.instrument_id === instrumentId,
               )}

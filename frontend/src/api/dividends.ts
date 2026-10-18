@@ -1,5 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../api'
+import { decimalUnits, unitsToDecimal } from '../lib/decimal'
 import type { PortfolioScope } from './summary'
 import { createTransaction, invalidatePortfolios, type TransactionInput } from './transactions'
 
@@ -91,7 +92,7 @@ export function useDividendTimeline(portfolioId: PortfolioScope) {
 // One expected payment of the next twelve months. `date` is null when the
 // month is only estimated from the last twelve months; `net_reporting` is
 // null when the row's currency has no rate.
-interface DividendForecastRow {
+export interface DividendForecastRow {
   instrument_id: number
   symbol: string
   market: string
@@ -114,6 +115,13 @@ export interface DividendForecast {
   months: { period: string; net: string }[]
   rows: DividendForecastRow[]
   missing_rates: string[]
+}
+
+// The rows' reporting-currency net added exactly; null when none has a rate.
+export function expectedNetOf(rows: DividendForecastRow[]): string | null {
+  const nets = rows.flatMap((r) => (r.net_reporting === null ? [] : [r.net_reporting]))
+  if (nets.length === 0) return null
+  return unitsToDecimal(nets.reduce((sum, n) => sum + decimalUnits(n), 0n))
 }
 
 export function useDividendForecast(portfolioId: PortfolioScope) {

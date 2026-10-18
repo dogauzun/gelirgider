@@ -1,5 +1,5 @@
 import type { AttributionPosition } from '../api/attribution'
-import type { DividendTimeline } from '../api/dividends'
+import { expectedNetOf, type DividendForecastRow, type DividendTimeline } from '../api/dividends'
 import type { Position, Summary } from '../api/summary'
 import { t, type StringKey } from '../i18n/strings'
 import { SHARE_FORMAT } from '../lib/allocation'
@@ -27,18 +27,21 @@ const RANGE_ROWS = [
 // is the dividends timeline: undefined while it loads, null to leave the
 // dividends cell out (the read-only `all` scope has no dividends route,
 // ADR 0014). `attribution` is the position's entry in the selected range's
-// return split; without one nothing extra shows.
+// return split; without one nothing extra shows. `forecast` is the position's
+// rows of the twelve-month dividend forecast.
 export function PositionKpis({
   position,
   summary,
   dividends,
   attribution,
+  forecast = [],
   className = '',
 }: {
   position: Position
   summary: Summary
   dividends: DividendTimeline | undefined | null
   attribution?: AttributionPosition
+  forecast?: DividendForecastRow[]
   className?: string
 }) {
   const closed = position.closed === true
@@ -64,6 +67,8 @@ export function PositionKpis({
     (r) => r.instrument_id === position.instrument_id,
   )
   const dividendNet = dividends ? (dividendRow?.net ?? '0') : null
+  const expected = expectedNetOf(forecast)
+  const marketValue = Number(position.market_value_reporting ?? 0)
   const weight = weightOf(position, holdingsTotal(summary))
 
   const columns = kpiColumns(closed, withDividends)
@@ -137,6 +142,18 @@ export function PositionKpis({
           {dividendRow && (
             <p className="text-[12px] text-muted">
               {`${t('dividends.page.paymentsCount', { count: dividendRow.count })} · ${t('position.dividendsHint')}`}
+            </p>
+          )}
+          {expected !== null && (
+            <p className="text-[12px] text-muted">
+              {marketValue > 0
+                ? t('position.dividendForecast', {
+                    amount: formatMoney(expected, reporting),
+                    yield: formatNumber(Number(expected) / marketValue, SHARE_FORMAT),
+                  })
+                : t('position.dividendForecastNoYield', {
+                    amount: formatMoney(expected, reporting),
+                  })}
             </p>
           )}
         </KpiCell>

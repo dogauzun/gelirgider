@@ -47,6 +47,7 @@ export const enDividends: AreaStrings<typeof trDividends> = {
   'dividends.page.paymentsCount': 'Payments: {count}',
   'dividends.page.share': 'Share',
   'dividends.page.net': 'Net',
+  'dividends.page.expectedAnnual': 'Expected annual',
   'dividends.page.lastPayment': 'Last payment',
   'dividends.page.empty': 'No dividends yet.',
   'dividends.page.emptyAdd': 'Add a dividend',

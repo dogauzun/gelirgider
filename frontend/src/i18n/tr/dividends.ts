@@ -46,6 +46,7 @@ export const trDividends = {
   'dividends.page.paymentsCount': '{count} ödeme',
   'dividends.page.share': 'Pay',
   'dividends.page.net': 'Net',
+  'dividends.page.expectedAnnual': 'Yıllık beklenen',
   'dividends.page.lastPayment': 'Son ödeme',
   'dividends.page.empty': 'Henüz temettü yok.',
   'dividends.page.emptyAdd': 'Temettü ekle',
