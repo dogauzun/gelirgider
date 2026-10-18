@@ -7,6 +7,7 @@ package deposit
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -84,6 +85,10 @@ func Interest(principal decimal.Decimal, terms Terms) (gross, stopaj decimal.Dec
 	return gross, gross.Mul(terms.StopajRate).Round(2)
 }
 
+// ErrNotFound is returned when no deposit matches the lookup for the given
+// user, including when the id belongs to another user.
+var ErrNotFound = errors.New("deposit not found")
+
 // Repo persists deposits.
 type Repo struct {
 	db *sql.DB
@@ -157,6 +162,31 @@ func (r *Repo) ByInstrumentIDs(ctx context.Context, userID int64, ids []int64) (
 // List returns userID's deposits in portfolioID, newest start date first.
 func (r *Repo) List(ctx context.Context, userID, portfolioID int64) ([]Deposit, error) {
 	return r.queryDeposits(ctx, `user_id = ? AND portfolio_id = ? ORDER BY start_date DESC, id DESC`, userID, portfolioID)
+}
+
+// Get returns userID's deposit with the given id, or ErrNotFound.
+func (r *Repo) Get(ctx context.Context, userID, id int64) (Deposit, error) {
+	ds, err := r.queryDeposits(ctx, `user_id = ? AND id = ?`, userID, id)
+	if err != nil {
+		return Deposit{}, err
+	}
+	if len(ds) == 0 {
+		return Deposit{}, ErrNotFound
+	}
+	return ds[0], nil
+}
+
+// SoldTx reports whether userID has a sell on the deposit instrument, read
+// inside tx so the answer holds until tx ends.
+func (r *Repo) SoldTx(ctx context.Context, tx *sql.Tx, userID, instrumentID int64) (bool, error) {
+	var n int
+	err := tx.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM transactions WHERE user_id = ? AND instrument_id = ? AND type = 'sell'`,
+		userID, instrumentID).Scan(&n)
+	if err != nil {
+		return false, fmt.Errorf("query deposit sell: %w", err)
+	}
+	return n > 0, nil
 }
 
 // InsertTx stores d inside tx and returns it with its id and creation time
