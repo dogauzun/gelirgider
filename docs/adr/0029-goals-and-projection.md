@@ -47,12 +47,13 @@ never meets a unit and currency combination that the write path rejects.
 
 `GET`, `PUT` and `DELETE /api/portfolios/{id}/goal` and
 `GET /api/portfolios/{id}/projection`. `{id}` is a number or `all`. The goal
-routes are a deliberate exception to the read-only `all` view of
+routes and the allocation targets routes of
+[ADR 0028](0028-target-allocation.md) are the exceptions to the read-only `all` view of
 [ADR 0014](0014-all-portfolios-view.md): `PUT` and `DELETE` on `all` write the
 goal whose `portfolio_id` is NULL. These routes resolve `{id}` to a nullable
-portfolio id themselves, since the scope resolver of ADR 0014 yields only
-transaction lists. The all-portfolios goal costs no extra route. Only the owner
-reads or writes a goal.
+portfolio id with `scopePortfolioID`, since the scope resolver of ADR 0014
+yields only transaction lists. The all-portfolios goal costs no extra route.
+Only the owner reads or writes a goal.
 
 ### The projection reuses the history sweep
 

@@ -31,10 +31,11 @@ the table is per-user data and every query filters by `user_id`.
 ### Routes
 
 `GET` and `PUT /api/portfolios/{id}/allocation-targets`. `{id}` is a number or
-`all`, as on every portfolio route
-([ADR 0014](0014-all-portfolios-view.md)), so the scope resolver serves them
-and the all-portfolios set costs no extra route. Only the owner reads or writes
-a set. `PUT` replaces the whole set in one transaction.
+`all`: these routes are an exception to the 404 that most portfolio routes
+return for `all` ([ADR 0014](0014-all-portfolios-view.md)), and `PUT` on `all`
+writes the set whose `portfolio_id` is NULL. The all-portfolios set costs no
+extra route. Only the owner reads or writes a set. `PUT` replaces the whole set
+in one transaction.
 
 ### Drift is computed in the frontend
 

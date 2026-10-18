@@ -33,15 +33,21 @@ portfolio, is `portfolio.ErrNotFound`, the 404 the routes return today.
 Every other `/api/portfolios/{id}/*` route keeps parsing `{id}` as a number
 and keeps returning 404 for `all`: transactions, expected dividends, rename,
 delete, and the position history
-(`/api/portfolios/{id}/instruments/{instrument_id}/history`). The only
-deliberate exception to the 404 rule is the goal routes of
-[ADR 0029](0029-goals-and-projection.md), `GET`, `PUT` and `DELETE`
-`/api/portfolios/{id}/goal`: they accept `all` and resolve it to a nullable
-portfolio id, so a user can set one goal for the whole view. That goal is a
-setting stored beside the portfolios, not a change to any portfolio's
-transactions. The portfolio data the view shows stays read-only by
-construction, not by a check that could be forgotten. Statement
-imports live under `/api/imports` with the portfolio id in the body, which
+(`/api/portfolios/{id}/instruments/{instrument_id}/history`). The exceptions
+to the 404 rule are the routes that store one setting for the whole view, and
+they accept `all` for writing too:
+
+- `GET` and `PUT /api/portfolios/{id}/allocation-targets`
+  ([ADR 0028](0028-target-allocation.md)), the target allocation set.
+- `GET`, `PUT` and `DELETE /api/portfolios/{id}/goal`
+  ([ADR 0029](0029-goals-and-projection.md)), the savings goal.
+
+They resolve `{id}` with `scopePortfolioID` in the same `scope.go`: `all`
+becomes a NULL portfolio id, so the all-portfolios set or goal is stored apart
+from every portfolio's own. Both are settings stored beside the portfolios, not
+a change to any portfolio's transactions. The portfolio data the view shows
+stays read-only by construction, not by a check that could be forgotten.
+Statement imports live under `/api/imports` with the portfolio id in the body, which
 must stay a real portfolio.
 
 ### Merge rule: one holdings pass per portfolio, then sum
@@ -135,8 +141,9 @@ buttons, no links to transactions or imports, and no position page (ADR 0016).
 The "Dikkat" card still books or dismisses an expected dividend and enters a
 manual price, each through the owning portfolio's own route
 (`/api/portfolios/{n}/...`) or the user's price route; the `all` routes stay
-read-only. The only write on an `all` route is the goal routes of ADR 0029, which
-accept `all` for writing too; the projection is a normal read `all` route.
+read-only, except the allocation targets routes of ADR 0028 and the goal routes
+of ADR 0029, which accept `all` for writing too; the projection is a normal read
+`all` route.
 
 Per portfolio: transactions (listing, adding, editing, deleting), statement
 imports, expected dividends and their dismissal. Manual prices are stored per
