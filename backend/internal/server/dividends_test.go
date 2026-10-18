@@ -362,6 +362,7 @@ func TestDividendTimeline(t *testing.T) {
 		},
 		MissingRates: []string{"USD"},
 		Last12Months: dividendBucket{Period: monthsAgo(11)[:7], Gross: "0.00", Tax: "0.00", Net: "0.00", Interest: "0.00"},
+		Total:        dividendBucket{Period: "", Gross: "222.00", Tax: "33.30", Net: "188.70", Interest: "4.00"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got  %+v\nwant %+v", got, want)
@@ -443,6 +444,86 @@ func TestDividendTimelineLast12Months(t *testing.T) {
 	}
 	if len(got.Months) != 2 || got.Months[0].Net != "84.22" || got.Months[1].Net != "94.21" {
 		t.Errorf("months = %+v, want nets 84.22 and 94.21", got.Months)
+	}
+}
+
+// TestDividendTimelineTotal covers total: two USD dividends and two USD
+// interest rows in 2025 and 2026 at one rate. total sums unrounded and rounds
+// once (net 168.4496 => 168.45), where the two year buckets round to 84.22
+// each (sum 168.44).
+func TestDividendTimelineTotal(t *testing.T) {
+	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+	ctx := context.Background()
+
+	res, err := conn.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES ('AAPL', 'US', 'AAPL name', 'USD')`)
+	if err != nil {
+		t.Fatalf("insert instrument: %v", err)
+	}
+	aapl, err := res.LastInsertId()
+	if err != nil {
+		t.Fatalf("instrument id: %v", err)
+	}
+
+	handler := New(logger, conn, false, settings.NewRepo(conn, nil), nil)
+	usr, err := user.NewRepo(conn).Create(ctx, "alice@example.com", "hash")
+	if err != nil {
+		t.Fatalf("users.Create: %v", err)
+	}
+	session, err := auth.NewRepo(conn).CreateSession(ctx, usr.ID)
+	if err != nil {
+		t.Fatalf("sessions.CreateSession: %v", err)
+	}
+	pf, err := portfolio.NewRepo(conn).Create(ctx, usr.ID, "Test")
+	if err != nil {
+		t.Fatalf("portfolios.Create: %v", err)
+	}
+
+	if err := fx.NewRepo(conn).Upsert(ctx, "USD", "2025-03-01", "42.1124", "manual"); err != nil {
+		t.Fatalf("fx.Upsert: %v", err)
+	}
+	d := decimal.RequireFromString
+	transactions := transaction.NewRepo(conn)
+	for _, tx := range []transaction.Transaction{
+		{InstrumentID: &aapl, Type: transaction.TypeDividend, Date: "2025-03-10", Amount: d("2.50"), Fee: d("0.50"), Currency: "USD"},
+		{InstrumentID: &aapl, Type: transaction.TypeDividend, Date: "2026-03-10", Amount: d("2.50"), Fee: d("0.50"), Currency: "USD"},
+		{Type: transaction.TypeDividend, Date: "2025-03-12", Amount: d("0.12"), Currency: "USD"},
+		{Type: transaction.TypeDividend, Date: "2026-03-12", Amount: d("0.12"), Currency: "USD"},
+	} {
+		tx.PortfolioID = pf.ID
+		if _, err := transactions.Create(ctx, usr.ID, tx); err != nil {
+			t.Fatalf("transactions.Create: %v", err)
+		}
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/api/portfolios/"+fmt.Sprint(pf.ID)+"/dividends/timeline", nil)
+	r.AddCookie(&http.Cookie{Name: "session", Value: session.ID})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, r)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	var got dividendTimelineResponse
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if want := (dividendBucket{Period: "", Gross: "210.56", Tax: "42.11", Net: "168.45", Interest: "10.11"}); got.Total != want {
+		t.Errorf("total = %+v, want %+v", got.Total, want)
+	}
+	if len(got.Years) != 2 {
+		t.Fatalf("years = %+v, want 2 buckets", got.Years)
+	}
+	for i, year := range []string{"2025", "2026"} {
+		if want := (dividendBucket{Period: year, Gross: "105.28", Tax: "21.06", Net: "84.22", Interest: "5.05"}); got.Years[i] != want {
+			t.Errorf("years[%d] = %+v, want %+v", i, got.Years[i], want)
+		}
+	}
+	if len(got.ByInstrument) != 1 || got.ByInstrument[0].Net != "168.45" {
+		t.Errorf("by_instrument = %+v, want one row with net 168.45", got.ByInstrument)
 	}
 }
 
