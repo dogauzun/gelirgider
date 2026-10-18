@@ -127,6 +127,16 @@ describe('AccountPage', () => {
     )
   }
 
+  it('gives a rule input a fixed narrow width so the card fits a phone', async () => {
+    mockMe('TRY')
+    renderPage()
+
+    // w-auto left the browser's 214 px default, which widened /account to 414 px at 375 px.
+    const cash = await screen.findByRole('spinbutton', { name: 'Nakit payı' })
+    expect(cash).toHaveClass('w-24')
+    expect(cash).not.toHaveClass('w-auto')
+  })
+
   it('sends only the changed attention rule on save', async () => {
     const fetchMock = mockMe('TRY')
     renderPage()

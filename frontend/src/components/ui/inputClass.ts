@@ -13,6 +13,7 @@ const sizes = {
 const widths = {
   full: 'w-full',
   auto: 'w-auto', // sized by its text
+  number: 'w-24', // a short number: the browser's default text-input width is 214 px
 }
 
 // For <input> and Select call sites. The error look rides on `aria-invalid`,

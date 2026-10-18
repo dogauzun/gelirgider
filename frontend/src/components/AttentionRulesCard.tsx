@@ -133,7 +133,7 @@ function AttentionRulesForm({ rules }: { rules: AttentionRules }) {
                   value={draft[key].value}
                   disabled={!draft[key].enabled}
                   onChange={(event) => edit(key, { value: event.target.value })}
-                  className={inputClass({ size: 'sm', width: 'auto' })}
+                  className={inputClass({ size: 'sm', width: 'number' })}
                 />
                 <span className="w-3">{unit === 'percent' ? '%' : ''}</span>
               </span>
