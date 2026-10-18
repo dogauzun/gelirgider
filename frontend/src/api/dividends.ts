@@ -36,17 +36,6 @@ export function useExpectedDividends(portfolioId: PortfolioScope) {
   })
 }
 
-// The dividends whose ex-date is still ahead, same shape. Keyed under the
-// expected key so the edits that refetch that list refetch this one.
-export function useUpcomingDividends(portfolioId: PortfolioScope) {
-  return useQuery({
-    queryKey: [...expectedDividendsQueryKey(portfolioId), 'upcoming'],
-    queryFn: () =>
-      apiFetch<ExpectedDividend[]>(`/api/portfolios/${portfolioId as number}/dividends/upcoming`),
-    enabled: portfolioId !== 'all',
-  })
-}
-
 // Each portfolio's expected dividends, in the order given.
 export function useExpectedDividendsOf(portfolioIds: number[]) {
   return useQueries({

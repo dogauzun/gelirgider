@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
+import type { DividendForecast } from '../api/dividends'
 import { t } from '../i18n/strings'
 import { mockChartSize } from '../test/chartSize'
 import { DividendsPage } from './DividendsPage'
@@ -75,7 +76,7 @@ const forecast = {
     period: `${2026 + Math.floor((9 + i) / 12)}-${String(((9 + i) % 12) + 1).padStart(2, '0')}`,
     net: i === 0 ? '100.00' : '0.00',
   })),
-  rows: [],
+  rows: [] as DividendForecast['rows'],
   missing_rates: [] as string[],
 }
 
@@ -95,7 +96,6 @@ const expectedRow = {
 function mockApi({
   data = timeline,
   expected = [expectedRow],
-  upcoming = [] as (typeof expectedRow)[],
   // The open positions' reporting cost the yield divides by.
   costBasis = '1000.00',
   positionsValue = '2000.00',
@@ -103,7 +103,6 @@ function mockApi({
 }: {
   data?: typeof timeline
   expected?: (typeof expectedRow)[]
-  upcoming?: (typeof expectedRow)[]
   costBasis?: string
   positionsValue?: string
   forecastData?: typeof forecast
@@ -124,7 +123,6 @@ function mockApi({
     }
     if (url === '/api/portfolios/1/dividends/forecast') return Response.json(forecastData)
     if (url === '/api/portfolios/1/dividends/expected') return Response.json(expected)
-    if (url === '/api/portfolios/1/dividends/upcoming') return Response.json(upcoming)
     if (url === '/api/portfolios/1/summary')
       return Response.json({
         currency: 'TRY',
@@ -188,7 +186,18 @@ it('links an instrument to its position page with the current range', async () =
 it('shows the upcoming dividends after the confirm card, even with nothing received', async () => {
   mockApi({
     data: { ...timeline, months: [], years: [], by_instrument: [] },
-    upcoming: [{ ...expectedRow, date: '2026-10-05' }],
+    forecastData: {
+      ...forecast,
+      rows: [
+        {
+          ...expectedRow,
+          period: '2026-10',
+          date: '2026-10-05',
+          planned: true,
+          net_reporting: '127.50',
+        },
+      ],
+    },
   })
   renderPage()
 
