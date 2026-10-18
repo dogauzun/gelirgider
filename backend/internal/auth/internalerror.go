@@ -1,9 +1,11 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -65,11 +67,20 @@ func WriteError(w http.ResponseWriter, status int, msg string) {
 	json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
 
-// WriteJSON answers status with v encoded as the JSON body.
+// WriteJSON answers status with v encoded as the JSON body. It encodes
+// before writing the header: a value encoding/json refuses (+Inf, NaN)
+// is a logged 500, not the chosen status with an empty body. The log
+// names the payload type; the request log has the method, path and status.
 func WriteJSON(w http.ResponseWriter, status int, v any) {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(v); err != nil {
+		slog.Error("encode response", "error", err, "type", fmt.Sprintf("%T", v))
+		WriteError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
+	w.Write(buf.Bytes())
 }
 
 // DecodeJSON decodes the request body into v. On failure it answers 400
