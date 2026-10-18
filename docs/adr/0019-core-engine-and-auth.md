@@ -28,7 +28,9 @@ bugs, negative positions and cash overdraft first among them. The code is under
   auth, setup and health ones. `RequireAdmin` reads `is_admin` per request.
 - **A password change signs out every other session** but the current one.
 - **Auth rate limit: 10 requests per minute per client IP**, hardcoded, on
-  register, login, the password change and first-time setup. The limiter is an
+  register, login and its TOTP step, the password change, the two-step login
+  setup, confirm, disable and recovery-code routes
+  ([ADR 0025](0025-two-step-login.md)), and first-time setup. The limiter is an
   in-memory fixed window per route, so it holds for a single backend instance
   only. The client IP depends on `TRUST_PROXY`
   ([ADR 0020](0020-deployment-topology.md)).
