@@ -527,6 +527,65 @@ func TestTrackedReturnsOnlyInstrumentsWithATransaction(t *testing.T) {
 	}
 }
 
+// TestTrackedIncludesWatchedInstruments is the seed of the test above plus
+// a watchlist row for MSFT, which nobody holds, and one for AAPL, which is
+// held: MSFT counts as tracked and AAPL still comes back once.
+func TestTrackedIncludesWatchedInstruments(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	ctx := context.Background()
+	if _, err := conn.ExecContext(ctx, `INSERT INTO instruments (id, symbol, market, name, currency)
+		VALUES (1, 'AAPL', 'US', 'Apple Inc', 'USD'),
+		       (2, 'MSFT', 'US', 'Microsoft Corp', 'USD'),
+		       (3, 'THYAO', 'BIST', 'Turk Hava Yollari', 'TRY')`); err != nil {
+		t.Fatalf("seed instruments: %v", err)
+	}
+	if _, err := conn.ExecContext(ctx, `INSERT INTO users (id, email, password_hash, created_at)
+		VALUES (1, 'u@example.com', 'x', '2026-09-11T00:00:00Z')`); err != nil {
+		t.Fatalf("seed user: %v", err)
+	}
+	if _, err := conn.ExecContext(ctx, `INSERT INTO portfolios (id, user_id, name, created_at)
+		VALUES (1, 1, 'Main', '2026-09-11T00:00:00Z')`); err != nil {
+		t.Fatalf("seed portfolio: %v", err)
+	}
+	// Only AAPL (US) and THYAO (BIST) are referenced by a transaction; MSFT
+	// is a known instrument nobody holds.
+	if _, err := conn.ExecContext(ctx, `INSERT INTO transactions
+		(id, user_id, portfolio_id, instrument_id, type, date, quantity, price, amount, fee, currency, created_at)
+		VALUES (1, 1, 1, 1, 'buy', '2026-09-10', '10', '200.00', '2000.00', '0', 'USD', '2026-09-10T00:00:00Z'),
+		       (2, 1, 1, 3, 'buy', '2026-09-10', '5', '300.00', '1500.00', '0', 'TRY', '2026-09-10T00:00:00Z'),
+		       (3, 1, 1, NULL, 'deposit', '2026-09-10', NULL, NULL, '1000.00', '0', 'TRY', '2026-09-10T00:00:00Z')`); err != nil {
+		t.Fatalf("seed transactions: %v", err)
+	}
+
+	if _, err := conn.ExecContext(ctx, `INSERT INTO watchlist (user_id, instrument_id, note, created_at)
+		VALUES (1, 2, '', '2026-09-11T00:00:00Z'),
+		       (1, 1, '', '2026-09-11T00:00:00Z')`); err != nil {
+		t.Fatalf("seed watchlist: %v", err)
+	}
+
+	repo := instrument.NewRepo(conn)
+	tracked, err := repo.Tracked(ctx, "US")
+	if err != nil {
+		t.Fatalf("Tracked: %v", err)
+	}
+	if len(tracked) != 2 || tracked[0].Symbol != "AAPL" || tracked[1].Symbol != "MSFT" {
+		t.Fatalf("Tracked(US) = %+v, want AAPL and MSFT", tracked)
+	}
+
+	trackedBist, err := repo.Tracked(ctx, "BIST")
+	if err != nil {
+		t.Fatalf("Tracked: %v", err)
+	}
+	if len(trackedBist) != 1 || trackedBist[0].Symbol != "THYAO" {
+		t.Fatalf("Tracked(BIST) = %+v, want only THYAO", trackedBist)
+	}
+}
+
 // TestEachTrackedContinuesPastFailure checks the shared loop: a
 // failing instrument is logged once and the rest still run; every attempted
 // one failing is an error, with a skipped one beside them too; a pause

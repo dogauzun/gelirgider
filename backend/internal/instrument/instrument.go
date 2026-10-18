@@ -358,15 +358,19 @@ func (r *Repo) All(ctx context.Context, market string) ([]Instrument, error) {
 }
 
 // Tracked returns instruments of market that appear in at least one
-// transaction row (any user), ordered by symbol. Used by price fetchers
-// that pay per symbol (e.g. internal/us) where fetching the whole market
-// directory is not viable, so only symbols someone actually holds are
-// fetched.
+// transaction row or watchlist row (any user), ordered by symbol. A watched
+// instrument counts as tracked, so the daily syncs fetch it without a
+// transaction; UNION drops duplicates, so an instrument both held and
+// watched is one row. Used by price fetchers that pay per symbol (e.g.
+// internal/us) where fetching the whole market directory is not viable, so
+// only symbols someone holds or watches are fetched.
 func (r *Repo) Tracked(ctx context.Context, market string) ([]Instrument, error) {
 	return r.query(ctx,
 		`SELECT `+columns+` FROM instruments
 		 WHERE market = ? AND id IN (
 		     SELECT DISTINCT instrument_id FROM transactions WHERE instrument_id IS NOT NULL
+		     UNION
+		     SELECT instrument_id FROM watchlist
 		 )
 		 ORDER BY symbol`,
 		market,
