@@ -7,7 +7,6 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -17,12 +16,16 @@ import (
 
 	"github.com/dogauzun/gelirgider/backend/internal/benchmark"
 	"github.com/dogauzun/gelirgider/backend/internal/httpbody"
+	"github.com/dogauzun/gelirgider/backend/internal/scheduler"
 	"github.com/dogauzun/gelirgider/backend/internal/settings"
 )
 
 // KeySetting is the secret setting holding the EVDS API key, entered in the
 // admin area (ADR 0010).
 const KeySetting = "provider.evds.api_key"
+
+// ErrNotConfigured is what FetchXU100 returns with no EVDS key.
+var ErrNotConfigured = fmt.Errorf("xu100: EVDS %w, set it in the admin area", scheduler.ErrNotConfigured)
 
 // defaultBaseURL is the production EVDS API base path.
 const defaultBaseURL = "https://evds3.tcmb.gov.tr/igmevdsms-dis"
@@ -145,7 +148,7 @@ func (f *Fetcher) FetchXU100(ctx context.Context, from, to time.Time) ([]Close, 
 		return nil, fmt.Errorf("xu100: read EVDS API key: %w", err)
 	}
 	if key == "" {
-		return nil, errors.New("xu100: EVDS API key not configured, set it in the admin area")
+		return nil, ErrNotConfigured
 	}
 	base := cmp.Or(f.BaseURL, defaultBaseURL)
 	// EVDS takes its parameters in the path, not in a query string.

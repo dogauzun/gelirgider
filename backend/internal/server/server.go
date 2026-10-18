@@ -422,14 +422,14 @@ func syncCryptoRange(ctx context.Context, in instrument.Instrument, date string,
 	logFetchErr(ctx, err, "on-demand crypto price fetch failed", "instrument_id", in.ID, "symbol", in.Symbol)
 }
 
-// logFetchErr logs a failed on-demand fetch at ERROR with args and the
-// error, unless err is nil or ctx was cancelled: a client that went away
+// logFetchErr logs a failed on-demand fetch at ERROR, or at WARN for an unset
+// provider key, with args and the error, unless err is nil or ctx was cancelled: a client that went away
 // failed nothing. ctx.Err() decides, not err.
 func logFetchErr(ctx context.Context, err error, msg string, args ...any) {
 	if err == nil || errors.Is(ctx.Err(), context.Canceled) {
 		return
 	}
-	slog.Default().Error(msg, append(args, "error", err.Error())...)
+	scheduler.LogFetchFailed(slog.Default(), err, msg, args...)
 }
 
 // syncLatestBulletin walks back from today and syncs the first published

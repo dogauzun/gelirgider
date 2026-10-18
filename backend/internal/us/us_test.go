@@ -2,6 +2,7 @@ package us_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -201,6 +202,8 @@ func TestFetchCloseNoAPIKeyReturnsClearError(t *testing.T) {
 	f := &us.Fetcher{BaseURL: srv.URL}
 	if _, _, err := f.FetchClose(context.Background(), "AAPL", time.Now()); err == nil {
 		t.Fatalf("FetchClose: got nil error, want one when APIKey is empty")
+	} else if !errors.Is(err, us.ErrNotConfigured) {
+		t.Fatalf("FetchClose error = %v, want us.ErrNotConfigured", err)
 	}
 	if called {
 		t.Fatalf("FetchClose made a request with no API key configured")

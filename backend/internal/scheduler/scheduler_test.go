@@ -525,6 +525,26 @@ func TestAttemptCancelledMidFetchLogsNoError(t *testing.T) {
 	}
 }
 
+// TestCatchUpNotConfiguredLogsWarn checks that a source whose provider key is
+// unset is an expected state: logged once at WARN, never at ERROR.
+func TestCatchUpNotConfiguredLogsWarn(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
+	src := Source{
+		Name: "xu100",
+		Sync: func(ctx context.Context, date time.Time) (int, error) {
+			return 0, fmt.Errorf("get: %w", ErrNotConfigured)
+		},
+	}
+
+	CatchUp(context.Background(), []Source{src}, 7, nil, "catch-up", logger)
+
+	out := buf.String()
+	if n := strings.Count(out, "level=WARN"); n != 1 || !strings.Contains(out, `msg="catch-up: fetch failed"`) || strings.Contains(out, "level=ERROR") {
+		t.Fatalf("log = %q, want one catch-up fetch failed WARN and no ERROR", out)
+	}
+}
+
 // TestCatchUpTimedOutMidFetchLogsOneError checks that the on-demand
 // BIST fetch runs CatchUp under the save's timeout, and a deadline that
 // passes during Sync is a failure, not a shutdown, so it is logged once.

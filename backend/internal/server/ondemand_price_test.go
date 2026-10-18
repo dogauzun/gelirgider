@@ -310,6 +310,48 @@ func TestOnDemandFetchUS(t *testing.T) {
 	}
 }
 
+// TestOnDemandFetchUSNoKeyLogsWarn covers an install with no Finnhub key: an
+// unset key is an expected state, so the skipped fetch is logged at WARN, not
+// ERROR, and makes no request.
+func TestOnDemandFetchUSNoKeyLogsWarn(t *testing.T) {
+	var logs bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+
+	var requests atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+	}))
+	defer srv.Close()
+
+	env := newOnDemandTestEnv(t, bist.NewFetcher(), &us.Fetcher{BaseURL: srv.URL}, &tcmb.Fetcher{BaseURL: srv.URL + "/"}, btcturk.NewFetcher())
+	res, err := env.db.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES ('AAPL', 'US', 'Apple Inc.', 'USD')`)
+	if err != nil {
+		t.Fatalf("insert us instrument: %v", err)
+	}
+	usInstrumentID, err := res.LastInsertId()
+	if err != nil {
+		t.Fatalf("us instrument id: %v", err)
+	}
+
+	session := env.login("bob@example.com")
+	portfolioID := env.createPortfolio(session, "Test")
+	env.createTransaction(session, portfolioID, map[string]any{
+		"type": "buy", "date": "2024-01-01", "instrument_id": usInstrumentID, "quantity": "1", "price": "100",
+	})
+
+	if n := requests.Load(); n != 0 {
+		t.Fatalf("requests = %d, want 0 with no Finnhub key", n)
+	}
+	out := logs.String()
+	// The gold fetch of the same create logs its own ERROR on this test DB, so
+	// only the us line is checked.
+	if !strings.Contains(out, `"level":"WARN","msg":"on-demand us price fetch failed"`) || strings.Contains(out, `"level":"ERROR","msg":"on-demand us price fetch failed"`) {
+		t.Fatalf("log = %s, want the on-demand us fetch failure at WARN, not ERROR", out)
+	}
+}
+
 // TestOnDemandFetchUSHistory checks that a US buy dated 30 days ago
 // asks Tiingo for daily closes from that date (padded back a week) in one
 // request and stores them with source "tiingo".
