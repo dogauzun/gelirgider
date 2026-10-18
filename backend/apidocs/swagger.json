@@ -5319,7 +5319,7 @@
         },
         "/watchlist": {
             "get": {
-                "description": "Every row of the caller with its instrument, sorted by symbol then id, and its last close (the caller's manual price wins on the same date), previous close and day change (last_price minus prev_close, 2 decimals), each null when missing.",
+                "description": "Every row of the caller with its instrument, sorted by symbol then id, and its last close (the caller's manual price wins on the same date), previous close and day change (last_price minus prev_close, 2 decimals), each null when missing. target_reached says whether last_price is at or above target_price (target_side above) or at or below it (below); false without a target or a close.",
                 "produces": [
                     "application/json"
                 ],
@@ -5351,7 +5351,7 @@
                 }
             },
             "post": {
-                "description": "Watches the instrument for the caller, one row per user and instrument. Fetches the instrument's price dated 14 days back, best effort, so the row has closes at once. last_price, price_date, price_source, prev_close, prev_price_date and day_change are null until a close exists. target_price and target_side are null until a target is set.",
+                "description": "Watches the instrument for the caller, one row per user and instrument. Fetches the instrument's price dated 14 days back, best effort, so the row has closes at once. last_price, price_date, price_source, prev_close, prev_price_date and day_change are null until a close exists. target_price and target_side are null until a target is set, and target_reached is false.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5417,6 +5417,78 @@
             }
         },
         "/watchlist/{id}": {
+            "put": {
+                "description": "Sets target_price and note from the body. A null or omitted target_price clears the target and its side; an omitted note keeps the stored one. With a target, target_side is fixed now: above when the target is above the latest close, else below (the target needs a close to compare with). target_reached on the answer is true when last_price is at or above the target (side above) or at or below it (side below).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "watchlist"
+                ],
+                "summary": "Set or clear a watched instrument's target price",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "watchlist item id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "target_price a positive decimal string with at most 15 integer and 8 fraction digits, or null; note optional, at most 500 characters",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.watchEditRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.watchItemResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body; target_price: must have at most 15 integer and 8 fraction digits; target_price: must be a positive decimal; target_price: no close to compare with; note: must be at most 500 characters; note: must not contain control characters",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "watchlist item not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "delete": {
                 "tags": [
                     "watchlist"
@@ -6986,6 +7058,17 @@
                 }
             }
         },
+        "server.watchEditRequest": {
+            "type": "object",
+            "properties": {
+                "note": {
+                    "type": "string"
+                },
+                "target_price": {
+                    "type": "string"
+                }
+            }
+        },
         "server.watchItemResponse": {
             "type": "object",
             "properties": {
@@ -7036,6 +7119,10 @@
                 },
                 "target_price": {
                     "type": "string"
+                },
+                "target_reached": {
+                    "description": "Whether last_price has reached target_price: at or above it for side\n\"above\", at or below it for \"below\". False without a target or a close.",
+                    "type": "boolean"
                 },
                 "target_side": {
                     "type": "string"

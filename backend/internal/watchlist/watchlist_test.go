@@ -11,8 +11,9 @@ import (
 )
 
 // TestInsertDuplicateAndOwnership checks that a second Insert of one
-// instrument for one user answers ErrDuplicate and leaves one row, and that
-// another user sees none of it and cannot delete it.
+// instrument for one user answers ErrDuplicate and leaves one row, that Update
+// rewrites the target and note, and that another user sees none of it and
+// cannot read, update or delete it.
 func TestInsertDuplicateAndOwnership(t *testing.T) {
 	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -49,6 +50,18 @@ func TestInsertDuplicateAndOwnership(t *testing.T) {
 
 	if items, err := repo.List(ctx, 2); err != nil || len(items) != 0 {
 		t.Errorf("user 2 List = %v, %v, want none", items, err)
+	}
+	if _, err := repo.Get(ctx, 2, first.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("user 2 Get = %v, want ErrNotFound", err)
+	}
+	if err := repo.Update(ctx, Item{ID: first.ID, UserID: 2, Note: "stolen"}); !errors.Is(err, ErrNotFound) {
+		t.Errorf("user 2 Update = %v, want ErrNotFound", err)
+	}
+	if err := repo.Update(ctx, Item{ID: first.ID, UserID: 1, Note: "cleared"}); err != nil {
+		t.Fatalf("owner Update: %v", err)
+	}
+	if got, err := repo.Get(ctx, 1, first.ID); err != nil || got.TargetPrice != nil || got.TargetSide != nil || got.Note != "cleared" {
+		t.Errorf("Get after Update = %+v, %v, want no target and note cleared", got, err)
 	}
 	if err := repo.Delete(ctx, 2, first.ID); !errors.Is(err, ErrNotFound) {
 		t.Errorf("user 2 Delete = %v, want ErrNotFound", err)
