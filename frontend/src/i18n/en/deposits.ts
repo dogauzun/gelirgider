@@ -42,4 +42,10 @@ export const enDeposits: AreaStrings<typeof trDeposits> = {
   'deposits.error.maturityDate': 'Maturity must be after the start, at most 10 years later.',
   'deposits.error.matured': 'A matured deposit cannot be deleted.',
   'deposits.error.notFound': 'Deposit not found.',
+  // The Dikkat card's due deposits.
+  'attention.group.deposits': 'Deposits at maturity',
+  'attention.deposit.close': 'Close at maturity',
+  'attention.deposit.closeLabel': 'Close at maturity: {principal} deposit, maturity {date}',
+  'attention.deposit.detail': 'net · gross {gross} · withholding {stopaj}',
+  'attention.deposit.closed': 'Deposit closed',
 }

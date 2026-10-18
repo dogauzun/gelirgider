@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, type ReactNode } from 'react'
 import { Link } from 'react-router'
+import type { DueDeposit } from '../api/deposits'
 import type { ExpectedDividend } from '../api/dividends'
 import { t, type StringKey } from '../i18n/strings'
 import { SHARE_FORMAT } from '../lib/allocation'
@@ -17,6 +18,7 @@ const GROUPS: [StringKey, AttentionItem['kind'][]][] = [
     ['missing-rate', 'missing-price', 'stale-manual-prices', 'estimated-benchmark'],
   ],
   ['attention.group.dividends', ['dividend']],
+  ['attention.group.deposits', ['due-deposit']],
   ['attention.group.today', ['mover']],
   ['attention.group.concentration', ['concentration', 'try-cash-share', 'no-hedge']],
 ]
@@ -44,6 +46,9 @@ function Row({ children, action }: { children: ReactNode; action?: ReactNode }) 
 const priceKey = (item: AttentionItem & { instrument_id: number }) =>
   `${item.portfolio ?? ''} ${item.instrument_id}`
 
+// A due deposit's key. Deposit ids are global, so the id is enough.
+const depositKey = (item: AttentionItem & { kind: 'due-deposit' }) => String(item.deposit.id)
+
 // A dividend item's key. On Tüm portföyler the same dividend can be due in
 // two portfolios; their names are unique per user, so the name tells them apart.
 const dividendKey = (item: AttentionItem & { kind: 'dividend' }) =>
@@ -70,7 +75,9 @@ function Label({ item, children }: { item: AttentionItem; children: ReactNode })
       {item.kind !== 'mover' &&
         item.kind !== 'concentration' &&
         item.kind !== 'try-cash-share' &&
-        item.kind !== 'no-hedge' && <Dot tone={item.kind === 'dividend' ? 'accent' : 'warn'} />}
+        item.kind !== 'no-hedge' && (
+          <Dot tone={item.kind === 'dividend' || item.kind === 'due-deposit' ? 'accent' : 'warn'} />
+        )}
       {item.portfolio ? (
         <span className="flex min-w-0 flex-col">
           <span className="truncate text-[11px] text-muted" title={item.portfolio}>
@@ -87,10 +94,10 @@ function Label({ item, children }: { item: AttentionItem; children: ReactNode })
 
 // AttentionCard renders the "Dikkat" list that attentionItems builds; it
 // decides nothing itself. The header counts the items that ask for
-// something (Veri and Temettü onayı). A mover's symbol links to its position
+// something (Veri, Temettü onayı and Vadesi gelen mevduat). A mover's symbol links to its position
 // when `portfolioId` is given; Tüm portföyler leaves it out. `busy` is a
-// dividend request in flight: Ekle and Yoksay ignore clicks meanwhile, so a
-// second click cannot book the same dividend twice. They stay enabled, as
+// dividend or deposit request in flight: Ekle, Yoksay and Vadeyi kapat ignore clicks
+// meanwhile, so a second click cannot book the same one twice. They stay enabled, as
 // Button's `pending` does, so focus stays on them. `editingPrice`
 // is the price editor that Fiyat gir or Güncelle opened, still open.
 export function AttentionCard({
@@ -100,6 +107,7 @@ export function AttentionCard({
   editingPrice = false,
   onAddDividend,
   onDismissDividend,
+  onCloseDeposit,
   onEditPrice,
 }: {
   items: AttentionItem[]
@@ -108,17 +116,21 @@ export function AttentionCard({
   editingPrice?: boolean
   onAddDividend: (dividend: ExpectedDividend) => void
   onDismissDividend: (dividend: ExpectedDividend) => void
+  onCloseDeposit: (deposit: DueDeposit) => void
   onEditPrice: (instrumentId: number) => void
 }) {
   const positionPath = usePositionPath()
   // The item last acted on, which button, and that kind's item order then.
   const actedRef = useRef<{
     key: string
-    action: 'add' | 'dismiss' | 'price'
+    action: 'add' | 'dismiss' | 'price' | 'close'
     keys: string[]
   } | null>(null)
   const dividendKeys = items.flatMap((item) =>
     item.kind === 'dividend' ? [dividendKey(item)] : [],
+  )
+  const depositKeys = items.flatMap((item) =>
+    item.kind === 'due-deposit' ? [depositKey(item)] : [],
   )
   const priceKeys = items.flatMap((item) =>
     item.kind === 'missing-price' || item.kind === 'stale-manual-prices' ? [priceKey(item)] : [],
@@ -135,7 +147,9 @@ export function AttentionCard({
     const acted = actedRef.current
     if (busy || editingPrice || !acted) return
     actedRef.current = null
-    const keys = acted.action === 'price' ? priceKeys : dividendKeys
+    const keys = { price: priceKeys, close: depositKeys, add: dividendKeys, dismiss: dividendKeys }[
+      acted.action
+    ]
     if (keys.includes(acted.key)) return
     const neighbour = neighbourOf(acted.keys, acted.key, (key) => keys.includes(key))
     // Compared, not in a selector: a portfolio's name may hold a quote.
@@ -153,12 +167,17 @@ export function AttentionCard({
     if (action === 'add') onAddDividend(item.dividend)
     else onDismissDividend(item.dividend)
   }
+  const close = (item: AttentionItem & { kind: 'due-deposit' }) => {
+    actedRef.current = { key: depositKey(item), action: 'close', keys: depositKeys }
+    onCloseDeposit(item.deposit)
+  }
   const editPrice = (item: AttentionItem & { instrument_id: number }) => {
     actedRef.current = { key: priceKey(item), action: 'price', keys: priceKeys }
     onEditPrice(item.instrument_id)
   }
   const asking = items.filter(
-    (item) => GROUPS[0][1].includes(item.kind) || item.kind === 'dividend',
+    (item) =>
+      GROUPS[0][1].includes(item.kind) || item.kind === 'dividend' || item.kind === 'due-deposit',
   ).length
 
   const line = (item: AttentionItem): ReactNode => {
@@ -268,6 +287,37 @@ export function AttentionCard({
             <Label item={item}>
               <span className="font-semibold">{d.symbol}</span> · {formatMoney(d.net, d.currency)} ·{' '}
               {formatShortMarketDate(d.date)}
+            </Label>
+          </Row>
+        )
+      }
+      case 'due-deposit': {
+        const d = item.deposit
+        const principal = formatMoney(d.principal, d.currency)
+        const date = formatMarketDate(d.maturity_date)
+        return (
+          <Row
+            action={
+              <Button
+                variant="secondary"
+                size="sm"
+                className="shrink-0"
+                aria-label={named(item, t('attention.deposit.closeLabel', { principal, date }))}
+                pending={busy}
+                data-attention-action={`close ${depositKey(item)}`}
+                onClick={() => close(item)}
+              >
+                {t('attention.deposit.close')}
+              </Button>
+            }
+          >
+            <Label item={item}>
+              <span className="font-semibold">{formatMoney(d.net, d.currency)}</span>{' '}
+              {t('attention.deposit.detail', {
+                gross: formatMoney(d.gross, d.currency),
+                stopaj: formatMoney(d.stopaj, d.currency),
+              })}{' '}
+              · {formatShortMarketDate(d.maturity_date)}
             </Label>
           </Row>
         )

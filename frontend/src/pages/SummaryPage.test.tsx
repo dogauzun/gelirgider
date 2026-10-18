@@ -2021,6 +2021,7 @@ describe('SummaryPage', () => {
       if (url === '/api/portfolios/1/dividends/expected') {
         return new Response(JSON.stringify([]), { status: 200 })
       }
+      if (url === '/api/portfolios/1/deposits/due') return Response.json([])
       if (init?.method === 'PUT' && url === `/api/instruments/7/prices/${todayIstanbul()}`) {
         return new Response(
           JSON.stringify({
@@ -2151,6 +2152,7 @@ describe('SummaryPage', () => {
           benchmark: null,
         })
       if (/^\/api\/portfolios\/(1|2)\/dividends\/expected$/.test(url)) return Response.json([])
+      if (/^\/api\/portfolios\/(1|2)\/deposits\/due$/.test(url)) return Response.json([])
       const put = url.match(/^\/api\/instruments\/(\d+)\/prices\//)
       if (init?.method === 'PUT' && put) {
         priced.add(Number(put[1]))
@@ -3070,7 +3072,12 @@ describe('SummaryPage', () => {
     // Serves portfolio 1 with `summary` and records every request with its
     // method and body.
     // `created` holds the create call's answer back until it resolves.
-    function mockApi(summary: object, expected: object[] = [], created?: Promise<void>) {
+    function mockApi(
+      summary: object,
+      expected: object[] = [],
+      created?: Promise<void>,
+      due: object[] = [],
+    ) {
       const requests: { url: string; method: string; body: string }[] = []
       vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
         const url = String(input)
@@ -3087,6 +3094,11 @@ describe('SummaryPage', () => {
         }
         if (url === '/api/portfolios/1/dividends/expected') {
           return new Response(JSON.stringify(expected), { status: 200 })
+        }
+        if (url === '/api/portfolios/1/deposits/due') return Response.json(due)
+        if (url === '/api/deposits/5/mature' && init?.method === 'POST') {
+          due.length = 0
+          return new Response(null, { status: 204 })
         }
         if (url === '/api/portfolios/1/dividends/expected/dismiss') {
           return new Response(null, { status: 204 })
@@ -3293,6 +3305,31 @@ describe('SummaryPage', () => {
       expect(requests.filter((r) => r.method === 'POST')).toHaveLength(1)
     })
 
+    it('closes a due deposit once on Vadeyi kapat and drops it after the refetch', async () => {
+      const requests = mockApi(twoPositions, [], undefined, [
+        {
+          id: 5,
+          currency: 'TRY',
+          principal: '20000.00',
+          maturity_date: '2026-10-12',
+          gross: '3829.18',
+          stopaj: '574.38',
+          net: '3254.80',
+        },
+      ])
+      renderPage()
+      const card = within(await screen.findByRole('region', { name: 'Dikkat' }))
+      expect(await card.findByText('₺3.254,80')).toBeInTheDocument()
+      const close = card.getByRole('button', { name: /^Vadeyi kapat/ })
+      fireEvent.click(close)
+      fireEvent.click(close)
+      await vi.waitFor(() => expect(card.queryByText('₺3.254,80')).toBeNull())
+      expect(
+        requests.filter((r) => r.method === 'POST' && r.url === '/api/deposits/5/mature'),
+      ).toHaveLength(1)
+      expect(await screen.findByText('Mevduat kapatıldı')).toBeInTheDocument()
+    })
+
     it('dismisses an expected dividend on Yoksay', async () => {
       const requests = mockApi(twoPositions, [tupras])
       renderPage()
@@ -3391,6 +3428,7 @@ describe('SummaryPage', () => {
             })
           if (url === '/api/portfolios/1/dividends/expected') return Response.json([tupras])
           if (url === '/api/portfolios/2/dividends/expected') return Response.json([])
+          if (/^\/api\/portfolios\/(1|2)\/deposits\/due$/.test(url)) return Response.json([])
           if (url === '/api/portfolios/1/transactions' && method === 'POST')
             return Response.json({ id: 99 }, { status: 201 })
           if (/^\/api\/portfolios\/(all|1|2)\/attribution\?/.test(url)) return attribution()
