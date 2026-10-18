@@ -2353,6 +2353,48 @@ paths:
       summary: Register a user
       tags:
       - auth
+  /deposits/{id}:
+    delete:
+      description: Deletes the deposit, its buy, its funding cash deposit (when it
+        was opened with fund true and the user has not deleted that row) and its hidden
+        instrument, in one SQL transaction. A matured deposit (one with a sell) cannot
+        be deleted. The interest row of a maturity is a plain dividend and is not
+        touched here.
+      parameters:
+      - description: deposit id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: deleted
+        "404":
+          description: deposit not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: deposit is matured
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Delete a term deposit
+      tags:
+      - deposits
   /deposits/{id}/mature:
     post:
       description: 'Books a sell of the principal at price 1 on the maturity date
@@ -4250,6 +4292,13 @@ paths:
       responses:
         "204":
           description: deleted
+        "400":
+          description: deposit rows are changed through the deposit routes
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: transaction not found
           schema:
@@ -4301,7 +4350,8 @@ paths:
             digits; amount: must be 0 when price is 0; fee: must not exceed amount;
             fee: must be 0 for a fee transaction; currency: must be one of TRY, USD,
             EUR; currency: must match instrument currency (<currency>); note: must
-            be at most 500 characters; note: must not contain control characters'
+            be at most 500 characters; note: must not contain control characters;
+            deposit rows are changed through the deposit routes'
           schema:
             properties:
               error:
