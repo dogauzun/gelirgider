@@ -30,6 +30,7 @@ const deposit = (fields: Partial<Deposit>): Deposit => ({
   stopaj_rate: '0.175',
   start_date: '2026-01-01',
   maturity_date: '2026-02-02',
+  renewed_from: null,
   value: '103254.80',
   accrued_interest: '3254.80',
   net_interest_at_maturity: '3254.80',
@@ -77,7 +78,22 @@ it('shows a matured deposit with its payout and the Kapandı badge, and no delet
   expect(within(row).getAllByRole('cell')[8]).toHaveTextContent('103.254,80')
   expect(within(row).getByText('%45')).toBeInTheDocument()
   expect(within(row).getByText('%17,5')).toBeInTheDocument()
-  expect(within(row).queryByRole('button')).toBeNull()
+  expect(within(row).queryByRole('button', { name: /mevduatını sil/ })).toBeNull()
+})
+
+it('offers Yenile on a due or matured deposit until another one renews it', async () => {
+  mockApi([
+    deposit({ id: 1, status: 'matured' }),
+    deposit({ id: 2, status: 'due', renewed_from: 1 }),
+    deposit({ id: 3, status: 'active' }),
+  ])
+  renderPage()
+
+  // Deposit 1 is renewed by 2 and 3 is still running: only 2 offers it.
+  const buttons = await screen.findAllByRole('button', { name: /mevduatını yenile/ })
+  expect(buttons).toHaveLength(1)
+  fireEvent.click(buttons[0])
+  expect(screen.getByRole('dialog', { name: t('deposits.renewDialog.title') })).toBeInTheDocument()
 })
 
 it('deletes an active deposit after a confirm', async () => {

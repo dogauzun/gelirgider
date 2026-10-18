@@ -43,6 +43,8 @@ const messageKeys: Record<string, StringKey> = {
   'deposit rows are changed through the deposit routes': 'error.depositRowsReadOnly',
   'deposit not found': 'deposits.error.notFound',
   'deposit is matured': 'deposits.error.matured',
+  'deposit is not due yet': 'deposits.error.notDue',
+  'deposit is already renewed': 'deposits.error.renewed',
   'name already used': 'error.portfolioNameTaken',
   'instrument not found': 'error.instrumentNotFound',
   'market and currency must be a supported pair': 'error.instrumentPair',
