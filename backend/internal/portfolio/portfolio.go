@@ -214,6 +214,12 @@ func (r *Repo) Delete(ctx context.Context, userID, id int64, cascade bool) (int,
 	); err != nil {
 		return n, fmt.Errorf("delete allocation targets: %w", err)
 	}
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM goals WHERE portfolio_id = ? AND user_id = ?",
+		id, userID,
+	); err != nil {
+		return n, fmt.Errorf("delete goals: %w", err)
+	}
 	// Imports go after the transactions that reference them by import_id,
 	// and on every delete: an import can outlive all its transactions.
 	if _, err := tx.ExecContext(ctx,
