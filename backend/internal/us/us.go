@@ -1,5 +1,6 @@
 // Package us fetches the latest US session close for tracked US
-// instruments from Finnhub's quote endpoint, and their daily-close history
+// instruments from Finnhub's quote endpoint, their sector from its profile2
+// endpoint, and their daily-close history
 // from Tiingo, and stores them via price.Repo. Mirrors internal/tcmb's shape (Fetcher + Sync(ctx, date)),
 // the shape scheduler.Source expects; source, endpoint, and quirks are
 // documented in docs/adr/0003-multi-currency-and-market-data-sources.md.
@@ -69,6 +70,45 @@ type quoteResponse struct {
 	C  json.Number `json:"c"`  // current price; the session's close once it has ended
 	PC json.Number `json:"pc"` // close of the session before c's
 	T  int64       `json:"t"`  // time of c, unix seconds
+}
+
+// FetchProfile fetches symbol's industry, Finnhub's finnhubIndustry from
+// GET /stock/profile2, as the provider spells it. A symbol Finnhub has no
+// profile for gets HTTP 200 and an empty object, which returns "".
+func (f *Fetcher) FetchProfile(ctx context.Context, symbol string) (string, error) {
+	key, err := f.key(ctx, FinnhubKeySetting, f.APIKey)
+	if err != nil {
+		return "", err
+	}
+	if key == "" {
+		return "", fmt.Errorf("finnhub: API key not configured, set it in the admin area")
+	}
+
+	u, err := url.Parse(cmp.Or(f.BaseURL, defaultBaseURL) + "/stock/profile2")
+	if err != nil {
+		return "", fmt.Errorf("build finnhub url: %w", err)
+	}
+	q := u.Query()
+	q.Set("symbol", symbol)
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return "", fmt.Errorf("build finnhub request: %w", err)
+	}
+	req.Header.Set("X-Finnhub-Token", key)
+
+	body, err := httpbody.Fetch(f.HTTPClient, req, maxBodyBytes)
+	if err != nil {
+		return "", fmt.Errorf("fetch finnhub profile for %s: %w", symbol, err)
+	}
+	var p struct {
+		Industry string `json:"finnhubIndustry"`
+	}
+	if err := json.Unmarshal(body, &p); err != nil {
+		return "", fmt.Errorf("parse finnhub profile for %s: %w", symbol, err)
+	}
+	return p.Industry, nil
 }
 
 // Fetcher retrieves quotes from Finnhub's REST API over HTTP.
@@ -264,6 +304,7 @@ func Sync(ctx context.Context, fetcher *Fetcher, instrumentRepo *instrument.Repo
 	if len(tracked) == 0 {
 		return 0, nil
 	}
+	defer syncSectors(ctx, fetcher, instrumentRepo, tracked)
 
 	skipped := 0
 	written, failed, err := instrument.EachTracked(ctx, tracked, RequestPause, "us instruments", func(in instrument.Instrument) (int, bool, error) {
@@ -280,6 +321,36 @@ func Sync(ctx context.Context, fetcher *Fetcher, instrumentRepo *instrument.Repo
 		slog.Default().Info("finnhub us sync complete", "written", written, "skipped", skipped, "failed", failed)
 	}
 	return written, err
+}
+
+// syncSectors stores the raw Finnhub industry of every instrument in
+// tracked whose sector is unset, one profile request each, so a held symbol
+// is asked once, not daily: an empty profile is stored as "". Without a key
+// it does nothing; a failing profile is logged by instrument.EachTracked and
+// the rest continue.
+func syncSectors(ctx context.Context, fetcher *Fetcher, instrumentRepo *instrument.Repo, tracked []instrument.Instrument) {
+	if key, err := fetcher.key(ctx, FinnhubKeySetting, fetcher.APIKey); key == "" || err != nil || ctx.Err() != nil {
+		return
+	}
+	var unset []instrument.Instrument
+	for _, in := range tracked {
+		if !in.Sector.Valid {
+			unset = append(unset, in)
+		}
+	}
+	stored, failed, _ := instrument.EachTracked(ctx, unset, RequestPause, "us profiles", func(in instrument.Instrument) (int, bool, error) {
+		industry, err := fetcher.FetchProfile(ctx, in.Symbol)
+		if err != nil {
+			return 0, false, err
+		}
+		if err := instrumentRepo.SetSector(ctx, in.ID, industry); err != nil {
+			return 0, false, err
+		}
+		return 1, false, nil
+	})
+	if ctx.Err() == nil && len(unset) > 0 {
+		slog.Default().Info("finnhub us sector sync complete", "stored", stored, "failed", failed)
+	}
 }
 
 // marketCloseHour is the regular US session's close, New York time.
