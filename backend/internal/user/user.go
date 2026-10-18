@@ -378,7 +378,7 @@ func (r *Repo) Demote(ctx context.Context, id int64) error {
 // userDataTables lists every table with a user_id column, children before
 // parents so no foreign key is left dangling mid-transaction: transactions
 // reference statement_imports and portfolios, imports and dismissals
-// reference portfolios, term deposits and allocation targets reference portfolios. A new user-data table must be added here;
+// reference portfolios, term deposits, allocation targets and goals reference portfolios. A new user-data table must be added here;
 // TestAdminDeleteUser fails otherwise.
 var userDataTables = []string{
 	"transactions",
@@ -392,6 +392,7 @@ var userDataTables = []string{
 	"totp_recovery_codes",
 	"term_deposits",
 	"allocation_targets",
+	"goals",
 	"portfolios",
 }
 

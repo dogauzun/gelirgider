@@ -302,6 +302,48 @@ func TestDeleteRemovesAllocationTargets(t *testing.T) {
 	}
 }
 
+// TestDeleteRemovesGoals checks that deleting a portfolio takes its goal with
+// it and leaves the all-portfolios goal, the user's other portfolio's goal
+// and another user's goal alone.
+func TestDeleteRemovesGoals(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+
+	for _, q := range []string{
+		`INSERT INTO users (id, email, password_hash, created_at) VALUES
+		 (1, 'a@example.com', 'x', '2026-01-01T00:00:00Z'),
+		 (2, 'b@example.com', 'x', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO portfolios (id, user_id, name, created_at) VALUES
+		 (1, 1, 'Gone', '2026-01-01T00:00:00Z'),
+		 (2, 1, 'Kept', '2026-01-01T00:00:00Z'),
+		 (3, 2, 'Other', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO goals (user_id, portfolio_id, amount, unit, target_date, created_at) VALUES
+		 (1, 1, '100', 'TRY', '2030-01-01', '2026-01-01T00:00:00Z'),
+		 (1, 2, '200', 'TRY', '2030-01-01', '2026-01-01T00:00:00Z'),
+		 (1, NULL, '300', 'TRY', '2030-01-01', '2026-01-01T00:00:00Z'),
+		 (2, 3, '400', 'TRY', '2030-01-01', '2026-01-01T00:00:00Z')`,
+	} {
+		if _, err := conn.Exec(q); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+
+	if _, err := NewRepo(conn).Delete(context.Background(), 1, 1, false); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+
+	var got string
+	if err := conn.QueryRow("SELECT group_concat(amount) FROM (SELECT amount FROM goals ORDER BY amount)").Scan(&got); err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if got != "200,300,400" {
+		t.Fatalf("amounts left = %q, want 200,300,400", got)
+	}
+}
+
 // TestDeleteRemovesTermDeposits checks that deleting a portfolio takes its
 // term deposits and their DEPOSIT instruments with it, and leaves the
 // deposits of the user's other portfolio and of another user alone.
