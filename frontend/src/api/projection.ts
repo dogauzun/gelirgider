@@ -28,10 +28,15 @@ export interface Projection {
   history_months: number
 }
 
+// Under the portfolio's prefix, so invalidatePortfolio refreshes it after a
+// transaction or a price change.
+export const projectionQueryKey = (portfolioId: PortfolioScope) =>
+  ['portfolios', portfolioId, 'projection'] as const
+
 // Enabled once the scope has a goal: without one the route answers 404.
 export function useProjection(portfolioId: PortfolioScope, enabled: boolean) {
   return useQuery({
-    queryKey: ['projection', portfolioId],
+    queryKey: projectionQueryKey(portfolioId),
     queryFn: () => apiFetch<Projection>(`/api/portfolios/${portfolioId}/projection`),
     enabled,
   })

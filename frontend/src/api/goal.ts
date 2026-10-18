@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, apiFetch } from '../api'
+import { projectionQueryKey } from './projection'
 import type { PortfolioScope } from './summary'
 
 // The savings goal of a portfolio, or of the all scope: reach `amount` in
@@ -48,7 +49,7 @@ function useGoalMutation<T>(portfolioId: PortfolioScope, request: (input: T) => 
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: goalQueryKey(portfolioId) }),
-        queryClient.invalidateQueries({ queryKey: ['projection', portfolioId] }),
+        queryClient.invalidateQueries({ queryKey: projectionQueryKey(portfolioId) }),
       ]),
   })
 }
