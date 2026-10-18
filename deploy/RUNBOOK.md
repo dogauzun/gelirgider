@@ -490,13 +490,17 @@ list, and it exits without starting a server.
    ```
    On success it prints:
    ```
-   password set for alice@example.com, all its sessions deleted
+   password set for alice@example.com, all its sessions deleted, two-step login off
    ```
    The minimum length is 8 characters, the same as registration. An unknown
    email or a too-short password prints the reason and exits 1, changing
    nothing.
 2. Every session of that user is deleted, so a browser still logged in as
-   them is signed out. Other users are untouched.
+   them is signed out, and their two-step login is turned off (secret,
+   recovery codes and open login challenges are cleared). They log in with
+   the new password alone and can enrol again from the Hesap (Account)
+   page, so this is also the way back in for a user locked out of their
+   authenticator. Other users are untouched.
 3. Pass the new password to the user over a channel they control and have
    them change it themselves from the Hesap (Account) page.
 

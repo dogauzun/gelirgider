@@ -2139,7 +2139,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Signs out every session of that user.
+      description: Signs out every session of that user and turns their two-step login
+        off, so they log in with the new password alone and can enrol again from the
+        account page.
       parameters:
       - description: user id
         in: path

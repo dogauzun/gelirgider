@@ -119,11 +119,12 @@ func (h *handler) pathUser(w http.ResponseWriter, r *http.Request) (user.User, b
 	return u, true
 }
 
-// adminSetPassword replaces a user's password and signs out every session
-// of that user, including the admin's own when resetting their own.
+// adminSetPassword replaces a user's password, signs out every session of
+// that user (the admin's own too when resetting their own) and turns their
+// two-step login off.
 //
 //	@Summary	Set a user's password
-//	@Description	Signs out every session of that user.
+//	@Description	Signs out every session of that user and turns their two-step login off, so they log in with the new password alone and can enrol again from the account page.
 //	@Tags		admin
 //	@Accept		json
 //	@Produce	json

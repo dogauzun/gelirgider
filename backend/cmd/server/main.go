@@ -227,7 +227,7 @@ func runDemo(ctx context.Context, conn *sql.DB) error {
 }
 
 // runSetPassword reads the new password from stdin and sets it for email,
-// deleting the user's sessions.
+// deleting the user's sessions and turning their two-step login off.
 func runSetPassword(ctx context.Context, conn *sql.DB, email string) error {
 	password, err := readPassword(os.Stdin)
 	if err != nil {
@@ -236,7 +236,7 @@ func runSetPassword(ctx context.Context, conn *sql.DB, email string) error {
 	if err := auth.SetPassword(ctx, user.NewRepo(conn), auth.NewRepo(conn), email, password); err != nil {
 		return err
 	}
-	fmt.Printf("password set for %s, all its sessions deleted\n", email)
+	fmt.Printf("password set for %s, all its sessions deleted, two-step login off\n", email)
 	return nil
 }
 
