@@ -37,6 +37,7 @@ const messageKeys: Record<string, StringKey> = {
   'login expired': 'error.loginExpired',
   'portfolio not found': 'error.portfolioNotFound',
   'portfolio has transactions': 'error.portfolioHasTransactions',
+  'goals depend on the reporting currency': 'error.reportingCurrencyGoals',
   'name must be 1-100 characters': 'error.portfolioName',
   'name must not contain control characters': 'error.nameControl',
   'note: must not contain control characters': 'error.noteControl',

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -84,6 +85,7 @@ func TestGoalValidation(t *testing.T) {
 	path := goalPath(e.createPortfolio(session, "P"))
 	date := futureDate()
 	today := price.Today()
+	later := "target_date: must be in a later month than today"
 	tests := []struct {
 		name     string
 		currency string
@@ -97,9 +99,10 @@ func TestGoalValidation(t *testing.T) {
 		{"real in USD", "USD", goalReq("100", "real", date), "unit: real needs a TRY reporting currency"},
 		{"real in EUR", "EUR", goalReq("100", "real", date), "unit: real needs a TRY reporting currency"},
 		{"usd in USD", "USD", goalReq("100", "usd", date), "unit: usd needs a non-USD reporting currency"},
-		{"today", "TRY", goalReq("100", "nominal", today), "target_date: must be after today"},
-		{"past", "TRY", goalReq("100", "nominal", "2020-01-01"), "target_date: must be after today"},
-		{"not a date", "TRY", goalReq("100", "nominal", "soon"), "target_date: must be after today"},
+		{"today", "TRY", goalReq("100", "nominal", today), later},
+		{"this month", "TRY", goalReq("100", "nominal", today[:8]+"28"), later},
+		{"past", "TRY", goalReq("100", "nominal", "2020-01-01"), later},
+		{"not a date", "TRY", goalReq("100", "nominal", "soon"), later},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -118,6 +121,10 @@ func TestGoalValidation(t *testing.T) {
 	if rec := e.do(session, http.MethodPut, path, goalReq("100", "nominal", date)); rec.Code != http.StatusOK {
 		t.Errorf("nominal in USD = %d %s, want 200", rec.Code, rec.Body.String())
 	}
+	// A currency switch is refused while the nominal goal is stored.
+	if rec := e.do(session, http.MethodDelete, path, nil); rec.Code != http.StatusNoContent {
+		t.Fatalf("delete = %d, want 204", rec.Code)
+	}
 	e.setReportingCurrency(session, "EUR")
 	if rec := e.do(session, http.MethodPut, path, goalReq("100", "usd", date)); rec.Code != http.StatusOK {
 		t.Errorf("usd in EUR = %d %s, want 200", rec.Code, rec.Body.String())
@@ -126,6 +133,65 @@ func TestGoalValidation(t *testing.T) {
 	if rec := e.do(session, http.MethodPut, path, goalReq("100", "real", date)); rec.Code != http.StatusOK {
 		t.Errorf("real in TRY = %d %s, want 200", rec.Code, rec.Body.String())
 	}
+	// The first day of next month is the earliest target the server accepts.
+	now := time.Now().In(price.Istanbul)
+	nextMonth := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, time.UTC).Format(time.DateOnly)
+	if rec := e.do(session, http.MethodPut, path, goalReq("100", "nominal", nextMonth)); rec.Code != http.StatusOK {
+		t.Errorf("first day of next month = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+}
+
+// TestReportingCurrencyWithGoals checks that a currency change is refused
+// while a goal depends on the current one, and changes nothing then.
+func TestReportingCurrencyWithGoals(t *testing.T) {
+	e := newTransactionTestEnv(t)
+	session := e.login("a@example.com")
+	path := goalPath(e.createPortfolio(session, "P"))
+	all := goalPath("all")
+	date := futureDate()
+	const refused = "goals depend on the reporting currency"
+	put := func(currency string) *httptest.ResponseRecorder {
+		return e.do(session, http.MethodPut, "/api/me/reporting-currency", map[string]string{"reporting_currency": currency})
+	}
+	goal := func(method, p string, body any, want int) {
+		t.Helper()
+		if rec := e.do(session, method, p, body); rec.Code != want {
+			t.Fatalf("%s %s = %d %s, want %d", method, p, rec.Code, rec.Body.String(), want)
+		}
+	}
+
+	goal(http.MethodPut, path, goalReq("100", "nominal", date), http.StatusOK)
+	wantError(t, put("USD"), http.StatusConflict, refused)
+	if u, err := e.users.GetByID(context.Background(), e.userID(session)); err != nil || u.ReportingCurrency != "TRY" {
+		t.Errorf("reporting currency = %q, %v, want TRY", u.ReportingCurrency, err)
+	}
+	if n := e.countRows("goals"); n != 1 {
+		t.Errorf("goals stored = %d, want 1", n)
+	}
+	if rec := put("TRY"); rec.Code != http.StatusOK {
+		t.Errorf("same currency = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+
+	goal(http.MethodDelete, path, nil, http.StatusNoContent)
+	goal(http.MethodPut, all, goalReq("100", "nominal", date), http.StatusOK)
+	wantError(t, put("EUR"), http.StatusConflict, refused)
+
+	goal(http.MethodDelete, all, nil, http.StatusNoContent)
+	goal(http.MethodPut, path, goalReq("100", "usd", date), http.StatusOK)
+	if rec := put("EUR"); rec.Code != http.StatusOK {
+		t.Fatalf("usd goal, switch to EUR = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+	wantError(t, put("USD"), http.StatusConflict, refused)
+	goal(http.MethodDelete, path, nil, http.StatusNoContent)
+	if rec := put("USD"); rec.Code != http.StatusOK {
+		t.Fatalf("no goal, switch to USD = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+
+	if rec := put("TRY"); rec.Code != http.StatusOK {
+		t.Fatalf("switch to TRY = %d %s, want 200", rec.Code, rec.Body.String())
+	}
+	goal(http.MethodPut, path, goalReq("100", "real", date), http.StatusOK)
+	wantError(t, put("EUR"), http.StatusConflict, refused)
 }
 
 // TestGoalsAreScopedToTheirUser checks that another user's id is 404 on every

@@ -39,6 +39,8 @@ export const enErrors: AreaStrings<typeof trErrors> = {
   'error.portfolioNotFound': 'Portfolio not found.',
   'error.portfolioHasTransactions':
     'A portfolio with transactions cannot be deleted. Delete the transactions first.',
+  'error.reportingCurrencyGoals':
+    'Delete your goals before changing the reporting currency: their amounts are in the current one.',
   'error.portfolioName': 'Portfolio name must be 1-100 characters.',
   'error.nameControl': 'Name cannot contain invisible characters.',
   'error.noteControl': 'Note cannot contain invisible characters.',

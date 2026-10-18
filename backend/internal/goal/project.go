@@ -49,6 +49,10 @@ func Project(in ProjectionInput) Projection {
 	}
 	flow := percentile(in.MonthlyFlows, 0.5)
 	v := [3]float64{in.Value, in.Value, in.Value}
+	if p.Progress >= 1 {
+		current := first.AddDate(0, -1, 0).Format("2006-01")
+		p.ReachedAt = &current
+	}
 	for k := 1; k <= in.Months; k++ {
 		m := ProjectionMonth{Month: first.AddDate(0, k-1, 0).Format("2006-01")}
 		for i := range v {
@@ -80,23 +84,13 @@ func (in ProjectionInput) scale(k int) float64 {
 
 func (in ProjectionInput) monthlyGap(rate, flow float64) float64 {
 	s := in.scale(in.Months)
-	final := func(g float64) float64 {
-		v := in.Value
-		for range in.Months {
-			v = v*(1+rate) + flow + g
-		}
-		return v * s
+	v, slope := in.Value, 0.0
+	for range in.Months {
+		v = v*(1+rate) + flow
+		slope = slope*(1+rate) + 1
 	}
-	lo, hi := 0.0, in.Amount/s
-	for range 40 {
-		mid := (lo + hi) / 2
-		if final(mid) >= in.Amount {
-			hi = mid
-		} else {
-			lo = mid
-		}
-	}
-	return math.Ceil(hi - 1e-6)
+	// The final value is v + g*slope, linear in the extra flow g.
+	return math.Ceil((in.Amount/s-v)/slope - 1e-6)
 }
 
 func percentile(xs []float64, p float64) float64 {

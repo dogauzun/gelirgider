@@ -86,9 +86,9 @@ func parseGoal(req goalBody, reportingCurrency string) (goal.Goal, error) {
 	if req.Unit == "usd" && reportingCurrency == "USD" {
 		return goal.Goal{}, errors.New("unit: usd needs a non-USD reporting currency")
 	}
-	// YYYY-MM-DD sorts lexically, so a string compare is a date compare.
-	if !price.ValidDate(req.TargetDate) || req.TargetDate <= price.Today() {
-		return goal.Goal{}, errors.New("target_date: must be after today")
+	// YYYY-MM-DD sorts lexically, so comparing the YYYY-MM prefixes compares the months.
+	if !price.ValidDate(req.TargetDate) || req.TargetDate[:7] <= price.Today()[:7] {
+		return goal.Goal{}, errors.New("target_date: must be in a later month than today")
 	}
 	return goal.Goal{Amount: amount, Unit: req.Unit, TargetDate: req.TargetDate}, nil
 }
@@ -120,14 +120,14 @@ func (h *goalHandler) get(w http.ResponseWriter, r *http.Request) {
 // put replaces the goal of the scope.
 //
 //	@Summary	Set a portfolio's goal
-//	@Description	Replaces the goal of the scope and answers the stored goal. unit is nominal (the reporting currency), real (inflation-adjusted, only with a TRY reporting currency) or usd (only with a non-USD reporting currency). target_date is YYYY-MM-DD and after today (Europe/Istanbul).
+//	@Description	Replaces the goal of the scope and answers the stored goal. unit is nominal (the reporting currency), real (inflation-adjusted, only with a TRY reporting currency) or usd (only with a non-USD reporting currency). target_date is YYYY-MM-DD and in a later calendar month than today (Europe/Istanbul).
 //	@Tags		portfolios
 //	@Accept		json
 //	@Produce	json
 //	@Param		id		path		string			true	"numeric id or `all`"
 //	@Param		body	body		server.goalBody	true	"amount a positive decimal; unit one of nominal, real, usd"
 //	@Success	200		{object}	server.goalBody
-//	@Failure	400		{object}	object{error=string}	"invalid request body; amount: must be a positive number; unit: must be one of nominal, real, usd; unit: real needs a TRY reporting currency; unit: usd needs a non-USD reporting currency; target_date: must be after today"
+//	@Failure	400		{object}	object{error=string}	"invalid request body; amount: must be a positive number; unit: must be one of nominal, real, usd; unit: real needs a TRY reporting currency; unit: usd needs a non-USD reporting currency; target_date: must be in a later month than today"
 //	@Failure	404		{object}	object{error=string}	"portfolio not found"
 //	@Failure	500		{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/goal [put]
@@ -207,7 +207,8 @@ type projectionResponse struct {
 	TargetDate string            `json:"target_date"`
 	Months     []projectionMonth `json:"months"`
 	// ReachedAt is the first month of the median path at or above the
-	// amount, null when none is.
+	// amount, the current month when today's value already is at the amount,
+	// null when none is.
 	ReachedAt *string `json:"reached_at"`
 	// MonthlyGap is the smallest extra monthly flow, in the reporting
 	// currency and rounded up, that lets the median path reach the amount by
@@ -220,7 +221,7 @@ type projectionResponse struct {
 // projection answers the projection fan of the scope's goal.
 //
 //	@Summary	Projection of a portfolio's goal
-//	@Description	Projects the scope's value month by month from the next month through the target month, with the 25th, 50th and 75th percentile of the monthly time-weighted returns of the last 36 full calendar months (nearest rank) and the median net external flow of the last 12 full months. Month values are in the goal's unit: real is divided by the TUFE rate of the last 12 months compounded, usd by today's USD rate. months is empty, with history_months counting the usable months, when fewer than 6 full months have a return, and empty with history_months 0 when the scope has no history or the unit lacks its TUFE level or USD rate. reached_at is the first month of the median path at or above the amount; monthly_gap is the extra monthly flow in the reporting currency, rounded up, that the median path needs to reach the amount by the target month, null when reached_at is set. progress is today's value in the unit divided by the amount.
+//	@Description	Projects the scope's value month by month from the next month through the target month, with the 25th, 50th and 75th percentile of the monthly time-weighted returns of the last 36 full calendar months (nearest rank) and the median net external flow of the last 12 full months. Month values are in the goal's unit: real is divided by the TUFE rate of the last 12 months compounded, usd by today's USD rate. months is empty, with history_months counting the usable months, when fewer than 6 full months have a return, and empty with history_months 0 when the scope has no history or the unit lacks its TUFE level or USD rate. reached_at is the first month of the median path at or above the amount, the current month when today's value already is at the amount; monthly_gap is the extra monthly flow in the reporting currency, rounded up, that the median path needs to reach the amount by the target month, null when reached_at is set. progress is today's value in the unit divided by the amount.
 //	@Tags		portfolios
 //	@Produce	json
 //	@Param		id	path		string	true	"numeric id or `all`"

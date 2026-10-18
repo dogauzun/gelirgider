@@ -424,13 +424,14 @@ type reportingCurrencyRequest struct {
 // updateReportingCurrency handles PUT /api/me/reporting-currency.
 //
 //	@Summary	Set reporting currency
-//	@Description	Needs a session.
+//	@Description	Needs a session. Refused with 409 while the user has a goal the new currency would break: delete the goals first.
 //	@Tags		auth
 //	@Accept		json
 //	@Produce	json
 //	@Param		body	body		auth.reportingCurrencyRequest	true	"TRY, USD or EUR"
 //	@Success	200	{object}	auth.userResponse
 //	@Failure	400	{object}	object{error=string}	"invalid request body; reporting_currency: must be one of TRY, USD, EUR"
+//	@Failure	409	{object}	object{error=string}	"goals depend on the reporting currency"
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/me/reporting-currency [put]
 func (h *handler) updateReportingCurrency(w http.ResponseWriter, r *http.Request) {
@@ -446,6 +447,10 @@ func (h *handler) updateReportingCurrency(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := h.users.UpdateReportingCurrency(r.Context(), userID, req.ReportingCurrency); err != nil {
+		if errors.Is(err, user.ErrGoalsDependOnCurrency) {
+			WriteError(w, http.StatusConflict, "goals depend on the reporting currency")
+			return
+		}
 		WriteInternalError(w, r, err)
 		return
 	}

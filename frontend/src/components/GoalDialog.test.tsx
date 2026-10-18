@@ -52,21 +52,24 @@ const save = () => screen.getByRole('button', { name: t('goal.save') })
 const fill = (label: string, value: string) =>
   fireEvent.change(screen.getByLabelText(label), { target: { value } })
 
-function tomorrow() {
-  const d = new Date(`${todayIstanbul()}T12:00:00Z`)
-  d.setUTCDate(d.getUTCDate() + 1)
-  return d.toISOString().slice(0, 10)
+// The first day of next month: the earliest target date the server accepts.
+function nextMonth() {
+  const [year, month] = todayIstanbul().split('-').map(Number)
+  return new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 10)
 }
 
-it('keeps Save disabled for an empty amount and for a date that is not after today', async () => {
+it('keeps Save disabled for an empty amount and for a date in the current month', async () => {
   await renderDialog('TRY')
   expect(save()).toBeDisabled()
 
-  fill(t('goal.date'), tomorrow())
+  fill(t('goal.date'), nextMonth())
   expect(save()).toBeDisabled()
 
   fill(t('goal.amount'), '500000')
   expect(save()).toBeEnabled()
+
+  fill(t('goal.date'), `${todayIstanbul().slice(0, 8)}28`)
+  expect(save()).toBeDisabled()
 
   fill(t('goal.date'), todayIstanbul())
   expect(save()).toBeDisabled()
@@ -93,9 +96,9 @@ it('sends the typed goal', async () => {
   const { bodies, onClose } = await renderDialog('TRY')
 
   fill(t('goal.amount'), '1.500.000,50')
-  fill(t('goal.date'), tomorrow())
+  fill(t('goal.date'), nextMonth())
   fireEvent.click(save())
 
   await waitFor(() => expect(onClose).toHaveBeenCalled())
-  expect(bodies).toEqual([{ amount: '1500000.50', unit: 'nominal', target_date: tomorrow() }])
+  expect(bodies).toEqual([{ amount: '1500000.50', unit: 'nominal', target_date: nextMonth() }])
 })
