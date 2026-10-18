@@ -13,9 +13,8 @@ exchange-traded funds and a gold certificate.
 ### v1 shows the allocation by asset class
 
 The classes are `equity`, `fund`, `commodity`, `crypto`, `deposit` and `cash`.
-The sector view and a country view are out of v1. Sector stays open until the
-BIST sector source has been investigated, and then adds its own column.
-Country is not planned.
+The allocation card has an asset class view and a sector view; a country view
+is not planned.
 
 ### The market gives the class until an instrument carries one
 
@@ -51,13 +50,14 @@ stored: NULL means not fetched yet, an empty string means fetched and the
 provider has none. `SectorKey(market, raw)` maps it in code to one of 11
 GICS-like keys (`energy`, `materials`, `industrials`, `consumer_discretionary`,
 `consumer_staples`, `health_care`, `financials`, `information_technology`,
-`communication_services`, `utilities`, `real_estate`) or `unknown`, with one
-lookup map per market, compared case-insensitively with Turkish diacritics
-folded. A new mapping needs no data migration. A position always carries a
-`sector`, `unknown` when there is no data.
+`communication_services`, `utilities`, `real_estate`) for BIST and US, to one
+of six `fund_*` keys for TEFAS (see below), or to `unknown`, with one lookup
+map per market, compared case-insensitively with Turkish diacritics folded. A
+new mapping needs no data migration. A position always carries a `sector`,
+`unknown` when there is no data.
 
-`instruments.sector_override` holds a sector key, written only by the admin
-route, and wins over the mapped key.
+`instruments.sector_override` holds one of the 11 GICS-like keys, written only
+by the admin route, and wins over the mapped key.
 
 The sources: Finnhub's `finnhubIndustry` gives US sectors. A TEFAS fund's type
 is its sector: the fund list's `fonTurAciklama` is stored raw in the seed's
