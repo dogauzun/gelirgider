@@ -42,6 +42,7 @@ export const enErrors: AreaStrings<typeof trErrors> = {
   'error.portfolioName': 'Portfolio name must be 1-100 characters.',
   'error.nameControl': 'Name cannot contain invisible characters.',
   'error.noteControl': 'Note cannot contain invisible characters.',
+  'error.depositRowsReadOnly': 'Deposit rows are changed on the Deposits tab.',
   'error.portfolioNameTaken': 'You already have a portfolio with this name. Pick another name.',
   'error.instrumentNotFound': 'Instrument not found.',
   'error.instrumentPair': 'This market and currency do not go together.',

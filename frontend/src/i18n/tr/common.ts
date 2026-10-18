@@ -30,6 +30,7 @@ export const trCommon = {
   'search.closeList': 'Önerileri kapat',
   'market.CRYPTO': 'Kripto',
   'market.GOLD': 'Altın',
+  'market.DEPOSIT': 'Mevduat',
   'page.loading': 'Sayfa yükleniyor...',
   'decimal.error.ambiguousThousands': 'Binlik ayırıcı mı? 10000 veya 10.000,00 yaz.',
   'decimal.error.tooManyDigits': '{field} en fazla 15 tam ve {fraction} ondalık basamak olabilir.',

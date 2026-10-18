@@ -297,28 +297,32 @@ function PositionRow({
       </td>
       {portfolioId !== 'all' && (
         <td className={`${TD} w-0`} onClick={(event) => event.stopPropagation()}>
-          <Menu
-            trigger={
-              <Button
-                variant="ghost"
-                iconOnly
-                aria-label={t('summary.rowMenu', { symbol: position.symbol })}
-              >
-                <Icon name="dots" />
-              </Button>
-            }
-          >
-            <MenuItem onSelect={() => onTrade?.('buy', position)}>{t('summary.buy')}</MenuItem>
-            <MenuItem onSelect={() => onTrade?.('sell', position)}>{t('summary.sell')}</MenuItem>
-            <MenuItem onSelect={() => onEditPrice?.(position, rowRef.current)}>
-              {t('prices.enter')}
-            </MenuItem>
-            {position.price_source === 'manual' && (
-              <MenuItem tone="danger" onSelect={() => onRemovePrice?.(position)}>
-                {t('prices.removeManual')}
+          {/* The server refuses a buy, sell or manual price on a deposit; its
+              rows change on the Mevduat tab, so the menu would be empty. */}
+          {position.market !== 'DEPOSIT' && (
+            <Menu
+              trigger={
+                <Button
+                  variant="ghost"
+                  iconOnly
+                  aria-label={t('summary.rowMenu', { symbol: position.symbol })}
+                >
+                  <Icon name="dots" />
+                </Button>
+              }
+            >
+              <MenuItem onSelect={() => onTrade?.('buy', position)}>{t('summary.buy')}</MenuItem>
+              <MenuItem onSelect={() => onTrade?.('sell', position)}>{t('summary.sell')}</MenuItem>
+              <MenuItem onSelect={() => onEditPrice?.(position, rowRef.current)}>
+                {t('prices.enter')}
               </MenuItem>
-            )}
-          </Menu>
+              {position.price_source === 'manual' && (
+                <MenuItem tone="danger" onSelect={() => onRemovePrice?.(position)}>
+                  {t('prices.removeManual')}
+                </MenuItem>
+              )}
+            </Menu>
+          )}
         </td>
       )}
     </tr>

@@ -38,6 +38,7 @@ export const trErrors = {
   'error.portfolioName': 'Portföy adı 1-100 karakter olmalı.',
   'error.nameControl': 'Ad görünmeyen karakterler içeremez.',
   'error.noteControl': 'Not görünmeyen karakterler içeremez.',
+  'error.depositRowsReadOnly': 'Mevduat işlemleri Mevduat sekmesinden değiştirilir.',
   'error.portfolioNameTaken': 'Bu adda bir portföyün zaten var. Başka bir ad seç.',
   'error.instrumentNotFound': 'Enstrüman bulunamadı.',
   'error.instrumentPair': 'Bu pazar ve para birimi birlikte kullanılamaz.',

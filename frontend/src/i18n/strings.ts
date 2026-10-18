@@ -11,6 +11,7 @@ import { trAdmin } from './tr/admin'
 import { trAuth } from './tr/auth'
 import { trCharts } from './tr/charts'
 import { trCommon } from './tr/common'
+import { trDeposits } from './tr/deposits'
 import { trDividends } from './tr/dividends'
 import { trErrors } from './tr/errors'
 import { trImport } from './tr/import'
@@ -23,6 +24,7 @@ import { enAdmin } from './en/admin'
 import { enAuth } from './en/auth'
 import { enCharts } from './en/charts'
 import { enCommon } from './en/common'
+import { enDeposits } from './en/deposits'
 import { enDividends } from './en/dividends'
 import { enErrors } from './en/errors'
 import { enImport } from './en/import'
@@ -37,6 +39,7 @@ export const tr = {
   ...trAuth,
   ...trCharts,
   ...trCommon,
+  ...trDeposits,
   ...trDividends,
   ...trErrors,
   ...trImport,
@@ -58,6 +61,7 @@ const en: Strings = {
   ...enAuth,
   ...enCharts,
   ...enCommon,
+  ...enDeposits,
   ...enDividends,
   ...enErrors,
   ...enImport,
@@ -100,7 +104,7 @@ export function t(key: StringKey, vars: Record<string, string | number> = {}): s
 }
 
 // A market's display name: its market.<CODE> string when there is one
-// (CRYPTO, GOLD), else the code itself (BIST, US, TEFAS read the same in
+// (CRYPTO, GOLD, DEPOSIT), else the code itself (BIST, US, TEFAS read the same in
 // every locale).
 export function marketLabel(market: string): string {
   const key = `market.${market}`

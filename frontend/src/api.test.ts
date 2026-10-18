@@ -55,6 +55,10 @@ describe('translateError', () => {
       'Stopaj tutardan büyük olamaz.',
     )
     expect(translateError('instrument_id: required for buy')).toMatch(/enstrüman/)
+    expect(translateError('deposit rows are changed through the deposit routes')).toBe(
+      'Mevduat işlemleri Mevduat sekmesinden değiştirilir.',
+    )
+    expect(translateError('rate: must be greater than 0 and at most 10')).toMatch(/Faiz oranı/)
     // A currency that contradicts the instrument names its currency,
     // in a preview row and in a commit error.
     expect(translateError('currency: must match instrument currency (USD)')).toBe(
