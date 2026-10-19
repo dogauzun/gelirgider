@@ -113,22 +113,18 @@ export function attentionItems(input: {
   expected: ExpectedDividend[]
   dueDeposits?: DueDeposit[]
   duePlans?: DuePlan[]
-  estimatedFrom?: string | null
   today: string
   portfolioName?: string
   rules?: AttentionRules
-  targets?: AllocationTarget[]
 }): AttentionItem[] {
   const {
     summary,
     expected,
     dueDeposits = [],
     duePlans = [],
-    estimatedFrom,
     today,
     portfolioName,
     rules = {},
-    targets = [],
   } = input
   const staleDays = threshold(rules, 'stale_manual_days', ATTENTION.staleManualDays)
   const positionShare = threshold(rules, 'position_share', ATTENTION.positionShare)
@@ -137,7 +133,6 @@ export function attentionItems(input: {
     summary.currency === 'TRY' ? threshold(rules, 'try_cash_share', ATTENTION.tryCashShare) : null
   const noHedge = summary.currency === 'TRY' && rules.no_hedge?.enabled !== false
   const currencyShare = threshold(rules, 'currency_share', ATTENTION.currencyShare)
-  const allocationDrift = threshold(rules, 'allocation_drift', ATTENTION.allocationDrift)
   const open = summary.positions.filter((p) => !p.closed)
   const priced = open.filter((p) => p.has_price)
   const items: AttentionItem[] = []
@@ -170,7 +165,6 @@ export function attentionItems(input: {
       symbol: staleManual[0].symbol,
     })
   }
-  if (estimatedFrom) items.push({ kind: 'estimated-benchmark', from: estimatedFrom })
 
   // Temettü onayı.
   for (const dividend of expected) items.push({ kind: 'dividend', dividend })
@@ -267,6 +261,18 @@ export function attentionItems(input: {
     )
   if (noHedge && total > 0n && !hedged) items.push({ kind: 'no-hedge' })
 
+  return portfolioName ? items.map((item) => ({ ...item, portfolio: portfolioName })) : items
+}
+
+// The allocation-drift items of one scope: each asset class off its target by
+// more than the rule's points. targets and rules are undefined while loading.
+export function driftItems(
+  summary: Summary,
+  targets: AllocationTarget[] = [],
+  rules: AttentionRules = {},
+): AttentionItem[] {
+  const allocationDrift = threshold(rules, 'allocation_drift', ATTENTION.allocationDrift)
+  const items: AttentionItem[] = []
   // Rounded so that exactly the threshold, whose float drift can land a hair above it, is not above it.
   if (allocationDrift !== null && targets.length > 0) {
     const { rows } = allocationRows({
@@ -281,8 +287,7 @@ export function attentionItems(input: {
       }
     }
   }
-
-  return portfolioName ? items.map((item) => ({ ...item, portfolio: portfolioName })) : items
+  return items
 }
 
 // One item per watchlist row whose target the close has reached, by symbol. A

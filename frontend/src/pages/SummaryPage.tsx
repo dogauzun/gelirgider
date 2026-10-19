@@ -44,7 +44,13 @@ import { LoadError } from '../components/ui/LoadError'
 import { Skeleton } from '../components/ui/Skeleton'
 import { usePositionActions } from '../components/usePositionActions'
 import { t, type StringKey } from '../i18n/strings'
-import { attentionItems, mergeAttention, moverCount, watchTargetItems } from '../lib/attention'
+import {
+  attentionItems,
+  driftItems,
+  mergeAttention,
+  moverCount,
+  watchTargetItems,
+} from '../lib/attention'
 import { formatMarketDate, formatShortMarketDate, monthsBetween, todayIstanbul } from '../lib/date'
 import { formatMoney, MISSING, plTone, signedMoney } from '../lib/format'
 import { useNavState } from '../lib/navState'
@@ -165,11 +171,7 @@ function Attention({
   const today = todayIstanbul()
   // Which portfolio each dividend item came from, for Ekle and Yoksay.
   const owners = new Map<ExpectedDividend, number>()
-  const drift = scopeSummary
-    ? attentionItems({ summary: scopeSummary, expected: [], today, rules, targets }).filter(
-        (item) => item.kind === 'allocation-drift',
-      )
-    : []
+  const drift = scopeSummary ? driftItems(scopeSummary, targets, rules) : []
   const items = mergeAttention(
     [
       ...portfolios.map((p, i) => {

@@ -3,7 +3,13 @@ import type { AllocationTarget } from '../api/allocationTargets'
 import type { ExpectedDividend } from '../api/dividends'
 import type { Position, Summary } from '../api/summary'
 import type { WatchItem } from '../api/watchlist'
-import { attentionItems, watchTargetItems, type AttentionRules } from './attention'
+import {
+  attentionItems,
+  driftItems,
+  mergeAttention,
+  watchTargetItems,
+  type AttentionRules,
+} from './attention'
 
 const TODAY = '2026-10-05'
 
@@ -186,12 +192,6 @@ describe('attentionItems', () => {
     const rules: AttentionRules = { position_share: { enabled: false } }
     expect(run(big).some((i) => i.kind === 'concentration')).toBe(true)
     expect(run(big, { rules })).toEqual([])
-  })
-
-  it('says from when the benchmark values are estimates', () => {
-    expect(run(summary(spread(8)), { estimatedFrom: '2026-09-01' })).toEqual([
-      { kind: 'estimated-benchmark', from: '2026-09-01' },
-    ])
   })
 
   it('lists each expected dividend', () => {
@@ -392,16 +392,22 @@ describe('attentionItems', () => {
         '0',
       ),
       expected: [dividend],
-      estimatedFrom: '2026-09-01',
       today: TODAY,
       portfolioName: 'Ana',
     })
     expect(items.map((item) => [item.kind, item.portfolio])).toEqual([
-      ['estimated-benchmark', 'Ana'],
       ['dividend', 'Ana'],
       ['mover', 'Ana'],
       ['concentration', 'Ana'],
       ['no-hedge', 'Ana'],
+    ])
+  })
+})
+
+describe('mergeAttention', () => {
+  it('says from when the benchmark values are estimates', () => {
+    expect(mergeAttention([], '2026-09-01')).toEqual([
+      { kind: 'estimated-benchmark', from: '2026-09-01' },
     ])
   })
 })
@@ -461,9 +467,7 @@ describe('allocation drift rule', () => {
   // 50% equity, 50% cash.
   const half = summary([position(1, 'A', '500')], '500')
   const drift = (targets: AllocationTarget[], rules: AttentionRules = {}) =>
-    attentionItems({ summary: half, expected: [], today: TODAY, rules, targets }).filter(
-      (item) => item.kind === 'allocation-drift',
-    )
+    driftItems(half, targets, rules)
   const split = (equity: string, cash: string) => [
     { asset_class: 'equity', weight: equity },
     { asset_class: 'cash', weight: cash },
