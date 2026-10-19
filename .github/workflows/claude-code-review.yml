@@ -1,29 +1,13 @@
 # The review of ADR 0037: the repository's own `.claude/agents/pr-reviewer.md`
-# run by claude-code-action on every push to a pull request. It is not a
-# required check: an API outage must not block a merge.
+# run by claude-code-action on every push to a pull request. The job `Claude
+# review` is a required check on main, so the workflow has no path filter: a
+# required check that never starts blocks the merge. The scope step ends the
+# job green for an exempt diff instead (ADR 0022).
 name: Claude Code Review
 
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-    # paths-ignore cannot hold `!` patterns, so `paths` lists everything and
-    # then takes the exempt paths of ADR 0022 out again. The last matching
-    # pattern wins: the re-included rule documents come after their directory.
-    paths:
-      - '**'
-      - '!docs/**'
-      - 'docs/PRINCIPLES.md'
-      - 'docs/adr/**'
-      - '!*.md'
-      - 'CLAUDE.md'
-      - '!.github/**'
-      - '!deploy/**'
-      - '!frontend/src/i18n/**'
-      - '!.gitignore'
-      - '!.gitattributes'
-      - '!.dockerignore'
-      - '!LICENSE'
-      - '!THIRD_PARTY_NOTICES.md'
 
 # A push cancels the run for the old head.
 concurrency:
@@ -39,9 +23,10 @@ permissions:
 
 jobs:
   review:
-    name: review
-    # A run for a fork PR has no secrets; the merger reviews those by hand.
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    name: Claude review
+    # A run for a fork PR or for Dependabot has no secrets; the merger reviews
+    # those by hand. A skipped job counts as passing.
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -50,15 +35,37 @@ jobs:
           # the merge commit.
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+      # The exempt paths of ADR 0022: a diff with nothing else needs no review.
+      - id: scope
+        name: Decide whether the diff needs a review
+        run: |
+          exempt() {
+            case "$1" in
+              docs/PRINCIPLES.md | docs/adr/* | CLAUDE.md) return 1 ;;
+              docs/* | .github/* | deploy/* | frontend/src/i18n/*) return 0 ;;
+              .gitignore | .gitattributes | .dockerignore | LICENSE | THIRD_PARTY_NOTICES.md) return 0 ;;
+              */*) return 1 ;;
+              *.md) return 0 ;;
+              *) return 1 ;;
+            esac
+          }
+          review=false
+          while IFS= read -r path; do
+            exempt "$path" || { review=true; break; }
+          done < <(git diff --no-renames --name-only origin/main...HEAD)
+          [ "$review" = true ] || echo "only exempt paths changed (ADR 0022), no review needed"
+          echo "review=$review" >> "$GITHUB_OUTPUT"
       # The reviewer reads the diff from a file: GitHub refuses `gh pr diff`
       # above 20,000 changed lines or 300 files, and the agent may not run git.
       - run: git diff origin/main...HEAD > "$RUNNER_TEMP/pr.diff"
+        if: steps.scope.outputs.review == 'true'
       # The action hands the app's write token to the agent as GH_TOKEN, so
       # the allow list holds `gh pr view`, `gh pr diff` and file reads only:
       # no `gh api` (a prefix rule cannot pin its method) and no `git` at all
       # (`--upload-pack`, `--output` and `--ext-diff` reach a shell). The
       # inline comment tool is the one way to write.
       - uses: anthropics/claude-code-action@5eb090f3c3afd701a0672cd32981197ca27688f6 # v1.0.253
+        if: steps.scope.outputs.review == 'true'
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |

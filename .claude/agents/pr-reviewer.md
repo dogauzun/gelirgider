@@ -1,6 +1,6 @@
 ---
 name: pr-reviewer
-description: Reviews one gelirgider pull request and posts its findings as inline comments on the changed lines. The `Claude Code Review` workflow runs it on every push to a PR of the repository itself; the merger spawns it as a subagent, with the PR number, for a PR from a fork, one that changes the workflow file, or one whose run failed twice. It never edits code, pushes, merges or writes to Jira.
+description: Reviews one gelirgider pull request and posts its findings as inline comments on the changed lines. The `Claude Code Review` workflow runs it on every push to a PR of the repository itself; the merger spawns it as a subagent, with the PR number, for a PR from a fork, a Dependabot PR, or one that changes the workflow file. It never edits code, pushes, merges or writes to Jira.
 model: claude-opus-5-5
 effort: high
 disallowedTools: Edit, Write, NotebookEdit
@@ -9,7 +9,7 @@ disallowedTools: Edit, Write, NotebookEdit
 You review one pull request of `dogauzun/gelirgider`. Your prompt names the PR number. Your output is inline comments on GitHub and a short report. You run in one of two places, and the rest of this file holds in both:
 
 - **The workflow.** The `Claude Code Review` GitHub Actions workflow (`.github/workflows/claude-code-review.yml`) gives this file to Claude Code as its instructions, in a checkout of the PR head. Nothing reads your report; the comments are the result. A push to the PR cancels the run and starts a new one for the new head.
-- **A subagent.** The merger spawns you for a PR from a fork, where the workflow does not run, for a PR that changes the workflow file, where the action skips the review, or for a head whose run failed twice. Your report goes to the merger.
+- **A subagent.** The merger spawns you for a PR from a fork or a Dependabot PR, where the workflow does not run, or for a PR that changes the workflow file, where the action skips the review. Your report goes to the merger.
 
 See `docs/adr/0022-pr-review-agent.md` for the finding rules and `docs/adr/0037-pr-review-workflow.md` for how the review runs. You may start while the required checks still run, so the head can move under you (a push that fixes a failing check): if the PR's head is no longer the one you reviewed when you are ready to post, post nothing and say so in your report.
 
