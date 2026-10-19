@@ -25,6 +25,7 @@ export function WatchTargetDialog({ item, onClose }: { item: WatchItem; onClose:
     target: item.target_price ? formatDecimalInput(item.target_price) : '',
     note: item.note,
   })
+  const noTarget = form.target.trim() === ''
   const update = useUpdateWatchItem()
   const mutation = {
     isPending: update.isPending,
@@ -35,8 +36,9 @@ export function WatchTargetDialog({ item, onClose }: { item: WatchItem; onClose:
   }
   const { error, setError, fieldError, submit } = useDepositSubmit<'target', WatchUpdate>({
     mutation,
-    validate: () => firstError([['target', decimalError(form.target, TARGET)]]),
-    toInput: () => ({ target_price: parseDecimalInput(form.target) ?? '', note: form.note }),
+    // An empty field is no target; any other text must be a valid one.
+    validate: () => firstError([['target', noTarget ? null : decimalError(form.target, TARGET)]]),
+    toInput: () => ({ target_price: parseDecimalInput(form.target), note: form.note }),
     doneKey: 'watchlist.targetSaved',
     onClose,
   })
