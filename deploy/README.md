@@ -12,8 +12,8 @@ make build
 This runs, from the repo root:
 
 ```
-docker build -f deploy/backend.Dockerfile -t gelirgider-backend .
-docker build -f deploy/frontend.Dockerfile -t gelirgider-frontend .
+docker build --build-arg VERSION=$(git describe --tags --always --dirty) -f deploy/backend.Dockerfile -t gelirgider-backend .
+docker build --build-arg VERSION=$(git describe --tags --always --dirty) -f deploy/frontend.Dockerfile -t gelirgider-frontend .
 ```
 
 This is a standalone image build, not a step of the compose run below, and
@@ -36,9 +36,10 @@ A push to `main` publishes `latest` and `sha-<first 7 of the commit sha>`,
 the edge builds. A release (the `release` workflow in Actions) publishes the
 version tag `vX.Y.Z`, for example `v1.2.0`, and moves the floating major tag
 `vX` (`v1`) to it. Compose pulls `latest` unless `IMAGE_TAG` in `deploy/.env`
-pins another tag (`deploy/RUNBOOK.md`, Rollback). `.github/workflows/prune-images.yml` prunes all but the newest 30
-versions of each image weekly, so a `sha-` pin older than that must be rebuilt
-from the checkout with `up --build`. Tags published before multi-arch support
+pins another tag (`deploy/RUNBOOK.md`, Rollback). `.github/workflows/prune-images.yml` deletes the `sha-` versions
+of each image beyond the newest 30 every week and keeps `latest` and every
+`v*` tag, so only a `sha-` pin older than that must be rebuilt from the
+checkout with `up --build`. Tags published before multi-arch support
 are `linux/amd64` only, so an arm64 host rolls back to one of them by
 rebuilding from the checkout at that commit (`up --build`).
 
