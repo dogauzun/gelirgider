@@ -28,7 +28,7 @@ make build-frontend      # type-check and production build of the frontend
 ```
 
 GitHub Actions runs the same targets on every pull request as the checks
-`Lint (Go + web)`, `Go tests`, `Web tests` and `Web build`, plus `Title` for the
+`Go lint`, `Web lint`, `Go tests`, `Web tests` and `Web build`, plus `Title` for the
 pull request title, and a pull request merges only when they pass. Still run
 `make lint`, `make test` and `make build-frontend` before you push.
 [docs/PRINCIPLES.md](docs/PRINCIPLES.md) #6 lists exactly what each one runs.
