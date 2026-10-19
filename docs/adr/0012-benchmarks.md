@@ -96,5 +96,5 @@ version, so a new version fails with a 404 instead of guessing. The SDMX web
 service needs an SMS-verified account, so it is rejected.
 
 **GOLD:** the gram price of ADR 0017. Not offered: several benchmarks at once,
-home-card or per-position benchmarks, US CPI, foreign indices and
-user-defined series.
+home-card benchmarks, US CPI, foreign indices and user-defined series. A
+position takes the same fixed codes (ADR 0033).

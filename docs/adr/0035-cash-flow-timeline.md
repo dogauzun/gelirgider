@@ -138,7 +138,7 @@ not prices, and returns a row per month.
 
 ### The card and the streak
 
-A "Nakit akışı" card sits on Performans under the drawdown card. It draws the
+A "Nakit akışı" card sits on Performans under the realized trades card (ADR 0034). It draws the
 months as grouped bars on a zero line: deposits up in the gain color and
 withdrawals down in the loss color. A window switch, "12 ay | 24 ay | Tümü",
 cuts the bars to the last 12 or 24 months or shows all of them; it opens on

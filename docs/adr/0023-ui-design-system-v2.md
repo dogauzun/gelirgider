@@ -104,8 +104,8 @@ white cards that float on layered shadows, pill chips, a filled chart.
   `Tüm portföyler` with the combined total; a `Portföyler` section with a `+`
   that creates a portfolio; one row per portfolio (a color dot `cat-1` to
   `cat-6` by list index, the name, `total_value` in compact notation, masked
-  by privacy mode); pinned at the bottom `Yönetim` (admins only), the account
-  menu and the privacy toggle. Clicking a row keeps the current tab, and from
+  by privacy mode); pinned at the bottom the `İzleme listesi` link (every user), `Yönetim`
+  (admins only), the account menu and the privacy toggle. Clicking a row keeps the current tab, and from
   a position page goes to the portfolio's Özet. The sidebar reads the
   `['portfolios']` query, so a transaction or price change invalidates it. On
   a query error it shows no rows and no values, and its static links stay.
