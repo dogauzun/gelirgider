@@ -92,9 +92,8 @@ day is day 4 at +3% and the worst day is day 3 at −1%.
 
 ### Against the benchmark
 
-The benchmark figures use only the days on which both `r_i` and `b_i` exist,
-`m` of them, so each pair is the same day and a benchmark that starts later
-does not pair with the days before it:
+The benchmark figures use the days on which both `r_i` and `b_i` exist, `m` of
+them, so each pair is the same day:
 
 - **benchmark volatility**: the sample standard deviation of `b_i` over those
   days, times `√365`, so it compares with a portfolio's volatility over the
@@ -102,24 +101,29 @@ does not pair with the days before it:
 - **beta**: `cov(r, b) / var(b)`, both with the divisor `m − 1`.
 - **correlation**: `cov(r, b) / (σ_r × σ_b)`.
 
-They are `null` when no `benchmark_twr` is on the points (no benchmark asked
-for, or none with a level on the first point, ADR 0012), when fewer than 30
-shared returns remain, and for beta and correlation when `var(b)` is 0 (a flat
-benchmark has no beta); the correlation is `null` too when `σ_r` is 0. A
-`null` benchmark figure never hides the portfolio's own.
+All of them are `null` when `benchmark_twr` is `null` on any point of the
+window (no benchmark asked for, or one with no level on the window's first
+point, ADR 0012), and when `Σ(b_i − b̄)²` is 0, since a flat benchmark has no
+beta; the correlation is `null` too when `σ_r` is 0. A `null` benchmark figure
+never hides the portfolio's own.
 
 ### Windows and the minimum
 
-The Performans card computes the figures over the all-time history, the one
-the drawdown card reads, and cuts it to a window: **1Y** (the returns dated
-within the last 365 days of the last point), **3Y** (1095 days) and **Tümü**
-(all of them). A window longer than the history equals Tümü and is not
-offered. A figure needs at least **30 returns** in its window, 30 shared ones
-for the benchmark figures; with fewer it is `null` and shown as a dash, since
-a month of days says more about that month than about the portfolio.
+The Performans card reads the all-time history, the one the drawdown card
+reads, with the page's benchmark, and cuts it to a window with a segmented control, **1Y | 3Y | Tümü**. It opens on
+1Y and the choice is not stored. A window is the points dated on or after the
+last point's date minus 365 days (1Y) or 1095 days (3Y); Tümü is every point.
+The first point of a window is its base, so the window's returns are the ones
+of the points after it. All three options are always offered.
 
-The all-time history is the history API's own range, no further back than 3660
-days ([ADR 0016](0016-position-detail.md)); a longer record is cut at its
+A window with fewer than **30 daily returns** shows "Yeterli veri yok" in place
+of the figures, benchmark figures included, instead of a dash per figure: a
+month of days says more about that month than about the portfolio. The
+benchmark figures need 30 shared returns of their own and are `null` below
+that.
+
+The all-time history is the history API's own range, no more than 3660 days
+([ADR 0019](0019-core-engine-and-auth.md)); a longer record is cut at its
 start.
 
 ### Drawdown recovery
@@ -127,46 +131,50 @@ start.
 The drawdown ([ADR 0011](0011-portfolio-returns.md)) gains the day it was won
 back. For the largest drawdown, `recovered` is the first date after its trough
 on which `1 + twr` is at or above the index of its peak, and `null` while the
-portfolio is still below it. The card shows the days from peak to trough, and
-from trough to recovery, as the calendar-day gap of the two dates; while
-`recovered` is `null` it shows the days since the trough instead, marked as
-not yet recovered. This changes `drawdown()` and its return value, and no API.
+portfolio is still below it. The header adds the days from peak to trough, and
+from trough to recovery, as the calendar-day gap of the two dates, or "henüz
+toparlanmadı" while `recovered` is `null`. This changes `drawdown()` and its
+return value, and no API.
 
 ### Rolling 365-day return
 
-For each point `t`, the rolling return is
+For each point `i`, the rolling return is
 
 ```
-(1 + twr_t) / (1 + twr_k) − 1
+(1 + twr_i) / (1 + twr_k) − 1
 ```
 
-where `k` is the latest point dated on or before the date of `t` minus 365
-days. A point with no such `k` (the first year), a `null` `twr` on either point
-or `1 + twr_k` at 0 has no value. It is the return of the last 365 days as
-they ran, not annualized, and the card draws it as a line from the first day
-that has one, with its latest, best and worst value.
+where `k` is the last point dated on or before the date of `i` minus 365 days.
+A point with no such `k` (the first year) is left out, and so is one with a
+`null` `twr` on `i` or `k`, or with `1 + twr_k` at 0. The benchmark's line is
+built the same way from `benchmark_twr`, `null` where it is missing on `i` or
+`k`. It is the return of the last 365 days as they ran, not annualized. The
+card draws both lines under the figures over the whole history, so each point
+reads what the twelve months ending there returned against the benchmark, and
+draws no chart when no point has a `k`.
 
 ### The position page
 
-The position page ([ADR 0016](0016-position-detail.md)) computes the same
-figures with the same functions, over the page's range and not a window, from
-the points of the position history, in the instrument's currency
+The position page ([ADR 0016](0016-position-detail.md)) shows the same risk
+figures, computed with the same functions over the points of the position
+history for the page's range and benchmark, in the instrument's currency
 ([ADR 0033](0033-position-returns.md)): a rate's move is not in them and the
-benchmark is the one converted into that currency. Points whose `twr` is
-`null`, those before `returns_from` and after `returns_to`, are not in the
-series, and a return needs two neighbors that are. The minimum of 30 returns
-and every `null` rule hold; a short range simply shows dashes. The drawdown
-and its recovery come with them, so ADR 0033 no longer lists a drawdown per
-position as not offered.
+benchmark is the one converted into that currency. The range picker is the
+window and there is no window control. Points whose `twr` is `null`, those
+before `returns_from` and after `returns_to`, are not in the series, and a
+return needs two neighbors that are. A series with fewer than 30 returns shows
+the same "Yeterli veri yok".
 
 ### Out of scope
 
 - **Sharpe and Sortino.** They need a risk-free rate, and the app has no
   risk-free series: TÜFE is inflation and not a rate, and a rate of 0 would
   flatter every ratio in a currency whose deposits pay tens of percent a year.
-  They wait for a risk-free series, and the downside deviation above is
-  already the Sortino denominator when that day comes.
-- Alpha, tracking error, R², value at risk and a rolling volatility line.
+  They wait for a risk-free series, and so does any ratio over a risk-free
+  rate; the downside deviation above is already the Sortino denominator when
+  that day comes.
+- Alpha, tracking error, R², value at risk and a volatility chart over time.
 - A computation in the backend or new fields on the history API.
-- Risk figures on the positions table, the Portföyler table and the home card,
-  and against more than one benchmark at a time.
+- A drawdown or a rolling return per position.
+- Risk figures in the positions table and on the Portföyler table of the all
+  view, and against more than one benchmark at a time.
