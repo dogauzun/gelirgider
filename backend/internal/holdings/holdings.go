@@ -309,7 +309,8 @@ type Stats struct {
 	Interest       decimal.Decimal
 }
 
-func (a Stats) add(b Stats) Stats {
+// Add returns the field-wise sum of a and b.
+func (a Stats) Add(b Stats) Stats {
 	return Stats{
 		Deposits:       a.Deposits.Add(b.Deposits),
 		Withdrawals:    a.Withdrawals.Add(b.Withdrawals),
@@ -318,6 +319,48 @@ func (a Stats) add(b Stats) Stats {
 		DividendsTax:   a.DividendsTax.Add(b.DividendsTax),
 		Interest:       a.Interest.Add(b.Interest),
 	}
+}
+
+// Scale returns a with every field multiplied by f.
+func (a Stats) Scale(f decimal.Decimal) Stats {
+	return Stats{
+		Deposits:       a.Deposits.Mul(f),
+		Withdrawals:    a.Withdrawals.Mul(f),
+		Fees:           a.Fees.Mul(f),
+		DividendsGross: a.DividendsGross.Mul(f),
+		DividendsTax:   a.DividendsTax.Mul(f),
+		Interest:       a.Interest.Mul(f),
+	}
+}
+
+// IsZero reports whether every field is zero.
+func (a Stats) IsZero() bool {
+	return a.Deposits.IsZero() && a.Withdrawals.IsZero() && a.Fees.IsZero() &&
+		a.DividendsGross.IsZero() && a.DividendsTax.IsZero() && a.Interest.IsZero()
+}
+
+// StatsOf is what one transaction adds to its currency's Stats, the single
+// place that rule lives. A split adds nothing. A dividend's fee is its
+// withholding tax (stopaj); one with no instrument is interest, counted net.
+func StatsOf(t transaction.Transaction) Stats {
+	var st Stats
+	switch t.Type {
+	case transaction.TypeBuy, transaction.TypeSell:
+		st.Fees = t.Fee
+	case transaction.TypeDeposit:
+		st.Deposits, st.Fees = t.Amount, t.Fee
+	case transaction.TypeWithdrawal:
+		st.Withdrawals, st.Fees = t.Amount, t.Fee
+	case transaction.TypeFee:
+		st.Fees = t.Amount.Add(t.Fee)
+	case transaction.TypeDividend:
+		if t.InstrumentID != nil {
+			st.DividendsGross, st.DividendsTax = t.Amount, t.Fee
+		} else {
+			st.Interest = t.Amount.Sub(t.Fee)
+		}
+	}
+	return st
 }
 
 // State is the running result of applying transactions one at a time, in
@@ -388,6 +431,11 @@ func (s *State) stat(currency string) *Stats {
 // Apply folds one transaction into s. Transactions must arrive in
 // transaction.SortForApply order: weighted-average cost depends on it.
 func (s *State) Apply(t transaction.Transaction) {
+	// A split books no stats, and must not create a by_currency entry.
+	if t.Type != transaction.TypeSplit {
+		st := s.stat(t.Currency)
+		*st = st.Add(StatsOf(t))
+	}
 	switch t.Type {
 	case transaction.TypeBuy:
 		p := s.position(*t.InstrumentID)
@@ -431,8 +479,6 @@ func (s *State) Apply(t transaction.Transaction) {
 		}
 		p.resetIfClosed()
 		s.addCash(t.Currency, t.Amount.Add(t.Fee).Neg())
-		st := s.stat(t.Currency)
-		st.Fees = st.Fees.Add(t.Fee)
 
 	case transaction.TypeSell:
 		p := s.position(*t.InstrumentID)
@@ -451,22 +497,15 @@ func (s *State) Apply(t transaction.Transaction) {
 		// AvgCost is intentionally left unchanged while shares remain.
 		p.resetIfClosed()
 		s.addCash(t.Currency, t.Amount.Sub(t.Fee))
-		st := s.stat(t.Currency)
-		st.Fees = st.Fees.Add(t.Fee)
 
 	// A dividend's fee is its withholding tax (stopaj); one with no
 	// instrument is interest, counted net.
 	case transaction.TypeDividend:
 		net := t.Amount.Sub(t.Fee)
-		st := s.stat(t.Currency)
 		if t.InstrumentID != nil {
 			p := s.position(*t.InstrumentID)
 			p.RealizedPL = p.RealizedPL.Add(net)
 			s.realized[p.Currency] = s.realized[p.Currency].Add(net)
-			st.DividendsGross = st.DividendsGross.Add(t.Amount)
-			st.DividendsTax = st.DividendsTax.Add(t.Fee)
-		} else {
-			st.Interest = st.Interest.Add(net)
 		}
 		s.addCash(t.Currency, net)
 
@@ -475,20 +514,12 @@ func (s *State) Apply(t transaction.Transaction) {
 	// out more.
 	case transaction.TypeDeposit:
 		s.addCash(t.Currency, t.Amount.Sub(t.Fee))
-		st := s.stat(t.Currency)
-		st.Deposits = st.Deposits.Add(t.Amount)
-		st.Fees = st.Fees.Add(t.Fee)
 
 	case transaction.TypeWithdrawal:
 		s.addCash(t.Currency, t.Amount.Add(t.Fee).Neg())
-		st := s.stat(t.Currency)
-		st.Withdrawals = st.Withdrawals.Add(t.Amount)
-		st.Fees = st.Fees.Add(t.Fee)
 
 	case transaction.TypeFee:
 		s.addCash(t.Currency, t.Amount.Add(t.Fee).Neg())
-		st := s.stat(t.Currency)
-		st.Fees = st.Fees.Add(t.Amount).Add(t.Fee)
 
 	// A split scales the held quantity by the ratio in t.Quantity and the
 	// average cost down by it; cost basis, realized P/L and cash stay put.
@@ -597,7 +628,7 @@ func Merge(summaries []Summary) Summary {
 			open[p.InstrumentID] = true
 		}
 		for c, v := range s.Stats {
-			out.Stats[c] = out.Stats[c].add(v)
+			out.Stats[c] = out.Stats[c].Add(v)
 		}
 		for c, v := range s.Cash {
 			out.Cash[c] = out.Cash[c].Add(v)

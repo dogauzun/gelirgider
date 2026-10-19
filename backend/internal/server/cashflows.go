@@ -42,43 +42,26 @@ type cashFlowsResponse struct {
 }
 
 // cashFlowSums is one bucket's exact running sums.
-type cashFlowSums struct{ deposits, withdrawals, dividends, interest, fees decimal.Decimal }
+type cashFlowSums struct{ st holdings.Stats }
 
 // bucket rounds s once to the 2-decimal strings of one bucket.
 func (s *cashFlowSums) bucket(period string) cashFlowBucket {
+	st := s.st
 	return cashFlowBucket{
 		Period:      period,
-		Deposits:    s.deposits.StringFixed(2),
-		Withdrawals: s.withdrawals.StringFixed(2),
-		Net:         s.deposits.Sub(s.withdrawals).StringFixed(2),
-		Dividends:   s.dividends.StringFixed(2),
-		Interest:    s.interest.StringFixed(2),
-		Fees:        s.fees.StringFixed(2),
+		Deposits:    st.Deposits.StringFixed(2),
+		Withdrawals: st.Withdrawals.StringFixed(2),
+		Net:         st.Deposits.Sub(st.Withdrawals).StringFixed(2),
+		Dividends:   st.DividendsGross.Sub(st.DividendsTax).StringFixed(2),
+		Interest:    st.Interest.StringFixed(2),
+		Fees:        st.Fees.StringFixed(2),
 	}
 }
 
-// add books one row, already converted by factor f, the way holdings.State.Apply
-// counts it: a split changes no cash.
+// add books one row, converted by factor f, the way holdings.State.Apply
+// counts it.
 func (s *cashFlowSums) add(t transaction.Transaction, f decimal.Decimal) {
-	amount, fee := t.Amount.Mul(f), t.Fee.Mul(f)
-	switch t.Type {
-	case transaction.TypeDeposit:
-		s.deposits = s.deposits.Add(amount)
-		s.fees = s.fees.Add(fee)
-	case transaction.TypeWithdrawal:
-		s.withdrawals = s.withdrawals.Add(amount)
-		s.fees = s.fees.Add(fee)
-	case transaction.TypeBuy, transaction.TypeSell:
-		s.fees = s.fees.Add(fee)
-	case transaction.TypeFee:
-		s.fees = s.fees.Add(amount.Add(fee))
-	case transaction.TypeDividend:
-		if t.InstrumentID == nil {
-			s.interest = s.interest.Add(amount.Sub(fee))
-		} else {
-			s.dividends = s.dividends.Add(amount.Sub(fee))
-		}
-	}
+	s.st = s.st.Add(holdings.StatsOf(t).Scale(f))
 }
 
 // get answers the scope's cash flows per calendar month.
