@@ -56,7 +56,9 @@ jobs:
             [ -n "$path" ] || continue
             exempt "$path" || { review=true; break; }
           done <<<"$changed"
-          [ "$review" = true ] || echo "only exempt paths changed (ADR 0022), no review needed"
+          if [ "$review" != true ]; then
+            echo "exempt diff (ADR 0022), not reviewed" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
           echo "review=$review" >> "$GITHUB_OUTPUT"
       # The reviewer reads the diff from a file: GitHub refuses `gh pr diff`
       # above 20,000 changed lines or 300 files, and the agent may not run git.

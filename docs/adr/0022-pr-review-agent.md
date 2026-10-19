@@ -35,30 +35,26 @@ context.
 ### Exempt diffs
 
 The reviewer posts findings on about 15 to 20% of PRs, and a docs-only review
-once took over an hour. A PR whose diff touches only the paths below skips
-the reviewer; the required checks and the merger's hygiene step suffice. The
-list is closed and decided by the file paths of the diff
-(`gh pr diff <n> --name-only`), never by the PR title type. It is defined only
-here; CLAUDE.md and `docs/PRINCIPLES.md` point to this section.
+once took over an hour. A PR whose diff touches only exempt paths skips the
+reviewer; the required checks and the merger's hygiene step suffice. The list
+is closed and decided by the file paths of the diff, never by the PR title
+type. It lives only in the `scope` step of
+`.github/workflows/claude-code-review.yml`, which runs the match on every push
+and ends the job green with a line in the job summary for an exempt diff
+(ADR 0037); no other document restates it, and a change to it is a change to
+that step. The list never gains a `Makefile`, a dependency manifest or a
+lockfile.
 
-- `docs/`, except `docs/PRINCIPLES.md` and `docs/adr/`, and the root `*.md`
-  files, except `CLAUDE.md` (so `README.md`, `README.tr.md`,
-  `CONTRIBUTING.md`, `SECURITY.md` and `docs/ROADMAP.md` are exempt);
-- `.github/`;
-- `deploy/`;
-- `frontend/src/i18n/`, as a directory, so the rule holds whether
-  `strings.ts` is one file or several;
-- chore files, by name: `.gitignore`, `.gitattributes`, `.dockerignore`,
-  `LICENSE` and `THIRD_PARTY_NOTICES.md`. A PR may add another plain data
-  file to this list, never a `Makefile`, a dependency manifest or a lockfile.
-
-Everything else is reviewed: the rule documents (`CLAUDE.md`,
-`docs/PRINCIPLES.md`, `docs/adr/`), because the merger's hygiene step does not
-compare documents with each other and the reviewer's findings on them have
-been real inconsistencies; `.claude/`, because agent files, skills and routine
-prompts steer agents; the `Makefile`, dependency manifests and lockfiles;
-`backend/`; and `frontend/` outside `frontend/src/i18n/`. A diff that touches
-one path outside the list is reviewed in full.
+The list covers the paths where a second reader finds little: documentation
+and root `*.md` files that are not a rule document, `.github/`, `deploy/`,
+the UI strings under `frontend/src/i18n/`, and a few plain chore files. Everything
+else is reviewed: the rule documents (`CLAUDE.md`, `docs/PRINCIPLES.md`,
+`docs/adr/`), because the merger's hygiene step does not compare documents
+with each other and the reviewer's findings on them have been real
+inconsistencies; `.claude/`, because agent files, skills and routine prompts
+steer agents; the `Makefile`, dependency manifests and lockfiles; `backend/`;
+and `frontend/` outside `frontend/src/i18n/`. A diff that touches one path
+outside the list is reviewed in full.
 
 The author is the `ticket-implementer` agent, on Sonnet 5.5 at high effort.
 
@@ -99,9 +95,9 @@ posts inline comments only and no review.
 
 The merger does not read the whole diff. It:
 
-1. decides from `gh pr diff <n> --name-only` whether the diff is exempt, and
-   for a diff that is not, checks that the review of the current head has run
-   (ADR 0037);
+1. reads the `Claude Code Review` run on the current head (ADR 0037). It
+   concludes `success` either after a review or, for an exempt diff, without
+   one; the job summary says which. The merger matches no paths itself;
 2. reads the required GitHub Actions checks on the PR head, once they have
    run: `Lint (Go + web)`,
    `Go tests`, `Web tests` and `Web build` (workflow `ci`), `Title`
@@ -121,16 +117,17 @@ The merger does not read the whole diff. It:
 
 The merger posts a merge comment on the PR that lists the required checks with
 their run URLs and conclusions on the merged head, and the review run's URL and
-conclusion on that head or `reviewer skipped (exempt paths)`, and it transitions the ticket to `Done`
+conclusion on that head (with `exempt diff, not reviewed` when its job summary
+says so), and it transitions the ticket to `Done`
 with a comment that links the merged PR.
 
 ### Merge gate
 
 A PR merges when all of these hold (CLAUDE.md rules 6 and 7):
 
-1. the PR's current head has been reviewed, as ADR 0037 states; an exempt
-   diff satisfies this item without a review, and a push that adds a
-   non-exempt path ends the exemption;
+1. the PR's current head has been reviewed or is exempt, as ADR 0037 states
+   (the run's job summary says which); a push that adds a non-exempt path
+   ends the exemption, and the run on that head reviews;
 2. every review thread, from the reviewer or a human, is fixed or
    answered and resolved;
 3. the required checks are green on the current head. The merger turns on
