@@ -64,11 +64,17 @@ merges. The merger enforces the review in the merge gate below, and a run
 that ends `failure` is re-run once; when it fails again the merger falls back
 to spawning the reviewer as a subagent, as for a fork PR.
 
-### A fork PR
+### A fork PR, and a PR that changes the workflow file
 
-The workflow skips a fork PR. The merger spawns `pr-reviewer` as a subagent
-for it, as ADR 0022 described for every PR, with the same agent file; the
-agent file says how it behaves in each place.
+The workflow skips a fork PR. The action also skips itself, with a warning
+and a run that still concludes `success`, when the PR's copy of
+`claude-code-review.yml` differs from the one on `main` (its app-token
+exchange validates the file), so a PR that changes the workflow file gets no
+review from the workflow either, whatever else it touches. In both cases the
+merger spawns `pr-reviewer` as a subagent, as ADR 0022 described for every
+PR, with the same agent file; the agent file says how it behaves in each
+place. The merger reads the changed file list, so it knows the second case
+before it reads the run.
 
 ### What the merger does now
 
@@ -87,9 +93,10 @@ paths)`.
 ### Merge gate
 
 ADR 0022's gate item 1 becomes: `Claude Code Review` concluded `success` on
-the PR's current head; or the diff is exempt and no run exists; or the PR is
-from a fork (or the run failed twice) and the merger's subagent reviewed the
-current head. A push of any kind starts a new run, so the merger waits for the run on the head it is about to merge. Items 2 and 3 are unchanged: every thread fixed or
+the PR's current head and the diff does not touch
+`.github/workflows/claude-code-review.yml`; or the diff is exempt and no run
+exists; or the PR is from a fork, or changes the workflow file, or the run
+failed twice, and the merger's subagent reviewed the current head. A push of any kind starts a new run, so the merger waits for the run on the head it is about to merge. Items 2 and 3 are unchanged: every thread fixed or
 answered and resolved, then auto-merge once the required checks are green.
 The merger turns auto-merge on only after the run on the current head has
 concluded and every thread is resolved, and runs `gh pr merge --disable-auto`
