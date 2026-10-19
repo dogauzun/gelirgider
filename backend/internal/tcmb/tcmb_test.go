@@ -105,6 +105,52 @@ func TestFetchRatesRejectsZeroUnit(t *testing.T) {
 	}
 }
 
+// TestFetchRatesParsesISO88599Bulletin: bulletins up to mid-2016 declare
+// ISO-8859-9 and carry raw single-byte Turkish letters (0xDD is İ); they used
+// to fail the parse and with it every backfill reaching that far back.
+func TestFetchRatesParsesISO88599Bulletin(t *testing.T) {
+	body := []byte("<?xml version=\"1.0\" encoding=\"ISO-8859-9\"?>\n<Tarih_Date>\n" +
+		"<Currency CurrencyCode=\"USD\"><Unit>1</Unit><Isim>ABD DOLARI</Isim><ForexBuying>2.9087</ForexBuying></Currency>\n" +
+		"<Currency CurrencyCode=\"EUR\"><Unit>1</Unit><Isim>\xddNG\xddL\xddZ</Isim><ForexBuying>3.0712</ForexBuying></Currency>\n" +
+		"</Tarih_Date>")
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write(body)
+	}))
+	defer srv.Close()
+
+	f := &tcmb.Fetcher{BaseURL: srv.URL + "/"}
+	rates, err := f.FetchRates(context.Background(), time.Date(2016, 6, 1, 0, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("FetchRates: %v", err)
+	}
+	got := map[string]string{}
+	for _, r := range rates {
+		got[r.Currency] = r.Rate.String()
+	}
+	if len(got) != 2 || got["USD"] != "2.9087" || got["EUR"] != "3.0712" {
+		t.Fatalf("rates = %v, want USD 2.9087 and EUR 3.0712", got)
+	}
+}
+
+// TestFetchRatesRejectsUnknownCharset: only the two encodings TCMB has used
+// are decoded; anything else is an error, not a silent misread.
+func TestFetchRatesRejectsUnknownCharset(t *testing.T) {
+	const xmlBody = `<?xml version="1.0" encoding="windows-1252"?>
+<Tarih_Date>
+<Currency CurrencyCode="USD"><Unit>1</Unit><ForexBuying>2.9087</ForexBuying></Currency>
+</Tarih_Date>`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(xmlBody))
+	}))
+	defer srv.Close()
+
+	f := &tcmb.Fetcher{BaseURL: srv.URL + "/"}
+	rates, err := f.FetchRates(context.Background(), time.Date(2016, 6, 1, 0, 0, 0, 0, time.UTC))
+	if err == nil {
+		t.Fatalf("FetchRates: got nil error and %+v, want error for windows-1252", rates)
+	}
+}
+
 // TestFetchRates404IsNotAnError covers a non-business day: the scheduler
 // treats a nil slice + nil error the same as "not yet available", not a
 // failure.

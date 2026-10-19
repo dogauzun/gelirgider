@@ -7,13 +7,16 @@
 package tcmb
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -113,7 +116,9 @@ func (f *Fetcher) FetchRates(ctx context.Context, date time.Time) ([]Rate, error
 // or Unit fails the whole bulletin, like any other malformed value.
 func parseBulletin(body []byte, date string) ([]Rate, error) {
 	var b xmlBulletin
-	if err := xml.Unmarshal(body, &b); err != nil {
+	d := xml.NewDecoder(bytes.NewReader(body))
+	d.CharsetReader = charsetReader
+	if err := d.Decode(&b); err != nil {
 		return nil, fmt.Errorf("parse tcmb bulletin xml: %w", err)
 	}
 
@@ -148,6 +153,33 @@ func parseBulletin(body []byte, date string) ([]Rate, error) {
 		})
 	}
 	return rates, nil
+}
+
+// iso88599 holds the ISO-8859-9 bytes that differ from Latin-1.
+var iso88599 = map[byte]rune{0xD0: 'Ğ', 0xDD: 'İ', 0xDE: 'Ş', 0xF0: 'ğ', 0xFD: 'ı', 0xFE: 'ş'}
+
+// charsetReader decodes the encodings TCMB bulletins declare: UTF-8 since
+// mid-2016, ISO-8859-9 before. Any other label is an error.
+func charsetReader(label string, input io.Reader) (io.Reader, error) {
+	switch strings.ToLower(label) {
+	case "utf-8":
+		return input, nil
+	case "iso-8859-9":
+		raw, err := io.ReadAll(input)
+		if err != nil {
+			return nil, err
+		}
+		var out strings.Builder
+		for _, c := range raw {
+			r, ok := iso88599[c]
+			if !ok {
+				r = rune(c)
+			}
+			out.WriteRune(r)
+		}
+		return strings.NewReader(out.String()), nil
+	}
+	return nil, fmt.Errorf("unsupported tcmb charset %q", label)
 }
 
 // Sync fetches rates for date and upserts them into fxRepo with
