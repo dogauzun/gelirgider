@@ -22,8 +22,7 @@ import { t, type StringKey } from '../i18n/strings'
 import { formatQuantity } from '../lib/decimal'
 import { formatMarketDate } from '../lib/date'
 import { formatMoney, formatUnitPrice, MISSING } from '../lib/format'
-import { toast } from '../lib/toast'
-import { useFocusAfterDelete } from '../lib/useFocusAfterDelete'
+import { useConfirmedDelete } from '../lib/useConfirmedDelete'
 import { useAction } from '../lib/useOneAtATime'
 import { usePortfolioTitle } from '../lib/useTitle'
 
@@ -147,37 +146,30 @@ function PlansBody({ portfolioId }: { portfolioId: number }) {
   const query = usePlans(portfolioId)
   const { data } = query
   const dueList = useDuePlansOf([portfolioId])[0].data
-  const deleteMutation = useDeletePlan(portfolioId)
   const bookMutation = useBookPlan()
   const skipMutation = useSkipPlan()
   const runAction = useAction()
   const { confirm, dialog } = useConfirm()
-  const focusAfterDelete = useFocusAfterDelete()
+  const removePlan = useConfirmedDelete(useDeletePlan(portfolioId), {
+    done: 'plans.deleted',
+    failed: 'plans.deleteFailed',
+  })
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<Plan | null>(null)
   const isEmpty = data !== undefined && data.length === 0
 
-  async function remove(plan: Plan) {
-    const confirmed = await confirm({
-      title: t('plans.deleteConfirm'),
-      body: t('plans.deleteConfirmBody', { summary: summary(plan) }),
-      confirmLabel: t('plans.deleteButton'),
-      danger: true,
-    })
-    if (!confirmed) return
-    const focusNext = focusAfterDelete(
+  const remove = (plan: Plan) =>
+    removePlan(
       (data ?? []).map((item) => item.id),
       plan.id,
+      () =>
+        confirm({
+          title: t('plans.deleteConfirm'),
+          body: t('plans.deleteConfirmBody', { summary: summary(plan) }),
+          confirmLabel: t('plans.deleteButton'),
+          danger: true,
+        }),
     )
-    deleteMutation.mutate(plan.id, {
-      onSuccess: () => {
-        toast(t('plans.deleted'))
-        focusNext()
-      },
-      onError: (mutationError) =>
-        toast(t('plans.deleteFailed', { error: mutationError.message }), { error: true }),
-    })
-  }
 
   // Books or skips the occurrence the plan has come to.
   function settle(mutation: typeof bookMutation, id: number, doneKey: StringKey) {

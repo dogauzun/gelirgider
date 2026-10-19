@@ -16,8 +16,7 @@ import { marketLabel, t, type StringKey } from '../i18n/strings'
 import { formatMarketDate } from '../lib/date'
 import { formatUnitPrice, MISSING, plTone, signedMoney, signedPercent } from '../lib/format'
 import { returnRatio } from '../lib/positions'
-import { toast } from '../lib/toast'
-import { useFocusAfterDelete } from '../lib/useFocusAfterDelete'
+import { useConfirmedDelete } from '../lib/useConfirmedDelete'
 import { useTitle } from '../lib/useTitle'
 
 const COLUMNS: { labelKey: StringKey; className: string }[] = [
@@ -117,32 +116,25 @@ export function WatchlistPage() {
   useTitle(t('watchlist.title'))
   const query = useWatchlist()
   const { data } = query
-  const removeMutation = useRemoveWatchItem()
   const { confirm, dialog } = useConfirm()
-  const focusAfterDelete = useFocusAfterDelete()
+  const removeItem = useConfirmedDelete(useRemoveWatchItem(), {
+    done: 'watchlist.removed',
+    failed: 'watchlist.removeFailed',
+  })
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<WatchItem | null>(null)
 
-  async function remove(item: WatchItem) {
-    const confirmed = await confirm({
-      title: t('watchlist.removeConfirm', { symbol: item.symbol }),
-      confirmLabel: t('watchlist.removeButton'),
-      danger: true,
-    })
-    if (!confirmed) return
-    const focusNext = focusAfterDelete(
+  const remove = (item: WatchItem) =>
+    removeItem(
       (data ?? []).map((row) => row.id),
       item.id,
+      () =>
+        confirm({
+          title: t('watchlist.removeConfirm', { symbol: item.symbol }),
+          confirmLabel: t('watchlist.removeButton'),
+          danger: true,
+        }),
     )
-    removeMutation.mutate(item.id, {
-      onSuccess: () => {
-        toast(t('watchlist.removed'))
-        focusNext()
-      },
-      onError: (mutationError) =>
-        toast(t('watchlist.removeFailed', { error: mutationError.message }), { error: true }),
-    })
-  }
 
   const addButton = (
     <Button data-list-add onClick={() => setAdding(true)}>
