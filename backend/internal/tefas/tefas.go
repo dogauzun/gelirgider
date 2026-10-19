@@ -47,9 +47,9 @@ const RequestPause = 500 * time.Millisecond
 var periods = []int{1, 3, 6, 12, 36, 60}
 
 // backfillSlackDays is how far a fund's first price may trail the start of
-// its history before SyncHistory counts it as missing. Wider than the
-// longest Turkish holiday stretch (a 9-day bayram), so a fund bought on a
-// closed day is not refetched on every run.
+// its history, and its last price may trail now, before SyncHistory counts
+// it as missing. Wider than the longest Turkish holiday stretch (a 9-day
+// bayram), so a fund bought on a closed day is not refetched on every run.
 const backfillSlackDays = 14
 
 // Fetcher retrieves fund NAVs from TEFAS over HTTP.
@@ -220,14 +220,16 @@ func Sync(ctx context.Context, f *Fetcher, instruments *instrument.Repo, prices 
 
 // SyncHistory fetches in's NAVs back to from (YYYY-MM-DD) in one request
 // (renaming in as SyncFund does),
-// unless its stored prices already reach back that far (a row within
-// backfillSlackDays of from, or earlier). from is clamped to the 60-month
-// window TEFAS serves, so a very old transaction does not refetch forever.
-// Returns rows written.
+// unless its stored prices already span the range: a row within
+// backfillSlackDays of from, or earlier, and a row within backfillSlackDays
+// of now, so a series that stops early is fetched again. from is clamped to
+// the 60-month window TEFAS serves, so a very old transaction does not
+// refetch forever. Returns rows written.
 //
-// shortcut: a transaction dated before the fund existed (a typo) refetches
-// the fund on every call, one request each. Upgrade path: remember the
-// attempt in empty_fetches if that ever shows up in the logs.
+// shortcut: a transaction dated before the fund existed (a typo), and a
+// delisted fund whose last NAV is older than backfillSlackDays, refetch the
+// fund on every call, one request each. Upgrade path: remember the attempt
+// in empty_fetches if that ever shows up in the logs.
 func (s *Syncer) SyncHistory(ctx context.Context, in instrument.Instrument, from string, now time.Time) (int, error) {
 	start := max(from, now.In(price.Istanbul).AddDate(0, -periods[len(periods)-1], 0).Format(time.DateOnly))
 	d, err := time.Parse(time.DateOnly, start)
@@ -238,7 +240,13 @@ func (s *Syncer) SyncHistory(ctx context.Context, in instrument.Instrument, from
 	if err != nil {
 		return 0, fmt.Errorf("check tefas history for %s: %w", in.Symbol, err)
 	}
-	if _, ok := have[in.ID]; ok {
+	_, hasStart := have[in.ID]
+	today := now.In(price.Istanbul)
+	have, err = s.Prices.Latest(ctx, []int64{in.ID}, today.Format(time.DateOnly))
+	if err != nil {
+		return 0, fmt.Errorf("check tefas history for %s: %w", in.Symbol, err)
+	}
+	if last, ok := have[in.ID]; hasStart && ok && last.Date >= today.AddDate(0, 0, -backfillSlackDays).Format(time.DateOnly) {
 		return 0, nil
 	}
 	return s.SyncFund(ctx, in, coveringPeriod(start, now))

@@ -253,3 +253,59 @@ func TestLookup(t *testing.T) {
 		t.Errorf("Lookup(ERR) found=%v err=%v, want an error", found, err)
 	}
 }
+
+// TestSyncHistoryRefetchesAHole checks that a fund whose stored series
+// starts on time but stops months before now is fetched again and the
+// stub's full series is stored, while a fund whose series also reaches
+// now makes no request.
+func TestSyncHistoryRefetchesAHole(t *testing.T) {
+	var requests int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.Write([]byte(`{"resultList":[
+	 {"fonKodu":"YAC","fonUnvan":"X","tarih":"2023-09-15","fiyat":1.1},
+	 {"fonKodu":"YAC","fonUnvan":"X","tarih":"2024-06-03","fiyat":1.2},
+	 {"fonKodu":"YAC","fonUnvan":"X","tarih":"2025-04-08","fiyat":1.3},
+	 {"fonKodu":"YAC","fonUnvan":"X","tarih":"2026-09-14","fiyat":1.4}]}`))
+	}))
+	defer srv.Close()
+
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+	ctx := context.Background()
+	for _, q := range []string{
+		`INSERT INTO instruments (id, symbol, market, name, currency) VALUES (9001, 'YAC', 'TEFAS', 'X', 'TRY')`,
+		// the first 3 months of the 36-month range, then nothing
+		`INSERT INTO prices (instrument_id, date, close, source) VALUES
+			(9001, '2023-09-15', '1.1', 'tefas'), (9001, '2023-10-20', '1.1', 'tefas'), (9001, '2023-12-15', '1.1', 'tefas')`,
+	} {
+		if _, err := conn.ExecContext(ctx, q); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+	prices := price.NewRepo(conn)
+	instruments := instrument.NewRepo(conn)
+	in, err := instruments.Get(ctx, 9001)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	s := &tefas.Syncer{Fetcher: &tefas.Fetcher{BaseURL: srv.URL}, Instruments: instruments, Prices: prices}
+	now := time.Date(2026, 9, 15, 12, 0, 0, 0, time.UTC)
+
+	if n, err := s.SyncHistory(ctx, in, "2023-09-15", now); err != nil || n != 4 || requests != 1 {
+		t.Fatalf("SyncHistory with a hole: n=%d err=%v requests=%d, want 4 rows from 1 request", n, err, requests)
+	}
+	rows, err := prices.Range(ctx, []int64{9001}, "2024-01-01", "2026-09-15")
+	if err != nil {
+		t.Fatalf("Range: %v", err)
+	}
+	if len(rows) != 3 {
+		t.Fatalf("stored %d rows after 2024-01-01, want the 3 fetched ones: %v", len(rows), rows)
+	}
+	if n, err := s.SyncHistory(ctx, in, "2023-09-15", now); err != nil || n != 0 || requests != 1 {
+		t.Fatalf("SyncHistory with full coverage: n=%d err=%v requests=%d, want no request", n, err, requests)
+	}
+}
