@@ -90,14 +90,32 @@ it('clears the target with Hedefi kaldır, without checking the field', async ()
   expect(bodies).toEqual([{ target_price: null, note: '' }])
 })
 
-it('rejects a target that is not positive and sends nothing', async () => {
+it('saves an empty target as no target, with the changed note', async () => {
+  const bodies = mockApi()
+  const onClose = renderDialog({ ...watched, target_price: null, target_side: null, note: 'a' })
+
+  fireEvent.change(
+    screen.getByLabelText(`${t('transactions.note')} · ${t('transactions.optional')}`),
+    { target: { value: 'b' } },
+  )
+  fireEvent.click(screen.getByRole('button', { name: t('watchlist.targetDialog.save') }))
+
+  await waitFor(() => expect(onClose).toHaveBeenCalled())
+  expect(bodies).toEqual([{ target_price: null, note: 'b' }])
+})
+
+it('rejects a target that is not a positive decimal and sends nothing', async () => {
   const bodies = mockApi()
   renderDialog()
 
-  fireEvent.change(targetField(), { target: { value: '0' } })
+  for (const value of ['0', '12abc']) {
+    fireEvent.change(targetField(), { target: { value } })
+    fireEvent.click(screen.getByRole('button', { name: t('watchlist.targetDialog.save') }))
+    expect(await screen.findByText(t('error.field.target_price'))).toBeInTheDocument()
+  }
+  fireEvent.change(targetField(), { target: { value: '1.000' } })
   fireEvent.click(screen.getByRole('button', { name: t('watchlist.targetDialog.save') }))
-
-  expect(await screen.findByText(t('error.field.target_price'))).toBeInTheDocument()
+  expect(await screen.findByText(t('decimal.error.ambiguousThousands'))).toBeInTheDocument()
   expect(bodies).toEqual([])
 })
 
