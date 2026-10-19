@@ -18,13 +18,23 @@ describe('drawdown', () => {
     // Index 1, 1.25, 1, 1.125, 1.25, 1.3: a 20% fall from the 2nd to the 3rd.
     const r = drawdown(series('0', '0.25', '0', '0.125', '0.25', '0.3'))
     expect(values(r)).toEqual([0, 0, -0.2, -0.1, 0, 0])
-    expect(r!.max).toEqual({ value: -0.2, peak: '2025-01-02', trough: '2025-01-03' })
+    expect(r!.max).toEqual({
+      value: -0.2,
+      peak: '2025-01-02',
+      trough: '2025-01-03',
+      recovered: '2025-01-05',
+    })
     expect(r!.current).toBe(0)
   })
 
   it('takes the last day of a flat peak as the peak', () => {
     const r = drawdown(series('0', '0.25', '0.25', '0'))
-    expect(r!.max).toEqual({ value: -0.2, peak: '2025-01-03', trough: '2025-01-04' })
+    expect(r!.max).toEqual({
+      value: -0.2,
+      peak: '2025-01-03',
+      trough: '2025-01-04',
+      recovered: null,
+    })
   })
 
   it('ends on a new low on the last day', () => {
@@ -33,6 +43,14 @@ describe('drawdown', () => {
     expect(r!.max!.peak).toBe('2025-01-01')
     expect(r!.max!.trough).toBe('2025-01-04')
     expect(r!.current).toBeCloseTo(-0.2)
+    expect(r!.max!.recovered).toBeNull()
+  })
+
+  it('does not carry an earlier fall recovery over to a deeper later fall', () => {
+    // Index 1, 0.8, 1, 0.7, 0.9: the first fall recovers on the 3rd, the
+    // deeper second one (peak the 3rd) has not.
+    const r = drawdown(series('0', '-0.2', '0', '-0.3', '-0.1'))
+    expect(r!.max).toMatchObject({ peak: '2025-01-03', trough: '2025-01-04', recovered: null })
   })
 
   it('keeps the first of two equal lows', () => {

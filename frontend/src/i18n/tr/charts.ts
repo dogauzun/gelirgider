@@ -89,6 +89,9 @@ export const trCharts = {
   'drawdown.subtitle': 'para giriş çıkışları hariç',
   'drawdown.max': 'En büyük',
   'drawdown.current': 'Şu an',
+  'drawdown.fall': 'düşüş {count} gün',
+  'drawdown.recovery': 'toparlanma {count} gün',
+  'drawdown.notRecovered': 'henüz toparlanmadı',
   'drawdown.error': 'Zirveden düşüş yüklenemedi',
   'drawdown.chart.summary': '{from} – {to} zirveden düşüş, en büyük {value}',
   // The cash flow card on the Performans tab.

@@ -62,11 +62,19 @@ describe('DrawdownCard', () => {
       }),
     ).toBeInTheDocument()
     expect(screen.getByTestId('drawdown-figures')).toHaveTextContent(
-      'En büyük-%2002 Mar 2025 – 03 Mar 2025Şu an-%5',
+      'En büyük-%2002 Mar 2025 – 03 Mar 2025düşüş 1 gün · henüz toparlanmadıŞu an-%5',
     )
     // No `from`: the backend starts at the first transaction.
     expect(String(fetch.mock.calls[0][0])).toMatch(
       /^\/api\/portfolios\/1\/history\?to=\d{4}-\d{2}-\d{2}$/,
+    )
+  })
+
+  it('shows the fall and the recovery in days once the peak is won back', async () => {
+    renderCard(async () => Response.json(history(['0.000000', '0.250000', '0.000000', '0.250000'])))
+
+    expect(await screen.findByTestId('drawdown-figures')).toHaveTextContent(
+      'düşüş 1 gün · toparlanma 1 gün',
     )
   })
 
