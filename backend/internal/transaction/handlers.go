@@ -33,6 +33,35 @@ import (
 // import, waits this long in all, not this long per instrument.
 const OnDemandFetchTimeout = 5 * time.Second
 
+// fetchSlot admits one on-demand fetch at a time, process-wide. Every fetch
+// writes prices or FX rates, and SQLite has one writer: an import parsed
+// file by file sends many parses at once, and their fetches then queue on
+// the write lock until OnDemandFetchTimeout runs out and the writes fail.
+// The wait for the slot is not part of that timeout.
+//
+// shortcut: one slot for every user and every market, and a save waits behind
+// a bulk import's parses as long as its request lives. Split the slot per
+// market if that ever shows.
+var fetchSlot = make(chan struct{}, 1)
+
+type slotHeld struct{}
+
+// AcquireFetchSlot waits for the on-demand fetch slot and returns a context
+// that carries it, so the EnsurePrice calls under it do not wait again, and
+// the release func. ok is false when ctx ended first. A ctx that already
+// carries the slot passes through.
+func AcquireFetchSlot(ctx context.Context) (_ context.Context, release func(), ok bool) {
+	if ctx.Value(slotHeld{}) != nil {
+		return ctx, func() {}, true
+	}
+	select {
+	case fetchSlot <- struct{}{}:
+		return context.WithValue(ctx, slotHeld{}, true), func() { <-fetchSlot }, true
+	case <-ctx.Done():
+		return ctx, func() {}, false
+	}
+}
+
 // maxNoteLen caps the note field so a very long, spaceless note can't stretch
 // the transactions table off screen.
 const maxNoteLen = 500
@@ -144,7 +173,8 @@ func FromRequestWith(req Request, get func(id int64) (instrument.Instrument, err
 // fetch may be nil, which disables the feature. Best-effort and
 // synchronous: any error, including the bounded timeout, is logged and
 // ignored by the callback, since the transaction is already saved and the
-// response must go out regardless.
+// response must go out regardless. It waits for the fetch slot first, and
+// the timeout starts once it has it.
 func EnsurePrice(ctx context.Context, fetch OnDemandFetch, in instrument.Instrument, t Transaction) {
 	if fetch == nil {
 		return
@@ -152,6 +182,11 @@ func EnsurePrice(ctx context.Context, fetch OnDemandFetch, in instrument.Instrum
 	if t.InstrumentID == nil && t.Currency == "TRY" {
 		return
 	}
+	ctx, release, ok := AcquireFetchSlot(ctx)
+	if !ok {
+		return
+	}
+	defer release()
 	fetchCtx, cancel := context.WithTimeout(ctx, OnDemandFetchTimeout)
 	defer cancel()
 	fetch(fetchCtx, in, t.Date)

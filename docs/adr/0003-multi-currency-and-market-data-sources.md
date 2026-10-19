@@ -104,3 +104,5 @@ yet, plus one Tiingo history request. A BIST instrument syncs the latest
 bulletin and queues a background bulletin backfill. A background walk also
 backfills TCMB rates over the same range for every market. A fetch is skipped
 when stored data already covers the range, and a failure is retried next time.
+On-demand fetches run one at a time, process-wide, because each writes and SQLite
+has one writer; a fetch's timeout starts when it has its turn, not when it queued.

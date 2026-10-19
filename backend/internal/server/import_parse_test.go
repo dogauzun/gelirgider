@@ -15,6 +15,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1945,6 +1946,72 @@ func TestImportPriceFetchesShareOneDeadline(t *testing.T) {
 	}
 	if calls.Load() == 0 {
 		t.Errorf("commit ran no price fetch, want one per instrument")
+	}
+}
+
+// TestConcurrentParsesFetchOneAtATime checks that parses running at once
+// make their opening price fetches one after another, so they do not compete
+// for SQLite's one writer, and that each parse's fetch deadline starts when
+// its fetches do, not when the parse queued behind the others.
+func TestConcurrentParsesFetchOneAtATime(t *testing.T) {
+	e := newTransactionTestEnv(t)
+	session := e.login("concurrent-parse@example.com")
+	portfolioID := e.createPortfolio(session, "Import")
+
+	symbols := []string{"CPA", "CPB"}
+	for _, symbol := range symbols {
+		if _, err := e.db.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES (?, 'TEFAS', 'x', 'TRY')`, symbol); err != nil {
+			t.Fatalf("insert instrument: %v", err)
+		}
+	}
+	var inFlight, peak atomic.Int32
+	var mu sync.Mutex
+	shortest := transaction.OnDemandFetchTimeout
+	fetch := func(ctx context.Context, in instrument.Instrument, date string) {
+		n := inFlight.Add(1)
+		defer inFlight.Add(-1)
+		for old := peak.Load(); n > old && !peak.CompareAndSwap(old, n); old = peak.Load() {
+		}
+		if deadline, ok := ctx.Deadline(); ok {
+			mu.Lock()
+			shortest = min(shortest, time.Until(deadline))
+			mu.Unlock()
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	protected := http.NewServeMux()
+	deps := e.importDeps()
+	deps.OnDemandFetch = fetch
+	statement.RegisterRoutes(protected, deps)
+	e.handler = e.sessions.RequireUser(protected)
+
+	t.Cleanup(func() { delete(statement.Parsers, "concurrent") })
+	statement.Parsers["concurrent"] = func([][]string) (statement.Statement, error) {
+		st := statement.Statement{Broker: "concurrent", PeriodStart: "2025-12-01", PeriodEnd: "2025-12-31", Currency: "TRY", Market: "TEFAS"}
+		for _, symbol := range symbols {
+			st.Holdings = append(st.Holdings, statement.Holding{Symbol: symbol, Quantity: dec("1"), Currency: "TRY"})
+		}
+		return st, nil
+	}
+
+	const parses = 5
+	var wg sync.WaitGroup
+	for i := range parses {
+		wg.Go(func() {
+			if rec := upload(e, session, "concurrent", portfolioID, emptyPDF(i)); rec.Code != http.StatusOK {
+				t.Errorf("parse %d status = %d, want 200; body: %s", i, rec.Code, rec.Body.String())
+			}
+		})
+	}
+	wg.Wait()
+
+	if got := peak.Load(); got != 1 {
+		t.Errorf("%d price fetches ran at once, want 1", got)
+	}
+	// The last parse queues behind 8 fetches of 200ms; the fetch deadline it
+	// gets must not have shrunk by that wait.
+	if shortest < transaction.OnDemandFetchTimeout-time.Second {
+		t.Errorf("shortest fetch deadline left = %v, want about %v", shortest, transaction.OnDemandFetchTimeout)
 	}
 }
 

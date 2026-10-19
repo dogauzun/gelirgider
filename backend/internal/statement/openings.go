@@ -287,8 +287,17 @@ func (r *openingRun) splitRatios(cands []candidate) (map[int64]decimal.Decimal, 
 // maxOpeningFetches hung fetches would outlast a proxy's timeout.
 // An instrument left unfetched is priced as if its fetch found nothing. The
 // bulletin sync shares that deadline. A weekend has no bulletin.
+// It holds the fetch slot of transaction.AcquireFetchSlot until the cancel,
+// and takes it before the deadline starts, so a parse queued behind others
+// keeps its whole deadline for its own fetches.
 func (r *openingRun) startPricing(client string, start time.Time) context.CancelFunc {
-	fetchCtx, cancel := context.WithTimeout(r.ctx, transaction.OnDemandFetchTimeout)
+	// A ctx that ended while waiting fails the fetches below on its own.
+	slotCtx, release, _ := transaction.AcquireFetchSlot(r.ctx)
+	fetchCtx, cancelTimeout := context.WithTimeout(slotCtx, transaction.OnDemandFetchTimeout)
+	cancel := func() {
+		cancelTimeout()
+		release()
+	}
 	r.fetchCtx = fetchCtx
 	r.session = &lookupSession{ctx: fetchCtx, client: client, synced: map[string]bool{}}
 	day := start.AddDate(0, 0, -1)
