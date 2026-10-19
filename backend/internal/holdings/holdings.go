@@ -245,6 +245,22 @@ type Position struct {
 	// Splits are the splits that scaled Quantity, oldest first. A split on
 	// no position or a closed one is skipped by Apply and not listed.
 	Splits []Split
+	// OpenedAt is the date of the buy that opened the current quantity,
+	// empty when the position is closed or short. Merge does not combine it.
+	OpenedAt string
+}
+
+// Trade is one sell row as the engine booked it. Proceeds is amount less fee;
+// Cost is the average cost of the sold quantity, the amount Apply takes off
+// the cost basis; Realized is Proceeds less Cost. OpenedAt is the date the
+// position was opened, empty for a sell made while the quantity was zero or
+// negative.
+type Trade struct {
+	Date                                    string
+	InstrumentID                            int64
+	Currency                                string
+	Quantity, Proceeds, Fee, Cost, Realized decimal.Decimal
+	OpenedAt                                string
 }
 
 // Split is one split applied to a position: its ex-date and new shares per
@@ -313,6 +329,10 @@ type State struct {
 	// reporting currency on date, and false when there is no rate. When
 	// set, Apply keeps Position.CostBasisReporting; nil leaves it zero.
 	FactorOn func(date, currency string) (decimal.Decimal, bool)
+
+	// Trades holds one entry per sell, appended in apply order. Compute
+	// discards it with the state.
+	Trades []Trade
 
 	positions map[int64]*Position
 	cash      map[string]decimal.Decimal
@@ -394,6 +414,9 @@ func (s *State) Apply(t transaction.Transaction) {
 			p.CostBasis = p.CostBasis.Sub(short)
 			cost = cost.Sub(coverCost)
 		}
+		if !p.Quantity.IsPositive() && p.Quantity.Add(t.Quantity).IsPositive() {
+			p.OpenedAt = t.Date
+		}
 		p.Quantity = p.Quantity.Add(t.Quantity)
 		p.CostBasis = p.CostBasis.Add(cost)
 		if s.FactorOn != nil {
@@ -415,6 +438,7 @@ func (s *State) Apply(t transaction.Transaction) {
 		p := s.position(*t.InstrumentID)
 		sold := t.Quantity.Mul(p.AvgCost)
 		realized := t.Amount.Sub(t.Fee).Sub(sold)
+		s.Trades = append(s.Trades, Trade{Date: t.Date, InstrumentID: p.InstrumentID, Currency: p.Currency, Quantity: t.Quantity, Proceeds: t.Amount.Sub(t.Fee), Fee: t.Fee, Cost: sold, Realized: realized, OpenedAt: p.OpenedAt})
 		p.RealizedPL = p.RealizedPL.Add(realized)
 		p.RealizedCost = p.RealizedCost.Add(sold)
 		s.realized[p.Currency] = s.realized[p.Currency].Add(realized)
@@ -484,6 +508,10 @@ func (s *State) Apply(t transaction.Transaction) {
 // what is left of it (a rounding remainder of the average cost) is not
 // folded into the next buy's average cost.
 func (p *Position) resetIfClosed() {
+	// A sell that leaves the position short ends the opening too.
+	if !p.Quantity.IsPositive() {
+		p.OpenedAt = ""
+	}
 	if p.Quantity.IsZero() {
 		p.CostBasis = decimal.Zero
 		p.AvgCost = decimal.Zero
@@ -603,7 +631,8 @@ func Merge(summaries []Summary) Summary {
 	return out
 }
 
-// combine adds in, one input row of an instrument, into m for Merge.
+// combine adds in, one input row of an instrument, into m for Merge. It
+// leaves OpenedAt empty, as SummarizeAll does.
 func (m *Position) combine(in Position) {
 	m.Quantity = m.Quantity.Add(in.Quantity)
 	m.CostBasis = m.CostBasis.Add(in.CostBasis)

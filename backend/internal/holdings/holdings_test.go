@@ -211,6 +211,53 @@ func TestComputeRealizedCost(t *testing.T) {
 	}
 }
 
+// TestApplyRecordsTrades checks that each sell is booked as a trade with the
+// date the position was opened, and that a later buy opens it again.
+func TestApplyRecordsTrades(t *testing.T) {
+	var id int64 = 7
+	tx := func(typ, date, qty, amount, fee string) transaction.Transaction {
+		return transaction.Transaction{InstrumentID: &id, Type: typ, Date: date, Quantity: d(qty), Amount: d(amount), Fee: d(fee), Currency: "TRY"}
+	}
+	state := holdings.NewState(nil)
+	for _, x := range []transaction.Transaction{
+		tx(transaction.TypeBuy, "2026-09-01", "10", "1000", "0"),
+		tx(transaction.TypeSell, "2026-09-02", "4", "480", "2"),
+		tx(transaction.TypeSell, "2026-09-03", "6", "540", "0"),
+	} {
+		state.Apply(x)
+	}
+	want := []holdings.Trade{
+		{Date: "2026-09-02", InstrumentID: id, Currency: "TRY", Quantity: d("4"), Proceeds: d("478"), Fee: d("2"), Cost: d("400"), Realized: d("78"), OpenedAt: "2026-09-01"},
+		{Date: "2026-09-03", InstrumentID: id, Currency: "TRY", Quantity: d("6"), Proceeds: d("540"), Fee: d("0"), Cost: d("600"), Realized: d("-60"), OpenedAt: "2026-09-01"},
+	}
+	eq := func(g, w holdings.Trade) bool {
+		return g.Date == w.Date && g.InstrumentID == w.InstrumentID && g.Currency == w.Currency && g.OpenedAt == w.OpenedAt &&
+			g.Quantity.Equal(w.Quantity) && g.Proceeds.Equal(w.Proceeds) && g.Fee.Equal(w.Fee) && g.Cost.Equal(w.Cost) && g.Realized.Equal(w.Realized)
+	}
+	if !slices.EqualFunc(state.Trades, want, eq) {
+		t.Fatalf("trades\n got %+v\nwant %+v", state.Trades, want)
+	}
+	if got := state.Summarize(nil).Closed[0].OpenedAt; got != "" {
+		t.Errorf("OpenedAt after closing = %q, want empty", got)
+	}
+	state.Apply(tx(transaction.TypeBuy, "2026-09-04", "5", "400", "0"))
+	if got := state.Summarize(nil).Positions[0].OpenedAt; got != "2026-09-04" {
+		t.Errorf("OpenedAt after reopening = %q, want 2026-09-04", got)
+	}
+}
+
+// TestApplyShortSellHasNoOpenedAt checks that a sell made while nothing is
+// held has no opening date, and that the buy covering it is not a trade.
+func TestApplyShortSellHasNoOpenedAt(t *testing.T) {
+	var id int64 = 9
+	state := holdings.NewState(nil)
+	state.Apply(transaction.Transaction{InstrumentID: &id, Type: transaction.TypeSell, Date: "2026-09-01", Quantity: d("10"), Amount: d("1200"), Currency: "TRY"})
+	state.Apply(transaction.Transaction{InstrumentID: &id, Type: transaction.TypeBuy, Date: "2026-09-02", Quantity: d("10"), Amount: d("1000"), Currency: "TRY"})
+	if len(state.Trades) != 1 || state.Trades[0].OpenedAt != "" || !state.Trades[0].Realized.Equal(d("1200")) {
+		t.Errorf("trades = %+v, want one short sell with empty OpenedAt", state.Trades)
+	}
+}
+
 // TestComputeSameDaySellFirst covers a day trade entered sell-first (a
 // newest-first broker history): the buy still applies before the sell on
 // that day, so the sale is not booked at an average cost of 0 and the next
