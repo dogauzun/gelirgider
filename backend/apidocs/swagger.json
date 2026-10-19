@@ -4839,6 +4839,74 @@
                 }
             }
         },
+        "/portfolios/{id}/trades": {
+            "get": {
+                "description": "One row per sell in the scope, newest first (date descending, then apply order descending). Each portfolio is applied on its own at the average cost, so cost is the quantity sold times the average cost, proceeds is the sell's amount less its fee and realized is proceeds minus cost. realized_pct is realized over cost, null when cost is not positive. opened_at is the date the position was opened and days the sell date minus it, both null for a sell made while the quantity was zero or negative. realized_reporting is realized in the reporting currency at the latest rate on or before the sell date, null (and the currency in missing_rates) when it has none. instrument_id keeps one instrument's sells. A term deposit's maturity sell is left out. Amounts are 2-decimal strings; quantity keeps its stored scale.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Realized trades",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "numeric id or `all`",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "only this instrument's sells",
+                        "name": "instrument_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.tradesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "instrument_id must be a number",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/portfolios/{id}/transactions": {
             "get": {
                 "produces": [
@@ -7172,6 +7240,79 @@
                 "unrealized_pl": {
                     "description": "Null when every currency contributing to the total was excluded for\nlack of a rate (see totalKnown): the sum is then 0.00, which reads as\na real zero next to the per-position figures. The caller renders \"-\"\ninstead, the way it already does for a position with no reporting\nvalue. Cash and total value stay plain strings: the page can tell the\nsame thing for those from cash_by_currency and market_value_reporting,\nbut realized P/L also counts closed positions, whose\ncurrencies reach no other field of this response.",
                     "type": "string"
+                }
+            }
+        },
+        "server.tradeResponse": {
+            "type": "object",
+            "properties": {
+                "cost": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "days": {
+                    "type": "integer"
+                },
+                "fee": {
+                    "type": "string"
+                },
+                "instrument_id": {
+                    "type": "integer"
+                },
+                "market": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "opened_at": {
+                    "type": "string"
+                },
+                "portfolio_id": {
+                    "type": "integer"
+                },
+                "proceeds": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "string"
+                },
+                "realized": {
+                    "type": "string"
+                },
+                "realized_pct": {
+                    "type": "string"
+                },
+                "realized_reporting": {
+                    "type": "string"
+                },
+                "symbol": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.tradesResponse": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "missing_rates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "trades": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.tradeResponse"
+                    }
                 }
             }
         },

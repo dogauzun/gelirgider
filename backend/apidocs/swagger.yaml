@@ -1217,6 +1217,54 @@ definitions:
           currencies reach no other field of this response.
         type: string
     type: object
+  server.tradeResponse:
+    properties:
+      cost:
+        type: string
+      currency:
+        type: string
+      date:
+        type: string
+      days:
+        type: integer
+      fee:
+        type: string
+      instrument_id:
+        type: integer
+      market:
+        type: string
+      name:
+        type: string
+      opened_at:
+        type: string
+      portfolio_id:
+        type: integer
+      proceeds:
+        type: string
+      quantity:
+        type: string
+      realized:
+        type: string
+      realized_pct:
+        type: string
+      realized_reporting:
+        type: string
+      symbol:
+        type: string
+    type: object
+  server.tradesResponse:
+    properties:
+      currency:
+        type: string
+      missing_rates:
+        items:
+          type: string
+        type: array
+      trades:
+        items:
+          $ref: '#/definitions/server.tradeResponse'
+        type: array
+    type: object
   server.watchEditRequest:
     properties:
       note:
@@ -5194,6 +5242,60 @@ paths:
                 type: string
             type: object
       summary: Portfolio summary
+      tags:
+      - portfolios
+  /portfolios/{id}/trades:
+    get:
+      description: One row per sell in the scope, newest first (date descending, then
+        apply order descending). Each portfolio is applied on its own at the average
+        cost, so cost is the quantity sold times the average cost, proceeds is the
+        sell's amount less its fee and realized is proceeds minus cost. realized_pct
+        is realized over cost, null when cost is not positive. opened_at is the date
+        the position was opened and days the sell date minus it, both null for a sell
+        made while the quantity was zero or negative. realized_reporting is realized
+        in the reporting currency at the latest rate on or before the sell date, null
+        (and the currency in missing_rates) when it has none. instrument_id keeps
+        one instrument's sells. A term deposit's maturity sell is left out. Amounts
+        are 2-decimal strings; quantity keeps its stored scale.
+      parameters:
+      - description: numeric id or `all`
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: only this instrument's sells
+        in: query
+        name: instrument_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.tradesResponse'
+        "400":
+          description: instrument_id must be a number
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: portfolio not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Realized trades
       tags:
       - portfolios
   /portfolios/{id}/transactions:
