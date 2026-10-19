@@ -18,5 +18,12 @@ export const enRisk: AreaStrings<typeof trRisk> = {
   'risk.days': '{count} daily returns',
   'risk.days.one': '{count} daily return',
   'risk.tooShort': 'Not enough data: at least 30 daily returns are needed.',
+  'risk.beta': 'Beta',
+  'risk.beta.hint': "The portfolio's average move when {benchmark} moves 1%",
+  'risk.correlation': 'Correlation',
+  'risk.correlation.hint': 'Between −1 and 1; 1 moves together',
+  'risk.benchmarkVolatility': '{benchmark} volatility',
+  'risk.noBenchmark': 'Pick a benchmark for beta and correlation.',
+  'risk.benchmarkNoData': '{benchmark} has gaps in this window',
   'risk.error': 'Risk figures failed to load',
 }
