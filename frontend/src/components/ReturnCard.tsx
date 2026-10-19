@@ -3,19 +3,13 @@ import { useId, useMemo } from 'react'
 import { type Benchmark, type HistoryResponse, type ReturnMethod } from '../api/history'
 import { t } from '../i18n/strings'
 import { rangeDelta } from '../lib/chart'
-import { daysBetween, formatMarketDate, todayIstanbul } from '../lib/date'
-import {
-  currencySymbol,
-  MISSING,
-  plTone,
-  signedMoney,
-  signedPercent,
-  signTone,
-} from '../lib/format'
+import { formatMarketDate, todayIstanbul } from '../lib/date'
+import { currencySymbol, MISSING, plTone, signedMoney, signedPercent } from '../lib/format'
 import { RANGES, resolveRange, type RangeValue } from '../lib/ranges'
-import { annualize, excessReturn } from '../lib/returns'
+import { annualizedReturn, excessReturn } from '../lib/returns'
 import { useZoom } from '../lib/useRange'
 import { benchmarkNames } from '../lib/useReturnSettings'
+import { BenchmarkPill } from './BenchmarkPill'
 import { BenchmarkSelect } from './BenchmarkSelect'
 import { LineChart } from './LazyChart'
 import { RangePicker } from './RangePicker'
@@ -23,7 +17,6 @@ import { ReturnMethodSelect } from './ReturnMethodSelect'
 import { useStoredChoice } from '../lib/useStoredChoice'
 import { ChartFrame } from './ui/ChartFrame'
 import { Notice } from './ui/Notice'
-import { Pill } from './ui/Pill'
 import type { SelectOption } from './ui/Select'
 import { Segmented } from './ui/Segmented'
 import { TAP_Y } from './ui/tap'
@@ -139,43 +132,14 @@ export function ReturnCard({
     historyBenchmark?.code,
     benchmarks,
   )
-  // A range of a year or more also shows the returns annualized,
-  // over the days between the first and last point. A range 364 to 366 days
-  // apart is one year: a calendar year (2025-01-01..2025-12-31 is 364 days
-  // apart, 2024 is 365) as well as the 1Y preset (365, or 366 over a leap
-  // day), so its annualized return is its period return.
+  // A range of a year or more also shows the returns annualized (see
+  // annualizedReturn), over the days between the first and last point.
   const firstPoint = history?.points[0]?.date
-  const gap = firstPoint && lastDate ? daysBetween(firstPoint, lastDate) : 0
-  const days = gap <= 366 ? 365 : gap
-  const annualized = gap >= 364 && pct !== null ? annualize(Number(pct), days) : null
+  const annualized = annualizedReturn(pct === null ? null : Number(pct), firstPoint, lastDate)
   const benchmarkAnnualized =
-    annualized !== null && benchmarkHasData ? annualize(Number(benchmarkPct), days) : null
-
-  const benchmarkLine = () => {
-    if (!historyBenchmark) return null
-    // No values in the range: the select would name a benchmark that draws
-    // nothing, so the card says so in place of the pill.
-    if (!benchmarkHasValues) {
-      return (
-        <span className="text-[12px] text-muted">
-          {`${benchmarkLabel} · ${t('chart.benchmark.noData')}`}
-        </span>
-      )
-    }
-    const text = [
-      `${benchmarkLabel} ${benchmarkHasData ? signedPercent(Number(benchmarkPct)) : MISSING}${
-        benchmarkEstimated ? ` (${t('chart.benchmark.estimated')})` : ''
-      }`,
-      excess !== null && `${excessLabel} ${signedPercent(excess)}`,
-    ]
-      .filter(Boolean)
-      .join(' · ')
-    return (
-      <span title={benchmarkHasData ? undefined : t('chart.return.undefined')}>
-        <Pill tone={signTone(excess)}>{text}</Pill>
-      </span>
-    )
-  }
+    annualized !== null && benchmarkHasData
+      ? annualizedReturn(Number(benchmarkPct), firstPoint, lastDate)
+      : null
 
   const moneyLabels = { value: t('chart.totalValue'), invested: t('chart.invested') }
   const returnLabels =
@@ -221,7 +185,16 @@ export function ReturnCard({
               <span className={`text-[13px] font-medium tabular-nums ${plTone(delta)}`}>
                 {signedMoney(delta, currency)}
               </span>
-              {benchmarkLine()}
+              {historyBenchmark && (
+                <BenchmarkPill
+                  label={benchmarkLabel}
+                  excessLabel={excessLabel}
+                  pct={benchmarkPct === null ? null : Number(benchmarkPct)}
+                  excess={excess}
+                  estimated={benchmarkEstimated}
+                  hasValues={benchmarkHasValues}
+                />
+              )}
             </p>
           )}
           {annualized !== null && Number.isFinite(annualized) && (
