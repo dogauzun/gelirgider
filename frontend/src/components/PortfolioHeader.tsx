@@ -4,6 +4,7 @@ import {
   useState,
   type KeyboardEvent,
   type MouseEvent,
+  type RefObject,
   type ReactNode,
 } from 'react'
 import { flushSync } from 'react-dom'
@@ -114,6 +115,187 @@ const tab = {
 const fabClass =
   'max-md:fixed max-md:right-4 max-md:bottom-4 max-md:z-20 max-md:size-14 max-md:rounded-full max-md:px-0 max-md:shadow-pop'
 
+// The title row's left side: the portfolio name as the page's heading, the
+// rename input in its place while renaming (or the load failure and
+// the skeleton while the list is not in), and the goal's progress, a link to
+// the goal card, once `goalProgress` is known.
+function PortfolioName({
+  heading,
+  named,
+  renaming,
+  name,
+  onName,
+  onSave,
+  onKeyDown,
+  listFailed,
+  listLoading,
+  ownHeading,
+  goalProgress,
+}: {
+  heading: string
+  named: boolean
+  renaming: boolean
+  name: string
+  onName: (next: string) => void
+  onSave: () => void
+  onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void
+  listFailed: boolean
+  listLoading: boolean
+  ownHeading?: boolean
+  goalProgress: number | undefined
+}) {
+  const Title = ownHeading ? 'p' : 'h1'
+  let nameSlot: ReactNode = null
+  if (renaming) {
+    nameSlot = (
+      <input
+        autoFocus
+        aria-label={t('portfolios.name')}
+        value={name}
+        onChange={(event) => onName(event.target.value)}
+        onBlur={onSave}
+        onKeyDown={onKeyDown}
+        className={`mt-0.5 max-w-xl ${inputClass()}`}
+      />
+    )
+  } else if (!named && listFailed) {
+    // The list failed to load, so there is no name or switcher;
+    // say why instead of leaving the slot blank.
+    nameSlot = (
+      <p role="alert" className="mt-1 text-[13px] text-loss">
+        {t('portfolios.error')}
+      </p>
+    )
+  } else if (!named && listLoading) {
+    // Loading; once the list is in and the portfolio is not in it
+    // (a 404, or a delete just done) the name is simply gone.
+    nameSlot = <Skeleton className="mt-1 h-7 w-44" />
+  }
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-2">
+      {(named || !ownHeading) && (
+        <Title
+          // Below lg the top bar shows the title, so the page's own is
+          // for screen readers only there.
+          className={
+            named ? 'truncate text-[20px] font-semibold text-ink max-lg:sr-only' : 'sr-only'
+          }
+          title={named ? heading : undefined}
+        >
+          {heading}
+        </Title>
+      )}
+      {nameSlot}
+      {named && goalProgress !== undefined && (
+        <a
+          href="#projection"
+          aria-label={`${t('projection.title')} ${progressPercent(goalProgress)}`}
+          className="shrink-0"
+        >
+          <Pill tone={goalProgress < 1 ? 'cash' : 'gain'}>{progressPercent(goalProgress)}</Pill>
+        </a>
+      )}
+    </div>
+  )
+}
+
+// The title row's right side. Tüm portföyler has a new-portfolio button and
+// the goal in the menu; a portfolio has the add button and a menu of rename,
+// goal and delete. `menuRef` and `addRef` are the header's, for the focus it
+// places after a rename and after a create.
+function PortfolioActions({
+  portfolioId,
+  add,
+  onAdd,
+  addRef,
+  menuRef,
+  onCreate,
+  onGoal,
+  onRename,
+  onDelete,
+  deleting,
+}: {
+  portfolioId: PortfolioScope
+  add: 'float' | 'quiet' | 'inline'
+  onAdd?: () => void
+  addRef: RefObject<HTMLButtonElement | null>
+  menuRef: RefObject<HTMLButtonElement | null>
+  onCreate: () => void
+  onGoal: () => void
+  onRename: () => void
+  onDelete: () => void
+  deleting: boolean
+}) {
+  const navigate = useNavigate()
+  const isAll = portfolioId === 'all'
+  const floatAdd = !isAll && add === 'float'
+  const menuTrigger = (
+    <Button
+      ref={menuRef}
+      variant="ghost"
+      iconOnly
+      aria-label={t('portfolio.menu')}
+      className={TAP_ICON}
+    >
+      <Icon name="dots" />
+    </Button>
+  )
+  const goalItem = (
+    <MenuItem onSelect={onGoal}>
+      <Icon name="target" />
+      {t('goal.set')}
+    </MenuItem>
+  )
+  if (isAll) {
+    return (
+      <div className="flex shrink-0 items-center gap-2">
+        <Button data-new-portfolio variant="secondary" className="shrink-0" onClick={onCreate}>
+          <Icon name="plus" />
+          {t('portfolios.new')}
+        </Button>
+        <Menu trigger={menuTrigger}>{goalItem}</Menu>
+      </div>
+    )
+  }
+  return (
+    <div className="flex shrink-0 items-center gap-2">
+      <Button
+        ref={addRef}
+        // Where the transactions page sends focus after deleting its
+        // last row.
+        data-add-transaction
+        variant={add === 'quiet' ? 'secondary' : 'primary'}
+        onClick={() =>
+          onAdd
+            ? onAdd()
+            : navigate(`/portfolios/${portfolioId}/transactions`, {
+                state: { add: true } satisfies NavState,
+              })
+        }
+        // Floating: a round `+` named by its hidden label, under the
+        // toasts (z-50) and the modal dialogs (top layer).
+        className={floatAdd ? fabClass : ''}
+        // index.css keeps keyboard focus clear of it.
+        data-fab={floatAdd || undefined}
+      >
+        <Icon name="plus" />
+        <span className={floatAdd ? 'max-md:sr-only' : ''}>{t('transactions.addTitle')}</span>
+      </Button>
+      <Menu trigger={menuTrigger}>
+        <MenuItem onSelect={onRename}>
+          <Icon name="pencil" />
+          {t('portfolios.rename')}
+        </MenuItem>
+        {goalItem}
+        <MenuItem tone="danger" disabled={deleting} onSelect={onDelete}>
+          <Icon name="trash" />
+          {t('portfolios.delete')}
+        </MenuItem>
+      </Menu>
+    </div>
+  )
+}
+
 // The portfolio page header: which portfolio, which tab, and what can be done
 // to the portfolio. Every portfolio page renders it, so the tab it sits on
 // comes from the URL rather than from a prop. Switching portfolio is the
@@ -191,7 +373,6 @@ export function PortfolioHeader({
   // state has exactly one h1.
   const heading = isAll ? t('portfolio.all') : (portfolio?.name ?? t('portfolio.label'))
   const named = !renaming && Boolean(portfolio || (isAll && data))
-  const Title = ownHeading ? 'p' : 'h1'
   const floatAdd = !isAll && add === 'float'
 
   // The delete flow only reports failures (through `error`), so success is
@@ -285,51 +466,6 @@ export function PortfolioHeader({
     )
   }
 
-  let nameSlot: ReactNode = null
-  if (renaming) {
-    nameSlot = (
-      <input
-        autoFocus
-        aria-label={t('portfolios.name')}
-        value={name}
-        onChange={(event) => setName(event.target.value)}
-        onBlur={save}
-        onKeyDown={handleKeyDown}
-        className={`mt-0.5 max-w-xl ${inputClass()}`}
-      />
-    )
-  } else if (!named && isError) {
-    // The list failed to load, so there is no name or switcher;
-    // say why instead of leaving the slot blank.
-    nameSlot = (
-      <p role="alert" className="mt-1 text-[13px] text-loss">
-        {t('portfolios.error')}
-      </p>
-    )
-  } else if (!named && !data) {
-    // Loading; once the list is in and the portfolio is not in it
-    // (a 404, or a delete just done) the name is simply gone.
-    nameSlot = <Skeleton className="mt-1 h-7 w-44" />
-  }
-
-  const menuTrigger = (
-    <Button
-      ref={menuRef}
-      variant="ghost"
-      iconOnly
-      aria-label={t('portfolio.menu')}
-      className={TAP_ICON}
-    >
-      <Icon name="dots" />
-    </Button>
-  )
-  const goalItem = (
-    <MenuItem onSelect={() => setGoaling(true)}>
-      <Icon name="target" />
-      {t('goal.set')}
-    </MenuItem>
-  )
-
   return (
     // Room below the last row for the floating add button.
     <main id="main" className={floatAdd ? 'max-md:pb-24' : undefined}>
@@ -346,98 +482,41 @@ export function PortfolioHeader({
             named ? 'lg:gap-3' : 'gap-3'
           } ${floatAdd || isAll ? 'flex-row items-center justify-between' : 'flex-col'}`}
         >
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            {(named || !ownHeading) && (
-              <Title
-                // Below lg the top bar shows the title, so the page's own is
-                // for screen readers only there.
-                className={
-                  named ? 'truncate text-[20px] font-semibold text-ink max-lg:sr-only' : 'sr-only'
-                }
-                title={named ? heading : undefined}
-              >
-                {heading}
-              </Title>
-            )}
-            {nameSlot}
-            {named && onSummary && hasGoal && progress !== undefined && (
-              <a
-                href="#projection"
-                aria-label={`${t('projection.title')} ${progressPercent(progress)}`}
-                className="shrink-0"
-              >
-                <Pill tone={progress < 1 ? 'cash' : 'gain'}>{progressPercent(progress)}</Pill>
-              </a>
-            )}
-          </div>
+          <PortfolioName
+            heading={heading}
+            named={named}
+            renaming={renaming}
+            name={name}
+            onName={setName}
+            onSave={save}
+            onKeyDown={handleKeyDown}
+            listFailed={isError}
+            listLoading={!data}
+            ownHeading={ownHeading}
+            goalProgress={onSummary && hasGoal ? progress : undefined}
+          />
 
-          {isAll && (
-            <div className="flex shrink-0 items-center gap-2">
-              <Button
-                data-new-portfolio
-                variant="secondary"
-                className="shrink-0"
-                onClick={() => setCreating(true)}
-              >
-                <Icon name="plus" />
-                {t('portfolios.new')}
-              </Button>
-              <Menu trigger={menuTrigger}>{goalItem}</Menu>
-            </div>
-          )}
-          {!isAll && (
-            <div className="flex shrink-0 items-center gap-2">
-              <Button
-                ref={addRef}
-                // Where the transactions page sends focus after deleting its
-                // last row.
-                data-add-transaction
-                variant={add === 'quiet' ? 'secondary' : 'primary'}
-                onClick={() =>
-                  onAdd
-                    ? onAdd()
-                    : navigate(`/portfolios/${portfolioId}/transactions`, {
-                        state: { add: true } satisfies NavState,
-                      })
-                }
-                // Floating: a round `+` named by its hidden label, under the
-                // toasts (z-50) and the modal dialogs (top layer).
-                className={floatAdd ? fabClass : ''}
-                // index.css keeps keyboard focus clear of it.
-                data-fab={floatAdd || undefined}
-              >
-                <Icon name="plus" />
-                <span className={floatAdd ? 'max-md:sr-only' : ''}>
-                  {t('transactions.addTitle')}
-                </span>
-              </Button>
-              <Menu trigger={menuTrigger}>
-                <MenuItem
-                  onSelect={() => {
-                    setName(portfolio?.name ?? '')
-                    setRenaming(true)
-                  }}
-                >
-                  <Icon name="pencil" />
-                  {t('portfolios.rename')}
-                </MenuItem>
-                {goalItem}
-                <MenuItem
-                  tone="danger"
-                  disabled={isPending}
-                  onSelect={() => {
-                    // Set before the delete, so the refetched list never
-                    // flashes the not-found message on the way home.
-                    setRemovedId(portfolioId)
-                    void remove(portfolioId)
-                  }}
-                >
-                  <Icon name="trash" />
-                  {t('portfolios.delete')}
-                </MenuItem>
-              </Menu>
-            </div>
-          )}
+          <PortfolioActions
+            portfolioId={portfolioId}
+            add={add}
+            onAdd={onAdd}
+            addRef={addRef}
+            menuRef={menuRef}
+            onCreate={() => setCreating(true)}
+            onGoal={() => setGoaling(true)}
+            onRename={() => {
+              setName(portfolio?.name ?? '')
+              setRenaming(true)
+            }}
+            onDelete={() => {
+              if (portfolioId === 'all') return
+              // Set before the delete, so the refetched list never
+              // flashes the not-found message on the way home.
+              setRemovedId(portfolioId)
+              void remove(portfolioId)
+            }}
+            deleting={isPending}
+          />
         </div>
 
         {renameMutation.isError && (
