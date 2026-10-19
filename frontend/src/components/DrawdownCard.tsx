@@ -2,7 +2,7 @@ import { usePortfolioHistory } from '../api/history'
 import type { PortfolioScope } from '../api/summary'
 import { CashGapNotice } from './CashGapNotice'
 import { t } from '../i18n/strings'
-import { formatShortMarketDate, todayIstanbul } from '../lib/date'
+import { daysBetween, formatShortMarketDate, todayIstanbul } from '../lib/date'
 import { drawdown } from '../lib/drawdown'
 import { plTone, signedPercent } from '../lib/format'
 import { DrawdownChart } from './LazyChart'
@@ -61,6 +61,15 @@ export function DrawdownCard({ portfolioId }: { portfolioId: PortfolioScope }) {
               dd.max
                 ? `${formatShortMarketDate(dd.max.peak)} – ${formatShortMarketDate(dd.max.trough)}`
                 : undefined,
+            )}
+            {dd.max && (
+              <span className="text-muted">
+                {t('drawdown.fall', { count: daysBetween(dd.max.peak, dd.max.trough) })}
+                {' · '}
+                {dd.max.recovered
+                  ? t('drawdown.recovery', { count: daysBetween(dd.max.trough, dd.max.recovered) })
+                  : t('drawdown.notRecovered')}
+              </span>
             )}
             {figure(t('drawdown.current'), dd.current)}
           </p>
