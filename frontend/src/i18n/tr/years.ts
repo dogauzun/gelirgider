@@ -10,4 +10,13 @@ export const trYears = {
   'years.gain': 'Kazanç',
   'years.closing': 'Bitiş',
   'years.return': 'Getiri',
+  'years.view': 'Gösterim',
+  'years.view.summary': 'Özet',
+  'years.view.split': 'Dağılım',
+  'years.price': 'Fiyat',
+  'years.income': 'Gelir',
+  'years.fx': 'Kur farkı',
+  'years.cashFx': 'Nakit kur farkı',
+  'years.splitHint':
+    'Dört kalem kazancı açıklar; yuvarlama yüzünden toplamı birkaç kuruş farklı olabilir.',
 } as const

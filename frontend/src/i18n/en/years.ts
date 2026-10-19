@@ -14,4 +14,12 @@ export const enYears: AreaStrings<typeof trYears> = {
   'years.gain': 'Gain',
   'years.closing': 'Closing',
   'years.return': 'Return',
+  'years.view': 'View',
+  'years.view.summary': 'Summary',
+  'years.view.split': 'Split',
+  'years.price': 'Price',
+  'years.income': 'Income',
+  'years.fx': 'Currency',
+  'years.cashFx': 'Cash currency',
+  'years.splitHint': 'The four parts explain the gain; rounding can leave the sum a few cents off.',
 }
