@@ -36,7 +36,8 @@ fills a fresh database.
 `POST /api/funds/fonFiyatBilgiGetir` takes a fund code and a lookback window
 `periyod` in months, one of `1, 3, 6, 12, 36, 60`, and returns one row per
 trading day. There is no all-funds-for-one-date call, so the fetcher makes one
-request per **tracked** fund (one with a transaction), never the full catalog.
+request per **tracked** fund (one held in a transaction or watched by any user,
+ADR 0032), never the full catalog.
 
 - A null result list is the API's error shape, returned with HTTP `200`. Any
   other `periyod`, or date parameters, produce it.

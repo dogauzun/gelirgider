@@ -53,8 +53,8 @@ Upgrade path: a true USD source for those pairs.
   is the UTC day, not the Istanbul day the close happened in.
 - Numbers are decoded with `json.Number` and parsed with
   `decimal.NewFromString`, never through `float64`.
-- Only tracked pairs are fetched: pairs that appear in at least one
-  transaction, the same rule as US and TEFAS.
+- Only tracked pairs are fetched: pairs held in at least one transaction or
+  watched by any user (ADR 0032), the same rule as US and TEFAS.
 - Per-unit prices (last price, average cost) are not rounded to 2 decimals in
   the API or the UI, because many pairs trade below 1 TRY.
 

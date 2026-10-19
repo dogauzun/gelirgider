@@ -26,7 +26,7 @@ Performans tab, and the one choice is remembered in `localStorage`, like the
 theme and the locale. It drives the chart header, the Performans tab and the
 Portföyler table of the all-portfolios view (ADR 0014). The header also
 compares the return against one benchmark (ADR 0012). The KPI card does not
-show these returns, and there are no per-position returns.
+show these returns; per-position returns are in ADR 0033.
 
 The API returns period returns. The chart header annualizes the period return
 in the frontend, `(1 + r)^(365 / days) − 1`, only for ranges a year or more
