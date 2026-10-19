@@ -55,7 +55,7 @@ Grade by the cost of leaving the code as it is, not by the size of the fix.
 ## Ticket rules
 
 - One ticket per finding, except: findings that change the same code, or that one reviewer would read as one mechanical change (CLAUDE.md workflow rule 3), share a ticket.
-- A ticket's severity is its highest finding's. Type `fix` when a finding describes wrong behavior (a double submit, a 404 for a DB error), `refactor` otherwise.
+- A ticket's severity is its highest finding's. Type `fix` when a finding describes wrong behavior (a double submit, a 404 for a DB error), `perf` when every finding is a performance finding, `refactor` otherwise.
 - A linter change that flags only the findings' code goes in the ticket that fixes them. A rule that also flags other code gets its own ticket, after the tickets whose findings it covers, so `make lint` never goes red on `main`.
 - When two tickets change the same file (adding a rule to the same lint config does not count), name the order (`after <ticket>`); it becomes a Blocks link.
 
