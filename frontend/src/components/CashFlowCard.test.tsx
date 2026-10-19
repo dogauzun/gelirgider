@@ -106,6 +106,46 @@ describe('CashFlowCard', () => {
     )
   })
 
+  it('shows the streak and the longest run, and sums the shown window', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-15T09:00:00Z') })
+    renderCard([
+      bucket('2026-05', '100.00', '0.00'),
+      bucket('2026-06', '0.00', '0.00'),
+      bucket('2026-07', '50.00', '0.00'),
+      bucket('2026-08', '50.00', '0.00'),
+      bucket('2026-09', '50.00', '0.00'),
+      bucket('2026-10', '0.00', '0.00'),
+    ])
+
+    expect(await screen.findByTestId('cashflow-figures')).toHaveTextContent(
+      'Üst üste3 ayEn uzun3 ay',
+    )
+    expect(screen.getByTestId('cashflow-totals')).toHaveTextContent(
+      '24 ay: giriş ₺250,00, çıkış ₺0,00, net ₺250,00, temettü ve faiz ₺584,40, komisyon ₺45,00',
+    )
+    vi.useRealTimers()
+  })
+
+  it('changes the totals line with the window', async () => {
+    renderCard(months30)
+
+    expect(await screen.findByTestId('cashflow-totals')).toHaveTextContent(
+      '24 ay: giriş ₺24.000,00, çıkış ₺6.000,00, net ₺18.000,00',
+    )
+    fireEvent.click(windowOption('12 ay'))
+    expect(screen.getByTestId('cashflow-totals')).toHaveTextContent(
+      '12 ay: giriş ₺12.000,00, çıkış ₺3.000,00, net ₺9.000,00',
+    )
+  })
+
+  it('shows no figures or totals when there are no months', async () => {
+    renderCard([])
+
+    await screen.findByText(t('transactions.empty'))
+    expect(screen.queryByTestId('cashflow-figures')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('cashflow-totals')).not.toBeInTheDocument()
+  })
+
   it('says there are no transactions yet when there are no months', async () => {
     renderCard([])
 

@@ -104,6 +104,11 @@ export const trCharts = {
   'cashflow.dividends': 'Temettü',
   'cashflow.interest': 'Faiz',
   'cashflow.fees': 'Komisyon',
+  'cashflow.streak': 'Üst üste',
+  'cashflow.streakMonths': '{count} ay',
+  'cashflow.longest': 'En uzun',
+  'cashflow.totals':
+    '{window}: giriş {deposits}, çıkış {withdrawals}, net {net}, temettü ve faiz {income}, komisyon {fees}',
   'cashflow.error': 'Nakit akışı yüklenemedi',
   'cashflow.missingRates': '{currencies} için kur yok, o satırlar sayılmadı',
   'cashflow.chart.summary': '{from} – {to} aylık nakit akışı: {series}',
