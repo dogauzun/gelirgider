@@ -38,12 +38,15 @@ what is not, where comments go. The model is `claude-opus-5-5` at high effort.
   for Dependabot, and the trigger is `pull_request`, never
   `pull_request_target`, which would run fork code with them. A skipped job
   counts as passing for a required check.
-- The exempt list of ADR 0022 is reproduced in the workflow's first step, which
-  reads `git diff --name-only origin/main...HEAD`. When every path is exempt it
-  says so and ends the job green without calling the action. The workflow has
-  no `paths` filter: a required check that never starts would hold the PR
-  forever (the same reason `checks.yml` has none). The list stays defined in
-  ADR 0022; a change to it changes the step in the same PR.
+- The workflow runs on every push and has no `paths` filter: a required check
+  that never starts would hold the PR forever (the same reason `checks.yml`
+  has none), and a head with no run would leave the merger to guess whether
+  the run is late or the diff is exempt. Its `scope` step reads
+  `git diff --name-only origin/main...HEAD`. When every path is exempt
+  (ADR 0022) it writes `exempt diff (ADR 0022), not reviewed` to the job
+  summary and ends the job `success` without calling the action. The step is
+  the one home of the exempt list: no document restates it, and a change to it
+  is a change to that step.
 - The run authenticates with the `CLAUDE_CODE_OAUTH_TOKEN` repository secret
   (the owner's Claude subscription) and writes to the PR through the Claude
   GitHub App, which the owner installs. The job's own `GITHUB_TOKEN` is
@@ -90,8 +93,8 @@ a PR that changes the workflow file gets no review from the workflow either,
 whatever else it touches. In all three cases the check is green without a
 review, and the merger spawns `pr-reviewer` as a subagent, as ADR 0022
 described for every PR, with the same agent file; the agent file says how it
-behaves in each place. The merger reads the changed file list, so it knows the
-second case before it reads the run.
+behaves in each place. The merger reads the changed file list for these three
+cases only, so it knows the second before it reads the run.
 
 ### What the merger does now
 
@@ -99,32 +102,36 @@ second case before it reads the run.
   changes the workflow file, and any head while the owner has lifted the
   required check for an outage; it never respawns one after a push for a PR
   the workflow reviews.
-- It decides from the changed file list (`gh pr diff <n> --name-only`) whether
-  the diff is exempt, as before. It reads the workflow run for the PR's
-  current head, with `gh run list --commit <head SHA>` (in a cloud session the
-  GitHub MCP `list_workflow_runs`) on `claude-code-review.yml`, and waits while
-  the run is queued or in progress. For an exempt diff the run ends green
-  within a minute without a review.
+- It reads the workflow run for the PR's current head, with
+  `gh run list --commit <head SHA>` (in a cloud session the GitHub MCP
+  `list_workflow_runs`) on `claude-code-review.yml`, and waits while the run is
+  queued or in progress. Every head has a run: an exempt diff ends `success`
+  within a minute without a review, and the job summary says
+  `exempt diff (ADR 0022), not reviewed`. The merger matches no paths itself.
+  A head with no run after a few minutes means the run is broken, not that the
+  diff is exempt, unless the head has a merge conflict: that starts no
+  `pull_request` run, so the merger checks mergeability first and resolves the
+  conflict (sync with `main`) before treating the missing run as broken.
 - The hygiene step, the thread triage, the six-round limit and the merge
   comment of ADR 0022 stay. The merge comment names the review run's URL and
-  conclusion instead of a reviewer head, or says `reviewer skipped (exempt
-paths)`.
+  conclusion instead of a reviewer head, and says `exempt diff, not reviewed`
+  when the job summary does.
 
 ### Merge gate
 
 ADR 0022's gate item 1 becomes: `Claude review` concluded `success` on the
 PR's current head and the diff does not touch
-`.github/workflows/claude-code-review.yml`; or the diff is exempt; or the PR
-is from a fork, from Dependabot, or changes the workflow file, or the owner
-has lifted the required check for an outage, and the merger's subagent
-reviewed the current head. GitHub enforces the wait: the
-check is required, so it is not green until the run concludes. A push of any
+`.github/workflows/claude-code-review.yml`; or the PR is from a fork, from
+Dependabot, or changes the workflow file (even when the run reports the diff
+exempt), or the owner has lifted the required check for an outage, and the
+merger's subagent reviewed the current head.
+`success` means reviewed or exempt, and the job summary says which; the
+conclusion alone never shows a review. GitHub enforces the wait: the check is required, so
+it is not green until the run concludes. A push of any
 kind starts a new run, so the merger reads the run on the head it is about to
 merge. Items 2 and 3 are unchanged: every thread fixed or answered and
-resolved, then auto-merge once the required checks are green.
-The merger turns auto-merge on only after the run on the current head has
-concluded and every thread is resolved, and runs `gh pr merge --disable-auto`
-before a push that changes the diff.
+resolved, then auto-merge once the required checks are green. When the merger
+turns auto-merge on and off is in [CLAUDE.md](../../CLAUDE.md) rule 7.
 
 ## Consequences
 
@@ -137,7 +144,8 @@ before a push that changes the diff.
   pinned to a commit SHA that Dependabot bumps, and it pulls
   `oven-sh/setup-bun` at a SHA of their choosing.
 - A change to `.github/` alone is exempt: the job ends green after its first
-  step without calling the action.
+  step, with a summary line, without calling the action. The one exception is
+  the workflow file itself, which always gets the merger's subagent.
 
 ## Alternatives rejected
 

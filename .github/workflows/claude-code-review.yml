@@ -35,7 +35,8 @@ jobs:
           # the merge commit.
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-      # The exempt paths of ADR 0022: a diff with nothing else needs no review.
+      # The one home of the exempt list (the reasons are in ADR 0022): a diff with
+      # nothing else needs no review.
       - id: scope
         name: Decide whether the diff needs a review
         run: |
@@ -56,7 +57,9 @@ jobs:
             [ -n "$path" ] || continue
             exempt "$path" || { review=true; break; }
           done <<<"$changed"
-          [ "$review" = true ] || echo "only exempt paths changed (ADR 0022), no review needed"
+          if [ "$review" != true ]; then
+            echo "exempt diff (ADR 0022), not reviewed" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
           echo "review=$review" >> "$GITHUB_OUTPUT"
       # The reviewer reads the diff from a file: GitHub refuses `gh pr diff`
       # above 20,000 changed lines or 300 files, and the agent may not run git.
