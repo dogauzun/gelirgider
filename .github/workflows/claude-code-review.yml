@@ -35,7 +35,8 @@ jobs:
           # the merge commit.
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-      # The exempt paths of ADR 0022: a diff with nothing else needs no review.
+      # The one home of the exempt list (the reasons are in ADR 0022): a diff with
+      # nothing else needs no review.
       - id: scope
         name: Decide whether the diff needs a review
         run: |
