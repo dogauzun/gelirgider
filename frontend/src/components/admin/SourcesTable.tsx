@@ -10,7 +10,7 @@ import {
   type SourceStatus,
 } from '../../api/sources'
 import { getLocale, t, type Locale, type StringKey } from '../../i18n/strings'
-import { formatMarketDate } from '../../lib/date'
+import { formatMarketDate, formatShortInstant } from '../../lib/date'
 import { formatNumber } from '../../lib/format'
 import { useOneAtATime } from '../../lib/useOneAtATime'
 import { ActionsTh } from '../ui/ActionsTh'
@@ -63,15 +63,10 @@ function absolute(iso: string): string {
 // A stale pill shows this: 47 h and 49 h back both read "evvelsi gün", so
 // the relative text could not say why only one is flagged.
 function exact(iso: string): string {
-  const year = (at: string) =>
-    formatMarketDate(at, { timeZone: 'Europe/Istanbul', year: 'numeric' })
-  return formatMarketDate(iso, {
-    timeZone: 'Europe/Istanbul',
+  return formatShortInstant(iso, 'Europe/Istanbul', {
     day: 'numeric',
-    month: 'short',
     hour: '2-digit',
     minute: '2-digit',
-    ...(year(iso) === year(new Date().toISOString()) ? {} : { year: 'numeric' }),
   })
 }
 
