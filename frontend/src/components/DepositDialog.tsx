@@ -11,13 +11,9 @@ import {
   textBinding,
   useDepositSubmit,
 } from './depositForm'
-import {
-  DateInput,
-  DecimalInput,
-  DepositFormDialog,
-  NoteField,
-  RateFields,
-} from './DepositFormDialog'
+import { RateFields } from './DepositFormDialog'
+import { FormDialog } from './ui/FormDialog'
+import { DateInput, DecimalInput, NoteField } from './ui/Inputs'
 import { CURRENCIES } from './transactionForm'
 import { Checkbox } from './ui/Checkbox'
 import { Field } from './ui/Field'
@@ -98,7 +94,7 @@ export function DepositDialog({
   const bind = textBinding(form, setForm)
 
   return (
-    <DepositFormDialog
+    <FormDialog
       title={t('deposits.dialog.title')}
       widthClass="md:w-[36rem]"
       error={error}
@@ -139,6 +135,6 @@ export function DepositDialog({
           />
         </div>
       </div>
-    </DepositFormDialog>
+    </FormDialog>
   )
 }

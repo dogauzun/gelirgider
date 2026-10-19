@@ -11,7 +11,7 @@ import {
   unitsToDecimal,
 } from '../lib/decimal'
 import { formatNumber } from '../lib/format'
-import { DecimalInput } from './DepositFormDialog'
+import { DecimalInput } from './ui/Inputs'
 import { Button } from './ui/Button'
 import { Field } from './ui/Field'
 import { Modal } from './ui/Modal'

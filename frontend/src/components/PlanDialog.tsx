@@ -10,7 +10,8 @@ import { t } from '../i18n/strings'
 import { todayIstanbul } from '../lib/date'
 import { compareDecimal, formatDecimalInput, parseDecimalInput } from '../lib/decimal'
 import { decimalError, firstError, textBinding, useDepositSubmit, type Rule } from './depositForm'
-import { DateInput, DecimalInput, DepositFormDialog, NoteField } from './DepositFormDialog'
+import { FormDialog } from './ui/FormDialog'
+import { DateInput, DecimalInput, NoteField } from './ui/Inputs'
 import { InstrumentSearchInput } from './InstrumentSearchInput'
 import { CURRENCIES } from './transactionForm'
 import { Checkbox } from './ui/Checkbox'
@@ -157,7 +158,7 @@ export function PlanDialog({
   const currency = plan?.currency ?? (buy ? instrument.currency : form.currency)
 
   return (
-    <DepositFormDialog
+    <FormDialog
       title={editing ? t('plans.dialog.editTitle') : t('plans.dialog.addTitle')}
       widthClass="md:w-[36rem]"
       error={error}
@@ -244,6 +245,6 @@ export function PlanDialog({
           </div>
         )}
       </div>
-    </DepositFormDialog>
+    </FormDialog>
   )
 }

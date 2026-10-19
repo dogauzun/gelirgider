@@ -12,7 +12,7 @@ import {
 } from '../lib/decimal'
 import { toast } from '../lib/toast'
 import { useOneAtATime } from '../lib/useOneAtATime'
-import { DateInput } from './DepositFormDialog'
+import { DateInput } from './ui/Inputs'
 import { Button } from './ui/Button'
 import { Field } from './ui/Field'
 import { inputClass } from './ui/inputClass'

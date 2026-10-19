@@ -5,7 +5,8 @@ import { toast } from '../lib/toast'
 import { useOneAtATime } from '../lib/useOneAtATime'
 import { compareDecimal, formatDecimalInput, parseDecimalInput } from '../lib/decimal'
 import { decimalError, firstError, textBinding, useDepositSubmit, type Rule } from './depositForm'
-import { DecimalInput, DepositFormDialog, NoteField } from './DepositFormDialog'
+import { FormDialog } from './ui/FormDialog'
+import { DecimalInput, NoteField } from './ui/Inputs'
 import { Button } from './ui/Button'
 import { Field } from './ui/Field'
 
@@ -64,7 +65,7 @@ export function WatchTargetDialog({ item, onClose }: { item: WatchItem; onClose:
   const bind = textBinding(form, setForm)
 
   return (
-    <DepositFormDialog
+    <FormDialog
       title={t('watchlist.targetDialog.title', { symbol: item.symbol })}
       widthClass="md:w-[28rem]"
       error={error}
@@ -90,6 +91,6 @@ export function WatchTargetDialog({ item, onClose }: { item: WatchItem; onClose:
           </div>
         )}
       </div>
-    </DepositFormDialog>
+    </FormDialog>
   )
 }
