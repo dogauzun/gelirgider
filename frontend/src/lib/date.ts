@@ -24,22 +24,44 @@ export function formatMarketDate(iso: string, options?: Intl.DateTimeFormatOptio
   return formatter.format(new Date(iso))
 }
 
-const istanbulYear = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Europe/Istanbul',
-  year: 'numeric',
-})
+// yearUnlessThisYear is the one "add the year only when it is not this year"
+// rule: no options when iso falls in the current year of timeZone, else the
+// numeric year. Both years are read in timeZone, so an instant near New Year
+// is compared in the zone it is shown in.
+function yearUnlessThisYear(iso: string, timeZone: string): Intl.DateTimeFormatOptions {
+  const year = (at: string) => formatMarketDate(at, { timeZone, year: 'numeric' })
+  return year(iso) === year(new Date().toISOString()) ? {} : { year: 'numeric' }
+}
 
 // formatShortMarketDate renders a market date as day and short month ("12 Eyl")
 // when it falls in the current Europe/Istanbul year, and adds the year
 // otherwise ("01 Oca 1990"), so a years-old date never reads as recent.
 // A named month keeps it unambiguous across locales, where a
 // numeric day-month pattern is dd/MM in tr and MM/dd in en.
+// Takes no second parameter: Recharts passes the tick index to a
+// tickFormatter.
 export function formatShortMarketDate(iso: string): string {
-  const sameYear = iso.slice(0, 4) === istanbulYear.format(new Date())
   return formatMarketDate(iso, {
     day: '2-digit',
     month: 'short',
-    ...(sameYear ? {} : { year: 'numeric' }),
+    ...yearUnlessThisYear(iso, 'Europe/Istanbul'),
+  })
+}
+
+// formatShortInstant is formatShortMarketDate for a UTC instant, shown in
+// timeZone ("4 Eki 14:05" with options for the time). Always pass a real
+// zone: formatMarketDate falls back to the browser zone for undefined.
+export function formatShortInstant(
+  iso: string,
+  timeZone: string,
+  options: Intl.DateTimeFormatOptions = {},
+): string {
+  return formatMarketDate(iso, {
+    timeZone,
+    day: '2-digit',
+    month: 'short',
+    ...options,
+    ...yearUnlessThisYear(iso, timeZone),
   })
 }
 

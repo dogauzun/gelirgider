@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import { brokerLabel, useDeleteImport, useImports, type Import } from '../../api/imports'
 import { t } from '../../i18n/strings'
-import { formatMarketDate } from '../../lib/date'
+import { formatMarketDate, formatShortInstant } from '../../lib/date'
 import { Button } from '../ui/Button'
 import { useConfirm } from '../ui/useConfirm'
 import { Notice } from '../ui/Notice'
@@ -25,13 +25,7 @@ const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 // `created_at` is an instant: the day it fell on where the user is, with the
 // year only when it is not this year.
 function importedOn(iso: string): string {
-  const date = new Date(iso)
-  return formatMarketDate(iso, {
-    timeZone: browserTimeZone,
-    day: '2-digit',
-    month: 'short',
-    ...(date.getFullYear() === new Date().getFullYear() ? {} : { year: 'numeric' }),
-  })
+  return formatShortInstant(iso, browserTimeZone)
 }
 
 // Past imports of this portfolio, with the undo button that deletes an
