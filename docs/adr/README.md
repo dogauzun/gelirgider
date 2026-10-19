@@ -42,6 +42,7 @@ of a phase epic, or a workflow rule.
 | 0032 | [Watchlist with target prices](0032-watchlist.md)                                                                  | accepted 2026-10-18                               |
 | 0033 | [Per-position returns with a benchmark](0033-position-returns.md)                                                  | accepted 2026-10-18                               |
 | 0034 | [Realized trades report](0034-realized-trades.md)                                                                  | accepted 2026-10-19                               |
+| 0035 | [Cash flow timeline and the invested line](0035-cash-flow-timeline.md)                                             | accepted 2026-10-19                               |
 
 ## Convention
 
