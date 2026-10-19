@@ -5,6 +5,7 @@ linters:
     - dupl
     - forbidigo
     - funlen
+    - goconst
     - gocognit
     - nestif
     - noctx
@@ -27,6 +28,10 @@ linters:
       lines: 100
       statements: -1
       ignore-comments: true
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+      ignore-string-values: ['^(TRY|USD|EUR)$']
     gocognit:
       min-complexity: 30
     nestif:
@@ -45,8 +50,11 @@ linters:
         linters: [forbidigo]
       - path: internal/us/us(_test)?\.go
         linters: [forbidigo]
+      # Alias, key and sample-data tables: the repeated strings are data, not shared names.
+      - path: internal/statement/csv/csv\.go|internal/instrument/sector\.go|internal/demo/demo\.go
+        linters: [goconst]
       - path: _test\.go$
-        linters: [dupl, funlen, gocognit, noctx]
+        linters: [dupl, funlen, goconst, gocognit, noctx]
       - path: (_test\.go|internal/db/db\.go)$
         linters: [forbidigo]
         text: use db\.InList

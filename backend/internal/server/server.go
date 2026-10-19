@@ -62,6 +62,13 @@ const (
 // payload in this API.
 const maxBodyBytes = 64 << 10
 
+// Keys that a log line and the health body repeat.
+const (
+	keyInstrumentID = "instrument_id"
+	keyStatus       = "status"
+	keySymbol       = "symbol"
+)
+
 // Version is the build version /api/health reports. main sets it from the
 // -X main.version ldflag; a package var, not a New argument, so the 60-odd
 // test callers of New stay untouched.
@@ -319,14 +326,14 @@ func newOnDemandFetch(d *deps, backfills *backfillQueue) transaction.OnDemandFet
 		if on {
 			switch in.Market {
 			case instrument.MarketCrypto:
-				underFetchSlot(ctx, nil, "on-demand crypto price fetch failed", []any{"instrument_id", in.ID, "symbol", in.Symbol}, func(ctx context.Context) error {
+				underFetchSlot(ctx, nil, "on-demand crypto price fetch failed", []any{keyInstrumentID, in.ID, keySymbol, in.Symbol}, func(ctx context.Context) error {
 					syncCryptoRange(ctx, in, date, prices, d.btcturkFetcher)
 					return nil
 				})
 			case instrument.MarketTEFAS:
 				underFetchSlot(ctx, func(ctx context.Context) (bool, error) {
 					return tefasSyncer.HistoryCovered(ctx, in, date, time.Now())
-				}, "on-demand tefas price fetch failed", []any{"instrument_id", in.ID, "symbol", in.Symbol}, func(ctx context.Context) error {
+				}, "on-demand tefas price fetch failed", []any{keyInstrumentID, in.ID, keySymbol, in.Symbol}, func(ctx context.Context) error {
 					_, err := tefasSyncer.SyncHistory(ctx, in, date, time.Now())
 					return err
 				})
@@ -392,12 +399,12 @@ func fetchBISTOnDemand(ctx context.Context, d *deps, in instrument.Instrument) [
 		return ok, err
 	}
 	has, err := hasPrice(ctx)
-	logFetchErr(ctx, err, "on-demand price fetch: check latest price failed", "instrument_id", in.ID)
+	logFetchErr(ctx, err, "on-demand price fetch: check latest price failed", keyInstrumentID, in.ID)
 	if err != nil {
 		return nil
 	}
 	if !has {
-		underFetchSlot(ctx, hasPrice, "on-demand bulletin fetch failed", []any{"instrument_id", in.ID}, func(ctx context.Context) error {
+		underFetchSlot(ctx, hasPrice, "on-demand bulletin fetch failed", []any{keyInstrumentID, in.ID}, func(ctx context.Context) error {
 			syncLatestBulletin(ctx, in, d.instruments, d.prices, d.bistFetcher)
 			return nil
 		})
@@ -419,15 +426,15 @@ func fetchUSOnDemand(ctx context.Context, d *deps, usSyncer *us.Syncer, in instr
 		}
 		return usSyncer.HistoryCovered(ctx, in, date)
 	}
-	underFetchSlot(ctx, covered, "on-demand us history fetch failed", []any{"instrument_id", in.ID, "symbol", in.Symbol}, func(ctx context.Context) error {
+	underFetchSlot(ctx, covered, "on-demand us history fetch failed", []any{keyInstrumentID, in.ID, keySymbol, in.Symbol}, func(ctx context.Context) error {
 		latest, err := d.prices.Latest(ctx, []int64{in.ID}, price.Today())
-		logFetchErr(ctx, err, "on-demand price fetch: check latest price failed", "instrument_id", in.ID)
+		logFetchErr(ctx, err, "on-demand price fetch: check latest price failed", keyInstrumentID, in.ID)
 		if err != nil {
 			return nil
 		}
 		if _, hasPrice := latest[in.ID]; !hasPrice {
 			_, err := us.SyncOne(ctx, d.usFetcher, d.prices, in, time.Now())
-			logFetchErr(ctx, err, "on-demand us price fetch failed", "instrument_id", in.ID, "symbol", in.Symbol)
+			logFetchErr(ctx, err, "on-demand us price fetch failed", keyInstrumentID, in.ID, keySymbol, in.Symbol)
 		}
 		_, err = usSyncer.SyncHistory(ctx, in, date)
 		return err
@@ -472,7 +479,7 @@ var marketSource = map[string]string{
 func syncCryptoRange(ctx context.Context, in instrument.Instrument, date string, prices *price.Repo, f *btcturk.Fetcher) {
 	from, err := time.Parse(time.DateOnly, date)
 	if err != nil {
-		slog.Default().Error("on-demand crypto price fetch: bad transaction date", "date", date, "instrument_id", in.ID, "error", err.Error())
+		slog.Default().Error("on-demand crypto price fetch: bad transaction date", "date", date, keyInstrumentID, in.ID, "error", err.Error())
 		return
 	}
 	now := time.Now().UTC()
@@ -484,7 +491,7 @@ func syncCryptoRange(ctx context.Context, in instrument.Instrument, date string,
 	// unfinished candle, and this keeps yesterday's whether or not BtcTurk
 	// treats to as inclusive.
 	_, err = btcturk.SyncRange(ctx, f, prices, in, from, now)
-	logFetchErr(ctx, err, "on-demand crypto price fetch failed", "instrument_id", in.ID, "symbol", in.Symbol)
+	logFetchErr(ctx, err, "on-demand crypto price fetch failed", keyInstrumentID, in.ID, keySymbol, in.Symbol)
 }
 
 // logFetchErr logs a failed on-demand fetch at ERROR, or at WARN for an unset
@@ -653,7 +660,7 @@ func (q *backfillQueue) drain() {
 func startBackfill(q *backfillQueue, in instrument.Instrument, date string, sources []bist.BackfillSource) {
 	start, err := price.ParseDate(date)
 	if err != nil {
-		slog.Default().Error("on-demand backfill: bad transaction date", "date", date, "instrument_id", in.ID, "error", err.Error())
+		slog.Default().Error("on-demand backfill: bad transaction date", "date", date, keyInstrumentID, in.ID, "error", err.Error())
 		return
 	}
 	start = bist.ClampBackfillStart(start)
@@ -723,12 +730,12 @@ func handleHealth(logger *slog.Logger, conn *sql.DB) http.HandlerFunc {
 		if _, err := conn.ExecContext(ctx, "SELECT 1"); err != nil {
 			logger.Error("health check failed", "error", err.Error())
 			auth.WriteJSON(w, http.StatusServiceUnavailable, map[string]string{
-				"status": "degraded",
-				"error":  "database unavailable",
+				keyStatus: "degraded",
+				"error":   "database unavailable",
 			})
 			return
 		}
-		auth.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok", "version": Version})
+		auth.WriteJSON(w, http.StatusOK, map[string]string{keyStatus: "ok", "version": Version})
 	}
 }
 
@@ -754,7 +761,7 @@ func withLogging(logger *slog.Logger, next http.Handler) http.Handler {
 		fields := []any{
 			"method", r.Method,
 			"path", r.URL.Path,
-			"status", rec.status,
+			keyStatus, rec.status,
 			"duration_ms", time.Since(start).Milliseconds(),
 			"remote_addr", ratelimit.ClientIP(r),
 		}

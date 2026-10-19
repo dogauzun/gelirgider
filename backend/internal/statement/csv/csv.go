@@ -29,7 +29,7 @@ import (
 )
 
 func init() {
-	statement.Parsers["csv"] = Parse
+	statement.Parsers[statement.BrokerCSV] = Parse
 }
 
 // errNotCSV is the "not this broker's statement" case of ADR 0006.
@@ -105,7 +105,7 @@ func Parse(rows [][]string) (statement.Statement, error) {
 		return statement.Statement{}, errNotCSV
 	}
 
-	st := statement.Statement{Broker: "csv"}
+	st := statement.Statement{Broker: statement.BrokerCSV}
 	currencies := map[string]int{}
 	n := 0
 	for _, row := range rows[1:] {

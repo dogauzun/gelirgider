@@ -274,7 +274,7 @@ func (h *handler) readParseForm(w http.ResponseWriter, r *http.Request, userID i
 		batch[name] = in.ID
 	}
 
-	isCSV := broker == "csv"
+	isCSV := broker == BrokerCSV
 	data, sha, ok := h.readUpload(w, r, userID, isCSV)
 	if !ok {
 		return nil, false
@@ -419,7 +419,7 @@ func (h *handler) readUpload(w http.ResponseWriter, r *http.Request, userID int6
 func parseUpload(w http.ResponseWriter, r *http.Request, data []byte, broker string) (string, Statement, bool) {
 	var rows [][]string
 	var err error
-	isCSV, auto := broker == "csv", broker == "auto"
+	isCSV, auto := broker == BrokerCSV, broker == "auto"
 	if isCSV {
 		// Like the PDF library's, the CSV reader's message quotes the file,
 		// so it is neither logged nor returned.

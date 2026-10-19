@@ -19,6 +19,9 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 )
 
+// BrokerCSV is the broker key of a CSV file, which no PDF is ever detected as.
+const BrokerCSV = "csv"
+
 // Statement is one parsed broker statement. Parsers are partial by design: a
 // row that cannot be read becomes a ParseError and parsing continues, so the
 // caller gets everything that did parse plus the list of rows to fix by hand.
@@ -153,7 +156,7 @@ var Parsers = map[string]func([][]string) (Statement, error){}
 // the first nil error is the broker.
 func Detect(rows [][]string) (string, Statement, error) {
 	for _, key := range slices.Sorted(maps.Keys(Parsers)) {
-		if key == "csv" {
+		if key == BrokerCSV {
 			continue
 		}
 		if st, err := Parsers[key](rows); err == nil {

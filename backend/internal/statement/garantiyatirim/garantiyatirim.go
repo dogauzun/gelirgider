@@ -48,6 +48,12 @@ const (
 	tradesSection   = "trades"
 )
 
+// codeBadNumber is the ParseError code of a number cell that is not valid.
+const codeBadNumber = "bad_number"
+
+// kindVirman is the trade kind of a share transfer in.
+const kindVirman = "HS-Virman Giriş"
+
 // numberFormat is how a statement prints its number cells. Most statements
 // use US format ("1,234.56", quantity "150.000"); an on-request copy uses
 // Turkish format ("1.234,56", quantity "150,000") in its cells while the
@@ -421,7 +427,7 @@ func parseMove(st *statement.Statement, rec []string, f numberFormat, requests m
 			return
 		}
 	}
-	if kind != "Bedelsiz" && kind != "HS-Virman Giriş" {
+	if kind != "Bedelsiz" && kind != kindVirman {
 		st.Errors = append(st.Errors, statement.ParseError{Section: tradesSection, Row: rec, Code: "unknown_row", Value: kind, Message: "unknown trade list row", Date: date})
 		return
 	}
@@ -431,16 +437,16 @@ func parseMove(st *statement.Statement, rec []string, f numberFormat, requests m
 		return
 	}
 	if !quantity.IsPositive() {
-		st.Errors = append(st.Errors, statement.ParseError{Section: tradesSection, Row: rec, Code: "bad_number", Value: "quantity", Message: "quantity is not positive", Date: date})
+		st.Errors = append(st.Errors, statement.ParseError{Section: tradesSection, Row: rec, Code: codeBadNumber, Value: "quantity", Message: "quantity is not positive", Date: date})
 		return
 	}
-	if r, ok := requests[rec[0]]; ok && kind == "HS-Virman Giriş" {
+	if r, ok := requests[rec[0]]; ok && kind == kindVirman {
 		price, paid := decimal.Zero, r.paid.Sub(r.refund)
 		if r.requested.IsPositive() {
 			price = r.paid.DivRound(r.requested, 9)
 		}
 		if !price.IsPositive() || quantity.Mul(price).Sub(paid).Abs().GreaterThan(cent) {
-			st.Errors = append(st.Errors, statement.ParseError{Section: tradesSection, Row: rec, Code: "bad_number", Value: "quantity", Message: "IPO allotment does not match the ledger's payment and refund", Date: date})
+			st.Errors = append(st.Errors, statement.ParseError{Section: tradesSection, Row: rec, Code: codeBadNumber, Value: "quantity", Message: "IPO allotment does not match the ledger's payment and refund", Date: date})
 			return
 		}
 		st.Trades = append(st.Trades, statement.Trade{
@@ -450,7 +456,7 @@ func parseMove(st *statement.Statement, rec []string, f numberFormat, requests m
 		return
 	}
 	price := decimal.Zero
-	if kind == "HS-Virman Giriş" {
+	if kind == kindVirman {
 		if price, err = parseNumber(rec[n-1], f); err != nil {
 			st.BadNumber(tradesSection, rec, "price", date)
 			return
@@ -610,7 +616,7 @@ func parseTradeRow(st *statement.Statement, rec, m []string, amount decimal.Deci
 	}
 	// An amount that is not price x quantity was misread; never book it.
 	if amount.Abs().Sub(price.Mul(quantity)).Abs().GreaterThan(cent) {
-		st.Errors = append(st.Errors, statement.ParseError{Section: ledgerSection, Row: rec, Code: "bad_number", Value: "amount", Message: "amount is not price x quantity", Date: valueDate})
+		st.Errors = append(st.Errors, statement.ParseError{Section: ledgerSection, Row: rec, Code: codeBadNumber, Value: "amount", Message: "amount is not price x quantity", Date: valueDate})
 		return trade{}, false
 	}
 	date := valueDate

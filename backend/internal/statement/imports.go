@@ -222,7 +222,7 @@ func create(ctx context.Context, q querier, n NewImport) (Import, error) {
 // Broker and portfolio are the caller's to match. A CSV is never the same
 // statement, only overlapping rows are (flagDuplicates).
 func (imp Import) samePeriod(currency, periodStart, periodEnd string) bool {
-	return imp.Broker != "csv" && imp.PeriodStart == periodStart && imp.PeriodEnd == periodEnd && imp.sameAccount(currency)
+	return imp.Broker != BrokerCSV && imp.PeriodStart == periodStart && imp.PeriodEnd == periodEnd && imp.sameAccount(currency)
 }
 
 // sameAccount reports whether imp may be of the account with the given
