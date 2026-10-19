@@ -7,6 +7,9 @@ export interface HistoryEntry {
   total_value: string
   cash: string
   cost_basis: string
+  // The money in the portfolio that is not gain: total_value minus invested
+  // is the gain. The API always sends it; optional like twr.
+  invested?: string
   // Set when the point holds an instrument with no price yet on its date;
   // that holding counts at cost, so the point is incomplete.
   price_unknown?: boolean

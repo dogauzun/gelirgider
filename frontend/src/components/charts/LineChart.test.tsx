@@ -420,6 +420,36 @@ describe('LineChart', () => {
       expect(tooltip()).toContain('Maliyet')
     })
 
+    it('draws an invested entry only for points that carry invested, and hides it like cost', () => {
+      const withInvested = benchmarked.map((p) => ({ ...p, invested: '800.00' }))
+      const { container, rerender } = render(
+        <LineChart
+          points={withInvested}
+          labels={{ value: 'Toplam değer', invested: 'Yatırılan' }}
+        />,
+      )
+
+      expect(toggle('Yatırılan')).toHaveAttribute('aria-pressed', 'true')
+      expect(seriesPath(container, 'invested')).not.toBeNull()
+      fireEvent.keyDown(chart(), { key: 'ArrowRight' })
+      expect(tooltip()).toContain('Yatırılan')
+
+      fireEvent.click(toggle('Yatırılan'))
+      expect(toggle('Yatırılan')).toHaveAttribute('aria-pressed', 'false')
+      expect(seriesPath(container, 'invested')).toBeNull()
+      expect(seriesPath(container, 'cost')).not.toBeNull()
+      fireEvent.keyDown(chart(), { key: 'ArrowRight' })
+      expect(tooltip()).not.toContain('Yatırılan')
+
+      rerender(
+        <LineChart
+          points={benchmarked}
+          labels={{ value: 'Toplam değer', invested: 'Yatırılan' }}
+        />,
+      )
+      expect(screen.queryByRole('button', { name: 'Yatırılan' })).toBeNull()
+    })
+
     it('keeps a hidden entry muted and strikes it through', () => {
       render(<LineChart points={benchmarked} />)
 

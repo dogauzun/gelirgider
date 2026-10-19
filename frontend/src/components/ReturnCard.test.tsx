@@ -22,8 +22,20 @@ function history(
   return {
     currency: 'TRY',
     points: [
-      { date: '2026-07-01', total_value: '1000.00', cash: '1000.00', cost_basis: '0' },
-      { date: '2026-10-01', total_value: '1100.00', cash: '1100.00', cost_basis: '0' },
+      {
+        date: '2026-07-01',
+        total_value: '1000.00',
+        cash: '1000.00',
+        cost_basis: '0',
+        invested: '900.00',
+      },
+      {
+        date: '2026-10-01',
+        total_value: '1100.00',
+        cash: '1100.00',
+        cost_basis: '0',
+        invested: '900.00',
+      },
     ].map((p, i) => ({
       ...p,
       ...(values && { benchmark_value: i === 0 ? '1000.00' : '1050.00' }),
@@ -259,6 +271,7 @@ describe('ReturnCard', () => {
       expect(entries).toHaveTextContent('Portföy')
       expect(entries).not.toHaveTextContent('zaman ağırlıklı')
       expect(entries).not.toHaveTextContent('Maliyet')
+      expect(entries).not.toHaveTextContent('Yatırılan')
       // (1 + 0.20) / (1 + 0.05) - 1 = 14.3%
       const tip = tooltipAt(1)
       expect(tip).toContain('Portföy+%20')
@@ -284,6 +297,7 @@ describe('ReturnCard', () => {
       expect(localStorage.getItem('chartMode')).toBe('money')
       expect(await legend()).toHaveTextContent('Toplam değer')
       expect(await legend()).toHaveTextContent('Maliyet')
+      expect(await legend()).toHaveTextContent('Yatırılan')
       expect(tooltipAt(1)).toContain('1.100')
     })
 
