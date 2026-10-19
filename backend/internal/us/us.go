@@ -53,9 +53,6 @@ var ErrNotConfigured = fmt.Errorf("finnhub: %w, set it in the admin area", sched
 // SourceFinnhub is the price.Repo source value written by Sync.
 const SourceFinnhub = "finnhub"
 
-// usMarket is the instruments.market value for US equities/ETFs.
-const usMarket = "US"
-
 // RequestPause is the delay Sync sleeps between successive symbol lookups.
 // Free tier allows 60 requests/minute, far more than a once-daily,
 // one-lookup-per-tracked-symbol run needs; the pause is just polite.
@@ -301,7 +298,7 @@ func SyncOne(ctx context.Context, fetcher *Fetcher, priceRepo *price.Repo, in in
 // has no quote for is counted as skipped, neither written nor failed.
 // Returns the number of prices written.
 func Sync(ctx context.Context, fetcher *Fetcher, instrumentRepo *instrument.Repo, priceRepo *price.Repo, now time.Time) (int, error) {
-	tracked, err := instrumentRepo.Tracked(ctx, usMarket)
+	tracked, err := instrumentRepo.Tracked(ctx, instrument.MarketUS)
 	if err != nil {
 		return 0, fmt.Errorf("list tracked us instruments: %w", err)
 	}
@@ -671,7 +668,7 @@ func (s *Syncer) SyncRecent(ctx context.Context, now time.Time) (int, error) {
 	if ok, err := s.Fetcher.tiingoConfigured(ctx); !ok {
 		return 0, err
 	}
-	tracked, err := s.Instruments.Tracked(ctx, usMarket)
+	tracked, err := s.Instruments.Tracked(ctx, instrument.MarketUS)
 	if err != nil {
 		return 0, fmt.Errorf("list tracked us instruments: %w", err)
 	}

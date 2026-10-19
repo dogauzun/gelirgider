@@ -352,7 +352,7 @@ func (r *openingRun) priceOf(c candidate, row *previewRow) (decimal.Decimal, boo
 	// The on-demand fetch only queues a backfill for an old BIST date,
 	// so the bulletin of the last weekday on or before it is synced
 	// here, once for all the BIST openings.
-	if err == nil && !found && c.in.Market == "BIST" && r.h.syncBulletin != nil && r.fetchReady() && r.h.syncBulletinOnce(r.session, r.bulletinDate) {
+	if err == nil && !found && c.in.Market == instrument.MarketBIST && r.h.syncBulletin != nil && r.fetchReady() && r.h.syncBulletinOnce(r.session, r.bulletinDate) {
 		p, found, err = r.h.storedPrice(r.ctx, r.userID, id, r.date)
 	}
 	if err == nil && !found && r.h.onDemandFetch != nil && r.fetches < maxOpeningFetches && r.fetchReady() {

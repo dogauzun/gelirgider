@@ -584,7 +584,7 @@ func (b sourceBuilder) bist() scheduler.Source {
 			return b.prices.HasSource(ctx, date, bist.SourceBistBulletin)
 		},
 		Backfill: func(ctx context.Context, from string) (int, error) {
-			return b.run(from).backfillDates(ctx, bist.BulletinBackfillSource(b.f.bist, b.instruments, b.prices), "BIST")
+			return b.run(from).backfillDates(ctx, bist.BulletinBackfillSource(b.f.bist, b.instruments, b.prices), instrument.MarketBIST)
 		},
 	}
 }
@@ -642,7 +642,7 @@ func (b sourceBuilder) us() scheduler.Source {
 			return b.prices.HasSource(ctx, us.LastSession(b.f.now()), us.SourceFinnhub)
 		},
 		Sync: func(ctx context.Context, _ time.Time) (int, error) {
-			if err := requireTracked(ctx, b.instruments, b.logger, "US"); err != nil {
+			if err := requireTracked(ctx, b.instruments, b.logger, instrument.MarketUS); err != nil {
 				return 0, err
 			}
 			written, err := us.Sync(ctx, b.f.us, b.instruments, b.prices, b.f.now())
@@ -668,7 +668,7 @@ func (b sourceBuilder) crypto() scheduler.Source {
 		Name:     scheduler.NameCrypto,
 		EveryDay: true,
 		Have:     haveDayBefore(b.prices, btcturk.SourceBtcTurk),
-		Sync: trackedSync(b.instruments, b.logger, "CRYPTO", func(ctx context.Context, date time.Time) (int, error) {
+		Sync: trackedSync(b.instruments, b.logger, instrument.MarketCrypto, func(ctx context.Context, date time.Time) (int, error) {
 			return btcturk.Sync(ctx, b.f.crypto, b.instruments, b.prices, date)
 		}),
 		Backfill: func(ctx context.Context, from string) (int, error) {
@@ -692,7 +692,7 @@ func (b sourceBuilder) tefas() scheduler.Source {
 		Have: func(ctx context.Context, date string) (bool, error) {
 			return b.prices.HasSource(ctx, date, tefas.SourceTEFAS)
 		},
-		Sync: trackedSync(b.instruments, b.logger, "TEFAS", b.syncTEFAS),
+		Sync: trackedSync(b.instruments, b.logger, instrument.MarketTEFAS, b.syncTEFAS),
 		Backfill: func(ctx context.Context, from string) (int, error) {
 			return backfillTEFAS(ctx, b.run(from), b.tefasSyncer())
 		},

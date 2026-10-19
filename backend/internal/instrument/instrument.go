@@ -64,13 +64,23 @@ var seedSources = []struct {
 	market   string
 	currency string
 }{
-	{bistCSV, "BIST", "TRY"},
-	{usCSV, "US", "USD"},
-	{tefasCSV, "TEFAS", "TRY"},
-	{cryptoTRYCSV, "CRYPTO", "TRY"},
-	{cryptoUSDCSV, "CRYPTO", "USD"},
-	{goldCSV, "GOLD", "TRY"},
+	{bistCSV, MarketBIST, "TRY"},
+	{usCSV, MarketUS, "USD"},
+	{tefasCSV, MarketTEFAS, "TRY"},
+	{cryptoTRYCSV, MarketCrypto, "TRY"},
+	{cryptoUSDCSV, MarketCrypto, "USD"},
+	{goldCSV, MarketGold, "TRY"},
 }
+
+// The markets an instrument can trade on; Instrument.Market holds one of
+// them.
+const (
+	MarketBIST   = "BIST"
+	MarketUS     = "US"
+	MarketTEFAS  = "TEFAS"
+	MarketCrypto = "CRYPTO"
+	MarketGold   = "GOLD"
+)
 
 // MarketDeposit is the market of a term deposit's instrument. A deposit is
 // owned by one user through term_deposits, so the generic routes (search,
@@ -162,8 +172,8 @@ var searchQuery = fmt.Sprintf(
 	 ORDER BY
 	   CASE WHEN symbol = ? THEN 0
 	        WHEN symbol LIKE ? ESCAPE '\' THEN 1
-	        WHEN market = 'GOLD' AND ? = 1 THEN 2
-	        WHEN symbol LIKE ? ESCAPE '\' AND market = 'BIST' THEN 3
+	        WHEN market = '`+MarketGold+`' AND ? = 1 THEN 2
+	        WHEN symbol LIKE ? ESCAPE '\' AND market = '`+MarketBIST+`' THEN 3
 	        WHEN symbol LIKE ? ESCAPE '\' THEN 4
 	        WHEN folded LIKE ? ESCAPE '\' THEN 5
 	        ELSE 6 END,
@@ -178,7 +188,7 @@ const searchWordMatch = `(folded LIKE ? ESCAPE '\' OR symbol LIKE ? ESCAPE '\')`
 // goldWordMatch is searchWordMatch for a word that spells the GOLD market's
 // own word: it also matches every GOLD instrument, whose names carry only
 // the tr "Altın", so "gram gold" finds Gram Altın.
-const goldWordMatch = `(` + searchWordMatch + ` OR market = 'GOLD')`
+const goldWordMatch = `(` + searchWordMatch + ` OR market = '` + MarketGold + `')`
 
 // maxSearchWords caps how many words Search matches one by one. Each word
 // folds every name again (tens of ms over the seeded table), so a query of

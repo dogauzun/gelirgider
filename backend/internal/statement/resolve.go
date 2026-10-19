@@ -16,12 +16,12 @@ import (
 // in TRY that is not a BIST share carries the hint instead: Garanti marks
 // its fund rows and statement "TEFAS", a CSV row takes its market column
 // (ADR 0006).
-var marketForCurrency = map[string]string{"USD": "US", "TRY": "BIST"}
+var marketForCurrency = map[string]string{"USD": instrument.MarketUS, "TRY": instrument.MarketBIST}
 
 // otherMarkets are the markets a row with no market hint is tried in once its
 // currency's market (marketForCurrency) does not know the symbol. A CSV row
 // can hold a fund, a coin or gold as well as a share.
-var otherMarkets = map[string][]string{"TRY": {"TEFAS", "CRYPTO", "GOLD"}, "USD": {"CRYPTO"}}
+var otherMarkets = map[string][]string{"TRY": {instrument.MarketTEFAS, instrument.MarketCrypto, instrument.MarketGold}, "USD": {instrument.MarketCrypto}}
 
 // lookupSession is one request's state for the instrument lookups a preview
 // makes: createFund's TEFAS lookups and bulletinInstrument's BIST bulletin
@@ -127,10 +127,10 @@ func (h *handler) resolveInstrument(ctx context.Context, s *lookupSession, learn
 	if errors.Is(err, instrument.ErrNotFound) && row.Market == "" {
 		in, err = h.soleMatch(ctx, s, otherMarkets[row.Currency], row.Symbol, row.Currency)
 	}
-	if errors.Is(err, instrument.ErrNotFound) && row.Market == "TEFAS" {
+	if errors.Is(err, instrument.ErrNotFound) && row.Market == instrument.MarketTEFAS {
 		in, err = h.createFund(ctx, s, row.Symbol)
 	}
-	if errors.Is(err, instrument.ErrNotFound) && market == "BIST" {
+	if errors.Is(err, instrument.ErrNotFound) && market == instrument.MarketBIST {
 		in, err = h.bulletinInstrument(ctx, s, row.Symbol, row.Date)
 	}
 	if errors.Is(err, instrument.ErrNotFound) {
@@ -263,7 +263,7 @@ func (h *handler) createFund(ctx context.Context, s *lookupSession, code string)
 		// The TEFAS fetcher renames it on its next run.
 		name = code
 	}
-	id, err := h.instruments.Insert(ctx, "TEFAS", code, name, "TRY")
+	id, err := h.instruments.Insert(ctx, instrument.MarketTEFAS, code, name, "TRY")
 	if err != nil {
 		return instrument.Instrument{}, err
 	}
@@ -290,7 +290,7 @@ func (h *handler) bulletinInstrument(ctx context.Context, s *lookupSession, symb
 	if !h.syncBulletinOnce(s, date) {
 		return instrument.Instrument{}, instrument.ErrNotFound
 	}
-	return h.bySymbol(ctx, s, "BIST", symbol)
+	return h.bySymbol(ctx, s, instrument.MarketBIST, symbol)
 }
 
 // syncBulletinOnce syncs the BIST bulletin of date and reports whether it

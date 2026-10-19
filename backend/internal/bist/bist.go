@@ -348,7 +348,7 @@ func syncDate(ctx context.Context, fetcher *Fetcher, instrumentRepo *instrument.
 	}
 
 	if *idBySymbol == nil {
-		instruments, err := instrumentRepo.All(ctx, "BIST")
+		instruments, err := instrumentRepo.All(ctx, instrument.MarketBIST)
 		if err != nil {
 			return 0, fmt.Errorf("list instruments: %w", err)
 		}
@@ -363,7 +363,7 @@ func syncDate(ctx context.Context, fetcher *Fetcher, instrumentRepo *instrument.
 	for _, c := range closes {
 		id, ok := (*idBySymbol)[c.Symbol]
 		if !ok {
-			id, err = instrumentRepo.Insert(ctx, "BIST", c.Symbol, c.Name, "TRY")
+			id, err = instrumentRepo.Insert(ctx, instrument.MarketBIST, c.Symbol, c.Name, "TRY")
 			if err != nil {
 				return 0, err
 			}

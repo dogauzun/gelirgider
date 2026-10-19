@@ -29,6 +29,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/dogauzun/gelirgider/backend/internal/instrument"
 	"github.com/dogauzun/gelirgider/backend/internal/statement"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/shopspring/decimal"
@@ -96,7 +97,7 @@ func Parse(rows [][]string) (statement.Statement, error) {
 			cells = append(cells, strings.TrimSpace(cell))
 		}
 	}
-	st := statement.Statement{Broker: broker, Currency: "TRY", Market: "TEFAS"}
+	st := statement.Statement{Broker: broker, Currency: "TRY", Market: instrument.MarketTEFAS}
 	st.PeriodStart, st.PeriodEnd = period(cells)
 	if st.PeriodStart == "" {
 		return statement.Statement{}, errors.New("not a garanti fund statement")
@@ -356,7 +357,7 @@ func net(st *statement.Statement, moves []movement, funds funds) {
 				side, cash = transaction.TypeBuy, cash.Neg()
 			}
 			e = e.Add(cash).Sub(g.stopaj)
-			st.Trades = append(st.Trades, statement.Trade{Date: g.date, Symbol: g.symbol, Side: side, Quantity: g.units.Abs(), Price: g.price, Amount: g.gross.Abs(), Fee: g.stopaj, Currency: "TRY", Market: "TEFAS"})
+			st.Trades = append(st.Trades, statement.Trade{Date: g.date, Symbol: g.symbol, Side: side, Quantity: g.units.Abs(), Price: g.price, Amount: g.gross.Abs(), Fee: g.stopaj, Currency: "TRY", Market: instrument.MarketTEFAS})
 		case g.stopaj.IsPositive():
 			e = e.Sub(g.stopaj)
 			fees[g.date] = append(fees[g.date], statement.CashMovement{Date: g.date, Kind: transaction.TypeFee, Amount: g.stopaj, Currency: "TRY"})

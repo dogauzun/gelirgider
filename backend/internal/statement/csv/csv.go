@@ -22,6 +22,7 @@ import (
 	"unicode"
 
 	"github.com/dogauzun/gelirgider/backend/internal/bist"
+	"github.com/dogauzun/gelirgider/backend/internal/instrument"
 	"github.com/dogauzun/gelirgider/backend/internal/statement"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/shopspring/decimal"
@@ -65,11 +66,11 @@ var typeAliases = map[string]string{
 // marketAliases maps a lower-cased market cell to its market code: the codes
 // the export writes and the market names the app shows, in tr and en.
 var marketAliases = map[string]string{
-	"bist": "BIST", "borsa istanbul": "BIST",
-	"us": "US", "abd": "US",
-	"tefas":  "TEFAS",
-	"crypto": "CRYPTO", "kripto": "CRYPTO",
-	"gold": "GOLD", "altın": "GOLD", "altin": "GOLD",
+	"bist": instrument.MarketBIST, "borsa istanbul": instrument.MarketBIST,
+	"us": instrument.MarketUS, "abd": instrument.MarketUS,
+	"tefas":  instrument.MarketTEFAS,
+	"crypto": instrument.MarketCrypto, "kripto": instrument.MarketCrypto,
+	"gold": instrument.MarketGold, "altın": instrument.MarketGold, "altin": instrument.MarketGold,
 }
 
 // lookup finds a cell in an alias map. Turkish lower-casing reads "İşlem" and

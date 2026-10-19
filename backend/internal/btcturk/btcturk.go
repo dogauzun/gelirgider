@@ -37,9 +37,6 @@ const maxBodyBytes = 8 << 20
 // SourceBtcTurk is the price.Repo source value written by this package.
 const SourceBtcTurk = "btcturk"
 
-// cryptoMarket is the instruments.market value for crypto pairs.
-const cryptoMarket = "CRYPTO"
-
 // SourcePAXG is the price.Repo and benchmark.Repo source value written by
 // SyncGold.
 const SourcePAXG = "btcturk_paxg"
@@ -193,7 +190,7 @@ func SyncRange(ctx context.Context, f *Fetcher, prices *price.Repo, in instrumen
 // every pair failing is an error, and a cancelled ctx stops it quietly.
 // Returns rows written.
 func Sync(ctx context.Context, f *Fetcher, instruments *instrument.Repo, prices *price.Repo, date time.Time) (int, error) {
-	tracked, err := instruments.Tracked(ctx, cryptoMarket)
+	tracked, err := instruments.Tracked(ctx, instrument.MarketCrypto)
 	if err != nil {
 		return 0, fmt.Errorf("list tracked crypto instruments: %w", err)
 	}
@@ -231,7 +228,7 @@ type GoldSyncer struct {
 // at 24:00 UTC with no bank spread. To change the source, change the Source
 // section of docs/adr/0017-gold.md first.
 func (s *GoldSyncer) SyncGold(ctx context.Context, from, to time.Time) (int, error) {
-	gram, err := s.Instruments.BySymbol(ctx, "GOLD", "GRAM")
+	gram, err := s.Instruments.BySymbol(ctx, instrument.MarketGold, "GRAM")
 	if err != nil {
 		return 0, fmt.Errorf("look up GOLD/GRAM: %w", err)
 	}
@@ -292,7 +289,7 @@ func (s *GoldSyncer) historyStart(ctx context.Context, from string, now time.Tim
 	if err != nil {
 		return day, false, fmt.Errorf("gold history start date: %w", err)
 	}
-	gram, err := s.Instruments.BySymbol(ctx, "GOLD", "GRAM")
+	gram, err := s.Instruments.BySymbol(ctx, instrument.MarketGold, "GRAM")
 	if err != nil {
 		return day, false, fmt.Errorf("look up GOLD/GRAM: %w", err)
 	}

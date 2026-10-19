@@ -316,28 +316,25 @@ func newOnDemandFetch(d *deps, backfills *backfillQueue) transaction.OnDemandFet
 		settingsCtx := context.WithoutCancel(ctx)
 		on := scheduler.Enabled(settingsCtx, settingsRepo, marketSource[in.Market], slog.Default())
 
-		if on && in.Market == "CRYPTO" {
-			underFetchSlot(ctx, nil, "on-demand crypto price fetch failed", []any{"instrument_id", in.ID, "symbol", in.Symbol}, func(ctx context.Context) error {
-				syncCryptoRange(ctx, in, date, prices, d.btcturkFetcher)
-				return nil
-			})
-		}
-
-		if on && in.Market == "TEFAS" {
-			underFetchSlot(ctx, func(ctx context.Context) (bool, error) {
-				return tefasSyncer.HistoryCovered(ctx, in, date, time.Now())
-			}, "on-demand tefas price fetch failed", []any{"instrument_id", in.ID, "symbol", in.Symbol}, func(ctx context.Context) error {
-				_, err := tefasSyncer.SyncHistory(ctx, in, date, time.Now())
-				return err
-			})
-		}
-
-		if on && in.Market == "BIST" {
-			sources = append(sources, fetchBISTOnDemand(ctx, d, in)...)
-		}
-
-		if on && in.Market == "US" {
-			fetchUSOnDemand(ctx, d, usSyncer, in, date)
+		if on {
+			switch in.Market {
+			case instrument.MarketCrypto:
+				underFetchSlot(ctx, nil, "on-demand crypto price fetch failed", []any{"instrument_id", in.ID, "symbol", in.Symbol}, func(ctx context.Context) error {
+					syncCryptoRange(ctx, in, date, prices, d.btcturkFetcher)
+					return nil
+				})
+			case instrument.MarketTEFAS:
+				underFetchSlot(ctx, func(ctx context.Context) (bool, error) {
+					return tefasSyncer.HistoryCovered(ctx, in, date, time.Now())
+				}, "on-demand tefas price fetch failed", []any{"instrument_id", in.ID, "symbol", in.Symbol}, func(ctx context.Context) error {
+					_, err := tefasSyncer.SyncHistory(ctx, in, date, time.Now())
+					return err
+				})
+			case instrument.MarketBIST:
+				sources = append(sources, fetchBISTOnDemand(ctx, d, in)...)
+			case instrument.MarketUS:
+				fetchUSOnDemand(ctx, d, usSyncer, in, date)
+			}
 		}
 
 		// Gold runs on every save, after the instrument's own fetch so that
@@ -459,11 +456,11 @@ func fetchGoldOnDemand(ctx context.Context, goldSyncer *btcturk.GoldSyncer, date
 // enabled setting gates its on-demand fetch. It lists every
 // seeded market, which TestMarketSourceCoversSeededMarkets checks.
 var marketSource = map[string]string{
-	"BIST":   scheduler.NameBIST,
-	"US":     scheduler.NameUS,
-	"CRYPTO": scheduler.NameCrypto,
-	"TEFAS":  scheduler.NameTEFAS,
-	"GOLD":   scheduler.NameGold,
+	instrument.MarketBIST:   scheduler.NameBIST,
+	instrument.MarketUS:     scheduler.NameUS,
+	instrument.MarketCrypto: scheduler.NameCrypto,
+	instrument.MarketTEFAS:  scheduler.NameTEFAS,
+	instrument.MarketGold:   scheduler.NameGold,
 }
 
 // syncCryptoRange stores in's BtcTurk daily closes from date to yesterday
