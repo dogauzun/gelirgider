@@ -51,9 +51,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       # The action hands the app's write token to the agent as GH_TOKEN, so
-      # the allow list holds read commands only and no `gh api` at all (a
-      # prefix rule cannot pin its method): the inline comment tool is the
-      # one way to write.
+      # the allow list holds read commands only: no `gh api` (a prefix rule
+      # cannot pin its method) and no `git fetch` (`--upload-pack` runs a
+      # shell; the checkout already holds the head and origin/main). The
+      # inline comment tool is the one way to write.
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -61,5 +62,5 @@ jobs:
             You are running as the review workflow of dogauzun/gelirgider, inside the checkout of the pull request head. Read `.claude/agents/pr-reviewer.md` and review pull request #${{ github.event.pull_request.number }} exactly as it says, as the agent it describes. Post each finding with the tool `mcp__github_inline_comment__create_inline_comment` and `confirmed: true`. Post nothing else.
           claude_args: >-
             --model claude-opus-5-5 --effort high
-            --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(git fetch:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git rev-parse:*)"
+            --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git rev-parse:*)"
             --disallowedTools "Edit,Write,NotebookEdit"
