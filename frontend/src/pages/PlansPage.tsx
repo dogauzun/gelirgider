@@ -24,6 +24,7 @@ import { formatMarketDate } from '../lib/date'
 import { formatMoney, formatUnitPrice, MISSING } from '../lib/format'
 import { toast } from '../lib/toast'
 import { useFocusAfterDelete } from '../lib/useFocusAfterDelete'
+import { useAction } from '../lib/useOneAtATime'
 import { usePortfolioTitle } from '../lib/useTitle'
 
 const STATUS: Record<Plan['status'], { labelKey: StringKey; tone: 'gain' | 'warn' | 'cash' }> = {
@@ -149,6 +150,7 @@ function PlansBody({ portfolioId }: { portfolioId: number }) {
   const deleteMutation = useDeletePlan(portfolioId)
   const bookMutation = useBookPlan()
   const skipMutation = useSkipPlan()
+  const runAction = useAction()
   const { confirm, dialog } = useConfirm()
   const focusAfterDelete = useFocusAfterDelete()
   const [adding, setAdding] = useState(false)
@@ -179,11 +181,11 @@ function PlansBody({ portfolioId }: { portfolioId: number }) {
 
   // Books or skips the occurrence the plan has come to.
   function settle(mutation: typeof bookMutation, id: number, doneKey: StringKey) {
-    mutation.mutate(id, {
-      onSuccess: () => toast(t(doneKey)),
-      onError: (mutationError) =>
-        toast(t('plans.actionFailed', { error: mutationError.message }), { error: true }),
-    })
+    runAction(
+      () => mutation.mutateAsync(id),
+      t(doneKey),
+      (error) => t('plans.actionFailed', { error }),
+    )
   }
 
   let body = null
