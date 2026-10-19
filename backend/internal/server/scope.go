@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/dogauzun/gelirgider/backend/internal/auth"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 )
@@ -65,6 +66,30 @@ func (d *deps) scopePortfolioID(r *http.Request, userID int64) (*int64, error) {
 		return nil, err
 	}
 	return &n, nil
+}
+
+// scopeLists is scopeTransactions for the signed-in user and the request's
+// {id}. It writes the error and is false when it cannot.
+func (d *deps) scopeLists(w http.ResponseWriter, r *http.Request) (userID int64, lists [][]transaction.Transaction, ok bool) {
+	userID = auth.MustUserID(r.Context())
+	lists, err := scopeTransactions(r.Context(), d.portfolios, d.transactions, userID, r.PathValue("id"))
+	if err != nil {
+		portfolio.WriteLookupError(w, r, err)
+		return 0, nil, false
+	}
+	return userID, lists, true
+}
+
+// scopeID is scopePortfolioID for the signed-in user. It writes the error
+// and is false when it cannot.
+func (d *deps) scopeID(w http.ResponseWriter, r *http.Request) (userID int64, portfolioID *int64, ok bool) {
+	userID = auth.MustUserID(r.Context())
+	portfolioID, err := d.scopePortfolioID(r, userID)
+	if err != nil {
+		portfolio.WriteLookupError(w, r, err)
+		return 0, nil, false
+	}
+	return userID, portfolioID, true
 }
 
 // flatByDate concatenates per-portfolio lists into one, ordered by date. The

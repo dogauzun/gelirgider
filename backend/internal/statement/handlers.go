@@ -474,7 +474,7 @@ func (h *handler) commit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := h.portfolios.Get(r.Context(), userID, req.PortfolioID); err != nil {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
+		portfolio.WriteLookupError(w, r, err)
 		return
 	}
 	_, bad, err := h.aliasInstruments(r.Context(), "aliases", req.Aliases)

@@ -40,22 +40,6 @@ type goalBody struct {
 	TargetDate string `json:"target_date"`
 }
 
-// scope resolves the portfolio of the request. It writes the error and is
-// false when it cannot.
-func (h *goalHandler) scope(w http.ResponseWriter, r *http.Request) (userID int64, portfolioID *int64, ok bool) {
-	userID = auth.MustUserID(r.Context())
-	portfolioID, err := h.scopePortfolioID(r, userID)
-	if errors.Is(err, portfolio.ErrNotFound) {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
-		return 0, nil, false
-	}
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
-		return 0, nil, false
-	}
-	return userID, portfolioID, true
-}
-
 // writeGoalError answers the error of a goal lookup or removal: 404 for a
 // scope without a goal, else 500.
 func writeGoalError(w http.ResponseWriter, r *http.Request, err error) {
@@ -112,7 +96,7 @@ func parseGoal(req goalBody, reportingCurrency string) (goal.Goal, error) {
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/goal [get]
 func (h *goalHandler) get(w http.ResponseWriter, r *http.Request) {
-	userID, portfolioID, ok := h.scope(w, r)
+	userID, portfolioID, ok := h.scopeID(w, r)
 	if !ok {
 		return
 	}
@@ -139,7 +123,7 @@ func (h *goalHandler) get(w http.ResponseWriter, r *http.Request) {
 //	@Failure	500		{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/goal [put]
 func (h *goalHandler) put(w http.ResponseWriter, r *http.Request) {
-	userID, portfolioID, ok := h.scope(w, r)
+	userID, portfolioID, ok := h.scopeID(w, r)
 	if !ok {
 		return
 	}
@@ -181,7 +165,7 @@ func (h *goalHandler) put(w http.ResponseWriter, r *http.Request) {
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/goal [delete]
 func (h *goalHandler) delete(w http.ResponseWriter, r *http.Request) {
-	userID, portfolioID, ok := h.scope(w, r)
+	userID, portfolioID, ok := h.scopeID(w, r)
 	if !ok {
 		return
 	}
@@ -237,7 +221,7 @@ type projectionResponse struct {
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/projection [get]
 func (h *goalHandler) projection(w http.ResponseWriter, r *http.Request) {
-	userID, portfolioID, ok := h.scope(w, r)
+	userID, portfolioID, ok := h.scopeID(w, r)
 	if !ok {
 		return
 	}
@@ -253,12 +237,8 @@ func (h *goalHandler) projection(w http.ResponseWriter, r *http.Request) {
 	}
 	resp := projectionResponse{Unit: g.Unit, Currency: usr.ReportingCurrency, Amount: g.Amount.String(), TargetDate: g.TargetDate, Months: []projectionMonth{}}
 	in, found, err := h.projectionInput(r.Context(), userID, r.PathValue("id"), g, usr.ReportingCurrency)
-	if errors.Is(err, portfolio.ErrNotFound) {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
-		return
-	}
 	if err != nil {
-		auth.WriteInternalError(w, r, err)
+		portfolio.WriteLookupError(w, r, err)
 		return
 	}
 	if found {

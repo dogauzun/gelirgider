@@ -83,20 +83,30 @@ func checkName(w http.ResponseWriter, name string) (string, bool) {
 	return stored, true
 }
 
+// WriteLookupError answers the error of a portfolio lookup: 404 for
+// ErrNotFound, else the 500 of auth.WriteInternalError.
+func WriteLookupError(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, ErrNotFound) {
+		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
+		return
+	}
+	auth.WriteInternalError(w, r, err)
+}
+
 // Owned reads the portfolio id from r's {id} path value and checks that the
-// signed-in user owns it, writing the 404 itself for a malformed id or a
-// portfolio that is not the caller's (any Get error, as the handlers did
-// before it). The last result reports whether the caller may go on. r must
-// be behind auth.RequireUser.
+// signed-in user owns it, writing the error itself: 404 for a malformed id
+// or a portfolio that is not the caller's, 500 when the lookup fails. The
+// last result reports whether the caller may go on. r must be behind
+// auth.RequireUser.
 func Owned(w http.ResponseWriter, r *http.Request, repo *Repo) (userID, id int64, ok bool) {
 	userID = auth.MustUserID(r.Context())
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
+		WriteLookupError(w, r, ErrNotFound)
 		return 0, 0, false
 	}
 	if _, err := repo.Get(r.Context(), userID, id); err != nil {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
+		WriteLookupError(w, r, err)
 		return 0, 0, false
 	}
 	return userID, id, true

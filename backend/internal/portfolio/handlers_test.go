@@ -123,4 +123,17 @@ func TestOwnedRejectsForeignPortfolio(t *testing.T) {
 			t.Errorf("%s: %d %q, want %d %q", tc.path, w.Code, w.Body.String(), tc.code, tc.body)
 		}
 	}
+
+	// A failing lookup is a 500, not a 404 that tells the user the portfolio
+	// is gone. Dropping the table, not closing conn, keeps auth working.
+	if _, err := conn.Exec(`DROP TABLE portfolios`); err != nil {
+		t.Fatalf("drop portfolios: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/p/%d", own.ID), nil)
+	req.AddCookie(&http.Cookie{Name: "session", Value: s.ID})
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+	if w.Code != http.StatusInternalServerError || strings.TrimSpace(w.Body.String()) != `{"error":"internal error"}` {
+		t.Errorf("database error: %d %q, want 500 internal error", w.Code, w.Body.String())
+	}
 }

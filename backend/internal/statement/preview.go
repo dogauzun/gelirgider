@@ -17,6 +17,7 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
 	"github.com/dogauzun/gelirgider/backend/internal/dividend"
 	"github.com/dogauzun/gelirgider/backend/internal/instrument"
+	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/ratelimit"
 	"github.com/dogauzun/gelirgider/backend/internal/statement/pdftext"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
@@ -251,7 +252,7 @@ func (h *handler) readParseForm(w http.ResponseWriter, r *http.Request, userID i
 		return nil, false
 	}
 	if _, err := h.portfolios.Get(r.Context(), userID, portfolioID); err != nil {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
+		portfolio.WriteLookupError(w, r, err)
 		return nil, false
 	}
 	// The instruments the user picked in this preview so far, resolved for
