@@ -393,15 +393,16 @@ type prevClose struct {
 	baseAdj decimal.Decimal
 }
 
-// prevCloses finds the previous close per priced instrument of v: the same
-// merge as v's, as of the day before the winner's date, so weekends and
-// holidays fall out as the latest stored close before it.
-// Ids are grouped by that day so each distinct date costs one LatestCloses
-// call, not one per instrument. txs, every portfolio's rows in scope, gives
-// each prevClose its tradeAdj.
-func (h *summaryHandler) prevCloses(ctx context.Context, userID int64, v valuation, txs []transaction.Transaction) (map[int64]prevClose, error) {
+// prevCloseRows finds the previous close of each winner: the same merge, as of
+// the day before the winner's date, so weekends and holidays fall out as the
+// latest stored close before it. Ids are grouped by that day so each distinct
+// date costs one LatestCloses call, not one per instrument. Each Close is
+// already scaled by the splits since its Date, in today's terms like the
+// winner's, and Date is the date of the previous row. Instruments with no
+// earlier close are absent.
+func (d *deps) prevCloseRows(ctx context.Context, userID int64, winners map[int64]price.Price, splitsOf map[int64][]split.Split, asOf string) (map[int64]price.Price, error) {
 	idsBefore := make(map[string][]int64)
-	for id, won := range v.winner {
+	for id, won := range winners {
 		day, err := time.Parse(time.DateOnly, won.Date)
 		if err != nil {
 			return nil, err
@@ -409,17 +410,31 @@ func (h *summaryHandler) prevCloses(ctx context.Context, userID int64, v valuati
 		before := day.AddDate(0, 0, -1).Format(time.DateOnly)
 		idsBefore[before] = append(idsBefore[before], id)
 	}
-	out := make(map[int64]prevClose, len(v.winner))
+	out := make(map[int64]price.Price, len(winners))
 	for before, ids := range idsBefore {
-		prevRows, err := holdings.LatestCloses(ctx, h.priceSources(), userID, ids, before)
+		prevRows, err := holdings.LatestCloses(ctx, d.priceSources(), userID, ids, before)
 		if err != nil {
 			return nil, err
 		}
 		for id, prev := range prevRows {
-			// In today's terms, like last_price, so day_change compares like
-			// with like.
-			out[id] = prevClose{close: splitScaled(prev.Close, v.splitsOf[id], prev.Date, v.asOf), date: prev.Date}
+			prev.Close = splitScaled(prev.Close, splitsOf[id], prev.Date, asOf)
+			out[id] = prev
 		}
+	}
+	return out, nil
+}
+
+// prevCloses finds the previous close per priced instrument of v (see
+// prevCloseRows). txs, every portfolio's rows in scope, gives each prevClose
+// its tradeAdj.
+func (h *summaryHandler) prevCloses(ctx context.Context, userID int64, v valuation, txs []transaction.Transaction) (map[int64]prevClose, error) {
+	rows, err := h.prevCloseRows(ctx, userID, v.winner, v.splitsOf, v.asOf)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[int64]prevClose, len(rows))
+	for id, prev := range rows {
+		out[id] = prevClose{close: prev.Close, date: prev.Date}
 	}
 	for _, t := range txs {
 		if t.InstrumentID == nil || (t.Type != transaction.TypeBuy && t.Type != transaction.TypeSell) {

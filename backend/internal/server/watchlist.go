@@ -104,27 +104,17 @@ func (h *watchlistHandler) watchPrices(ctx context.Context, userID int64, items 
 	if err != nil {
 		return nil, err
 	}
-	out := make(map[int64]watchPrice, len(winners))
-	idsBefore := make(map[string][]int64)
-	for id, won := range winners {
-		day, err := time.Parse(time.DateOnly, won.Date)
-		if err != nil {
-			return nil, err
-		}
-		before := day.AddDate(0, 0, -1).Format(time.DateOnly)
-		idsBefore[before] = append(idsBefore[before], id)
-		out[id] = watchPrice{last: splitScaled(won.Close, splits[id], won.Date, asOf), lastDate: won.Date, lastSource: won.Source}
+	prevRows, err := h.prevCloseRows(ctx, userID, winners, splits, asOf)
+	if err != nil {
+		return nil, err
 	}
-	for before, ids := range idsBefore {
-		prevRows, err := holdings.LatestCloses(ctx, h.priceSources(), userID, ids, before)
-		if err != nil {
-			return nil, err
+	out := make(map[int64]watchPrice, len(winners))
+	for id, won := range winners {
+		wp := watchPrice{last: splitScaled(won.Close, splits[id], won.Date, asOf), lastDate: won.Date, lastSource: won.Source}
+		if prev, ok := prevRows[id]; ok {
+			wp.prev, wp.prevDate = prev.Close, prev.Date
 		}
-		for id, prev := range prevRows {
-			wp := out[id]
-			wp.prev, wp.prevDate = splitScaled(prev.Close, splits[id], prev.Date, asOf), prev.Date
-			out[id] = wp
-		}
+		out[id] = wp
 	}
 	return out, nil
 }
