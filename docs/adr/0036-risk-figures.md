@@ -102,20 +102,24 @@ them, so each pair is the same day:
 - **correlation**: `cov(r, b) / (σ_r × σ_b)`.
 
 All of them are `null` when `benchmark_twr` is `null` on any point of the
-window (no benchmark asked for, or one with no level on or before the
-history's first point, which nulls it on every point, ADR 0012; on the position
-page, a day from `returns_from` with no level or no rate, ADR 0033), and when `Σ(b_i − b̄)²` is 0, since a flat benchmark has no
-beta; the correlation is `null` too when `σ_r` is 0. A `null` benchmark figure
-never hides the portfolio's own.
+window whose `twr` is not `null` (a point without a portfolio return has no day
+to pair, so the window's base and a position's points outside `returns_from` to
+`returns_to` never hide the figures; the causes are no benchmark asked for, or
+one with no level on or before the history's first point, which nulls it on
+every point, ADR 0012; on the position page, a day from `returns_from` with no
+level or no rate, ADR 0033), and when `Σ(b_i − b̄)²` is 0, since a flat
+benchmark has no beta; the correlation is `null` too when `σ_r` is 0. A `null`
+benchmark figure never hides the portfolio's own.
 
 ### Windows and the minimum
 
 The Performans card reads the all-time history, the one the drawdown card
-reads, with the page's benchmark, and cuts it to a window with a segmented control, **1Y | 3Y | Tümü**. It opens on
-1Y and the choice is not stored. A window is the points dated on or after the
-last point's date minus 365 days (1Y) or 1095 days (3Y); Tümü is every point.
-The first point of a window is its base, so the window's returns are the ones
-of the points after it. All three options are always offered.
+reads, with the page's benchmark, and cuts it to a window with a segmented
+control, **1Y | 3Y | Tümü**. It opens on 1Y and the choice is not stored. A
+window is the points dated on or after the last point's date minus 365 days
+(1Y) or 1095 days (3Y); Tümü is every point. The first point of a window is
+its base, so the window's returns are the ones of the points after it. All
+three options are always offered.
 
 A window with fewer than **30 daily returns** shows "Yeterli veri yok" in place
 of the figures, benchmark figures included, instead of a dash per figure: a
