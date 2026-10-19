@@ -47,9 +47,10 @@ const RequestPause = 500 * time.Millisecond
 var periods = []int{1, 3, 6, 12, 36, 60}
 
 // backfillSlackDays is how far a fund's first price may trail the start of
-// its history, and its last price may trail now, before SyncHistory counts
-// it as missing. Wider than the longest Turkish holiday stretch (a 9-day
-// bayram), so a fund bought on a closed day is not refetched on every run.
+// its history, two consecutive prices may be apart, and its last price may
+// trail now, before SyncHistory counts the series as having a hole. Wider
+// than the longest Turkish holiday stretch (a 9-day bayram), so a fund bought
+// on a closed day is not refetched on every run.
 const backfillSlackDays = 14
 
 // Fetcher retrieves fund NAVs from TEFAS over HTTP.
@@ -220,36 +221,44 @@ func Sync(ctx context.Context, f *Fetcher, instruments *instrument.Repo, prices 
 
 // SyncHistory fetches in's NAVs back to from (YYYY-MM-DD) in one request
 // (renaming in as SyncFund does),
-// unless its stored prices already span the range: a row within
-// backfillSlackDays of from, or earlier, and a row within backfillSlackDays
-// of now, so a series that stops early is fetched again. from is clamped to
-// the 60-month window TEFAS serves, so a very old transaction does not
-// refetch forever. Returns rows written.
+// unless its stored prices already span the range: some are stored in
+// [from, now], and no two consecutive dates among from, those prices and now
+// are more than backfillSlackDays apart, so a series that stops early or skips
+// months is fetched again. from is clamped to the 60-month
+// window TEFAS serves, so a very old transaction does not refetch forever.
+// Returns rows written.
 //
 // shortcut: a transaction dated before the fund existed (a typo), and a
 // delisted fund whose last NAV is older than backfillSlackDays, refetch the
 // fund on every call, one request each. Upgrade path: remember the attempt
 // in empty_fetches if that ever shows up in the logs.
 func (s *Syncer) SyncHistory(ctx context.Context, in instrument.Instrument, from string, now time.Time) (int, error) {
-	start := max(from, now.In(price.Istanbul).AddDate(0, -periods[len(periods)-1], 0).Format(time.DateOnly))
-	d, err := time.Parse(time.DateOnly, start)
-	if err != nil {
+	today := now.In(price.Istanbul)
+	start := max(from, today.AddDate(0, -periods[len(periods)-1], 0).Format(time.DateOnly))
+	if _, err := time.Parse(time.DateOnly, start); err != nil {
 		return 0, fmt.Errorf("tefas history for %s: bad start date %q: %w", in.Symbol, from, err)
 	}
-	have, err := s.Prices.Latest(ctx, []int64{in.ID}, d.AddDate(0, 0, backfillSlackDays).Format(time.DateOnly))
+	stored, err := s.Prices.Range(ctx, []int64{in.ID}, start, today.Format(time.DateOnly))
 	if err != nil {
 		return 0, fmt.Errorf("check tefas history for %s: %w", in.Symbol, err)
 	}
-	_, hasStart := have[in.ID]
-	today := now.In(price.Istanbul)
-	have, err = s.Prices.Latest(ctx, []int64{in.ID}, today.Format(time.DateOnly))
-	if err != nil {
-		return 0, fmt.Errorf("check tefas history for %s: %w", in.Symbol, err)
+	hole := len(stored) == 0
+	prev := start
+	for _, p := range append(stored, price.Price{Date: today.Format(time.DateOnly)}) {
+		hole = hole || daysBetween(prev, p.Date) > backfillSlackDays
+		prev = p.Date
 	}
-	if last, ok := have[in.ID]; hasStart && ok && last.Date >= today.AddDate(0, 0, -backfillSlackDays).Format(time.DateOnly) {
+	if !hole {
 		return 0, nil
 	}
 	return s.SyncFund(ctx, in, coveringPeriod(start, now))
+}
+
+// daysBetween returns the days from a to b, both YYYY-MM-DD already validated.
+func daysBetween(a, b string) int {
+	ta, _ := time.Parse(time.DateOnly, a)
+	tb, _ := time.Parse(time.DateOnly, b)
+	return int(tb.Sub(ta).Hours() / 24)
 }
 
 // coveringPeriod returns the smallest TEFAS period whose window starts on or
