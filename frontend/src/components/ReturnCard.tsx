@@ -192,12 +192,13 @@ export function ReturnCard({
       {/* From sm the heading and the selects share the first row and the
           figures have the card's whole width under them, so a long benchmark
           pill stays on the figures' line in Turkish and English.
-          Below sm the selects come last and share one row. */}
+          Below sm the selects come last, one under the other, so each keeps its
+          label whole. */}
       <div className="grid grid-cols-1 gap-x-3 gap-y-1 px-4 pt-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <h2 className="text-[11px] font-medium tracking-wide text-muted uppercase">
           {`${t('chart.return.title')} · ${rangeLabel}`}
         </h2>
-        <div className="flex gap-2 max-sm:order-last max-sm:mt-1">
+        <div className="flex gap-2 max-sm:order-last max-sm:mt-1 max-sm:flex-col">
           <BenchmarkSelect benchmark={benchmark} benchmarks={benchmarks} onChange={onBenchmark} />
           <ReturnMethodSelect method={method} onChange={onMethod} />
         </div>
