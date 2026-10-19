@@ -164,7 +164,7 @@ export function TradesCard({
 
   return (
     <section className="card">
-      <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
+      <div className="flex flex-col gap-3 border-b border-line px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-0.5">
           <h2 id={headingId} className="text-[14px] font-semibold text-ink">
             {title}

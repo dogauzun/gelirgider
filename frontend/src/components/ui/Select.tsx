@@ -116,6 +116,8 @@ export function Select<T extends string>({
 // A Select as wide as its longest label, so no label is cut in either
 // language and a pick does not change its width. A `ch` is the width of a
 // digit, wider than most letters; 3rem is the trigger's padding and chevron.
+// A short label such as "Tümü" is the exception (m is wider than a digit), so
+// min-w-22 (5.5rem) is the floor.
 export function FitSelect<T extends string>(props: {
   'aria-label': string
   value: T
@@ -125,7 +127,7 @@ export function FitSelect<T extends string>(props: {
   const longest = Math.max(...props.options.map((o) => o.label.length))
   return (
     <span
-      className="inline-block min-w-0 text-[12px] max-sm:flex-1"
+      className="inline-block min-w-22 text-[12px] max-sm:flex-1"
       style={{ width: `calc(${longest}ch + 3rem)` }}
     >
       <Select {...props} className="text-[12px]" />
