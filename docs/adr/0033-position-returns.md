@@ -76,7 +76,9 @@ The series ends at the last point with a value or a flow. A closed position
 has value 0 and no flow after its last sell, and the period rate of ADR 0011
 would compound over those days, so they are left out of the returns and of
 the benchmark's: their `twr` and `benchmark_twr` are `null`, like those before
-`returns_from`. An open position ends on `to`. A closed stretch inside the
+`returns_from`. The response names the end as `returns_to`, which the
+client measures the annualizing span and the estimated tag against. An open
+position ends on `to`. A closed stretch inside the
 range stays in the series.
 
 ### The benchmark is a shadow position

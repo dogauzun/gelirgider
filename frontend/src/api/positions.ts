@@ -28,6 +28,9 @@ export interface PositionHistoryResponse {
   // counted date.
   returns: Record<ReturnMethod, string | null>
   returns_from: string | null
+  // The last counted date: the last day with a value or a flow, so a closed
+  // position's last sell. null with returns_from.
+  returns_to: string | null
   // The requested benchmark's returns by method over the same range, null
   // where undefined; estimated_from is the first day whose level is
   // extrapolated. null when no benchmark was requested.

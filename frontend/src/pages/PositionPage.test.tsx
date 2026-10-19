@@ -129,6 +129,7 @@ const tx = (id: number, type: string, date: string, fee = '0') => ({
 const RETURNS = {
   returns: { simple: '0.125', twr: '0.090909', mwr: '0.090909' },
   returns_from: '2026-09-25',
+  returns_to: '2026-09-26',
 }
 
 const point = (date: string, quantity: string, value: string) => ({

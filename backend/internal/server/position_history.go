@@ -46,6 +46,7 @@ type positionHistoryResponse struct {
 	Points      []positionHistoryPoint `json:"points"`
 	Returns     returnsResponse        `json:"returns"`
 	ReturnsFrom *string                `json:"returns_from"` // first day with a close, null when there is none
+	ReturnsTo   *string                `json:"returns_to"`   // last day of the series the returns run on, null when returns_from is
 	Benchmark   *benchmarkResponse     `json:"benchmark"`    // the ?benchmark= shadow position, null when none was requested
 }
 
@@ -158,7 +159,7 @@ func (h *positionHistoryHandler) benchmarkPrices(ctx context.Context, code, curr
 // get answers one holding's daily series over a date range.
 //
 //	@Summary	Position history
-//	@Description	One point per day from `from` to `to` for one instrument of the portfolio, in the instrument's own currency (no fx). `returns` holds the range's simple, time-weighted and money-weighted returns of the position, in that currency, as 6-decimal fractions or null when undefined (a non-positive value on the first day, or a time-weighted factor below zero); buys and their fees are flows in, sells and dividends (net of stopaj and fee) flows out. They start at `returns_from`, the first day with a close (null when there is none), whose value is the base, and end at the last day with a value or a flow, so a closed position's end is its last sell; each point's `twr` is the running time-weighted return from that day, null before it and after the end. A `from` before the instrument's first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the instrument's first transaction (at most 3660 days back); a `to` after today is clamped to today. `benchmark` lays a shadow position over it: the benchmark's level converted into the instrument's currency, bought with the position's value on `returns_from` and fed with its flows (ADR 0012); `benchmark` answers its code, its three returns (null when a day from `returns_from` has no level or no rate) and `estimated_from`, the first extrapolated TUFE day, and each point's `benchmark_twr` is its running time-weighted return, null when the returns are or after the end. `benchmark` is null without the parameter.
+//	@Description	One point per day from `from` to `to` for one instrument of the portfolio, in the instrument's own currency (no fx). `returns` holds the range's simple, time-weighted and money-weighted returns of the position, in that currency, as 6-decimal fractions or null when undefined (a non-positive value on the first day, or a time-weighted factor below zero); buys and their fees are flows in, sells and dividends (net of stopaj and fee) flows out. They start at `returns_from`, the first day with a close (null when there is none), whose value is the base, and end at `returns_to`, the last day with a value or a flow, so a closed position's end is its last sell (null with `returns_from`); each point's `twr` is the running time-weighted return from that day, null before it and after the end. A `from` before the instrument's first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the instrument's first transaction (at most 3660 days back); a `to` after today is clamped to today. `benchmark` lays a shadow position over it: the benchmark's level converted into the instrument's currency, bought with the position's value on `returns_from` and fed with its flows (ADR 0012); `benchmark` answers its code, its three returns (null when a day from `returns_from` has no level or no rate) and `estimated_from`, the first extrapolated TUFE day, and each point's `benchmark_twr` is its running time-weighted return, null when the returns are or after the end. `benchmark` is null without the parameter.
 //	@Tags		portfolios
 //	@Produce	json
 //	@Param		id				path		int		true	"portfolio id"
@@ -267,6 +268,7 @@ func (h *positionHistoryHandler) get(w http.ResponseWriter, r *http.Request) {
 	start, values, flows := positionSeries(points, value, flow)
 	if start < len(points) {
 		resp.ReturnsFrom = &points[start].Date
+		resp.ReturnsTo = &points[start+len(values)-1].Date
 		resp.Returns = positionReturns(points[start:start+len(values)], values, flows)
 	}
 	if benchmarkCode != "" {

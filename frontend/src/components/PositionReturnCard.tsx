@@ -43,7 +43,7 @@ export function PositionReturnCard({
   const [method, setMethod] = useReturnMethod()
   const { data } = history
   const ret = data?.returns[method] ?? null
-  const lastDate = data?.points[data.points.length - 1]?.date
+  const lastDate = data?.returns_to
   const gap = data?.returns_from && lastDate ? daysBetween(data.returns_from, lastDate) : 0
   const annualized =
     gap >= 364 && ret !== null ? annualize(Number(ret), gap <= 366 ? 365 : gap) : null
