@@ -102,8 +102,9 @@ them, so each pair is the same day:
 - **correlation**: `cov(r, b) / (σ_r × σ_b)`.
 
 All of them are `null` when `benchmark_twr` is `null` on any point of the
-window (no benchmark asked for, or one with no level on the window's first
-point, ADR 0012), and when `Σ(b_i − b̄)²` is 0, since a flat benchmark has no
+window (no benchmark asked for, or one with no level on or before the
+history's first point, which nulls it on every point, ADR 0012; on the position
+page, a day from `returns_from` with no level or no rate, ADR 0033), and when `Σ(b_i − b̄)²` is 0, since a flat benchmark has no
 beta; the correlation is `null` too when `σ_r` is 0. A `null` benchmark figure
 never hides the portfolio's own.
 
