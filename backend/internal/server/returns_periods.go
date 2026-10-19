@@ -1,9 +1,12 @@
 package server
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
+	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 )
 
 // periodBucket is one calendar month or year of the periods response: its
@@ -58,35 +61,40 @@ func (h *historyHandler) periods(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	today := istanbulToday()
-	resp := periodsResponse{Months: []periodBucket{}, Years: []periodBucket{}}
-	if len(txs) > 0 {
-		from, err := defaultHistoryFrom(txs, today)
-		if err != nil {
-			auth.WriteInternalError(w, r, err)
-			return
-		}
-		if !from.After(today) {
-			s, err := h.sweep(r.Context(), userID, txs, from, today, sweepOpts{benchmark: benchmarkRef{benchmarkCode, benchmarkInstrument}})
-			if err != nil {
-				auth.WriteInternalError(w, r, err)
-				return
-			}
-			resp.Currency = s.currency
-			resp.Months = s.buckets(len("2006-01"))
-			resp.Years = s.buckets(len("2006"))
-			auth.WriteJSON(w, http.StatusOK, resp)
-			return
-		}
-	}
-	// Nothing to sweep: no transaction, or only future-dated ones.
-	reporting, err := h.users.ReportingCurrency(r.Context(), userID)
+	s, _, currency, err := h.sweepToToday(r.Context(), userID, txs, sweepOpts{benchmark: benchmarkRef{benchmarkCode, benchmarkInstrument}})
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	resp.Currency = reporting
+	resp := periodsResponse{Currency: currency, Months: []periodBucket{}, Years: []periodBucket{}}
+	if s != nil {
+		resp.Months = s.buckets(len("2006-01"))
+		resp.Years = s.buckets(len("2006"))
+	}
 	auth.WriteJSON(w, http.StatusOK, resp)
+}
+
+// sweepToToday sweeps the scope's rows from the default history start to
+// today (Istanbul). With nothing to sweep, no transaction or only
+// future-dated ones, s is nil and currency is the user's reporting currency;
+// otherwise currency is the sweep's. from is the sweep's first day.
+func (h *historyHandler) sweepToToday(ctx context.Context, userID int64, txs []transaction.Transaction, opts sweepOpts) (s *historySweep, from time.Time, currency string, err error) {
+	today := istanbulToday()
+	if len(txs) > 0 {
+		from, err = defaultHistoryFrom(txs, today)
+		if err != nil {
+			return nil, from, "", err
+		}
+		if !from.After(today) {
+			s, err = h.sweep(ctx, userID, txs, from, today, opts)
+			if err != nil {
+				return nil, from, "", err
+			}
+			return s, from, s.currency, nil
+		}
+	}
+	currency, err = h.users.ReportingCurrency(ctx, userID)
+	return nil, from, currency, err
 }
 
 func sum(xs []float64) float64 {
@@ -103,23 +111,33 @@ func sum(xs []float64) float64 {
 // days, so a year's bucket equals the chart header for that year's preset.
 func (s *historySweep) buckets(n int) []periodBucket {
 	out := []periodBucket{}
-	for i := 0; i < len(s.entries); {
-		period := s.entries[i].Date[:n]
-		j := i
-		for j+1 < len(s.entries) && s.entries[j+1].Date[:n] == period {
-			j++
-		}
+	for _, span := range s.periodSpans(n) {
+		i, j := span[0], span[1]
 		values, flows, _, negativeCash := s.rangeInputs(i, j)
-		b := periodBucket{Period: period, From: s.entries[i].Date, To: s.entries[j].Date, Returns: periodReturns(values, flows, negativeCash), flow: sum(flows) + s.flows[i].InexactFloat64()}
+		b := periodBucket{Period: s.entries[i].Date[:n], From: s.entries[i].Date, To: s.entries[j].Date, Returns: periodReturns(values, flows, negativeCash), flow: sum(flows) + s.flows[i].InexactFloat64()}
 		if _, returns, ok := s.rangeBenchmark(i, j, flows, negativeCash); ok {
 			b.Benchmark = &returns
 		}
 		out = append(out, b)
-		i = j + 1
 	}
 	if len(out) > 0 {
 		out[0].Partial = true
 		out[len(out)-1].Partial = true
 	}
 	return out
+}
+
+// periodSpans is the [i, j] entry indexes of each run of consecutive days
+// sharing the first n characters of their date (7 for months, 4 for years).
+func (s *historySweep) periodSpans(n int) [][2]int {
+	var spans [][2]int
+	for i := 0; i < len(s.entries); {
+		j := i
+		for j+1 < len(s.entries) && s.entries[j+1].Date[:n] == s.entries[i].Date[:n] {
+			j++
+		}
+		spans = append(spans, [2]int{i, j})
+		i = j + 1
+	}
+	return spans
 }
