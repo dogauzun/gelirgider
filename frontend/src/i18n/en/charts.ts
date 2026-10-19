@@ -102,6 +102,12 @@ export const enCharts: AreaStrings<typeof trCharts> = {
   'cashflow.dividends': 'Dividends',
   'cashflow.interest': 'Interest',
   'cashflow.fees': 'Fees',
+  'cashflow.streak': 'Streak',
+  'cashflow.streakMonths': '{count} months',
+  'cashflow.streakMonths.one': '{count} month',
+  'cashflow.longest': 'Longest',
+  'cashflow.totals':
+    '{window}: in {deposits}, out {withdrawals}, net {net}, dividends and interest {income}, fees {fees}',
   'cashflow.error': 'Cash flow failed to load',
   'cashflow.missingRates': 'No rate for {currencies}; those rows are not counted',
   'cashflow.chart.summary': 'Monthly cash flow {from} – {to}: {series}',
