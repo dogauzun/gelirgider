@@ -67,12 +67,8 @@ func (h *cashGapHandler) gaps(r *http.Request, userID int64) ([]cashGap, error) 
 func (h *cashGapHandler) list(w http.ResponseWriter, r *http.Request) {
 	userID := auth.MustUserID(r.Context())
 	gaps, err := h.gaps(r, userID)
-	if errors.Is(err, portfolio.ErrNotFound) {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
-		return
-	}
 	if err != nil {
-		auth.WriteInternalError(w, r, err)
+		portfolio.WriteLookupError(w, r, err)
 		return
 	}
 	auth.WriteJSON(w, http.StatusOK, gaps)
@@ -105,12 +101,8 @@ func (h *cashGapHandler) fill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	gaps, err := h.gaps(r, userID)
-	if errors.Is(err, portfolio.ErrNotFound) {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
-		return
-	}
 	if err != nil {
-		auth.WriteInternalError(w, r, err)
+		portfolio.WriteLookupError(w, r, err)
 		return
 	}
 
@@ -131,12 +123,8 @@ func (h *cashGapHandler) fill(w http.ResponseWriter, r *http.Request) {
 		deposits = append(deposits, t)
 	}
 	ids, err := h.transactions.CreateAll(r.Context(), userID, deposits)
-	if errors.Is(err, portfolio.ErrNotFound) {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
-		return
-	}
 	if err != nil {
-		auth.WriteInternalError(w, r, err)
+		portfolio.WriteLookupError(w, r, err)
 		return
 	}
 	auth.WriteJSON(w, http.StatusOK, ids)

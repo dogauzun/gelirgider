@@ -8,7 +8,6 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/allocation"
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
 	"github.com/dogauzun/gelirgider/backend/internal/db"
-	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/shopspring/decimal"
 )
@@ -81,14 +80,8 @@ func toAllocationTargetsBody(ts []allocation.Target) allocationTargetsBody {
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/allocation-targets [get]
 func (h *allocationTargetHandler) get(w http.ResponseWriter, r *http.Request) {
-	userID := auth.MustUserID(r.Context())
-	portfolioID, err := h.scopePortfolioID(r, userID)
-	if errors.Is(err, portfolio.ErrNotFound) {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
-		return
-	}
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
+	userID, portfolioID, ok := h.scopeID(w, r)
+	if !ok {
 		return
 	}
 	ts, err := h.allocationTargets.List(r.Context(), userID, portfolioID)
@@ -114,14 +107,8 @@ func (h *allocationTargetHandler) get(w http.ResponseWriter, r *http.Request) {
 //	@Failure	500		{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/allocation-targets [put]
 func (h *allocationTargetHandler) put(w http.ResponseWriter, r *http.Request) {
-	userID := auth.MustUserID(r.Context())
-	portfolioID, err := h.scopePortfolioID(r, userID)
-	if errors.Is(err, portfolio.ErrNotFound) {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
-		return
-	}
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
+	userID, portfolioID, ok := h.scopeID(w, r)
+	if !ok {
 		return
 	}
 	var req allocationTargetsBody

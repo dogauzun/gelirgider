@@ -1,7 +1,6 @@
 package server
 
 import (
-	"errors"
 	"maps"
 	"net/http"
 	"slices"
@@ -9,7 +8,6 @@ import (
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
 	"github.com/dogauzun/gelirgider/backend/internal/holdings"
-	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/shopspring/decimal"
@@ -76,14 +74,8 @@ func (s *cashFlowSums) add(t transaction.Transaction, f decimal.Decimal) {
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/cashflows [get]
 func (h *cashFlowHandler) get(w http.ResponseWriter, r *http.Request) {
-	userID := auth.MustUserID(r.Context())
-	lists, err := scopeTransactions(r.Context(), h.portfolios, h.transactions, userID, r.PathValue("id"))
-	if errors.Is(err, portfolio.ErrNotFound) {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
-		return
-	}
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
+	userID, lists, ok := h.scopeLists(w, r)
+	if !ok {
 		return
 	}
 	usr, err := h.users.GetByID(r.Context(), userID)

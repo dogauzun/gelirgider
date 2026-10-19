@@ -3,7 +3,6 @@ package server
 import (
 	"cmp"
 	"context"
-	"errors"
 	"maps"
 	"net/http"
 	"slices"
@@ -13,7 +12,6 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
 	"github.com/dogauzun/gelirgider/backend/internal/holdings"
 	"github.com/dogauzun/gelirgider/backend/internal/instrument"
-	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 )
@@ -68,7 +66,6 @@ type tradesResponse struct {
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/trades [get]
 func (h *tradeHandler) get(w http.ResponseWriter, r *http.Request) {
-	userID := auth.MustUserID(r.Context())
 	var only int64
 	if q := r.URL.Query().Get("instrument_id"); q != "" {
 		n, err := strconv.ParseInt(q, 10, 64)
@@ -78,13 +75,8 @@ func (h *tradeHandler) get(w http.ResponseWriter, r *http.Request) {
 		}
 		only = n
 	}
-	lists, err := scopeTransactions(r.Context(), h.portfolios, h.transactions, userID, r.PathValue("id"))
-	if errors.Is(err, portfolio.ErrNotFound) {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
-		return
-	}
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
+	userID, lists, ok := h.scopeLists(w, r)
+	if !ok {
 		return
 	}
 	instruments, err := h.instruments.ByIDs(r.Context(), distinctInstrumentIDs(flatByDate(lists)))

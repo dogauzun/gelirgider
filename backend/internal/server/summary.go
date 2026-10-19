@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"maps"
 	"net/http"
 	"slices"
@@ -12,7 +11,6 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/fx"
 	"github.com/dogauzun/gelirgider/backend/internal/holdings"
 	"github.com/dogauzun/gelirgider/backend/internal/instrument"
-	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/dogauzun/gelirgider/backend/internal/split"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
@@ -246,15 +244,9 @@ func buildStats(s holdings.Summary, txs []transaction.Transaction, rates map[str
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/summary [get]
 func (h *summaryHandler) get(w http.ResponseWriter, r *http.Request) {
-	userID := auth.MustUserID(r.Context())
 	// One list per portfolio in scope: a numeric id or "all".
-	lists, err := scopeTransactions(r.Context(), h.portfolios, h.transactions, userID, r.PathValue("id"))
-	if errors.Is(err, portfolio.ErrNotFound) {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
-		return
-	}
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
+	userID, lists, ok := h.scopeLists(w, r)
+	if !ok {
 		return
 	}
 

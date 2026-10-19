@@ -223,12 +223,8 @@ func (h *dividendHandler) dismiss(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := h.dividends.Dismiss(r.Context(), userID, portfolioID, req.InstrumentID, req.Date)
-	if errors.Is(err, portfolio.ErrNotFound) {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
-		return
-	}
 	if err != nil {
-		auth.WriteInternalError(w, r, err)
+		portfolio.WriteLookupError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

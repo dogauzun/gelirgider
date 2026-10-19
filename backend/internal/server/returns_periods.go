@@ -1,11 +1,9 @@
 package server
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
-	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 )
 
 // periodBucket is one calendar month or year of the periods response: its
@@ -48,14 +46,8 @@ type periodsResponse struct {
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/returns/periods [get]
 func (h *historyHandler) periods(w http.ResponseWriter, r *http.Request) {
-	userID := auth.MustUserID(r.Context())
-	lists, err := scopeTransactions(r.Context(), h.portfolios, h.transactions, userID, r.PathValue("id"))
-	if errors.Is(err, portfolio.ErrNotFound) {
-		auth.WriteError(w, http.StatusNotFound, "portfolio not found")
-		return
-	}
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
+	userID, lists, ok := h.scopeLists(w, r)
+	if !ok {
 		return
 	}
 	txs := flatByDate(lists)
