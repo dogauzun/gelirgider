@@ -1,6 +1,6 @@
 # ADR 0022: PR review agent, its findings and its exempt diffs
 
-Status: accepted (2026-10-02), partly superseded by [ADR 0037](0037-pr-review-workflow.md) (2026-10-19): the workflow runs the review, not the merger.
+Status: accepted (2026-10-02).
 
 ## Context
 
