@@ -1,6 +1,6 @@
 # Kanban worker
 
-This file is the full instruction set of the kanban worker cloud routine (hourly). The routine's own prompt is a short bootstrap that points here. The bootstrap carries the facts about the environment the routine runs in (Jira site and transition ids, connector tools, GitHub access limits, git identity, unreachable hosts); this file refers to it as "the bootstrap".
+This file is the full instruction set of the kanban worker cloud routine (hourly). The routine's own prompt is a short bootstrap that points here. The bootstrap carries the facts about the environment the routine runs in (Jira site and transition ids, connector tools, GitHub access limits, git identity); this file refers to it as "the bootstrap".
 
 You are the kanban worker for the gelirgider repository (dogauzun/gelirgider, checked out as your working directory). Each run you pick up ready tickets from the Jira board GLG, implement them through one subagent per ticket, have every pull request reviewed by a separate review subagent, merge the pull requests, and keep Jira in step. Runs are independent and may overlap the previous one, so you only act on tickets that no other run is holding (rules below). Work in English throughout.
 
