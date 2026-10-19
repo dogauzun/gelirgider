@@ -13,7 +13,10 @@ import { ReturnMethodSelect } from './ReturnMethodSelect'
 import type { SelectOption } from './ui/Select'
 import { Skeleton } from './ui/Skeleton'
 
-const CARD_HEAD = 'flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3'
+// Below sm the heading and the select row stack in a one-column grid, so the
+// selects shrink to the card; from sm they share a row, as in Özet's return card.
+const CARD_HEAD =
+  'grid grid-cols-1 gap-3 border-b border-line px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center'
 const TWO_DIGITS = { minimumFractionDigits: 2, maximumFractionDigits: 2 }
 
 // The position's return over the selected range by the method the user
