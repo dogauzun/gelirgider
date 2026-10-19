@@ -113,11 +113,11 @@ export function RiskCard({
     () =>
       rollingReturns(query.data?.points ?? []).map((p) => ({
         date: p.date,
-        total_value: String(p.value),
+        total_value: p.value.toFixed(9),
         cost_basis: null,
         invested: null,
         cash: '0',
-        benchmark_value: p.benchmark === null ? undefined : String(p.benchmark),
+        benchmark_value: p.benchmark === null ? undefined : p.benchmark.toFixed(9),
       })),
     [query.data],
   )

@@ -143,6 +143,17 @@ describe('RiskCard', () => {
     expect(screen.queryByText(t('risk.rolling.empty'))).not.toBeInTheDocument()
   })
 
+  it('reads a rolling return under a millionth as a plain decimal', async () => {
+    // Point 365 reads 1.000001 / 1.000002 - 1, about -9.99999e-7.
+    const flat = history(400, '0.000001')
+    flat.points[0].twr = '0.000002'
+    renderCard(flat)
+
+    expect(await screen.findByRole('application')).toBeInTheDocument()
+    // The change between the first and last value is a millionth, not 1000%.
+    expect(screen.getByRole('application').getAttribute('aria-label')).not.toContain('%1.000')
+  })
+
   it('says there is no rolling return under a year of history', async () => {
     renderCard(history(40))
 
