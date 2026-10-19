@@ -4,7 +4,7 @@ import type { PortfolioScope } from '../api/summary'
 import { t } from '../i18n/strings'
 import { SHARE_FORMAT } from '../lib/allocation'
 import { formatShortMarketDate, todayIstanbul } from '../lib/date'
-import { formatNumber, plTone, signedPercent } from '../lib/format'
+import { formatNumber, MISSING, plTone, signedPercent } from '../lib/format'
 import { riskStats, windowPoints, type RiskStats, type RiskWindow } from '../lib/risk'
 import { CashGapNotice } from './CashGapNotice'
 import { HistoryEmpty } from './HistoryEmpty'
@@ -17,6 +17,8 @@ const WINDOWS: RiskWindow[] = ['1y', '3y', 'all']
 
 // A window with fewer daily returns says too little (ADR 0036).
 const MIN_DAYS = 30
+
+const TWO_DECIMALS = { minimumFractionDigits: 2, maximumFractionDigits: 2 }
 
 const spread = (value: number) => formatNumber(value, SHARE_FORMAT)
 
@@ -33,17 +35,64 @@ function DayCell({ label, day }: { label: string; day: RiskStats['best'] }) {
   )
 }
 
+// Beta, correlation and the benchmark's volatility, or why they are not shown
+// (ADR 0036, "Against the benchmark"): no benchmark picked, or one with gaps
+// or fewer than MIN_DAYS paired returns in the window.
+function BenchmarkRow({
+  stats,
+  benchmark,
+  label,
+}: {
+  stats: RiskStats['benchmark']
+  benchmark: Benchmark | null
+  label: string
+}) {
+  if (benchmark === null) {
+    return <p className="mt-3 text-[13px] text-muted">{t('risk.noBenchmark')}</p>
+  }
+  if (stats === null || stats.days < MIN_DAYS) {
+    return (
+      <p className="mt-3 text-[13px] text-muted">
+        {t('risk.benchmarkNoData', { benchmark: label })}
+      </p>
+    )
+  }
+  return (
+    <KpiStrip columns="grid-cols-3" className="mt-3">
+      <KpiCell label={t('risk.beta')} hint={t('risk.beta.hint', { benchmark: label })}>
+        <FitFigure
+          className={`${KPI_FIGURE} text-ink`}
+          text={formatNumber(stats.beta, TWO_DECIMALS)}
+        />
+      </KpiCell>
+      <KpiCell label={t('risk.correlation')} hint={t('risk.correlation.hint')}>
+        <FitFigure
+          className={`${KPI_FIGURE} text-ink`}
+          text={
+            stats.correlation === null ? MISSING : formatNumber(stats.correlation, TWO_DECIMALS)
+          }
+        />
+      </KpiCell>
+      <KpiCell label={t('risk.benchmarkVolatility', { benchmark: label })}>
+        <FitFigure className={`${KPI_FIGURE} text-ink`} text={spread(stats.volatility)} />
+      </KpiCell>
+    </KpiStrip>
+  )
+}
+
 // The "Risk" card on the Performans tab (ADR 0036): the annualized volatility
 // and downside deviation and the best and worst day of the all-time history's
 // daily returns (lib/risk.ts), cut to "1Y | 3Y | Tümü". It opens on 1Y and
 // the choice is not stored. The history is asked with the page's benchmark
-// for the benchmark figures; the figures here read only twr.
+// for the benchmark figures; the first four read only twr.
 export function RiskCard({
   portfolioId,
   benchmark,
+  benchmarkLabel,
 }: {
   portfolioId: PortfolioScope
   benchmark: Benchmark | null
+  benchmarkLabel?: string
 }) {
   const [span, setSpan] = useState<RiskWindow>('1y')
   const query = usePortfolioHistory(portfolioId, '', todayIstanbul(), benchmark)
@@ -71,6 +120,11 @@ export function RiskCard({
           <DayCell label={t('risk.worstDay')} day={stats.worst} />
         </KpiStrip>
         <p className="mt-2 text-xs text-muted">{t('risk.days', { count: stats.days })}</p>
+        <BenchmarkRow
+          stats={stats.benchmark}
+          benchmark={benchmark}
+          label={benchmarkLabel ?? benchmark ?? ''}
+        />
       </>
     )
   }

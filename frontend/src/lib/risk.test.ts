@@ -41,6 +41,34 @@ describe('riskStats', () => {
     expect(stats.worst.value).toBeCloseTo(-0.01, 6)
   })
 
+  describe('against the benchmark', () => {
+    const withBenchmark = (benchmark: (string | null)[]) =>
+      example.map((p, i) => ({ ...p, benchmark_twr: benchmark[i] }))
+    const half = [null, '0.000000', '0.010000', '0.004950', '0.020024']
+
+    it('pairs the days: beta, correlation and the benchmark volatility', () => {
+      const { benchmark } = riskStats(withBenchmark(half)) as RiskStats
+
+      expect(benchmark?.days).toBe(3)
+      expect(benchmark?.beta).toBeCloseTo(2, 2)
+      expect(benchmark?.correlation).toBeCloseTo(1, 2)
+      expect(benchmark?.volatility).toBeCloseTo(0.1989, 3)
+    })
+
+    it('is null with a gap in the benchmark, the portfolio figures unchanged', () => {
+      const stats = riskStats(withBenchmark([null, '0.000000', '0.010000', null, '0.020024']))
+
+      expect(stats?.benchmark).toBeNull()
+      expect(stats?.volatility).toBeCloseTo(0.3977, 3)
+    })
+
+    it('is null without a benchmark and with one that never moves', () => {
+      expect(riskStats(example)?.benchmark).toBeNull()
+      const flat = [null, '0.000000', '0.000000', '0.000000', '0.000000']
+      expect(riskStats(withBenchmark(flat))?.benchmark).toBeNull()
+    })
+  })
+
   it('is null with fewer than two returns and with twr null everywhere', () => {
     expect(riskStats(points(['0.000000', '0.010000']))).toBeNull()
     expect(riskStats(points([null, null, null]))).toBeNull()

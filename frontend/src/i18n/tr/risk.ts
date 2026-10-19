@@ -14,5 +14,12 @@ export const trRisk = {
   'risk.worstDay': 'En kötü gün',
   'risk.days': '{count} günlük getiri',
   'risk.tooShort': 'Yeterli veri yok: en az 30 günlük getiri gerekir.',
+  'risk.beta': 'Beta',
+  'risk.beta.hint': '{benchmark} %1 oynadığında portföyün ortalama hareketi',
+  'risk.correlation': 'Korelasyon',
+  'risk.correlation.hint': '−1 ile 1 arasında; 1 birlikte hareket',
+  'risk.benchmarkVolatility': '{benchmark} oynaklığı',
+  'risk.noBenchmark': 'Beta ve korelasyon için bir karşılaştırma seç.',
+  'risk.benchmarkNoData': '{benchmark} bu dönemde eksik',
   'risk.error': 'Risk ölçüleri yüklenemedi',
 } as const

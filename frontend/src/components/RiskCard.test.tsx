@@ -34,7 +34,7 @@ const history = (count: number, twr: string | null | 'alternate' = 'alternate') 
 })
 
 // The history answers `response`; the cash gaps behind a null twr one gap.
-function renderCard(response: object, benchmark: Benchmark | null = null) {
+function renderCard(response: object, benchmark: Benchmark | null = null, label?: string) {
   const fetch = vi
     .spyOn(globalThis, 'fetch')
     .mockImplementation(async (input) =>
@@ -44,10 +44,23 @@ function renderCard(response: object, benchmark: Benchmark | null = null) {
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <RiskCard portfolioId={1} benchmark={benchmark} />
+      <RiskCard portfolioId={1} benchmark={benchmark} benchmarkLabel={label} />
     </QueryClientProvider>,
   )
   return fetch
+}
+
+// The history with the benchmark's twr on every day: half of the portfolio's,
+// or `benchmark_twr` as given.
+const withBenchmark = (benchmark_twr: 'half' | null) => {
+  const base = history(40)
+  return {
+    ...base,
+    points: base.points.map((p) => ({
+      ...p,
+      benchmark_twr: benchmark_twr === null ? null : String(Number(p.twr) / 2),
+    })),
+  }
 }
 
 const gaps = [{ portfolio_id: 1, date: '2024-01-02', currency: 'TRY', amount: '500' }]
@@ -87,6 +100,33 @@ describe('RiskCard', () => {
     expect(String(fetch.mock.calls[0][0])).toMatch(
       /^\/api\/portfolios\/1\/history\?to=\d{4}-\d{2}-\d{2}&benchmark=USD$/,
     )
+  })
+
+  it('shows beta, correlation and the benchmark volatility with a benchmark', async () => {
+    renderCard(withBenchmark('half'), 'XU100', 'BIST 100')
+
+    expect(await screen.findByText(t('risk.beta'))).toBeInTheDocument()
+    expect(cell(t('risk.beta'))).toHaveTextContent('2,00')
+    expect(cell(t('risk.correlation'))).toHaveTextContent('1,00')
+    expect(cell(t('risk.benchmarkVolatility', { benchmark: 'BIST 100' }))).not.toHaveTextContent(
+      MISSING,
+    )
+  })
+
+  it('asks for a benchmark without one', async () => {
+    renderCard(history(40))
+
+    expect(await screen.findByText(t('risk.noBenchmark'))).toBeInTheDocument()
+    expect(screen.queryByText(t('risk.beta'))).not.toBeInTheDocument()
+  })
+
+  it('says the benchmark has gaps when it has no returns', async () => {
+    renderCard(withBenchmark(null), 'USD', 'USD')
+
+    expect(
+      await screen.findByText(t('risk.benchmarkNoData', { benchmark: 'USD' })),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(t('risk.beta'))).not.toBeInTheDocument()
   })
 
   it('explains an undefined return instead of the figures', async () => {

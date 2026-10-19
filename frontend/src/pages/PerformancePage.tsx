@@ -16,7 +16,7 @@ import { Segmented } from '../components/ui/Segmented'
 import { FitSelect } from '../components/ui/Select'
 import { TAP_Y } from '../components/ui/tap'
 import { t } from '../i18n/strings'
-import { useBenchmark, useReturnMethod } from '../lib/useReturnSettings'
+import { benchmarkNames, useBenchmark, useReturnMethod } from '../lib/useReturnSettings'
 import { usePortfolioTitle } from '../lib/useTitle'
 
 // The Performans tab, for a portfolio and for `all`: the benchmark
@@ -30,6 +30,7 @@ export function PerformancePage() {
   const { data: summary } = usePortfolioSummary(portfolioId)
   const { benchmark, options, setBenchmark } = useBenchmark(summary)
   const [method, setMethod] = useReturnMethod()
+  const names = benchmarkNames(benchmark ?? undefined, options)
 
   return (
     <PortfolioHeader portfolioId={portfolioId}>
@@ -51,7 +52,7 @@ export function PerformancePage() {
           method={method}
         />
         <DrawdownCard portfolioId={portfolioId} />
-        <RiskCard portfolioId={portfolioId} benchmark={benchmark} />
+        <RiskCard portfolioId={portfolioId} benchmark={benchmark} benchmarkLabel={names.label} />
         <TradesCard scope={portfolioId} />
         <CashFlowCard portfolioId={portfolioId} />
       </div>
