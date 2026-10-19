@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Benchmark, ReturnMethod } from '../api/history'
@@ -39,6 +39,7 @@ const rows = [
     opening: '1000.00',
     net_flow: '0.00',
     gain: '100.00',
+    price: null,
     closing: '1100.00',
     returns: { simple: '0.200000', twr: '0.100000', mwr: null },
   }),
@@ -46,6 +47,10 @@ const rows = [
     opening: '1100.00',
     net_flow: '500.00',
     gain: '120.00',
+    price: '90.00',
+    income: '20.00',
+    fx: '-5.00',
+    cash_fx: '15.00',
     closing: '1720.00',
     returns: { simple: '0.075000', twr: '0.075000', mwr: null },
   }),
@@ -150,5 +155,38 @@ describe('YearsCard', () => {
     renderCard(async () => Response.json({ error: 'internal' }, { status: 500 }))
 
     expect(await screen.findByText(t('years.error'))).toBeInTheDocument()
+  })
+
+  it('splits the gain into price, income and currency in the split view', async () => {
+    renderCard(async () => Response.json(response(rows)))
+
+    await screen.findByRole('table')
+    expect(screen.getByText(t('years.hint'))).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('radio', { name: t('years.view.split') }))
+
+    const table = screen.getByRole('table')
+    expect(within(table).getByRole('columnheader', { name: t('years.price') })).toBeInTheDocument()
+    expect(within(table).queryByRole('columnheader', { name: t('years.opening') })).toBeNull()
+    const all = within(table).getAllByRole('row')
+    expect(cells(all[1])).toEqual([
+      signedMoney('90.00', 'TRY'),
+      signedMoney('20.00', 'TRY'),
+      signedMoney('-5.00', 'TRY'),
+      signedMoney('15.00', 'TRY'),
+      signedMoney('120.00', 'TRY'),
+      pct(0.075),
+    ])
+    // The 2024 row has no price: a dash, and its gain still prints.
+    expect(cells(all[2])[0]).toBe(MISSING)
+    expect(cells(all[2])[4]).toBe(signedMoney('100.00', 'TRY'))
+    expect(screen.getByText(t('years.splitHint'))).toBeInTheDocument()
+    expect(screen.queryByText(t('years.hint'))).toBeNull()
+  })
+
+  it('offers no view switch without rows', async () => {
+    renderCard(async () => Response.json(response([])))
+
+    await screen.findByText(t('transactions.empty'))
+    expect(screen.queryByRole('radiogroup')).toBeNull()
   })
 })
