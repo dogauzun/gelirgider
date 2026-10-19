@@ -77,7 +77,8 @@ would not block merges.
 - The escape hatch is the owner's. For the outage the owner removes the
   context `Claude review` from the branch protection of `main`, and restores
   it afterwards. `enforce_admins` is on, so nobody bypasses the check. While it
-  is off, the merger reviews each head with a subagent, as for a fork PR.
+  is off, the merger reviews each head with a subagent, as for a fork PR (the
+  merge gate below).
 
 ### A fork PR, a Dependabot PR, and a PR that changes the workflow file
 
@@ -94,8 +95,10 @@ second case before it reads the run.
 
 ### What the merger does now
 
-- It no longer spawns a reviewer on a PR of the repository itself, and no
-  longer respawns one after a push.
+- It spawns a reviewer only for a fork PR, a Dependabot PR, a PR that
+  changes the workflow file, and any head while the owner has lifted the
+  required check for an outage; it never respawns one after a push for a PR
+  the workflow reviews.
 - It decides from the changed file list (`gh pr diff <n> --name-only`) whether
   the diff is exempt, as before. It reads the workflow run for the PR's
   current head, with `gh run list --commit <head SHA>` (in a cloud session the
@@ -112,8 +115,9 @@ paths)`.
 ADR 0022's gate item 1 becomes: `Claude review` concluded `success` on the
 PR's current head and the diff does not touch
 `.github/workflows/claude-code-review.yml`; or the diff is exempt; or the PR
-is from a fork, from Dependabot, or changes the workflow file, and the
-merger's subagent reviewed the current head. GitHub enforces the wait: the
+is from a fork, from Dependabot, or changes the workflow file, or the owner
+has lifted the required check for an outage, and the merger's subagent
+reviewed the current head. GitHub enforces the wait: the
 check is required, so it is not green until the run concludes. A push of any
 kind starts a new run, so the merger reads the run on the head it is about to
 merge. Items 2 and 3 are unchanged: every thread fixed or answered and
@@ -130,7 +134,7 @@ before a push that changes the diff.
   GitHub App. Any of them failing holds every non-exempt PR until a re-run
   succeeds or the owner lifts the requirement (above).
 - One third-party action is trusted with a secret and a write token. It is
-  pinned to the `v1` tag, which the action's maintainers move, and it pulls
+  pinned to a commit SHA that Dependabot bumps, and it pulls
   `oven-sh/setup-bun` at a SHA of their choosing.
 - A change to `.github/` alone is exempt: the job ends green after its first
   step without calling the action.

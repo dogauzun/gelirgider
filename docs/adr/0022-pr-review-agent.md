@@ -22,7 +22,8 @@ Every PR, except one whose diff is exempt (below), is reviewed by a separate
 review agent, `pr-reviewer`, on Opus 5.5 at high effort. How the review runs
 is in [ADR 0037](0037-pr-review-workflow.md): the `Claude Code Review`
 workflow on every push (a required check), and the merger's subagent for a
-fork PR, a Dependabot PR and a PR that changes the workflow file. It runs
+fork PR, a Dependabot PR, a PR that changes the workflow file, and any PR
+while the owner has lifted the required check for an outage. It runs
 alongside the other required GitHub Actions checks, not after them: a lint
 failure rarely changes a finding, and waiting for the checks added their run
 time to the review time of every PR. The checks stay a condition for the
@@ -85,8 +86,9 @@ No session parses a verdict. The review of a head ends with its comments.
 The reviewer never edits code, pushes, merges, resolves a thread or
 writes to Jira. It ends with a short report: the head SHA it reviewed and
 either `no findings` or one line per comment posted. Only a run as the
-merger's subagent (a fork PR, a Dependabot PR or a PR that changes the
-workflow file) delivers it to anyone.
+merger's subagent (a fork PR, a Dependabot PR, a PR that changes the
+workflow file, or any PR while the owner has lifted the required check for an
+outage) delivers it to anyone.
 
 A subagent review is posted with state `COMMENT`, because GitHub refuses
 `APPROVE` and `REQUEST_CHANGES` on the author's own PR and every PR of the

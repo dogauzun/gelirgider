@@ -49,10 +49,13 @@ jobs:
               *) return 1 ;;
             esac
           }
+          # A variable, not process substitution: a failing git diff must fail the step.
+          changed=$(git diff --no-renames --name-only origin/main...HEAD)
           review=false
           while IFS= read -r path; do
+            [ -n "$path" ] || continue
             exempt "$path" || { review=true; break; }
-          done < <(git diff --no-renames --name-only origin/main...HEAD)
+          done <<<"$changed"
           [ "$review" = true ] || echo "only exempt paths changed (ADR 0022), no review needed"
           echo "review=$review" >> "$GITHUB_OUTPUT"
       # The reviewer reads the diff from a file: GitHub refuses `gh pr diff`
