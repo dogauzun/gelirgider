@@ -54,7 +54,7 @@ export interface Position {
   // fields' sum. Null without a rate.
   total_pl_reporting: string | null
   // The currency part of this position's gain in the reporting currency:
-  // cost basis at today's rate less its trade-date cost (ADR 0003, Phase 16).
+  // cost basis at today's rate less its trade-date cost (ADR 0003).
   // Null for a position in the reporting currency or with no usable rate.
   // Optional until the backend sends it, so test it with != null.
   fx_pl_reporting?: string | null

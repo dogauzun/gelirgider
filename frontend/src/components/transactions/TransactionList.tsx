@@ -191,7 +191,7 @@ function EditableTransactionRow({
 }
 
 // The phone row: eight columns have no honest layout under md, so the table is
-// replaced by a list rather than a horizontally scrolling table (ADR 0005).
+// replaced by a list rather than a horizontally scrolling table (ADR 0023).
 // Tapping the row edits it; clone and delete keep their own buttons, since
 // there is no hover to reveal them on a phone.
 function TransactionListItem({

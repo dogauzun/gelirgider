@@ -187,7 +187,7 @@ func catchUpSource(ctx context.Context, src Source, lookbackDays int, today time
 
 // Run ticks once a minute until ctx is canceled. Every tick re-reads the
 // settings (Load), so a change applies without a restart, and runs each due
-// source (see runner.tick). Per ADR 0003, sources run in sequence, not
+// source (see runner.tick). Sources run in sequence, not
 // concurrently; each has its own retry state, so one source's retries do
 // not change another's cutoff and one source hard-failing does not stop the
 // rest. Every Sync attempt is one run in runs (nil logs none).

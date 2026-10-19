@@ -155,7 +155,7 @@ function SelectAll({ rows, onChange }: { rows: Row[]; onChange: (checked: boolea
 // The cells the parser could not use, as one line. A skipped or error row
 // carries them so the statement can be checked against what was read.
 // Readable text, so `muted` rather than `faint`, which misses WCAG AA
-// (ADR 0005).
+// (ADR 0023).
 function rawLine(row: PreviewRow): string | null {
   return row.raw && row.raw.length > 0 ? row.raw.join(' | ') : null
 }
@@ -447,7 +447,7 @@ export function PreviewTableRow({
 }
 
 // Ten columns have no honest phone layout, so below md the table becomes a
-// list -- the same trade the transactions page makes (ADR 0005).
+// list -- the same trade the transactions page makes (ADR 0023).
 export function PreviewListItem({
   row,
   failed = null,

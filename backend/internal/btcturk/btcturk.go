@@ -49,7 +49,7 @@ const SourcePAXG = "btcturk_paxg"
 const GoldHistoryStart = "2022-06-30"
 
 // gramsPerTroyOunce turns the PAXG-TRY close (TRY per fine troy ounce) into
-// TRY per gram (ADR 0017, "Factor").
+// TRY per gram (ADR 0017, "Price").
 var gramsPerTroyOunce = decimal.RequireFromString("31.1034768")
 
 // syncDays is how many days before date Sync re-requests, so any daily

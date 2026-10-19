@@ -928,7 +928,7 @@ func TestPortfolioHistoryNetFlowReconcilesRoundedPoints(t *testing.T) {
 }
 
 // TestPortfolioHistoryReturns checks that the sweep feeds each point's
-// total and the day's external flow into periodReturns (ADR 0011, row 2).
+// total and the day's external flow into periodReturns (ADR 0011).
 //
 //	day 1: deposit 1000, buy 10 @ 100, price 100 -> total 1000
 //	day 2: price 80, deposit 1000               -> total 1800, flow 1000
@@ -1634,7 +1634,7 @@ func (f *historyBenchmarkFixture) upsertBenchmark(t *testing.T, code string, lev
 // TestPortfolioHistoryBenchmark reports in TRY with USD at 10, 8, 7.6 and
 // 1000 TRY deposited on day 1 and on day 2, no trades: values [1000, 2000,
 // 2000], flows [0, 1000, 0]. The USD shadow buys 100 units on day 1 and 125
-// on day 2, so S = [1000, 1800, 1710], the series of ADR 0012 row 1: twr
+// on day 2, so S = [1000, 1800, 1710], the series of ADR 0012: twr
 // 7.6/10 - 1 = -0.24, simple (1710 - 1000 - 1000) / 2000 = -0.145, mwr
 // (1 - 0.1)^2 - 1 = -0.19, since 1000·0.9^2 + 1000·0.9 = 1710. XU100 and
 // TUFE take their levels from benchmark_values, seeded in their subtests.

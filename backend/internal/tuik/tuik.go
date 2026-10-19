@@ -1,6 +1,6 @@
 // Package tuik fetches the monthly Turkish CPI level (TÜFE) from the TÜİK
 // data portal and stores it in benchmark_values. Source, format and quirks
-// are documented in docs/adr/0012-benchmarks.md, "TÜFE source".
+// are documented in docs/adr/0012-benchmarks.md, "Storage and sources".
 package tuik
 
 import (

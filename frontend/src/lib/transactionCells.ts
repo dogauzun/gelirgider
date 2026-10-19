@@ -5,7 +5,7 @@ import type { Transaction, TransactionType } from '../api/transactions'
 import { formatQuantity } from './decimal'
 import { formatMoney, formatUnitPrice } from './format'
 
-// Cash-flow sign (ADR 0005): the API amount is unsigned and the sign is
+// Cash-flow sign (ADR 0023): the API amount is unsigned and the sign is
 // derived from the type at render time -- sell, dividend and deposit bring
 // cash in, buy, withdrawal and fee take it out.
 // The one cash-in rule; the form's cash preview and the import reconcile use
