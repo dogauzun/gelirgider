@@ -10,9 +10,9 @@ the "has the current head been reviewed" bookkeeping in the merger, and a
 merger that died or skipped it left a PR unreviewed. The repository has been
 public since 2026-10-14, so Actions minutes are free. A review workflow was
 tried before, in the private repository, with the generic `code-review`
-plugin prompt ([ADR 0015](0015-pr-review-routine.md) records why that
-generation was dropped); this time the prompt is the repository's own agent
-file.
+plugin prompt ([ADR 0015](0015-pr-review-routine.md) and ADR 0022's Context
+record the earlier review generations); this time the prompt is the
+repository's own agent file.
 
 ## Decision
 
