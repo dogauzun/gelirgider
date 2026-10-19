@@ -10,8 +10,12 @@ on:
 permissions:
   contents: read
 
+# A pull request keeps one group, so a new push cancels its running checks. A
+# push to main gets one group per commit: GitHub starts push runs in any order
+# and replaces a pending run of a group with a newer pending one, so a shared
+# group could drop or cancel the tip's run.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 jobs:
