@@ -391,7 +391,7 @@ function ListItemName({
 }
 
 // The phone row: the table has no honest layout under md, so it is a list
-// rather than a horizontally scrolling table (ADR 0005). The symbol and name
+// rather than a horizontally scrolling table (ADR 0023). The symbol and name
 // on the left, value, P/L and day change on the right; the whole row opens
 // the position dialog, which carries the rest.
 function PositionListItem({

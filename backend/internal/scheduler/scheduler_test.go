@@ -119,7 +119,7 @@ func TestRunAfterShutdownLogsNoSettingsErrors(t *testing.T) {
 
 // TestTickRetriesHourlyAndHardFailureDoesNotBlockNext covers the retry
 // rules: zero rows retries an hour later, an error is not retried that
-// day, and one source failing does not stop the next (ADR 0003).
+// day, and one source failing does not stop the next.
 func TestTickRetriesHourlyAndHardFailureDoesNotBlockNext(t *testing.T) {
 	ctx := context.Background()
 	failCalls, emptyCalls := 0, 0

@@ -215,7 +215,7 @@ export function ExpectedDividends({ portfolioId }: { portfolioId: number }) {
               </table>
             </div>
           ) : (
-            // Phone: stacked rows like the transaction list (ADR 0005).
+            // Phone: stacked rows like the transaction list (ADR 0023).
             <ul>
               {rows.map((row) => (
                 <li key={rowKey(row)} className="border-b border-line px-4 py-2.5 last:border-0">

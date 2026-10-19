@@ -20,7 +20,7 @@ import (
 
 // defaultCapitalURL is İş Yatırım's "Temel Değerler ve Oranlar" page, whose
 // server-rendered capital increase table lists the current calendar year's
-// events (ADR 0008, "BIST source"). robots.txt disallows /_layouts/, so the
+// events (ADR 0008, "Sources"). robots.txt disallows /_layouts/, so the
 // page's year-filter AJAX call is never made: older years go through
 // -add-split.
 const defaultCapitalURL = "https://www.isyatirim.com.tr/tr-tr/analiz/hisse/Sayfalar/Temel-Degerler-Ve-Oranlar.aspx"

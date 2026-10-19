@@ -104,7 +104,7 @@ export function currencySymbol(currency: string): string {
 }
 
 // Every P/L figure carries its sign, so color is never the only cue
-// (ADR 0005). Zero is neither a gain nor a loss, so it stays unsigned.
+// (ADR 0023). Zero is neither a gain nor a loss, so it stays unsigned.
 export function signedMoney(value: string | number | null, currency: string): string {
   return money(value, currency, 'exceptZero')
 }

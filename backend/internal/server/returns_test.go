@@ -92,7 +92,7 @@ func TestTimeWeightedSeries(t *testing.T) {
 		values, flows []float64
 		want          []float64 // nil: undefined
 	}{
-		// ADR 0011 row 2: the 1000 deposit on day 1 lifts the value from 1000
+		// ADR 0011: the 1000 deposit on day 1 lifts the value from 1000
 		// to 1800, but the day's factor is (1800 - 1000) / 1000, so the series
 		// reads -20%, not +80%.
 		{"deposit", []float64{1000, 1800, 1710}, []float64{0, 1000, 0}, []float64{0, -0.2, -0.24}},

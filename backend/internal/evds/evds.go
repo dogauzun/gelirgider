@@ -1,5 +1,5 @@
 // Package evds talks to TCMB's EVDS API, the BIST 100 index close source
-// chosen in docs/adr/0012-benchmarks.md ("BIST 100 source"). EVDS needs the
+// chosen in docs/adr/0012-benchmarks.md ("Storage and sources"). EVDS needs the
 // API key of a free account, sent in the "key" header, never in the URL.
 package evds
 

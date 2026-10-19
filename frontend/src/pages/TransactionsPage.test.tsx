@@ -798,7 +798,7 @@ describe('TransactionsPage', () => {
     expect(screen.getByText('3 işlem')).toBeInTheDocument()
   })
 
-  // The amount carries the cash-flow sign (ADR 0005) and the rows are
+  // The amount carries the cash-flow sign (ADR 0023) and the rows are
   // broken by month, both presentation only -- the API amount stays unsigned.
   it('signs amounts by cash flow and starts a group row at each new month', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
