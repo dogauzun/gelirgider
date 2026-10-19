@@ -47,6 +47,7 @@ import { Button } from './ui/Button'
 import { useConfirm } from './ui/useConfirm'
 import { Field } from './ui/Field'
 import { inputClass } from './ui/inputClass'
+import { DateInput, DecimalInput, NoteField } from './ui/Inputs'
 import { Notice } from './ui/Notice'
 import { Segmented } from './ui/Segmented'
 import { Select } from './ui/Select'
@@ -115,13 +116,11 @@ function TransactionFields({
       )}
 
       <Field label={t('transactions.date')}>
-        <input
-          type="date"
+        <DateInput
           value={form.date}
           min="1990-01-01"
           max={todayIstanbul()}
           onChange={(event) => setForm({ ...form, date: event.target.value })}
-          className={inputClass()}
         />
       </Field>
 
@@ -152,21 +151,15 @@ function TransactionFields({
       {showQuantityPrice && (
         <>
           <Field label={t('transactions.quantity')} error={fieldError('quantity')}>
-            <input
-              type="text"
-              inputMode="decimal"
+            <DecimalInput
               value={form.quantity}
               onChange={(event) => setForm({ ...form, quantity: event.target.value })}
-              className={inputClass()}
             />
           </Field>
           <Field label={t('transactions.price')} error={fieldError('price')}>
-            <input
-              type="text"
-              inputMode="decimal"
+            <DecimalInput
               value={form.price}
               onChange={(event) => setForm({ ...form, price: event.target.value })}
-              className={inputClass()}
             />
           </Field>
         </>
@@ -174,24 +167,18 @@ function TransactionFields({
 
       {showAmount && (
         <Field label={t('transactions.amount')} error={fieldError('amount')}>
-          <input
-            type="text"
-            inputMode="decimal"
+          <DecimalInput
             value={form.amount}
             onChange={(event) => setForm({ ...form, amount: event.target.value })}
-            className={inputClass()}
           />
         </Field>
       )}
 
       {form.type !== 'fee' && (
         <Field label={t(feeLabelKey(form.type))} error={fieldError('fee')}>
-          <input
-            type="text"
-            inputMode="decimal"
+          <DecimalInput
             value={form.fee}
             onChange={(event) => setForm({ ...form, fee: event.target.value })}
-            className={inputClass()}
           />
         </Field>
       )}
@@ -199,17 +186,10 @@ function TransactionFields({
       {/* The import commit sets every row's note to the broker and the
           period (ADR 0006), so the preview (onSubmit) offers none. */}
       {withNote && (
-        <div className="sm:col-span-2">
-          <Field label={`${t('transactions.note')} · ${t('transactions.optional')}`}>
-            <input
-              type="text"
-              value={form.note}
-              maxLength={500}
-              onChange={(event) => setForm({ ...form, note: event.target.value })}
-              className={inputClass()}
-            />
-          </Field>
-        </div>
+        <NoteField
+          value={form.note}
+          onChange={(event) => setForm({ ...form, note: event.target.value })}
+        />
       )}
     </div>
   )

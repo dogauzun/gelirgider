@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useAddWatchItem, type WatchInput } from '../api/watchlist'
 import { t } from '../i18n/strings'
 import { textBinding, useDepositSubmit } from './depositForm'
-import { DepositFormDialog, NoteField } from './DepositFormDialog'
+import { FormDialog } from './ui/FormDialog'
+import { NoteField } from './ui/Inputs'
 import { InstrumentSearchInput } from './InstrumentSearchInput'
 import { Field } from './ui/Field'
 
@@ -26,7 +27,7 @@ export function WatchAddDialog({ onClose }: { onClose: () => void }) {
   })
 
   return (
-    <DepositFormDialog
+    <FormDialog
       title={t('watchlist.addDialog.title')}
       widthClass="md:w-[28rem]"
       error={error}
@@ -50,6 +51,6 @@ export function WatchAddDialog({ onClose }: { onClose: () => void }) {
         </Field>
         <NoteField {...textBinding(form, setForm)('note')} />
       </div>
-    </DepositFormDialog>
+    </FormDialog>
   )
 }

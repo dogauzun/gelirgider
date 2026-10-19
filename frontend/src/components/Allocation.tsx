@@ -15,7 +15,7 @@ import {
 import { decimalUnits, parseDecimalInput, unitsToDecimal } from '../lib/decimal'
 import { formatCompactMoney, formatMoney, formatNumber, plTone } from '../lib/format'
 import { AllocationTargetsDialog } from './AllocationTargetsDialog'
-import { DecimalInput } from './DepositFormDialog'
+import { DecimalInput } from './ui/Inputs'
 import { AllocationDonut } from './LazyChart'
 import { Button } from './ui/Button'
 import { Segmented } from './ui/Segmented'

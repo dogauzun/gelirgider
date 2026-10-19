@@ -12,7 +12,9 @@ import {
   textBinding,
   useDepositSubmit,
 } from './depositForm'
-import { DateInput, DecimalInput, DepositFormDialog, RateFields } from './DepositFormDialog'
+import { RateFields } from './DepositFormDialog'
+import { FormDialog } from './ui/FormDialog'
+import { DateInput, DecimalInput } from './ui/Inputs'
 import { Field } from './ui/Field'
 
 type Form = { rate: string; stopaj: string; maturity: string }
@@ -65,7 +67,7 @@ export function RenewDepositDialog({
   const bind = textBinding(form, setForm)
 
   return (
-    <DepositFormDialog
+    <FormDialog
       title={t('deposits.renewDialog.title')}
       widthClass="md:w-[28rem]"
       error={error}
@@ -84,6 +86,6 @@ export function RenewDepositDialog({
           <DateInput {...bind('maturity')} min={deposit.maturity_date} />
         </Field>
       </div>
-    </DepositFormDialog>
+    </FormDialog>
   )
 }
