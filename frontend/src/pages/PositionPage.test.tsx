@@ -157,6 +157,7 @@ function mockApi({
   } as unknown,
   transactions = [tx(2, 'sell', '2026-09-27', '1.50'), tx(1, 'buy', '2026-09-25')] as unknown[],
   attribution = undefined as unknown,
+  trades = [] as unknown[],
 }: {
   positions?: Pos[]
   cash?: string
@@ -164,6 +165,7 @@ function mockApi({
   history?: unknown
   transactions?: unknown[]
   attribution?: unknown
+  trades?: unknown[]
 } = {}) {
   const urls: string[] = []
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
@@ -180,6 +182,9 @@ function mockApi({
     }
     if (url === '/api/portfolios/1/transactions?limit=100&instrument_id=7') {
       return Response.json(transactions)
+    }
+    if (url === '/api/portfolios/1/trades?instrument_id=7') {
+      return Response.json({ currency: 'TRY', trades, missing_rates: [] })
     }
     throw new Error(`unexpected request: ${url}`)
   })
@@ -603,6 +608,53 @@ it("lists the instrument's transactions in the compact table", async () => {
   )
 })
 
+const sale = {
+  portfolio_id: 1,
+  date: '2026-09-27',
+  instrument_id: 7,
+  symbol: 'THYAO',
+  name: 'Türk Hava Yolları',
+  market: 'BIST',
+  currency: 'TRY',
+  quantity: '10',
+  proceeds: '1250.00',
+  cost: '1005.00',
+  fee: '1.50',
+  realized: '245.00',
+  realized_pct: '0.2438',
+  opened_at: '2026-09-25',
+  days: 2,
+  realized_reporting: '245.00',
+}
+
+it("lists the instrument's sales between the chart and the transactions, without the instrument column", async () => {
+  mockApi({ trades: [sale] })
+  renderPage()
+
+  const heading = await screen.findByRole('heading', { name: 'Satışlar' })
+  const table = screen.getByRole('table', { name: 'Satışlar' })
+  expect(screen.queryByRole('columnheader', { name: 'Enstrüman' })).toBeNull()
+  const rows = within(table).getAllByRole('row').slice(1)
+  expect(rows).toHaveLength(1)
+  expect(rows[0]).toHaveTextContent('+₺245,00')
+  const card = heading.closest('section')!
+  const follows = (a: Element, b: Element) =>
+    a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
+  expect(follows(chartCard(), card)).toBeTruthy()
+  expect(
+    follows(card, screen.getByRole('heading', { name: 'İşlemler' }).closest('section')!),
+  ).toBeTruthy()
+})
+
+it('shows no sales card for a holding never sold', async () => {
+  mockApi()
+  renderPage()
+
+  await screen.findByRole('heading', { name: 'İşlemler' })
+  await waitFor(() => expect(screen.queryByRole('heading', { name: 'Satışlar' })).toBeNull())
+  expect(screen.queryByText('Henüz satış yok.')).toBeNull()
+})
+
 it('draws nothing on the days nothing is held: before the first held day and in a closed gap', async () => {
   const p = (date: string, held: boolean) => ({
     date,
@@ -666,6 +718,9 @@ it('has exactly one h1 while loading and for an instrument not held (GLG-677)', 
     if (url === '/api/portfolios/1/transactions?limit=100&instrument_id=16') {
       return Response.json([])
     }
+    if (url === '/api/portfolios/1/trades?instrument_id=16') {
+      return Response.json({ currency: 'TRY', trades: [], missing_rates: [] })
+    }
     throw new Error(`unexpected request: ${url}`)
   })
 
@@ -700,6 +755,9 @@ it('announces a failed history load once, with a Retry', async () => {
       return Response.json({ error: 'internal error' }, { status: 500 })
     }
     if (url.startsWith('/api/portfolios/1/transactions?')) return Response.json([])
+    if (url.startsWith('/api/portfolios/1/trades?')) {
+      return Response.json({ currency: 'TRY', trades: [], missing_rates: [] })
+    }
     throw new Error(`unexpected request: ${url}`)
   })
   renderPage()
