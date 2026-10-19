@@ -127,7 +127,9 @@ A PR merges when all of these hold (CLAUDE.md rules 6 and 7):
 
 1. the PR's current head has been reviewed or is exempt, as ADR 0037 states
    (the run's job summary says which); a push that adds a non-exempt path
-   ends the exemption, and the run on that head reviews;
+   ends the exemption, and the run on that head reviews. A diff that touches
+   `.github/workflows/claude-code-review.yml` is never satisfied by an exempt
+   run: the merger's subagent reviews it;
 2. every review thread, from the reviewer or a human, is fixed or
    answered and resolved;
 3. the required checks are green on the current head. The merger turns on

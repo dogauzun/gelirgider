@@ -109,7 +109,9 @@ cases only, so it knows the second before it reads the run.
   within a minute without a review, and the job summary says
   `exempt diff (ADR 0022), not reviewed`. The merger matches no paths itself.
   A head with no run after a few minutes means the run is broken, not that the
-  diff is exempt.
+  diff is exempt, unless the head has a merge conflict: that starts no
+  `pull_request` run, so the merger checks mergeability first and resolves the
+  conflict (sync with `main`) before treating the missing run as broken.
 - The hygiene step, the thread triage, the six-round limit and the merge
   comment of ADR 0022 stay. The merge comment names the review run's URL and
   conclusion instead of a reviewer head, and says `exempt diff, not reviewed`
@@ -120,8 +122,9 @@ cases only, so it knows the second before it reads the run.
 ADR 0022's gate item 1 becomes: `Claude review` concluded `success` on the
 PR's current head and the diff does not touch
 `.github/workflows/claude-code-review.yml`; or the PR is from a fork, from
-Dependabot, or changes the workflow file, or the owner has lifted the required
-check for an outage, and the merger's subagent reviewed the current head.
+Dependabot, or changes the workflow file (even when the run reports the diff
+exempt), or the owner has lifted the required check for an outage, and the
+merger's subagent reviewed the current head.
 `success` means reviewed or exempt, and the job summary says which; the
 conclusion alone never shows a review. GitHub enforces the wait: the check is required, so
 it is not green until the run concludes. A push of any
@@ -141,7 +144,8 @@ turns auto-merge on and off is in [CLAUDE.md](../../CLAUDE.md) rule 7.
   pinned to a commit SHA that Dependabot bumps, and it pulls
   `oven-sh/setup-bun` at a SHA of their choosing.
 - A change to `.github/` alone is exempt: the job ends green after its first
-  step, with a summary line, without calling the action.
+  step, with a summary line, without calling the action. The one exception is
+  the workflow file itself, which always gets the merger's subagent.
 
 ## Alternatives rejected
 
