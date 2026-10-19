@@ -1,12 +1,18 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Benchmark } from '../api/history'
 import { t } from '../i18n/strings'
 import { MISSING } from '../lib/format'
+import { mockChartSize } from '../test/chartSize'
 import { RiskCard } from './RiskCard'
 
+let restoreSize: () => void
+beforeEach(() => {
+  restoreSize = mockChartSize()
+})
 afterEach(() => {
+  restoreSize()
   vi.restoreAllMocks()
 })
 
@@ -127,6 +133,32 @@ describe('RiskCard', () => {
       await screen.findByText(t('risk.benchmarkNoData', { benchmark: 'USD' })),
     ).toBeInTheDocument()
     expect(screen.queryByText(t('risk.beta'))).not.toBeInTheDocument()
+  })
+
+  it('draws the rolling one-year return of a history over a year', async () => {
+    renderCard(history(400))
+
+    expect(await screen.findByText(t('risk.rolling.title'))).toBeInTheDocument()
+    expect(await screen.findByRole('application')).toBeInTheDocument()
+    expect(screen.queryByText(t('risk.rolling.empty'))).not.toBeInTheDocument()
+  })
+
+  it('reads a rolling return under a millionth as a plain decimal', async () => {
+    // Point 365 reads 1.000001 / 1.000002 - 1, about -9.99999e-7.
+    const flat = history(400, '0.000001')
+    flat.points[0].twr = '0.000002'
+    renderCard(flat)
+
+    expect(await screen.findByRole('application')).toBeInTheDocument()
+    // The change between the first and last value is a millionth, not 1000%.
+    expect(screen.getByRole('application').getAttribute('aria-label')).not.toContain('%1.000')
+  })
+
+  it('says there is no rolling return under a year of history', async () => {
+    renderCard(history(40))
+
+    expect(await screen.findByText(t('risk.rolling.empty'))).toBeInTheDocument()
+    expect(screen.queryByRole('application')).not.toBeInTheDocument()
   })
 
   it('explains an undefined return instead of the figures', async () => {

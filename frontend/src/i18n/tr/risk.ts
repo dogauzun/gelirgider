@@ -22,4 +22,8 @@ export const trRisk = {
   'risk.noBenchmark': 'Beta ve korelasyon için bir karşılaştırma seç.',
   'risk.benchmarkNoData': '{benchmark} bu dönemde eksik',
   'risk.error': 'Risk ölçüleri yüklenemedi',
+  'risk.rolling.title': 'Yuvarlanan 1 yıllık getiri',
+  'risk.rolling.hint': 'Her gün için o günde biten 365 günün zaman ağırlıklı getirisi',
+  'risk.rolling.line': 'Portföy',
+  'risk.rolling.empty': 'Bir yıldan kısa geçmiş: yuvarlanan getiri yok.',
 } as const

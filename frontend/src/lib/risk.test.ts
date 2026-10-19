@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dailyReturns, riskStats, windowPoints, type RiskStats } from './risk'
+import { dailyReturns, riskStats, rollingReturns, windowPoints, type RiskStats } from './risk'
 
 const points = (twr: (string | null)[]) =>
   twr.map((v, i) => ({ date: `2025-03-0${i + 1}`, twr: v }))
@@ -89,5 +89,47 @@ describe('windowPoints', () => {
 
   it('is empty without points', () => {
     expect(windowPoints([], '1y')).toEqual([])
+  })
+})
+
+describe('rollingReturns', () => {
+  const addDays = (days: number) =>
+    new Date(Date.parse('2024-01-01') + days * 86_400_000).toISOString().slice(0, 10)
+  // Point i is dated start + i days; twr is i * 0.001, the benchmark's i * 0.0005.
+  const series = (count: number, benchmark = false) =>
+    Array.from(
+      { length: count },
+      (_, i): { date: string; twr: string | null; benchmark_twr: string | null } => ({
+        date: addDays(i),
+        twr: (i * 0.001).toFixed(6),
+        benchmark_twr: benchmark ? (i * 0.0005).toFixed(6) : null,
+      }),
+    )
+
+  it('returns the 365 days ending on each point, from the 366th day', () => {
+    const rolling = rollingReturns(series(400))
+
+    expect(rolling).toHaveLength(35)
+    expect(rolling[0].date).toBe(addDays(365))
+    expect(rolling[0].value).toBeCloseTo(0.365, 6)
+    expect(rolling[34].value).toBeCloseTo(1.399 / 1.034 - 1, 6)
+    expect(rolling[0].benchmark).toBeNull()
+  })
+
+  it('does the same over the benchmark', () => {
+    expect(rollingReturns(series(400, true))[0].benchmark).toBeCloseTo(0.1825, 6)
+  })
+
+  it('has none under a year of history', () => {
+    expect(rollingReturns(series(300))).toEqual([])
+  })
+
+  it('leaves out a point whose base has no twr', () => {
+    const data = series(400)
+    data[1] = { ...data[1], twr: null }
+
+    // Point 366 has k = 1, point 367 has k = 2.
+    expect(rollingReturns(data).map((r) => r.date)).not.toContain(addDays(366))
+    expect(rollingReturns(data)).toHaveLength(34)
   })
 })
