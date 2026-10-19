@@ -123,5 +123,6 @@ place of the chart when the range's `twr` is undefined.
 - The `all` scope has no position page ([ADR 0014](0014-all-portfolios-view.md)),
   so it has no per-position returns.
 - Not offered: the reporting-currency return per position, `instrument:<id>`
-  benchmarks on a position, realized-only or since-inception returns, a
-  drawdown per position.
+  benchmarks on a position, realized-only or since-inception returns. The
+  risk figures and the drawdown of a position are
+  [ADR 0036](0036-risk-figures.md)'s.
