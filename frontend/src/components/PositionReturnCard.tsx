@@ -2,13 +2,12 @@ import type { UseQueryResult } from '@tanstack/react-query'
 import type { Benchmark } from '../api/history'
 import type { PositionHistoryResponse } from '../api/positions'
 import { t } from '../i18n/strings'
-import { daysBetween } from '../lib/date'
-import { MISSING, plTone, signedPercent, signTone } from '../lib/format'
-import { annualize, excessReturn } from '../lib/returns'
+import { MISSING, plTone, signedPercent } from '../lib/format'
+import { annualizedReturn, excessReturn } from '../lib/returns'
 import { benchmarkNames, useReturnMethod } from '../lib/useReturnSettings'
+import { BenchmarkPill } from './BenchmarkPill'
 import { BenchmarkSelect } from './BenchmarkSelect'
 import { FitFigure, KPI_FIGURE } from './ui/Kpi'
-import { Pill } from './ui/Pill'
 import { ReturnMethodSelect } from './ReturnMethodSelect'
 import type { SelectOption } from './ui/Select'
 import { Skeleton } from './ui/Skeleton'
@@ -47,17 +46,16 @@ export function PositionReturnCard({
   const { data } = history
   const ret = data?.returns[method] ?? null
   const lastDate = data?.returns_to
-  const gap = data?.returns_from && lastDate ? daysBetween(data.returns_from, lastDate) : 0
-  const annualized =
-    gap >= 364 && ret !== null ? annualize(Number(ret), gap <= 366 ? 365 : gap) : null
+  const retNum = ret === null ? null : Number(ret)
+  const annualized = annualizedReturn(retNum, data?.returns_from, lastDate)
   const historyBenchmark = data?.benchmark ?? null
   const benchmarkPct = historyBenchmark?.returns[method] ?? null
   // Points with a null benchmark_twr mean the benchmark has no value in the
   // range (or its twr is undefined), as the pill's no-data line says.
   const benchmarkHasValues = !!data?.points.some((p) => p.benchmark_twr != null)
   const excess =
-    benchmarkHasValues && benchmarkPct !== null && ret !== null
-      ? excessReturn(Number(ret), Number(benchmarkPct))
+    benchmarkHasValues && benchmarkPct !== null && retNum !== null
+      ? excessReturn(retNum, Number(benchmarkPct))
       : null
   const benchmarkEstimated =
     benchmarkHasValues &&
@@ -69,30 +67,6 @@ export function PositionReturnCard({
     historyBenchmark?.code,
     benchmarks,
   )
-
-  const benchmarkLine = () => {
-    if (!historyBenchmark) return null
-    if (!benchmarkHasValues) {
-      return (
-        <p className="mt-1.5 text-[12px] text-muted">
-          {`${benchmarkLabel} · ${t('chart.benchmark.noData')}`}
-        </p>
-      )
-    }
-    const text = [
-      `${benchmarkLabel} ${benchmarkPct !== null ? signedPercent(Number(benchmarkPct), TWO_DIGITS) : MISSING}${
-        benchmarkEstimated ? ` (${t('chart.benchmark.estimated')})` : ''
-      }`,
-      excess !== null && `${excessLabel} ${signedPercent(excess, TWO_DIGITS)}`,
-    ]
-      .filter(Boolean)
-      .join(' · ')
-    return (
-      <p className="mt-1.5" title={benchmarkPct !== null ? undefined : t('chart.return.undefined')}>
-        <Pill tone={signTone(excess)}>{text}</Pill>
-      </p>
-    )
-  }
 
   return (
     <section className="card">
@@ -115,7 +89,19 @@ export function PositionReturnCard({
                 text={ret === null ? MISSING : signedPercent(Number(ret), TWO_DIGITS)}
               />
             </span>
-            {benchmarkLine()}
+            {historyBenchmark && (
+              <p className="mt-1.5">
+                <BenchmarkPill
+                  label={benchmarkLabel}
+                  excessLabel={excessLabel}
+                  pct={benchmarkPct === null ? null : Number(benchmarkPct)}
+                  excess={excess}
+                  estimated={benchmarkEstimated}
+                  hasValues={benchmarkHasValues}
+                  digits={TWO_DIGITS}
+                />
+              </p>
+            )}
             {annualized !== null && Number.isFinite(annualized) && (
               <p className={`mt-0.5 text-[12px] ${plTone(annualized)}`}>
                 {t('position.return.annualized', {
