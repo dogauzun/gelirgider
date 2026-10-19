@@ -1,0 +1,61 @@
+# The review of ADR 0037: the repository's own `.claude/agents/pr-reviewer.md`
+# run by claude-code-action on every push to a pull request. It is not a
+# required check: an API outage must not block a merge.
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+    # paths-ignore cannot hold `!` patterns, so `paths` lists everything and
+    # then takes the exempt paths of ADR 0022 out again. The last matching
+    # pattern wins: the re-included rule documents come after their directory.
+    paths:
+      - '**'
+      - '!docs/**'
+      - 'docs/PRINCIPLES.md'
+      - 'docs/adr/**'
+      - '!*.md'
+      - 'CLAUDE.md'
+      - '!.github/**'
+      - '!deploy/**'
+      - '!frontend/src/i18n/**'
+      - '!.gitignore'
+      - '!.gitattributes'
+      - '!.dockerignore'
+      - '!LICENSE'
+      - '!THIRD_PARTY_NOTICES.md'
+
+# A push cancels the run for the old head.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# The Claude GitHub App token does the writes.
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+  id-token: write
+
+jobs:
+  review:
+    name: review
+    # A run for a fork PR has no secrets; the merger reviews those by hand.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The reviewer diffs against origin/main and reads the PR head, not
+          # the merge commit.
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are running as the review workflow of dogauzun/gelirgider, inside the checkout of the pull request head. Read `.claude/agents/pr-reviewer.md` and review pull request #${{ github.event.pull_request.number }} exactly as it says, as the agent it describes. Post each finding with the tool `mcp__github_inline_comment__create_inline_comment` and `confirmed: true`. Post nothing else.
+          claude_args: >-
+            --model claude-opus-5-5 --effort high
+            --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh api:*),Bash(git:*)"
+            --disallowedTools "Edit,Write,NotebookEdit"
