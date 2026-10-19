@@ -1,9 +1,10 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { PortfolioScope } from '../api/summary'
 import { t } from '../i18n/strings'
 import { signedMoney, signedPercent } from '../lib/format'
+import { chooseOption } from '../test/select'
 import { TradesCard } from './TradesCard'
 
 afterEach(() => {
@@ -32,7 +33,13 @@ const trade = (over: object) => ({
 
 // Newest first, as the server answers.
 const sales = [
-  trade({ date: '2025-03-05', realized: '-60.00', realized_pct: '-0.1000', days: 2 }),
+  trade({
+    date: '2025-03-05',
+    realized: '-60.00',
+    realized_pct: '-0.1000',
+    days: 2,
+    realized_reporting: '-60.00',
+  }),
   trade({}),
 ]
 
@@ -74,6 +81,35 @@ describe('TradesCard', () => {
       '/api/portfolios/1/trades',
     )
     expect(screen.queryByText(/kuru yok/)).toBeNull()
+  })
+
+  it('keeps one year in the table and the figures', async () => {
+    renderCard([
+      ...sales,
+      trade({ date: '2026-01-02', realized: '5.00', realized_reporting: '5.00' }),
+    ])
+
+    await screen.findByRole('table')
+    await chooseOption(screen.getByRole('combobox', { name: t('trades.year') }), '2026')
+
+    const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toHaveTextContent(signedMoney('5.00', 'TRY'))
+    expect(screen.getByText(t('trades.count')).parentElement).toHaveTextContent('1')
+  })
+
+  it('sorts by the realized column', async () => {
+    renderCard(sales)
+
+    await screen.findByRole('table')
+    const first = () => within(screen.getByRole('table')).getAllByRole('row')[1]
+    // Newest first until a header is pressed.
+    expect(first()).toHaveTextContent(signedMoney('-60.00', 'TRY'))
+    // A figure column starts largest first, a second press flips it.
+    fireEvent.click(screen.getByRole('button', { name: t('trades.realized') }))
+    expect(first()).toHaveTextContent(signedMoney('78.00', 'TRY'))
+    fireEvent.click(screen.getByRole('button', { name: t('trades.realized') }))
+    expect(first()).toHaveTextContent(signedMoney('-60.00', 'TRY'))
   })
 
   it('says there are no sales yet', async () => {
