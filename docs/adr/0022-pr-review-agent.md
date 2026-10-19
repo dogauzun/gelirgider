@@ -21,7 +21,8 @@ records that routine.
 Every PR, except one whose diff is exempt (below), is reviewed by a separate
 review agent, `pr-reviewer`, on Opus 5.5 at high effort. How the review runs
 is in [ADR 0037](0037-pr-review-workflow.md): the `Claude Code Review`
-workflow on every push, and the merger's subagent for a PR from a fork. It
+workflow on every push, and the merger's subagent in its three fallback
+cases. It
 runs alongside the required GitHub Actions checks, not after them: a lint
 failure rarely changes a finding, and waiting for the checks added their run
 time to the review time of every PR. The checks stay a condition for the
