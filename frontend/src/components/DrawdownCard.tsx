@@ -1,6 +1,7 @@
 import { usePortfolioHistory } from '../api/history'
 import type { PortfolioScope } from '../api/summary'
 import { CashGapNotice } from './CashGapNotice'
+import { HistoryEmpty } from './HistoryEmpty'
 import { t } from '../i18n/strings'
 import { daysBetween, formatShortMarketDate, todayIstanbul } from '../lib/date'
 import { drawdown } from '../lib/drawdown'
@@ -29,19 +30,7 @@ export function DrawdownCard({ portfolioId }: { portfolioId: PortfolioScope }) {
 
   // What the chart's place holds once the history is in.
   const body = () => {
-    // One day, with twr null: a scope with no transactions (today, all
-    // zero) or the day of its first one, not an undefined return. The
-    // empty text is the periodic returns card's.
-    if (points.length < 2) {
-      const noTransactions = points.every((p) =>
-        [p.total_value, p.cash, p.cost_basis].every((v) => Number(v) === 0),
-      )
-      return (
-        <p className="text-[13px] text-muted">
-          {t(noTransactions ? 'transactions.empty' : 'chart.empty')}
-        </p>
-      )
-    }
+    if (points.length < 2) return <HistoryEmpty points={points} />
     if (dd) return <DrawdownChart series={dd.series} />
     return <CashGapNotice scope={portfolioId} />
   }
