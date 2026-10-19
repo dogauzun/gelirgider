@@ -18,6 +18,8 @@ export const trYears = {
   'years.fx': 'Kur farkı',
   'years.cashFx': 'Nakit kur farkı',
   'years.inflation': 'TÜFE',
+  'years.best': 'En iyi',
+  'years.worst': 'En kötü',
   'years.splitHint':
     'Dört kalem kazancı açıklar; yuvarlama yüzünden toplamı birkaç kuruş farklı olabilir.',
 } as const

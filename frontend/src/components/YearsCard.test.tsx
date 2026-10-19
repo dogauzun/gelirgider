@@ -28,6 +28,8 @@ const row = (fields: Partial<YearRow>): YearRow => ({
   returns: { simple: null, twr: null, mwr: null },
   benchmark: null,
   inflation: null,
+  best: null,
+  worst: null,
   ...fields,
 })
 
@@ -114,6 +116,8 @@ describe('YearsCard', () => {
       pct(0.075),
       MISSING,
       MISSING,
+      MISSING,
+      MISSING,
     ])
     expect(cells(row2024)).toEqual([
       formatMoney('1000.00', 'TRY'),
@@ -121,6 +125,8 @@ describe('YearsCard', () => {
       signedMoney('100.00', 'TRY'),
       formatMoney('1100.00', 'TRY'),
       pct(0.1),
+      MISSING,
+      MISSING,
       MISSING,
       MISSING,
     ])
@@ -190,6 +196,8 @@ describe('YearsCard', () => {
       pct(0.075),
       MISSING,
       MISSING,
+      MISSING,
+      MISSING,
     ])
     // The 2024 row has no price: a dash, and its gain still prints.
     expect(cells(all[2])[0]).toBe(MISSING)
@@ -204,6 +212,49 @@ describe('YearsCard', () => {
     await screen.findByText(t('transactions.empty'))
     expect(screen.queryByRole('radiogroup')).toBeNull()
   })
+  it('names the best and the worst position of each year', async () => {
+    const best = {
+      instrument_id: 1,
+      symbol: 'XXX',
+      market: 'BIST',
+      currency: 'TRY',
+      total: '120.00',
+    }
+    const worst = {
+      instrument_id: 2,
+      symbol: 'DEP',
+      market: 'DEPOSIT',
+      currency: 'TRY',
+      total: '-50.00',
+    }
+    renderCard(async () => Response.json(response([row({ best, worst })])))
+
+    const table = await screen.findByRole('table')
+    const [bestCell, worstCell] = cells(within(table).getAllByRole('row')[1]).slice(-2)
+    expect(bestCell).toBe(`XXX${signedMoney('120.00', 'TRY')}`)
+    expect(worstCell).toBe(
+      `${t('deposits.labelShort', { currency: 'TRY' })}${signedMoney('-50.00', 'TRY')}`,
+    )
+    expect(within(table).getByRole('columnheader', { name: t('years.best') })).toBeInTheDocument()
+    expect(within(table).getByRole('columnheader', { name: t('years.worst') })).toBeInTheDocument()
+  })
+
+  it('prints a dash for a year without a best and a worst', async () => {
+    const full = row({
+      opening: '1.00',
+      closing: '2.00',
+      net_flow: '0.00',
+      gain: '1.00',
+      returns: { simple: '0.1', twr: '0.1', mwr: '0.1' },
+      benchmark: { simple: '0.1', twr: '0.1', mwr: '0.1' },
+      inflation: '0.2',
+    })
+    renderCard(async () => Response.json(response([full])), { benchmark: 'USD' })
+
+    const table = await screen.findByRole('table')
+    expect(cells(within(table).getAllByRole('row')[1]).filter((c) => c === MISSING)).toHaveLength(2)
+  })
+
   describe('benchmark and inflation columns', () => {
     const withBench = [
       row({
@@ -230,12 +281,12 @@ describe('YearsCard', () => {
       })
 
       const table = await screen.findByRole('table')
-      expect(headers(table).slice(-3)).toEqual([
+      expect(headers(table).slice(-5, -2)).toEqual([
         t('years.return'),
         'Dolar',
         t('performance.periods.excess'),
       ])
-      const last2025 = cells(within(table).getAllByRole('row')[1]).slice(-2)
+      const last2025 = cells(within(table).getAllByRole('row')[1]).slice(-4, -2)
       expect(last2025).toEqual([signedPercent(0.05), excessPct(0.1, 0.05)])
       expect(within(table).queryByRole('columnheader', { name: 'TÜFE' })).toBeNull()
     })
@@ -247,12 +298,12 @@ describe('YearsCard', () => {
 
       const table = await screen.findByRole('table')
       const [r2025, r2024] = within(table).getAllByRole('row').slice(1)
-      expect(cells(r2025).slice(-2)).toEqual([
+      expect(cells(r2025).slice(-4, -2)).toEqual([
         signedPercent(0.25),
         `${excessPct(0.1, 0.25)} (${t('chart.benchmark.estimated')})`,
       ])
       // No TÜFE change for the year: a dash in both.
-      expect(cells(r2024).slice(-2)).toEqual([MISSING, MISSING])
+      expect(cells(r2024).slice(-4, -2)).toEqual([MISSING, MISSING])
       expect(within(table).getByTitle(t('chart.return.realHint'))).toBeInTheDocument()
     })
 
@@ -260,7 +311,7 @@ describe('YearsCard', () => {
       renderCard(async () => Response.json(response(withBench)), { benchmark: 'TUFE' })
 
       const table = await screen.findByRole('table')
-      expect(headers(table).slice(-3)).toEqual([
+      expect(headers(table).slice(-5, -2)).toEqual([
         t('years.return'),
         'TÜFE',
         t('performance.periods.real'),
@@ -273,7 +324,7 @@ describe('YearsCard', () => {
       })
 
       const table = await screen.findByRole('table')
-      expect(headers(table).slice(-3)).toEqual([
+      expect(headers(table).slice(-5, -2)).toEqual([
         t('years.return'),
         'Dolar',
         t('performance.periods.real'),
@@ -285,7 +336,7 @@ describe('YearsCard', () => {
       renderCard(async () => Response.json(response(withBench, [], { currency: 'USD' })))
 
       const table = await screen.findByRole('table')
-      expect(headers(table).pop()).toBe(t('years.return'))
+      expect(headers(table).at(-3)).toBe(t('years.return'))
     })
 
     it('keeps the columns in the split view', async () => {
@@ -294,14 +345,14 @@ describe('YearsCard', () => {
       await screen.findByRole('table')
       fireEvent.click(screen.getByRole('radio', { name: t('years.view.split') }))
       const table = screen.getByRole('table')
-      expect(headers(table).slice(-5)).toEqual([
+      expect(headers(table).slice(-7, -2)).toEqual([
         t('years.return'),
         'Dolar',
         t('performance.periods.excess'),
         'TÜFE',
         t('performance.periods.real'),
       ])
-      expect(cells(within(table).getAllByRole('row')[1]).slice(-4)).toEqual([
+      expect(cells(within(table).getAllByRole('row')[1]).slice(-6, -2)).toEqual([
         signedPercent(0.05),
         excessPct(0.1, 0.05),
         signedPercent(0.25),
