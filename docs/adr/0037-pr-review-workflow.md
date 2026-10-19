@@ -48,10 +48,13 @@ what is not, where comments go. The model is `claude-opus-5-5` at high effort.
 
 ### Repository settings
 
-The Actions policy was `github_owned_allowed`. It now also allows the one
-pattern `anthropics/claude-code-action@*`; nothing else third-party is
-allowed, and every other workflow keeps using GitHub-owned actions only. The
-owner holds the settings: the policy, the app install and the secret.
+The Actions policy was `github_owned_allowed`. It now also allows two
+patterns: `anthropics/claude-code-action@*` and `oven-sh/setup-bun@*`, the
+one action the review action runs as a nested step (pinned to a SHA inside
+it, so the pattern is the only form that survives its bumps). Nothing else
+third-party is allowed, and every other workflow keeps using GitHub-owned
+actions only. The owner holds the settings: the policy, the app install and
+the secret.
 
 ### Not a required check
 
@@ -99,7 +102,8 @@ before a push that changes the diff.
 - The review depends on Anthropic's API, one OAuth token and the Claude
   GitHub App. Any of them failing leaves a PR to the fallback above.
 - One third-party action is trusted with a secret and a write token. It is
-  pinned to the `v1` tag, which the action's maintainers move.
+  pinned to the `v1` tag, which the action's maintainers move, and it pulls
+  `oven-sh/setup-bun` at a SHA of their choosing.
 - A change to the workflow or to `.github/` alone is exempt, so the workflow
   is first exercised by the next PR that touches non-exempt paths.
 
