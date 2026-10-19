@@ -62,15 +62,21 @@ func positionFlow(t transaction.Transaction) decimal.Decimal {
 	return decimal.Zero
 }
 
-// positionSeries is the series the returns run on: the first point with a
-// close, whose value is the base (the flows of the days before and on it are
-// inside it), and the values and flows from there. start is len(points) when
-// no point has a close.
+// positionSeries is the series the returns run on: from the first point with
+// a close, whose value is the base (the flows of the days before and on it are
+// inside it), to the last point with a value or a flow, and the values and
+// flows between. The days after a close-out have value 0 and no flow, and the
+// period rate would compound over them (ADR 0033). start is len(points) when
+// no point has a close; the series is start..start+len(values)-1.
 func positionSeries(points []positionHistoryPoint, value, flow []decimal.Decimal) (start int, values, flows []float64) {
 	for start < len(points) && points[start].Close == nil {
 		start++
 	}
-	values = make([]float64, len(points)-start)
+	end := len(points)
+	for end > start+1 && value[end-1].IsZero() && flow[end-1].IsZero() {
+		end--
+	}
+	values = make([]float64, end-start)
 	flows = make([]float64, len(values))
 	for k := range values {
 		values[k] = value[start+k].InexactFloat64()
@@ -152,7 +158,7 @@ func (h *positionHistoryHandler) benchmarkPrices(ctx context.Context, code, curr
 // get answers one holding's daily series over a date range.
 //
 //	@Summary	Position history
-//	@Description	One point per day from `from` to `to` for one instrument of the portfolio, in the instrument's own currency (no fx). `returns` holds the range's simple, time-weighted and money-weighted returns of the position, in that currency, as 6-decimal fractions or null when undefined (a non-positive value on the first day, or a time-weighted factor below zero); buys and their fees are flows in, sells and dividends (net of stopaj and fee) flows out. They start at `returns_from`, the first day with a close (null when there is none), whose value is the base; each point's `twr` is the running time-weighted return from that day, null before it. A `from` before the instrument's first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the instrument's first transaction (at most 3660 days back); a `to` after today is clamped to today. `benchmark` lays a shadow position over it: the benchmark's level converted into the instrument's currency, bought with the position's value on `returns_from` and fed with its flows (ADR 0012); `benchmark` answers its code, its three returns (null when a day from `returns_from` has no level or no rate) and `estimated_from`, the first extrapolated TUFE day, and each point's `benchmark_twr` is its running time-weighted return, null when the returns are. `benchmark` is null without the parameter.
+//	@Description	One point per day from `from` to `to` for one instrument of the portfolio, in the instrument's own currency (no fx). `returns` holds the range's simple, time-weighted and money-weighted returns of the position, in that currency, as 6-decimal fractions or null when undefined (a non-positive value on the first day, or a time-weighted factor below zero); buys and their fees are flows in, sells and dividends (net of stopaj and fee) flows out. They start at `returns_from`, the first day with a close (null when there is none), whose value is the base, and end at the last day with a value or a flow, so a closed position's end is its last sell; each point's `twr` is the running time-weighted return from that day, null before it and after the end. A `from` before the instrument's first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the instrument's first transaction (at most 3660 days back); a `to` after today is clamped to today. `benchmark` lays a shadow position over it: the benchmark's level converted into the instrument's currency, bought with the position's value on `returns_from` and fed with its flows (ADR 0012); `benchmark` answers its code, its three returns (null when a day from `returns_from` has no level or no rate) and `estimated_from`, the first extrapolated TUFE day, and each point's `benchmark_twr` is its running time-weighted return, null when the returns are or after the end. `benchmark` is null without the parameter.
 //	@Tags		portfolios
 //	@Produce	json
 //	@Param		id				path		int		true	"portfolio id"
@@ -261,7 +267,7 @@ func (h *positionHistoryHandler) get(w http.ResponseWriter, r *http.Request) {
 	start, values, flows := positionSeries(points, value, flow)
 	if start < len(points) {
 		resp.ReturnsFrom = &points[start].Date
-		resp.Returns = positionReturns(points[start:], values, flows)
+		resp.Returns = positionReturns(points[start:start+len(values)], values, flows)
 	}
 	if benchmarkCode != "" {
 		prices, estimatedFrom, err := h.benchmarkPrices(r.Context(), benchmarkCode, instr.Currency, from, to, points)
@@ -269,7 +275,7 @@ func (h *positionHistoryHandler) get(w http.ResponseWriter, r *http.Request) {
 			auth.WriteInternalError(w, r, err)
 			return
 		}
-		resp.Benchmark = positionBenchmark(benchmarkCode, points[start:], values, flows, prices[start:], estimatedFrom)
+		resp.Benchmark = positionBenchmark(benchmarkCode, points[start:start+len(values)], values, flows, prices[start:start+len(values)], estimatedFrom)
 	}
 	auth.WriteJSON(w, http.StatusOK, resp)
 }

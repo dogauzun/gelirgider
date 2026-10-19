@@ -72,6 +72,13 @@ and their `twr` is `null`. A range with no priced point, or one whose `V_0`
 is not positive (a short position), answers `null` for all three returns.
 The other `null` rules of ADR 0011 hold.
 
+The series ends at the last point with a value or a flow. A closed position
+has value 0 and no flow after its last sell, and the period rate of ADR 0011
+would compound over those days, so they are left out of the returns and of
+the benchmark's: their `twr` and `benchmark_twr` are `null`, like those before
+`returns_from`. An open position ends on `to`. A closed stretch inside the
+range stays in the series.
+
 ### The benchmark is a shadow position
 
 `?benchmark=` takes `USD`, `EUR`, `XU100`, `TUFE` or `GOLD` and nothing else:
