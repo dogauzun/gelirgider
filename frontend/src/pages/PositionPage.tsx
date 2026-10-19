@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { useAttribution } from '../api/attribution'
 import { useDividendForecast, useDividendTimeline } from '../api/dividends'
@@ -15,6 +15,7 @@ import { PositionPriceChart } from '../components/PositionPriceChart'
 import { PositionTitle } from '../components/PositionTitle'
 import { PositionTransactions } from '../components/PositionTransactions'
 import { RangePicker } from '../components/RangePicker'
+import { RiskFigures } from '../components/RiskFigures'
 import { TradesCard } from '../components/TradesCard'
 import { ChartFrame } from '../components/ui/ChartFrame'
 import { LoadError } from '../components/ui/LoadError'
@@ -27,6 +28,7 @@ import { t } from '../i18n/strings'
 import { todayIstanbul } from '../lib/date'
 import { isHeld, positionLabel } from '../lib/positions'
 import { resolveRange } from '../lib/ranges'
+import { riskStats } from '../lib/risk'
 import { rangeSearch, useRange, useZoom } from '../lib/useRange'
 import { benchmarkNames, useBenchmark } from '../lib/useReturnSettings'
 import { usePortfolioTitle } from '../lib/useTitle'
@@ -99,6 +101,7 @@ export function PositionPage() {
   }))
   const historyBenchmark = history.data?.benchmark ?? null
   const names = benchmarkNames(historyBenchmark?.code, options)
+  const risk = useMemo(() => riskStats(history.data?.points ?? []), [history.data])
 
   const rows = transactions.data ?? []
 
@@ -170,6 +173,23 @@ export function PositionPage() {
               benchmarks={options}
               onBenchmark={setBenchmark}
             />
+
+            {/* A failed history is announced once, by the chart card. */}
+            {!history.isError && (
+              <section className="mt-6 card">
+                <div className={CARD_HEAD}>
+                  <h2 className="text-[14px] font-semibold text-ink">{t('risk.title')}</h2>
+                  <span className="text-xs text-muted">
+                    {t('risk.position.hint', { currency: position.currency })}
+                  </span>
+                </div>
+                <div className="p-4">
+                  <ChartFrame query={history} height={120}>
+                    <RiskFigures stats={risk} benchmark={benchmark} benchmarkLabel={names.label} />
+                  </ChartFrame>
+                </div>
+              </section>
+            )}
 
             <section className="my-6 card">
               <div className={CARD_HEAD}>

@@ -2,90 +2,17 @@ import { useMemo, useState } from 'react'
 import { usePortfolioHistory, type Benchmark } from '../api/history'
 import type { PortfolioScope } from '../api/summary'
 import { t } from '../i18n/strings'
-import { SHARE_FORMAT } from '../lib/allocation'
-import { formatShortMarketDate, todayIstanbul } from '../lib/date'
-import { formatNumber, MISSING, plTone, signedPercent } from '../lib/format'
-import {
-  riskStats,
-  rollingReturns,
-  windowPoints,
-  type RiskStats,
-  type RiskWindow,
-} from '../lib/risk'
+import { todayIstanbul } from '../lib/date'
+import { riskStats, rollingReturns, windowPoints, type RiskWindow } from '../lib/risk'
 import { CashGapNotice } from './CashGapNotice'
 import { LineChart } from './LazyChart'
 import { HistoryEmpty } from './HistoryEmpty'
+import { RiskFigures } from './RiskFigures'
 import { ChartFrame } from './ui/ChartFrame'
-import { FitFigure, KPI_FIGURE, KpiCell, KpiStrip } from './ui/Kpi'
 import { Segmented } from './ui/Segmented'
 import { TAP_Y } from './ui/tap'
 
 const WINDOWS: RiskWindow[] = ['1y', '3y', 'all']
-
-// A window with fewer daily returns says too little (ADR 0036).
-const MIN_DAYS = 30
-
-const TWO_DECIMALS = { minimumFractionDigits: 2, maximumFractionDigits: 2 }
-
-const spread = (value: number) => formatNumber(value, SHARE_FORMAT)
-
-// The best or the worst day: its return, and its date under it.
-function DayCell({ label, day }: { label: string; day: RiskStats['best'] }) {
-  return (
-    <KpiCell label={label}>
-      <FitFigure
-        className={`${KPI_FIGURE} ${plTone(day.value)}`}
-        text={signedPercent(day.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-      />
-      <p className="text-[12px] text-muted tabular-nums">{formatShortMarketDate(day.date)}</p>
-    </KpiCell>
-  )
-}
-
-// Beta, correlation and the benchmark's volatility, or why they are not shown
-// (ADR 0036, "Against the benchmark"): no benchmark picked, or one with gaps
-// or fewer than MIN_DAYS paired returns in the window.
-function BenchmarkRow({
-  stats,
-  benchmark,
-  label,
-}: {
-  stats: RiskStats['benchmark']
-  benchmark: Benchmark | null
-  label: string
-}) {
-  if (benchmark === null) {
-    return <p className="mt-3 text-[13px] text-muted">{t('risk.noBenchmark')}</p>
-  }
-  if (stats === null || stats.days < MIN_DAYS) {
-    return (
-      <p className="mt-3 text-[13px] text-muted">
-        {t('risk.benchmarkNoData', { benchmark: label })}
-      </p>
-    )
-  }
-  return (
-    <KpiStrip columns="grid-cols-3" className="mt-3">
-      <KpiCell label={t('risk.beta')} hint={t('risk.beta.hint', { benchmark: label })}>
-        <FitFigure
-          className={`${KPI_FIGURE} text-ink`}
-          text={formatNumber(stats.beta, TWO_DECIMALS)}
-        />
-      </KpiCell>
-      <KpiCell label={t('risk.correlation')} hint={t('risk.correlation.hint')}>
-        <FitFigure
-          className={`${KPI_FIGURE} text-ink`}
-          text={
-            stats.correlation === null ? MISSING : formatNumber(stats.correlation, TWO_DECIMALS)
-          }
-        />
-      </KpiCell>
-      <KpiCell label={t('risk.benchmarkVolatility', { benchmark: label })}>
-        <FitFigure className={`${KPI_FIGURE} text-ink`} text={spread(stats.volatility)} />
-      </KpiCell>
-    </KpiStrip>
-  )
-}
 
 // The "Risk" card on the Performans tab (ADR 0036): the annualized volatility
 // and downside deviation and the best and worst day of the all-time history's
@@ -129,7 +56,7 @@ export function RiskCard({
     if (points.every((p) => p.twr == null)) return <CashGapNotice scope={portfolioId} />
     return (
       <>
-        {figures()}
+        <RiskFigures stats={stats} benchmark={benchmark} benchmarkLabel={benchmarkLabel} />
         <div className="mt-4">
           <h3 className="text-[13px] font-semibold text-ink">{t('risk.rolling.title')}</h3>
           <p className="mb-2 text-xs text-muted">{t('risk.rolling.hint')}</p>
@@ -145,33 +72,6 @@ export function RiskCard({
             />
           )}
         </div>
-      </>
-    )
-  }
-
-  // The strips of the window's figures, or why there are none.
-  const figures = () => {
-    if (stats === null || stats.days < MIN_DAYS) {
-      return <p className="text-[13px] text-muted">{t('risk.tooShort')}</p>
-    }
-    return (
-      <>
-        <KpiStrip columns="grid-cols-2 sm:grid-cols-4">
-          <KpiCell label={t('risk.volatility')} hint={t('risk.volatility.hint')}>
-            <FitFigure className={`${KPI_FIGURE} text-ink`} text={spread(stats.volatility)} />
-          </KpiCell>
-          <KpiCell label={t('risk.downside')} hint={t('risk.downside.hint')}>
-            <FitFigure className={`${KPI_FIGURE} text-ink`} text={spread(stats.downside)} />
-          </KpiCell>
-          <DayCell label={t('risk.bestDay')} day={stats.best} />
-          <DayCell label={t('risk.worstDay')} day={stats.worst} />
-        </KpiStrip>
-        <p className="mt-2 text-xs text-muted">{t('risk.days', { count: stats.days })}</p>
-        <BenchmarkRow
-          stats={stats.benchmark}
-          benchmark={benchmark}
-          label={benchmarkLabel ?? benchmark ?? ''}
-        />
       </>
     )
   }

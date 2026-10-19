@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
+import { t } from '../i18n/strings'
 import { formatUnitPrice, MASK } from '../lib/format'
 import { setPrivacy } from '../lib/privacy'
 import { chartDrag, mockChartSize } from '../test/chartSize'
@@ -796,4 +797,35 @@ it('keeps the load-more button focused and pending while the next page loads', a
   expect(more).toHaveFocus()
   fireEvent.click(more)
   expect(pages).toHaveLength(2)
+})
+
+const addDays = (date: string, days: number) =>
+  new Date(Date.parse(date) + days * 86_400_000).toISOString().slice(0, 10)
+
+// `count` held days from 2026-01-01 whose twr alternates 0, 0.01, 0, ...
+const riskHistory = (count: number) => ({
+  currency: 'TRY',
+  returns: { simple: '0.01', twr: '0.01', mwr: '0.01' },
+  returns_from: '2026-01-01',
+  returns_to: addDays('2026-01-01', count - 1),
+  points: Array.from({ length: count }, (_, i) => ({
+    ...point(addDays('2026-01-01', i), '10', '1200.00'),
+    twr: i % 2 === 0 ? '0.000000' : '0.010000',
+  })),
+})
+
+it('shows the risk figures of the history under the return card', async () => {
+  mockApi({ history: riskHistory(40) })
+  renderPage('/portfolios/1/positions/7?range=1y')
+
+  const title = await screen.findByRole('heading', { name: t('risk.title') })
+  expect(within(title.closest('section')!).getByText(t('risk.volatility'))).toBeInTheDocument()
+  expect(await screen.findByText(t('risk.days', { count: 39 }))).toBeInTheDocument()
+})
+
+it('says the risk figures need more data on a short history', async () => {
+  mockApi({ history: riskHistory(5) })
+  renderPage('/portfolios/1/positions/7?range=1y')
+
+  expect(await screen.findByText(t('risk.tooShort'))).toBeInTheDocument()
 })
