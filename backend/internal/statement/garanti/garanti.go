@@ -54,6 +54,9 @@ const (
 	movementsSection = "movements"
 )
 
+// codeBadRow is the ParseError code of a row that cannot be read.
+const codeBadRow = "bad_row"
+
 // boilerplate starts the 5 legal-text cells every page carries, with its
 // "Sayfa n / m" among them.
 const boilerplate = "Ekstrenizde yalnızca "
@@ -213,7 +216,7 @@ func parseBalance(st *statement.Statement, cells []string, i int, names []string
 	}
 	rec := append(append([]string{}, names...), cells[i:j]...)
 	if len(names) < 1 || len(names) > 2 || j < i+5 {
-		st.Errors = append(st.Errors, statement.ParseError{Section: holdingsSection, Row: rec, Code: "bad_row", Message: "unreadable fund balance"})
+		st.Errors = append(st.Errors, statement.ParseError{Section: holdingsSection, Row: rec, Code: codeBadRow, Message: "unreadable fund balance"})
 		return j
 	}
 	units, err := parseNumber(cells[i+2])
@@ -267,7 +270,7 @@ func parseMovement(st *statement.Statement, rec, lead, nums []string) (movement,
 		date = t.Format(time.DateOnly)
 	}
 	if len(nums) != 4 || len(lead) < 2 {
-		st.Errors = append(st.Errors, statement.ParseError{Section: movementsSection, Row: rec, Code: "bad_row", Message: "incomplete fund movement", Date: date})
+		st.Errors = append(st.Errors, statement.ParseError{Section: movementsSection, Row: rec, Code: codeBadRow, Message: "incomplete fund movement", Date: date})
 		return movement{}, false
 	}
 	k := 1
@@ -284,7 +287,7 @@ func parseMovement(st *statement.Statement, rec, lead, nums []string) (movement,
 		return movement{}, false
 	}
 	if k > 2 || len(lead)-k-1 > 1 {
-		st.Errors = append(st.Errors, statement.ParseError{Section: movementsSection, Row: rec, Code: "bad_row", Message: "unreadable fund movement", Date: date})
+		st.Errors = append(st.Errors, statement.ParseError{Section: movementsSection, Row: rec, Code: codeBadRow, Message: "unreadable fund movement", Date: date})
 		return movement{}, false
 	}
 	if date == "" || date < st.PeriodStart || date > st.PeriodEnd {

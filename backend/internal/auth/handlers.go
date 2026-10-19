@@ -595,20 +595,21 @@ func validatePassword(password string) string {
 // code point by property rather than by list, while a visible combining
 // accent still passes.
 func validateEmail(email string) string {
+	const invalid = "invalid email"
 	if utf8.RuneCountInString(email) > 254 {
 		return "email must be at most 254 characters"
 	}
 	if textcheck.HasInvisible(email) || strings.ContainsFunc(email, func(r rune) bool {
 		return unicode.IsControl(r) || unicode.In(r, unicode.Cf, unicode.Zs, unicode.Other_Default_Ignorable_Code_Point, unicode.Variation_Selector)
 	}) {
-		return "invalid email"
+		return invalid
 	}
 	addr, err := mail.ParseAddress(email)
 	if err != nil || addr.Address != email {
-		return "invalid email"
+		return invalid
 	}
 	if domain := email[strings.LastIndex(email, "@")+1:]; !strings.Contains(domain, ".") {
-		return "invalid email"
+		return invalid
 	}
 	return ""
 }

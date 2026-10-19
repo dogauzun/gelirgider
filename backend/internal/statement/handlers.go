@@ -125,7 +125,7 @@ const PreviewLookupTimeout = 15 * time.Second
 // out of the note.
 var brokerNames = map[string]string{
 	"midas":           "Midas",
-	"csv":             "CSV",
+	BrokerCSV:         "CSV",
 	"garanti":         "Garanti BBVA",
 	"garanti_yatirim": "Garanti BBVA Yatırım",
 }
@@ -386,7 +386,7 @@ func checkPeriod(broker, periodStart, periodEnd string) error {
 	// A broker statement covers a month, a quarter at most (ADR 0006), so a
 	// year is a generous cap. A CSV spans whatever history it holds, such as
 	// the app's own export, so it has no cap.
-	if broker != "csv" && !end.Before(start.AddDate(1, 0, 0)) {
+	if broker != BrokerCSV && !end.Before(start.AddDate(1, 0, 0)) {
 		return fmt.Errorf("period_end: period must be shorter than a year")
 	}
 	return nil
@@ -399,7 +399,7 @@ func checkPeriod(broker, periodStart, periodEnd string) error {
 // when no date is left.
 func csvPeriod(dates iter.Seq[string]) (start, end string) {
 	for d := range dates {
-		if checkPeriod("csv", d, d) != nil {
+		if checkPeriod(BrokerCSV, d, d) != nil {
 			continue
 		}
 		if start == "" || d < start {
@@ -516,7 +516,7 @@ func decodeCommit(w http.ResponseWriter, r *http.Request) (req commitRequest, ok
 		auth.WriteError(w, http.StatusBadRequest, "invalid request body")
 		return req, false
 	}
-	if req.Broker == "csv" {
+	if req.Broker == BrokerCSV {
 		if err := req.setCSVPeriod(); err != nil {
 			auth.WriteError(w, http.StatusBadRequest, err.Error())
 			return req, false
@@ -593,7 +593,7 @@ func (h *handler) storeImport(w http.ResponseWriter, r *http.Request, userID int
 	// majority, so it is recorded as unknown and matches an earlier CSV of
 	// any currency.
 	account := req.Currency
-	if req.Broker == "csv" {
+	if req.Broker == BrokerCSV {
 		account = ""
 	}
 	imp, err := h.imports.Commit(r.Context(), NewImport{

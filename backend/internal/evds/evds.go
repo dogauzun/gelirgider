@@ -97,6 +97,9 @@ func (f *Fetcher) HasKey(ctx context.Context) (bool, error) {
 // keyTestTimeout bounds TestKey's one request.
 const keyTestTimeout = 10 * time.Second
 
+// reasonUnreachable is the TestKey reason for any failure that is not a key verdict.
+const reasonUnreachable = "unreachable"
+
 // TestKey makes one request with key for one day of the BIST 100 series and
 // returns "" when EVDS accepts the key, or a short reason: "invalid key"
 // (401 for a wrong key, 403 for none), "rate limited" (429) or
@@ -109,7 +112,7 @@ func (f *Fetcher) TestKey(ctx context.Context, key string) string {
 	// EVDS takes its parameters in the path, not in a query string.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/series=TP.MK.F.BILESIK&startDate=25-09-2026&endDate=25-09-2026&type=json", nil)
 	if err != nil {
-		return "unreachable"
+		return reasonUnreachable
 	}
 	req.Header.Set("key", key)
 	req.Header.Set("User-Agent", userAgent)
@@ -117,7 +120,7 @@ func (f *Fetcher) TestKey(ctx context.Context, key string) string {
 	if err != nil {
 		// The error names the URL, never the header carrying the key.
 		slog.Default().Warn("provider key test failed", "setting", KeySetting, "error", err)
-		return "unreachable"
+		return reasonUnreachable
 	}
 	resp.Body.Close()
 	switch resp.StatusCode {
@@ -129,7 +132,7 @@ func (f *Fetcher) TestKey(ctx context.Context, key string) string {
 		return "rate limited"
 	}
 	slog.Default().Warn("provider key test failed", "setting", KeySetting, "status", resp.StatusCode)
-	return "unreachable"
+	return reasonUnreachable
 }
 
 // Close is one BIST 100 daily close. Date is YYYY-MM-DD.

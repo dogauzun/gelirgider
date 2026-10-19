@@ -157,6 +157,9 @@ func (f *Fetcher) key(ctx context.Context, setting, static string) (string, erro
 // keyTestTimeout bounds TestKey's one request.
 const keyTestTimeout = 10 * time.Second
 
+// reasonUnreachable is the TestKey reason for any failure that is not a key verdict.
+const reasonUnreachable = "unreachable"
+
 // TestKey makes one cheap request with key to the provider whose secret
 // setting is setting and returns "" when the provider accepts the key, or a
 // short reason: "invalid key" (401, 403), "rate limited" (429) or
@@ -182,14 +185,14 @@ func (f *Fetcher) TestKey(ctx context.Context, setting, key string) string {
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
-		return "unreachable"
+		return reasonUnreachable
 	}
 	req.Header.Set(header, value)
 	resp, err := httpbody.Client(f.HTTPClient).Do(req)
 	if err != nil {
 		// The error names the URL, never the header carrying the key.
 		slog.Default().Warn("provider key test failed", "setting", setting, "error", err)
-		return "unreachable"
+		return reasonUnreachable
 	}
 	resp.Body.Close()
 	switch resp.StatusCode {
@@ -201,7 +204,7 @@ func (f *Fetcher) TestKey(ctx context.Context, setting, key string) string {
 		return "rate limited"
 	}
 	slog.Default().Warn("provider key test failed", "setting", setting, "status", resp.StatusCode)
-	return "unreachable"
+	return reasonUnreachable
 }
 
 // FetchClose fetches symbol's latest close as of now, dated by the quote's
