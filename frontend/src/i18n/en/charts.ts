@@ -97,6 +97,7 @@ export const enCharts: AreaStrings<typeof trCharts> = {
   'projection.chart.summary': 'Goal projection {from} – {to}, ending at {value}',
   'chart.totalValue': 'Total value',
   'chart.costBasis': 'Cost',
+  'chart.invested': 'Invested',
   'chart.empty': 'Not enough data for a chart.',
   'chart.error': 'Could not load the chart',
   'chart.bars.summary': '{count} bars, highest {label}: {value}',

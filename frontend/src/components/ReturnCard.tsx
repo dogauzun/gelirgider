@@ -86,6 +86,7 @@ export function ReturnCard({
             ...p,
             total_value: p.twr ?? null,
             cost_basis: null,
+            invested: null,
             benchmark_value: p.benchmark_twr ?? undefined,
           }))
         : (history?.points ?? []),
@@ -176,6 +177,7 @@ export function ReturnCard({
     )
   }
 
+  const moneyLabels = { value: t('chart.totalValue'), invested: t('chart.invested') }
   const returnLabels =
     method === 'twr'
       ? { value: t('chart.return.portfolio'), excess: excessLabel }
@@ -285,7 +287,7 @@ export function ReturnCard({
             height={220}
             benchmarkLabel={benchmarkLabel}
             estimatedFrom={historyBenchmark?.estimated_from}
-            labels={chartMode === 'money' ? undefined : returnLabels}
+            labels={chartMode === 'money' ? moneyLabels : returnLabels}
             onZoom={zoom.onZoom}
           />
         </ChartFrame>

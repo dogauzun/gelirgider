@@ -41,12 +41,13 @@ import { ChartTooltip, type ChartTooltipRow } from './ChartTooltip'
 // dense series, a point every 1.5 px, does not zoom.
 const MIN_ZOOM_DRAG_PX = 8
 
-// The three series' strokes: dash pattern and color token. The benchmark is
+// The four series' strokes: dash pattern and color token. The benchmark is
 // dotted so it never reads as the dashed cost line. Colors go
 // through `style`: SVG presentation attributes do not take `var()`.
 const STROKES = {
   value: { dash: undefined, color: 'var(--color-accent)' },
   cost: { dash: '4 3', color: 'var(--color-faint)' },
+  invested: { dash: '6 3', color: 'var(--color-cash)' },
   benchmark: { dash: '1 3', color: 'var(--color-plum)' },
 }
 
@@ -123,7 +124,7 @@ function LegendToggle({
   shown,
   onToggle,
 }: {
-  kind: 'cost' | 'benchmark'
+  kind: 'cost' | 'invested' | 'benchmark'
   label: string
   shown: boolean
   onToggle: () => void
@@ -140,6 +141,26 @@ function LegendToggle({
       </span>
       {label}
     </button>
+  )
+}
+
+// SeriesLine is one of the dashed or dotted lines under the value; a hidden
+// one stays mounted, so the y axis and the tooltip decide what it shows.
+function SeriesLine({ kind, shown }: { kind: 'cost' | 'invested' | 'benchmark'; shown: boolean }) {
+  return (
+    <Line
+      className={`series-${kind}`}
+      dataKey={kind}
+      hide={!shown}
+      type="linear"
+      strokeWidth={1.25}
+      strokeDasharray={STROKES[kind].dash}
+      strokeLinecap={kind === 'benchmark' ? 'round' : undefined}
+      style={{ stroke: STROKES[kind].color }}
+      dot={false}
+      activeDot={false}
+      animationDuration={ANIMATION_MS}
+    />
   )
 }
 
@@ -236,7 +257,9 @@ const toNumber = (v: string | null | undefined) =>
 // it masks in privacy mode like formatChartValue. A null total_value or cost_basis is a gap in that
 // line, as a missing benchmark_value is: nothing is drawn for that day.
 // A series without any value is neither drawn nor in the legend.
-// The cost and benchmark legend entries hide and show their series: a hidden
+// labels.invested, already translated, turns on a dashed invested line from
+// the points' invested (the money put in, as against the cost basis).
+// The cost, invested and benchmark legend entries hide and show their series: a hidden
 // series is not drawn, not in the tooltip and not in the y axis's range.
 // height fixes the plot's height in px; without it the plot is 5:2 with a
 // 200 px floor.
@@ -258,7 +281,7 @@ export interface LineChartProps {
   benchmarkLabel?: string
   estimatedFrom?: string | null
   markers?: ChartMarker[]
-  labels?: { value: string; cost?: string; valueHint?: string; excess?: string }
+  labels?: { value: string; cost?: string; invested?: string; valueHint?: string; excess?: string }
   formatValue?: (value: string) => string
   onZoom?: (from: string, to: string) => void
   unit?: 'money' | 'percent'
@@ -333,16 +356,24 @@ function derive({
   values,
   markers,
   costShown,
+  investedShown,
   benchmarkShown,
   inPercent,
   formatValue,
   valueLabel,
 }: {
   points: ChartPoint[]
-  rows: { date: string; value: number | null; cost: number | null; benchmark: number | null }[]
+  rows: {
+    date: string
+    value: number | null
+    cost: number | null
+    invested: number | null
+    benchmark: number | null
+  }[]
   values: number[]
   markers: ChartMarker[]
   costShown: boolean
+  investedShown: boolean
   benchmarkShown: boolean
   inPercent: boolean
   formatValue: (value: string) => string
@@ -351,9 +382,12 @@ function derive({
   // The y axis fits the visible series; with the value line all null and the
   // rest hidden there is nothing visible, and it keeps fitting every series.
   const visible = rows.flatMap((r) =>
-    [r.value, costShown ? r.cost : null, benchmarkShown ? r.benchmark : null].filter(
-      (v): v is number => v !== null,
-    ),
+    [
+      r.value,
+      costShown ? r.cost : null,
+      investedShown ? r.invested : null,
+      benchmarkShown ? r.benchmark : null,
+    ].filter((v): v is number => v !== null),
   )
   const yTicks = axisTicks(visible.length > 0 ? visible : values)
   const tickLabels = new Map(
@@ -443,6 +477,7 @@ export function LineChart({
   // hidden. The benchmark is hidden by its label, and another benchmark, or
   // none, clears it: a newly chosen benchmark is always shown.
   const [costHidden, setCostHidden] = useState(false)
+  const [investedHidden, setInvestedHidden] = useState(false)
   const [hiddenBenchmark, setHiddenBenchmark] = useState<string | null>(null)
   const benchmarkKey = benchmarkLabel ?? ''
   if (hiddenBenchmark !== null && hiddenBenchmark !== benchmarkKey) setHiddenBenchmark(null)
@@ -457,14 +492,15 @@ export function LineChart({
         date: p.date,
         value: toNumber(p.total_value),
         cost: toNumber(p.cost_basis),
+        invested: toNumber(p.invested),
         benchmark: toNumber(p.benchmark_value),
       })),
     [points],
   )
   // Memoised with the rows: they only change with the points, not on a drag move.
-  const { values, empty, hasCost, hasBenchmark, hasValue } = useMemo(() => {
+  const { values, empty, hasCost, hasInvested, hasBenchmark, hasValue } = useMemo(() => {
     const values = rows.flatMap((r) =>
-      [r.value, r.cost, r.benchmark].filter((v): v is number => v !== null),
+      [r.value, r.cost, r.invested, r.benchmark].filter((v): v is number => v !== null),
     )
     return {
       values,
@@ -472,11 +508,13 @@ export function LineChart({
       // return all the way (cash only) is still a line.
       empty: inPercent ? values.length === 0 : !values.some((v) => v !== 0),
       hasCost: rows.some((r) => r.cost !== null),
+      hasInvested: !!labels?.invested && rows.some((r) => r.invested !== null),
       hasBenchmark: rows.some((r) => r.benchmark !== null),
       hasValue: rows.some((r) => r.value !== null),
     }
-  }, [rows, inPercent])
+  }, [rows, inPercent, labels?.invested])
   const costShown = hasCost && !costHidden
+  const investedShown = hasInvested && !investedHidden
   const benchmarkShown = hasBenchmark && hiddenBenchmark === null
   // The tooltip anchor per date: the value, else the first shown series.
   const anchors = useMemo(
@@ -484,13 +522,17 @@ export function LineChart({
       new Map(
         rows.map((r) => [
           r.date,
-          r.value ?? (costShown ? r.cost : null) ?? (benchmarkShown ? r.benchmark : null),
+          r.value ??
+            (costShown ? r.cost : null) ??
+            (investedShown ? r.invested : null) ??
+            (benchmarkShown ? r.benchmark : null),
         ]),
       ),
-    [rows, costShown, benchmarkShown],
+    [rows, costShown, investedShown, benchmarkShown],
   )
   const valueLabel = labels?.value ?? t('chart.totalValue')
   const costLabel = labels?.cost ?? t('chart.costBasis')
+  const investedLabel = labels?.invested ?? ''
   // privacy is not read here but by formatValue at call time, so it keys the
   // memo; a locale switch remounts the app (App.tsx) and needs no key.
   const derived = useMemo(
@@ -503,6 +545,7 @@ export function LineChart({
             values,
             markers,
             costShown,
+            investedShown,
             benchmarkShown,
             inPercent,
             formatValue,
@@ -516,6 +559,7 @@ export function LineChart({
       values,
       markers,
       costShown,
+      investedShown,
       benchmarkShown,
       inPercent,
       formatValue,
@@ -549,6 +593,14 @@ export function LineChart({
         swatch: <Swatch kind="cost" />,
         label: costLabel,
         value: formatValue(p.cost_basis),
+      })
+    }
+    if (investedShown && p.invested != null) {
+      items.push({
+        key: 'invested',
+        swatch: <Swatch kind="invested" />,
+        label: investedLabel,
+        value: formatValue(p.invested),
       })
     }
     if (benchmarkShown && p.benchmark_value !== undefined && p.benchmark_value !== null) {
@@ -648,35 +700,9 @@ export function LineChart({
               animationDuration={ANIMATION_MS}
             />
           )}
-          {hasCost && (
-            <Line
-              className="series-cost"
-              dataKey="cost"
-              hide={!costShown}
-              type="linear"
-              strokeWidth={1.25}
-              strokeDasharray={STROKES.cost.dash}
-              style={{ stroke: STROKES.cost.color }}
-              dot={false}
-              activeDot={false}
-              animationDuration={ANIMATION_MS}
-            />
-          )}
-          {hasBenchmark && (
-            <Line
-              className="series-benchmark"
-              dataKey="benchmark"
-              hide={!benchmarkShown}
-              type="linear"
-              strokeWidth={1.25}
-              strokeDasharray={STROKES.benchmark.dash}
-              strokeLinecap="round"
-              style={{ stroke: STROKES.benchmark.color }}
-              dot={false}
-              activeDot={false}
-              animationDuration={ANIMATION_MS}
-            />
-          )}
+          {hasCost && <SeriesLine kind="cost" shown={costShown} />}
+          {hasInvested && <SeriesLine kind="invested" shown={investedShown} />}
+          {hasBenchmark && <SeriesLine kind="benchmark" shown={benchmarkShown} />}
           {span && <ReferenceArea x1={span[0]} x2={span[1]} shape={zoomSpan} />}
           <Markers markers={markerShapes} />
           <AnchoredTooltip
@@ -703,6 +729,14 @@ export function LineChart({
             label={costLabel}
             shown={costShown}
             onToggle={() => setCostHidden(!costHidden)}
+          />
+        )}
+        {hasInvested && (
+          <LegendToggle
+            kind="invested"
+            label={investedLabel}
+            shown={investedShown}
+            onToggle={() => setInvestedHidden(!investedHidden)}
           />
         )}
         {hasBenchmark && (

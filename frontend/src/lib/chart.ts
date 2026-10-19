@@ -173,9 +173,10 @@ export function placeTooltip(point: XY, card: Size, plot: XY & Size, gap: number
 
 export type ChartMarker = { date: string; kind: 'buy' | 'sell' | 'dividend' | 'split' }
 
-export type ChartPoint = Omit<HistoryEntry, 'total_value' | 'cost_basis'> & {
+export type ChartPoint = Omit<HistoryEntry, 'total_value' | 'cost_basis' | 'invested'> & {
   total_value: string | null
   cost_basis: string | null
+  invested?: string | null
 }
 
 export type Bar = { key: string; label: string; value: string }

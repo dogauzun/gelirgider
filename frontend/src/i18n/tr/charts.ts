@@ -98,6 +98,7 @@ export const trCharts = {
   'projection.chart.summary': '{from} – {to} hedef tahmini, sonunda {value}',
   'chart.totalValue': 'Toplam değer',
   'chart.costBasis': 'Maliyet',
+  'chart.invested': 'Yatırılan',
   'chart.empty': 'Grafik için yeterli veri yok.',
   'chart.error': 'Grafik yüklenemedi',
   // BarChart's aria-label.
