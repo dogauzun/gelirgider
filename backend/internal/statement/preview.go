@@ -15,6 +15,7 @@ import (
 	"strconv"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
+	"github.com/dogauzun/gelirgider/backend/internal/currency"
 	"github.com/dogauzun/gelirgider/backend/internal/dividend"
 	"github.com/dogauzun/gelirgider/backend/internal/instrument"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
@@ -561,7 +562,7 @@ func (h *handler) previewRows(ctx context.Context, req requester, picks map[stri
 			Key: fmt.Sprintf("cash-%d", i), Status: statusOK, Type: c.Kind, Date: c.Date,
 			Amount: &c.Amount, Fee: &c.Fee, Currency: c.Currency, Description: MaskIdentifiers(c.Description),
 		}
-		if !transaction.IsValidCurrency(c.Currency) {
+		if !currency.IsValid(c.Currency) {
 			row.Status = statusUnsupportedCurrency
 		}
 		checkRow(&row, instrument.Instrument{})

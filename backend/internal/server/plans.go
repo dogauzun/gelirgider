@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
@@ -102,15 +101,17 @@ func toPlanResponse(p plan.Plan, in *instrument.Instrument, today string) planRe
 // none. Errors are "<field>: <message>", as the transaction routes write them.
 func parsePlanRequest(req planRequest, in *instrument.Instrument) (plan.Plan, error) {
 	p := plan.Plan{InstrumentID: req.InstrumentID, Currency: req.Currency, DayOfMonth: req.DayOfMonth, Fund: req.Fund}
+	var err error
 	switch {
 	case in != nil && req.Currency != "" && req.Currency != in.Currency:
 		return p, fmt.Errorf("currency: must match instrument currency (%s)", in.Currency)
 	case in != nil:
 		p.Currency = in.Currency
-	case !currency.IsValid(req.Currency):
-		return p, fmt.Errorf("currency: must be one of %s", strings.Join(currency.Valid, ", "))
+	default:
+		if err = currency.Check(req.Currency); err != nil {
+			return p, err
+		}
 	}
-	var err error
 	if p.Amount, err = transaction.ParseNonNegative(req.Amount); err != nil {
 		return p, fmt.Errorf("amount: %w", err)
 	}

@@ -268,8 +268,10 @@ func (req commitRequest) validate() error {
 	if !sha256Hex.MatchString(req.SHA256) {
 		return fmt.Errorf("sha256: must be 64 lowercase hex characters")
 	}
-	if req.Currency != "" && !currency.IsValid(req.Currency) {
-		return fmt.Errorf("currency: must be one of %s", strings.Join(currency.Valid, ", "))
+	if req.Currency != "" {
+		if err := currency.Check(req.Currency); err != nil {
+			return err
+		}
 	}
 	if err := checkAliases("aliases", req.Aliases); err != nil {
 		return err
