@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dogauzun/gelirgider/backend/internal/holdings"
 	"github.com/dogauzun/gelirgider/backend/internal/instrument"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
@@ -162,7 +163,7 @@ func emptyPDF(size int) []byte {
 // importDeps are the import routes' repos on e's database, with no fetcher;
 // a test that registers the routes itself sets the ones it needs.
 func (e *transactionTestEnv) importDeps() statement.Deps {
-	return statement.Deps{Imports: statement.NewImportRepo(e.db), Transactions: transaction.NewRepo(e.db), Splits: split.NewRepo(e.db), Portfolios: portfolio.NewRepo(e.db), Instruments: instrument.NewRepo(e.db), Prices: price.NewRepo(e.db), ManualPrices: price.NewManualRepo(e.db)}
+	return statement.Deps{Imports: statement.NewImportRepo(e.db), Transactions: transaction.NewRepo(e.db), Splits: split.NewRepo(e.db), Portfolios: portfolio.NewRepo(e.db), Instruments: instrument.NewRepo(e.db), PriceSources: holdings.PriceSources{Prices: price.NewRepo(e.db), Manual: price.NewManualRepo(e.db)}}
 }
 
 // upload posts file to the parse endpoint as the given session.
@@ -1789,7 +1790,7 @@ func TestParseStatementProposesOpenings(t *testing.T) {
 	}
 	protected := http.NewServeMux()
 	deps := e.importDeps()
-	deps.Prices = prices
+	deps.PriceSources.Prices = prices
 	deps.OnDemandFetch = fetch
 	statement.RegisterRoutes(protected, deps)
 	e.handler = e.sessions.RequireUser(protected)
@@ -2166,7 +2167,7 @@ func TestParseMidasStatementPricesOpeningsAtAverageCost(t *testing.T) {
 	}
 	protected := http.NewServeMux()
 	deps := e.importDeps()
-	deps.Prices = prices
+	deps.PriceSources.Prices = prices
 	statement.RegisterRoutes(protected, deps)
 	e.handler = e.sessions.RequireUser(protected)
 
@@ -2367,7 +2368,7 @@ func TestParseStatementProposesClosings(t *testing.T) {
 	}
 	protected := http.NewServeMux()
 	deps := e.importDeps()
-	deps.Prices = prices
+	deps.PriceSources.Prices = prices
 	statement.RegisterRoutes(protected, deps)
 	e.handler = e.sessions.RequireUser(protected)
 
@@ -2692,7 +2693,7 @@ func TestParseStatementSyncsBulletinForOpenings(t *testing.T) {
 	protected := http.NewServeMux()
 	deps := e.importDeps()
 	deps.Instruments = instruments
-	deps.Prices = prices
+	deps.PriceSources.Prices = prices
 	deps.SyncBulletin = syncBulletin
 	statement.RegisterRoutes(protected, deps)
 	e.handler = e.sessions.RequireUser(protected)

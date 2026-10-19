@@ -124,19 +124,13 @@ func splitDeposits(ctx context.Context, src PriceSources, userID int64, ids []in
 	return deposits, priced, nil
 }
 
-// DepositLookup finds a user's term deposits by instrument id; an id that is
-// not the user's deposit is absent. *deposit.Repo satisfies it.
-type DepositLookup interface {
-	ByInstrumentIDs(ctx context.Context, userID int64, ids []int64) (map[int64]deposit.Deposit, error)
-}
-
 // PriceSources is what LatestCloses and MergedSeries read: the fetched closes
 // and the user's manual prices that override them, and the user's deposits,
 // whose closes come from their terms. Deposits may be nil: no deposits.
 type PriceSources struct {
 	Prices   *price.Repo
 	Manual   *price.ManualRepo
-	Deposits DepositLookup
+	Deposits *deposit.Repo
 }
 
 // MergedSeries builds, for each of ids, the date-ascending series of its

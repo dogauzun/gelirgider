@@ -139,12 +139,12 @@ var brokerNames = map[string]string{
 // create runs. lookupFund (nil turns it off) asks TEFAS about a
 // TEFAS row's unknown fund code, so the preview can create the fund TEFAS
 // confirms, and serves the preview picker's fund lookup.
-// prices, manualPrices and deposits price the opening positions the preview proposes,
+// PriceSources prices the opening positions the preview proposes,
 // which may also run onDemandFetch. syncBulletin (nil turns it
 // off) syncs the BIST bulletin of a BIST row's date when its symbol is no
 // instrument, so a share delisted since resolves.
 func RegisterRoutes(mux *http.ServeMux, deps Deps) {
-	h := &handler{imports: deps.Imports, transactions: deps.Transactions, splits: deps.Splits, portfolios: deps.Portfolios, instruments: deps.Instruments, prices: deps.Prices, manualPrices: deps.ManualPrices, deposits: deps.Deposits, onDemandFetch: deps.OnDemandFetch, lookupFund: deps.LookupFund, fundLookups: ratelimit.New(fundLookupLimit, time.Minute), syncBulletin: deps.SyncBulletin, bulletinSyncs: ratelimit.New(bulletinSyncLimit, time.Minute)}
+	h := &handler{imports: deps.Imports, transactions: deps.Transactions, splits: deps.Splits, portfolios: deps.Portfolios, instruments: deps.Instruments, priceSources: deps.PriceSources, onDemandFetch: deps.OnDemandFetch, lookupFund: deps.LookupFund, fundLookups: ratelimit.New(fundLookupLimit, time.Minute), syncBulletin: deps.SyncBulletin, bulletinSyncs: ratelimit.New(bulletinSyncLimit, time.Minute)}
 	mux.HandleFunc("POST "+ParsePath, h.parse)
 	mux.HandleFunc("POST "+CommitPath, h.commit)
 	mux.HandleFunc("GET "+CommitPath, h.list)
@@ -160,9 +160,7 @@ type Deps struct {
 	Splits        *split.Repo
 	Portfolios    *portfolio.Repo
 	Instruments   *instrument.Repo
-	Prices        *price.Repo
-	ManualPrices  *price.ManualRepo
-	Deposits      holdings.DepositLookup
+	PriceSources  holdings.PriceSources
 	OnDemandFetch transaction.OnDemandFetch
 	LookupFund    FundLookup
 	SyncBulletin  BulletinSync
@@ -174,9 +172,7 @@ type handler struct {
 	splits        *split.Repo
 	portfolios    *portfolio.Repo
 	instruments   instrumentStore
-	prices        *price.Repo
-	manualPrices  *price.ManualRepo
-	deposits      holdings.DepositLookup
+	priceSources  holdings.PriceSources
 	onDemandFetch transaction.OnDemandFetch
 	lookupFund    FundLookup
 	fundLookups   *ratelimit.Limiter
