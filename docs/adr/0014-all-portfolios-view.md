@@ -25,6 +25,9 @@ The view reuses the existing portfolio routes with the reserved id `all`:
 - `GET /api/portfolios/all/trades`
   ([ADR 0034](0034-realized-trades.md)), the sales of every portfolio, each
   realized against its own portfolio's average cost.
+- `GET /api/portfolios/all/cashflows`
+  ([ADR 0035](0035-cash-flow-timeline.md)), the deposits and withdrawals of
+  every portfolio summed per month.
 - `GET /api/portfolios/all/cash-gaps` (ADR 0011)
 - `GET /api/portfolios/all/projection` (the real-terms projection of
   [ADR 0029](0029-goals-and-projection.md)), a read like the others.
