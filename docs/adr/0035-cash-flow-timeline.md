@@ -93,7 +93,9 @@ with no transaction has no months. A month is:
 ```
 
 All fields are 2-decimal strings in the reporting currency, and `totals` has the
-same fields summed over every month. What each counts:
+same fields over every month, each summed from the exact amounts and rounded
+once, so it can differ from the sum of the rounded months by a cent. What each
+counts:
 
 - `deposits` and `withdrawals` are the gross amounts of the month's `deposit`
   and `withdrawal` rows, as `holdings.Stats` counts them: a fee on either is
@@ -119,9 +121,8 @@ are these:
 | 2026-09-25 | fee row 7.50 TRY                             | fees 7.50               |
 
 They make the month above: deposits 1000 + 4000 = 5000, `net` 5000 − 500 = 4500.
-The stopaj is not a fee here, since `Stats.Fees` does not count it. `totals` is
-the sum of every month's fields, so with this as the only month it equals the
-row.
+The stopaj is not a fee here, since `Stats.Fees` does not count it. With this as
+the only month, `totals` equals the row.
 
 Each row converts at the latest rate on or before its own date, the walk of the
 dividends timeline (`loadFXWalk`,
@@ -146,11 +147,11 @@ line sums the shown window.
 
 The header shows the saving streak: the number of consecutive months with
 `net > 0` ending in the current month, or in the previous month when the current
-one is not above zero yet, as "{n} aydır her ay para yatırılıyor", with the
-longest such run beside it. The current month is still open, so one without a
-deposit yet does not reset the streak; a previous month with `net` at or below
-zero does. The streak and the longest run read the whole record, whatever the
-window.
+one is not above zero yet, as "Üst üste {n} ay" ("Streak {n} months"), with
+the longest such run beside it as "En uzun {n} ay". The current month is still
+open, so one without a deposit yet does not reset the streak; a previous month
+with `net` at or below zero does. The streak and the longest run read the whole
+record, whatever the window.
 
 The bars are drawn by one grouped-bars chart extracted from the frame of
 `ReturnBars`, so the period returns bars and this card do not duplicate it:

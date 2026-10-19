@@ -55,9 +55,11 @@ is a per-source setting (ADR 0010).
 Each daily run asks for the smallest `periyod` that reaches the requested date,
 which re-reads the last month, so a missed day needs no special handling.
 Saving a transaction fetches that fund's NAVs from the transaction date in one
-request, and the startup backfill does the same. That fetch is skipped when
-the stored prices already reach back to within 14 days of the start (longer
-than the longest holiday stretch), and the window is clamped to 60 months. So
+request, and the startup backfill does the same. That fetch is made when no
+price is stored near the start, or when two consecutive stored dates, from the
+start to now, are more than 14 days apart (longer than the longest holiday
+stretch), so a series that stops early or skips months is completed; full
+coverage makes no request. The window is clamped to 60 months. So
 a newly tracked fund gets its NAVs within the request that saved it, and an
 older transaction costs one extra request. This replaced the earlier
 `-missing-only` cron run (ADR 0010).
