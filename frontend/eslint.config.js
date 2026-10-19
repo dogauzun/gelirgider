@@ -291,7 +291,7 @@ export default tseslint.config(
       ],
     },
   },
-  // A function past 300 lines wants splitting. An error, not a
+  // A function past 300 lines or 40 branches wants splitting. An error, not a
   // warning: npm run lint passes with warnings. A test file's describe block
   // is one long function by design.
   {
@@ -299,6 +299,7 @@ export default tseslint.config(
     ignores: ['src/**/*.test.{ts,tsx}'],
     rules: {
       'max-lines-per-function': ['error', { max: 300, skipBlankLines: true, skipComments: true }],
+      complexity: ['error', 40],
     },
   },
   // Long parameter lists are a sign a function wants an options object. An

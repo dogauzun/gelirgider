@@ -354,6 +354,130 @@ function StatsCard({
   )
 }
 
+// Özet's KPI strip. `positions` are the open ones, `cashByCurrency` the
+// nonzero balances and `mark` the missing-rates mark of Tüm portföyler; the
+// page needs all three elsewhere too.
+function SummaryKpis({
+  data,
+  positions,
+  cashByCurrency,
+  mark,
+}: {
+  data: Summary
+  positions: Position[]
+  cashByCurrency: [string, string][]
+  mark: ReactNode
+}) {
+  // Same exclusion, one step further: data.cash and data.total_value are
+  // summed by skipping every currency in missing_rates, so when
+  // nothing is left to convert they read 0,00 next to real holdings. That is
+  // a wrong number, not an incomplete one -- show MISSING instead, the same way a
+  // position with no reporting value does. The cash cell's hint then carries
+  // the actual balance, so it is there whenever any cash sits in a currency
+  // other than the reporting one, not only when there are several.
+  const missingRates = data.missing_rates
+  const convertedCash = cashByCurrency.some(([currency]) => !missingRates.includes(currency))
+  const cashKnown = cashByCurrency.length === 0 || convertedCash
+  const totalValueKnown = convertedCash || positions.some((p) => p.market_value_reporting !== null)
+  const cashHint = cashByCurrency.some(([currency]) => currency !== data.currency)
+    ? cashByCurrency.map(([currency, amount]) => formatMoney(amount, currency)).join(' · ')
+    : undefined
+
+  // The reporting-currency cost the unrealized P/L was earned on, as the
+  // server sums it: total_value less cash less the gain, each rounded on its
+  // own, can be a cent off the rows and the chart. Without a
+  // percent (lib/positions returnPercent) the cost is dropped from the hint
+  // too.
+  const unrealized = data.unrealized_pl ?? null
+  const unrealizedPercent = returnPercent(unrealized, data.cost_basis)
+  const unrealizedHint =
+    unrealizedPercent !== null
+      ? `${unrealizedPercent} ${t('summary.vsCost')} · ${t('summary.cost', {
+          amount: formatMoney(data.cost_basis, data.currency),
+        })}`
+      : undefined
+
+  // The open positions' day change, dated by the newest price it covers.
+  const dayTotal = data.day_change ?? null
+  const dayDate = positions.reduce<string>((latest, p) => {
+    if (p.day_change_reporting == null) return latest
+    const date = p.price_date ?? ''
+    return date > latest ? date : latest
+  }, '')
+
+  return (
+    <KpiStrip columns={KPI_COLUMNS}>
+      <KpiCell
+        label={t('summary.totalValue')}
+        className="col-span-2 lg:col-span-1"
+        hint={
+          data.fx_pl !== null
+            ? `${t('summary.fxPl')} ${signedMoney(data.fx_pl, data.currency)}`
+            : undefined
+        }
+      >
+        <FitFigure
+          className={`${KPI_FIGURE} text-ink`}
+          text={totalValueKnown ? formatMoney(data.total_value, data.currency) : MISSING}
+          mark={mark}
+        />
+      </KpiCell>
+      <KpiCell
+        label={t('summary.dayChange')}
+        hint={
+          dayTotal !== null && dayDate
+            ? t('summary.dayAsOf', { date: formatShortMarketDate(dayDate) })
+            : undefined
+        }
+      >
+        <FitFigure
+          className={`${KPI_FIGURE} ${plTone(dayTotal)}`}
+          text={signedMoney(dayTotal, data.currency)}
+        />
+      </KpiCell>
+      <KpiCell label={t('summary.cash')} hint={cashHint}>
+        <FitFigure
+          className={`${KPI_FIGURE} text-ink`}
+          text={cashKnown ? formatMoney(data.cash, data.currency) : MISSING}
+          mark={mark}
+        />
+      </KpiCell>
+      <KpiCell label={t('summary.unrealizedPl')} hint={unrealizedHint}>
+        <FitFigure
+          className={`${KPI_FIGURE} ${plTone(unrealized)}`}
+          text={signedMoney(unrealized, data.currency)}
+          mark={mark}
+        />
+      </KpiCell>
+      <KpiCell label={t('summary.realizedPl')}>
+        <FitFigure
+          className={`${KPI_FIGURE} ${plTone(data.realized_pl)}`}
+          text={signedMoney(data.realized_pl, data.currency)}
+        />
+      </KpiCell>
+    </KpiStrip>
+  )
+}
+
+// Closed positions come down the same array but are held apart:
+// they are not holdings, so they stay out of the allocation, the total
+// value and the position count. A quantity of 0 alone is not closed.
+// The positions table sorts its own rows.
+function holdings(data: Summary | undefined) {
+  const positions = (data?.positions ?? []).filter((p) => !p.closed)
+  const closed = (data?.positions ?? []).filter((p) => p.closed)
+  const cashByCurrency = data
+    ? Object.entries(data.cash_by_currency).filter(([, amount]) => Number(amount) !== 0)
+    : []
+  // data.cash is the reporting-currency total, which silently excludes any
+  // currency missing an FX rate (see missing_rates) -- checking it alone
+  // would call a portfolio "empty" while it still holds untotaled cash.
+  // cash_by_currency carries every currency's raw amount, rate or no rate.
+  const isEmpty =
+    data && positions.length === 0 && closed.length === 0 && cashByCurrency.length === 0
+  return { positions, cashByCurrency, isEmpty }
+}
+
 // Özet, layout A: the return card beside the attention card, one
 // KPI strip, İstatistikler as a strip under it, the
 // positions table, then Dağılım beside Katkı. Each
@@ -370,58 +494,7 @@ export function SummaryPage() {
   const history = usePortfolioHistory(portfolioId, from, to, benchmark)
   const [method, setMethod] = useReturnMethod()
 
-  // Closed positions come down the same array but are held apart:
-  // they are not holdings, so they stay out of the allocation, the total
-  // value and the position count. A quantity of 0 alone is not closed.
-  // The positions table sorts its own rows.
-  const positions = (data?.positions ?? []).filter((p) => !p.closed)
-  const closed = (data?.positions ?? []).filter((p) => p.closed)
-  const cashByCurrency = data
-    ? Object.entries(data.cash_by_currency).filter(([, amount]) => Number(amount) !== 0)
-    : []
-  // data.cash is the reporting-currency total, which silently excludes any
-  // currency missing an FX rate (see missing_rates) -- checking it alone
-  // would call a portfolio "empty" while it still holds untotaled cash.
-  // cash_by_currency carries every currency's raw amount, rate or no rate.
-  const isEmpty =
-    data && positions.length === 0 && closed.length === 0 && cashByCurrency.length === 0
-
-  // Same exclusion, one step further: data.cash and data.total_value are
-  // summed by skipping every currency in missing_rates, so when
-  // nothing is left to convert they read 0,00 next to real holdings. That is
-  // a wrong number, not an incomplete one -- show MISSING instead, the same way a
-  // position with no reporting value does. The cash cell's hint then carries
-  // the actual balance, so it is there whenever any cash sits in a currency
-  // other than the reporting one, not only when there are several.
-  const missingRates = data?.missing_rates ?? []
-  const convertedCash = cashByCurrency.some(([currency]) => !missingRates.includes(currency))
-  const cashKnown = cashByCurrency.length === 0 || convertedCash
-  const totalValueKnown = convertedCash || positions.some((p) => p.market_value_reporting !== null)
-  const cashHint = cashByCurrency.some(([currency]) => currency !== data?.currency)
-    ? cashByCurrency.map(([currency, amount]) => formatMoney(amount, currency)).join(' · ')
-    : undefined
-
-  // The reporting-currency cost the unrealized P/L was earned on, as the
-  // server sums it: total_value less cash less the gain, each rounded on its
-  // own, can be a cent off the rows and the chart. Without a
-  // percent (lib/positions returnPercent) the cost is dropped from the hint
-  // too.
-  const unrealized = data?.unrealized_pl ?? null
-  const unrealizedPercent = data ? returnPercent(unrealized, data.cost_basis) : null
-  const unrealizedHint =
-    data && unrealizedPercent !== null
-      ? `${unrealizedPercent} ${t('summary.vsCost')} · ${t('summary.cost', {
-          amount: formatMoney(data.cost_basis, data.currency),
-        })}`
-      : undefined
-
-  // The open positions' day change, dated by the newest price it covers.
-  const dayTotal = data?.day_change ?? null
-  const dayDate = positions.reduce<string>((latest, p) => {
-    if (p.day_change_reporting == null) return latest
-    const date = p.price_date ?? ''
-    return date > latest ? date : latest
-  }, '')
+  const { positions, cashByCurrency, isEmpty } = holdings(data)
 
   // Tüm portföyler: the same page summed over every portfolio, with
   // a row per portfolio. Its figures leave out what any portfolio left out,
@@ -430,7 +503,7 @@ export function SummaryPage() {
   const isAll = portfolioId === 'all'
   const { data: portfolios } = usePortfolios()
   const mark = isAll && (
-    <MissingRatesMark currencies={missingRates} currency={data?.currency ?? ''} />
+    <MissingRatesMark currencies={data?.missing_rates ?? []} currency={data?.currency ?? ''} />
   )
   const portfoliosTable = isAll && portfolios && portfolios.length > 0 && (
     <PortfoliosTable portfolios={portfolios} range={range} method={method} />
@@ -526,58 +599,12 @@ export function SummaryPage() {
                     )}
                   </div>
 
-                  <KpiStrip columns={KPI_COLUMNS}>
-                    <KpiCell
-                      label={t('summary.totalValue')}
-                      className="col-span-2 lg:col-span-1"
-                      hint={
-                        data.fx_pl !== null
-                          ? `${t('summary.fxPl')} ${signedMoney(data.fx_pl, data.currency)}`
-                          : undefined
-                      }
-                    >
-                      <FitFigure
-                        className={`${KPI_FIGURE} text-ink`}
-                        text={
-                          totalValueKnown ? formatMoney(data.total_value, data.currency) : MISSING
-                        }
-                        mark={mark}
-                      />
-                    </KpiCell>
-                    <KpiCell
-                      label={t('summary.dayChange')}
-                      hint={
-                        dayTotal !== null && dayDate
-                          ? t('summary.dayAsOf', { date: formatShortMarketDate(dayDate) })
-                          : undefined
-                      }
-                    >
-                      <FitFigure
-                        className={`${KPI_FIGURE} ${plTone(dayTotal)}`}
-                        text={signedMoney(dayTotal, data.currency)}
-                      />
-                    </KpiCell>
-                    <KpiCell label={t('summary.cash')} hint={cashHint}>
-                      <FitFigure
-                        className={`${KPI_FIGURE} text-ink`}
-                        text={cashKnown ? formatMoney(data.cash, data.currency) : MISSING}
-                        mark={mark}
-                      />
-                    </KpiCell>
-                    <KpiCell label={t('summary.unrealizedPl')} hint={unrealizedHint}>
-                      <FitFigure
-                        className={`${KPI_FIGURE} ${plTone(unrealized)}`}
-                        text={signedMoney(unrealized, data.currency)}
-                        mark={mark}
-                      />
-                    </KpiCell>
-                    <KpiCell label={t('summary.realizedPl')}>
-                      <FitFigure
-                        className={`${KPI_FIGURE} ${plTone(data.realized_pl)}`}
-                        text={signedMoney(data.realized_pl, data.currency)}
-                      />
-                    </KpiCell>
-                  </KpiStrip>
+                  <SummaryKpis
+                    data={data}
+                    positions={positions}
+                    cashByCurrency={cashByCurrency}
+                    mark={mark}
+                  />
 
                   {/* An older backend sends no stats. */}
                   {data.stats?.first_transaction_date && (
