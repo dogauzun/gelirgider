@@ -22,20 +22,36 @@ import { Button } from './ui/Button'
 import { buttonClass } from './ui/buttonClass'
 import { Pill } from './ui/Pill'
 
-const GROUPS: [StringKey, AttentionItem['kind'][]][] = [
-  [
-    'attention.group.data',
-    ['missing-rate', 'missing-price', 'stale-manual-prices', 'estimated-benchmark'],
-  ],
-  ['attention.group.dividends', ['dividend']],
-  ['attention.group.deposits', ['due-deposit']],
-  ['attention.group.plans', ['due-plan']],
-  ['attention.group.watchlist', ['watch-target']],
-  ['attention.group.today', ['mover']],
-  [
-    'attention.group.concentration',
-    ['concentration', 'try-cash-share', 'no-hedge', 'allocation-drift'],
-  ],
+// How each kind of item is grouped, dotted and counted. The Record makes tsc
+// demand an entry for every new kind. `asks` kinds count in the header.
+const KINDS: Record<
+  AttentionItem['kind'],
+  { group: StringKey; dot: 'warn' | 'accent' | null; asks: boolean }
+> = {
+  'missing-rate': { group: 'attention.group.data', dot: 'warn', asks: true },
+  'missing-price': { group: 'attention.group.data', dot: 'warn', asks: true },
+  'stale-manual-prices': { group: 'attention.group.data', dot: 'warn', asks: true },
+  'estimated-benchmark': { group: 'attention.group.data', dot: 'warn', asks: true },
+  dividend: { group: 'attention.group.dividends', dot: 'accent', asks: true },
+  'due-deposit': { group: 'attention.group.deposits', dot: 'accent', asks: true },
+  'due-plan': { group: 'attention.group.plans', dot: 'accent', asks: true },
+  'watch-target': { group: 'attention.group.watchlist', dot: 'accent', asks: false },
+  mover: { group: 'attention.group.today', dot: null, asks: false },
+  concentration: { group: 'attention.group.concentration', dot: null, asks: false },
+  'try-cash-share': { group: 'attention.group.concentration', dot: null, asks: false },
+  'no-hedge': { group: 'attention.group.concentration', dot: null, asks: false },
+  'allocation-drift': { group: 'attention.group.concentration', dot: null, asks: false },
+}
+
+// The headings in display order.
+const GROUP_KEYS: StringKey[] = [
+  'attention.group.data',
+  'attention.group.dividends',
+  'attention.group.deposits',
+  'attention.group.plans',
+  'attention.group.watchlist',
+  'attention.group.today',
+  'attention.group.concentration',
 ]
 
 function Dot({ tone }: { tone: 'warn' | 'accent' }) {
@@ -102,24 +118,10 @@ function noticeText(
 // item's own facts; it truncates and carries its full text as a title.
 function Label({ item, children }: { item: AttentionItem; children: ReactNode }) {
   const text = <span className="min-w-0 truncate">{children}</span>
+  const dot = KINDS[item.kind].dot
   return (
     <span className="flex min-w-0 items-center">
-      {item.kind !== 'mover' &&
-        item.kind !== 'concentration' &&
-        item.kind !== 'try-cash-share' &&
-        item.kind !== 'no-hedge' &&
-        item.kind !== 'allocation-drift' && (
-          <Dot
-            tone={
-              item.kind === 'dividend' ||
-              item.kind === 'due-deposit' ||
-              item.kind === 'due-plan' ||
-              item.kind === 'watch-target'
-                ? 'accent'
-                : 'warn'
-            }
-          />
-        )}
+      {dot && <Dot tone={dot} />}
       {item.portfolio ? (
         <span className="flex min-w-0 flex-col">
           <span className="truncate text-[11px] text-muted" title={item.portfolio}>
@@ -264,6 +266,187 @@ function WatchLine({ item }: { item: AttentionItem & { kind: 'watch-target' } })
   )
 }
 
+// The line of one item, by kind. The acting callbacks take the item so the card
+// can note which one was acted on.
+function AttentionLine({
+  item,
+  busy,
+  portfolioId,
+  onAct,
+  onClose,
+  onSettle,
+  onEditPrice,
+}: {
+  item: AttentionItem
+  busy: boolean
+  portfolioId?: number
+  onAct: (item: AttentionItem & { kind: 'dividend' }, action: 'add' | 'dismiss') => void
+  onClose: (item: AttentionItem & { kind: 'due-deposit' }) => void
+  onSettle: (item: AttentionItem & { kind: 'due-plan' }, action: 'book' | 'skip') => void
+  onEditPrice: (item: AttentionItem & { instrument_id: number }) => void
+}) {
+  const positionPath = usePositionPath()
+  switch (item.kind) {
+    case 'missing-rate':
+      return (
+        <Row>
+          <Label item={item}>
+            {item.positions > 0
+              ? t('attention.missingRatePositions', {
+                  currency: item.currency,
+                  count: item.positions,
+                })
+              : t('attention.missingRate', { currency: item.currency })}
+          </Label>
+        </Row>
+      )
+    case 'missing-price':
+      return (
+        <Row
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              className="shrink-0"
+              aria-label={named(item, t('prices.enterLabel', { symbol: item.symbol }))}
+              data-attention-action={`price ${priceKey(item)}`}
+              onClick={() => onEditPrice(item)}
+            >
+              {t('prices.enter')}
+            </Button>
+          }
+        >
+          <Label item={item}>{t('attention.missingPrice', { symbol: item.symbol })}</Label>
+        </Row>
+      )
+    case 'stale-manual-prices':
+      return (
+        <Row
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              className="shrink-0"
+              aria-label={named(item, t('attention.updateLabel', { symbol: item.symbol }))}
+              data-attention-action={`price ${priceKey(item)}`}
+              onClick={() => onEditPrice(item)}
+            >
+              {t('attention.update')}
+            </Button>
+          }
+        >
+          <Label item={item}>
+            {t('attention.staleManual', {
+              count: item.count,
+              days: item.days,
+            })}
+          </Label>
+        </Row>
+      )
+    case 'estimated-benchmark':
+      return (
+        <Row>
+          <Label item={item}>
+            {t('attention.estimatedBenchmark', { date: formatMarketDate(item.from) })}
+          </Label>
+        </Row>
+      )
+    case 'dividend': {
+      const d = item.dividend
+      const date = formatMarketDate(d.date)
+      return (
+        <Row
+          action={
+            <span className="flex shrink-0 gap-1">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="shrink-0"
+                aria-label={named(
+                  item,
+                  t('dividends.expected.addLabel', { symbol: d.symbol, date }),
+                )}
+                pending={busy}
+                data-attention-action={`add ${dividendKey(item)}`}
+                onClick={() => onAct(item, 'add')}
+              >
+                {t('dividends.expected.add')}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="shrink-0"
+                aria-label={named(
+                  item,
+                  t('dividends.expected.dismissLabel', { symbol: d.symbol, date }),
+                )}
+                pending={busy}
+                data-attention-action={`dismiss ${dividendKey(item)}`}
+                onClick={() => onAct(item, 'dismiss')}
+              >
+                {t('dividends.expected.dismiss')}
+              </Button>
+            </span>
+          }
+        >
+          <Label item={item}>
+            <span className="font-semibold">{d.symbol}</span> · {formatMoney(d.net, d.currency)} ·{' '}
+            {formatShortMarketDate(d.date)}
+          </Label>
+        </Row>
+      )
+    }
+    case 'due-deposit':
+      return <DepositLine item={item} busy={busy} onClose={() => onClose(item)} />
+    case 'due-plan':
+      return <PlanLine item={item} busy={busy} onSettle={(action) => onSettle(item, action)} />
+    case 'watch-target':
+      return <WatchLine item={item} />
+    case 'mover':
+      return (
+        <Row
+          action={
+            <span className={`shrink-0 whitespace-nowrap ${plTone(item.amount)}`}>
+              {signedMoney(item.amount, item.currency)}
+              {item.ratio !== null && ` · ${signedPercent(item.ratio)}`}
+            </span>
+          }
+        >
+          <Label item={item}>
+            {portfolioId === undefined ? (
+              <span className="font-semibold">{item.symbol}</span>
+            ) : (
+              <Link
+                to={positionPath(portfolioId, item.instrument_id)}
+                className="font-semibold hover:underline"
+              >
+                {item.symbol}
+              </Link>
+            )}
+          </Label>
+        </Row>
+      )
+    case 'concentration':
+      return (
+        <Row
+          action={
+            <span className="shrink-0 text-muted">{formatNumber(item.share, SHARE_FORMAT)}</span>
+          }
+        >
+          <Label item={item}>{concentrationLabel(item)}</Label>
+        </Row>
+      )
+    case 'try-cash-share':
+    case 'no-hedge':
+    case 'allocation-drift':
+      return (
+        <Row>
+          <Label item={item}>{noticeText(item)}</Label>
+        </Row>
+      )
+  }
+}
+
 // AttentionCard renders the "Dikkat" list that attentionItems builds; it
 // decides nothing itself. The header counts the items that ask for
 // something (Veri, Temettü onayı, Vadesi gelen mevduat and Planlı alımlar). A mover's symbol links to its position
@@ -295,7 +478,6 @@ export function AttentionCard({
   onSkipPlan: (plan: DuePlan) => void
   onEditPrice: (instrumentId: number) => void
 }) {
-  const positionPath = usePositionPath()
   // The item last acted on, which button, and that kind's item order then.
   const actedRef = useRef<{
     key: string
@@ -362,175 +544,7 @@ export function AttentionCard({
     actedRef.current = { key: priceKey(item), action: 'price', keys: priceKeys }
     onEditPrice(item.instrument_id)
   }
-  const asking = items.filter(
-    (item) =>
-      GROUPS[0][1].includes(item.kind) ||
-      item.kind === 'dividend' ||
-      item.kind === 'due-deposit' ||
-      item.kind === 'due-plan',
-  ).length
-
-  const line = (item: AttentionItem): ReactNode => {
-    switch (item.kind) {
-      case 'missing-rate':
-        return (
-          <Row>
-            <Label item={item}>
-              {item.positions > 0
-                ? t('attention.missingRatePositions', {
-                    currency: item.currency,
-                    count: item.positions,
-                  })
-                : t('attention.missingRate', { currency: item.currency })}
-            </Label>
-          </Row>
-        )
-      case 'missing-price':
-        return (
-          <Row
-            action={
-              <Button
-                variant="secondary"
-                size="sm"
-                className="shrink-0"
-                aria-label={named(item, t('prices.enterLabel', { symbol: item.symbol }))}
-                data-attention-action={`price ${priceKey(item)}`}
-                onClick={() => editPrice(item)}
-              >
-                {t('prices.enter')}
-              </Button>
-            }
-          >
-            <Label item={item}>{t('attention.missingPrice', { symbol: item.symbol })}</Label>
-          </Row>
-        )
-      case 'stale-manual-prices':
-        return (
-          <Row
-            action={
-              <Button
-                variant="secondary"
-                size="sm"
-                className="shrink-0"
-                aria-label={named(item, t('attention.updateLabel', { symbol: item.symbol }))}
-                data-attention-action={`price ${priceKey(item)}`}
-                onClick={() => editPrice(item)}
-              >
-                {t('attention.update')}
-              </Button>
-            }
-          >
-            <Label item={item}>
-              {t('attention.staleManual', {
-                count: item.count,
-                days: item.days,
-              })}
-            </Label>
-          </Row>
-        )
-      case 'estimated-benchmark':
-        return (
-          <Row>
-            <Label item={item}>
-              {t('attention.estimatedBenchmark', { date: formatMarketDate(item.from) })}
-            </Label>
-          </Row>
-        )
-      case 'dividend': {
-        const d = item.dividend
-        const date = formatMarketDate(d.date)
-        return (
-          <Row
-            action={
-              <span className="flex shrink-0 gap-1">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="shrink-0"
-                  aria-label={named(
-                    item,
-                    t('dividends.expected.addLabel', { symbol: d.symbol, date }),
-                  )}
-                  pending={busy}
-                  data-attention-action={`add ${dividendKey(item)}`}
-                  onClick={() => act(item, 'add')}
-                >
-                  {t('dividends.expected.add')}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="shrink-0"
-                  aria-label={named(
-                    item,
-                    t('dividends.expected.dismissLabel', { symbol: d.symbol, date }),
-                  )}
-                  pending={busy}
-                  data-attention-action={`dismiss ${dividendKey(item)}`}
-                  onClick={() => act(item, 'dismiss')}
-                >
-                  {t('dividends.expected.dismiss')}
-                </Button>
-              </span>
-            }
-          >
-            <Label item={item}>
-              <span className="font-semibold">{d.symbol}</span> · {formatMoney(d.net, d.currency)} ·{' '}
-              {formatShortMarketDate(d.date)}
-            </Label>
-          </Row>
-        )
-      }
-      case 'due-deposit':
-        return <DepositLine item={item} busy={busy} onClose={() => close(item)} />
-      case 'due-plan':
-        return <PlanLine item={item} busy={busy} onSettle={(action) => settle(item, action)} />
-      case 'watch-target':
-        return <WatchLine item={item} />
-      case 'mover':
-        return (
-          <Row
-            action={
-              <span className={`shrink-0 whitespace-nowrap ${plTone(item.amount)}`}>
-                {signedMoney(item.amount, item.currency)}
-                {item.ratio !== null && ` · ${signedPercent(item.ratio)}`}
-              </span>
-            }
-          >
-            <Label item={item}>
-              {portfolioId === undefined ? (
-                <span className="font-semibold">{item.symbol}</span>
-              ) : (
-                <Link
-                  to={positionPath(portfolioId, item.instrument_id)}
-                  className="font-semibold hover:underline"
-                >
-                  {item.symbol}
-                </Link>
-              )}
-            </Label>
-          </Row>
-        )
-      case 'concentration':
-        return (
-          <Row
-            action={
-              <span className="shrink-0 text-muted">{formatNumber(item.share, SHARE_FORMAT)}</span>
-            }
-          >
-            <Label item={item}>{concentrationLabel(item)}</Label>
-          </Row>
-        )
-      case 'try-cash-share':
-      case 'no-hedge':
-      case 'allocation-drift':
-        return (
-          <Row>
-            <Label item={item}>{noticeText(item)}</Label>
-          </Row>
-        )
-    }
-  }
+  const asking = items.filter((item) => KINDS[item.kind].asks).length
 
   return (
     <section className="card p-4" aria-label={t('attention.title')}>
@@ -552,8 +566,8 @@ export function AttentionCard({
       {items.length === 0 ? (
         <p className="mt-2 text-[13px] text-muted">{t('attention.allClear')}</p>
       ) : (
-        GROUPS.map(([heading, kinds]) => {
-          const group = items.filter((item) => kinds.includes(item.kind))
+        GROUP_KEYS.map((heading) => {
+          const group = items.filter((item) => KINDS[item.kind].group === heading)
           if (group.length === 0) return null
           return (
             <div key={heading}>
@@ -565,7 +579,15 @@ export function AttentionCard({
                     is keyed by the plan to keep the focused button with it. */}
                 {group.map((item, index) => (
                   <Fragment key={item.kind === 'due-plan' ? `plan ${planKey(item)}` : index}>
-                    {line(item)}
+                    <AttentionLine
+                      item={item}
+                      busy={busy}
+                      portfolioId={portfolioId}
+                      onAct={act}
+                      onClose={close}
+                      onSettle={settle}
+                      onEditPrice={editPrice}
+                    />
                   </Fragment>
                 ))}
               </ul>
