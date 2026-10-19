@@ -11,6 +11,7 @@ import { PortfolioHeader } from '../components/PortfolioHeader'
 import { ReturnMethodSelect } from '../components/ReturnMethodSelect'
 import { RiskCard } from '../components/RiskCard'
 import { TradesCard } from '../components/TradesCard'
+import { YearsCard } from '../components/YearsCard'
 import { ChartFrame } from '../components/ui/ChartFrame'
 import { Segmented } from '../components/ui/Segmented'
 import { FitSelect } from '../components/ui/Select'
@@ -50,6 +51,7 @@ export function PerformancePage() {
           benchmarkLabel={options.find((o) => o.value === benchmark)?.label}
           method={method}
         />
+        <YearsCard scope={portfolioId} benchmark={benchmark} method={method} />
         <DrawdownCard portfolioId={portfolioId} />
         <RiskCard portfolioId={portfolioId} benchmark={benchmark} />
         <TradesCard scope={portfolioId} />

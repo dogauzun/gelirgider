@@ -45,6 +45,8 @@ const summary = {
   positions: [],
 }
 
+const noYears = { currency: 'TRY', years: [], missing_rates: [], inflation_estimated_from: null }
+
 // Portfolio 1 with one month; `returns` is that month's and its year's,
 // `span` both buckets' from..to.
 function mockApi(
@@ -61,6 +63,7 @@ function mockApi(
       return Response.json([{ id: 1, name: 'Emeklilik', created_at: '2026-01-01T00:00:00Z' }])
     }
     if (url.endsWith('/summary')) return Response.json(summary)
+    if (url.includes('/years')) return Response.json(noYears)
     if (url.endsWith('/cash-gaps')) return Response.json(gaps)
     if (url.endsWith('/cashflows'))
       return Response.json({ currency: 'TRY', months: [], totals: {}, missing_rates: [] })
@@ -265,6 +268,16 @@ it('reads the cash flow months of the portfolio below the trades', async () => {
   expect(trades.compareDocumentPosition(cashflow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
 
+it('reads the yearly statement of the portfolio right below the periodic returns', async () => {
+  const urls = mockApi()
+  renderPage()
+
+  const years = await screen.findByRole('heading', { name: t('years.title') })
+  await waitFor(() => expect(urls).toContain('/api/portfolios/1/years'))
+  const periods = screen.getByRole('heading', { name: t('performance.periods.title') })
+  expect(periods.compareDocumentPosition(years) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
+
 // A scope with no transactions has no buckets at all: nothing to compute,
 // rather than a return that cannot be computed, and nothing to switch
 // between, even with a benchmark.
@@ -274,6 +287,7 @@ it('says there are no transactions yet for an empty scope', async () => {
     const url = String(input)
     if (url === '/api/portfolios') return Response.json([])
     if (url.endsWith('/summary')) return Response.json(summary)
+    if (url.includes('/years')) return Response.json(noYears)
     if (url.includes('/returns/periods')) {
       return Response.json({ currency: 'TRY', months: [], years: [] })
     }

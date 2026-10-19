@@ -5,7 +5,7 @@ import { MISSING, signedPercent } from '../lib/format'
 import { cellValue, HEAT_MIX, heatStep, periodGrid } from '../lib/periods'
 
 // The year column stays in view while the table scrolls sideways.
-const STICKY = 'sticky left-0 z-[1] bg-surface'
+export const STICKY = 'sticky left-0 z-[1] bg-surface'
 
 // The periodic returns heatmap: a row per year, newest first, with
 // twelve month cells and the year's own cell. A cell prints the chosen
@@ -111,12 +111,18 @@ function Cell({
   return (
     <td data-step={step} title={title} className={base} style={{ backgroundColor: background }}>
       {value === null ? MISSING : signedPercent(value, { minimumFractionDigits: 1 })}
-      {bucket.partial && (
-        <>
-          <span aria-hidden="true">*</span>
-          <span className="sr-only">{` (${t('performance.periods.partial')})`}</span>
-        </>
-      )}
+      {bucket.partial && <PartialMark />}
     </td>
+  )
+}
+
+// The asterisk after a figure of a period still running, with its sr-only
+// words.
+export function PartialMark() {
+  return (
+    <>
+      <span aria-hidden="true">*</span>
+      <span className="sr-only">{` (${t('performance.periods.partial')})`}</span>
+    </>
   )
 }
