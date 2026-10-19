@@ -42,6 +42,11 @@ type historyEntry struct {
 	TotalValue string `json:"total_value"`
 	Cash       string `json:"cash"`
 	CostBasis  string `json:"cost_basis"`
+	// Invested is the money in the portfolio that is not gain: the first
+	// point's value plus the net external flows since, counted as net_flow
+	// counts them. total_value - invested is the gain the chart header
+	// shows, and the last point's invested minus the first's equals net_flow.
+	Invested string `json:"invested"`
 	// PriceUnknown is set on a point that holds at least one instrument with
 	// no price on or before its date. Those holdings count at cost in
 	// total_value, so the point is incomplete, not wrong by the whole
@@ -141,7 +146,7 @@ type historyResponse struct {
 // its returns and an optional benchmark comparison.
 //
 //	@Summary	Portfolio value history
-//	@Description	One point per day from `from` to `to`, in the reporting currency. A `from` before the first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the first transaction (at most 3660 days back); a `to` after today is clamped to today. The three returns are null when undefined for the range; benchmark is null when no benchmark was requested, and its returns are null when it has no level on or before the first point. Each point's twr is the time-weighted return from the first point to that one, ending on returns.twr, and null on every point when returns.twr is null; benchmark_twr is the same for the benchmark's shadow series. inflation is the TUFE change over the range, whatever the benchmark, null unless the reporting currency is TRY or when TUFE has no level on or before the first point; inflation_estimated_from is the first extrapolated day of it, null when none.
+//	@Description	One point per day from `from` to `to`, in the reporting currency. A `from` before the first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the first transaction (at most 3660 days back); a `to` after today is clamped to today. The three returns are null when undefined for the range; benchmark is null when no benchmark was requested, and its returns are null when it has no level on or before the first point. Each point's twr is the time-weighted return from the first point to that one, ending on returns.twr, and null on every point when returns.twr is null; benchmark_twr is the same for the benchmark's shadow series. Each point's invested is the money in the portfolio that is not gain (the first point's value plus the net external flows since, as net_flow counts them), so total_value minus invested is the gain. inflation is the TUFE change over the range, whatever the benchmark, null unless the reporting currency is TRY or when TUFE has no level on or before the first point; inflation_estimated_from is the first extrapolated day of it, null when none.
 //	@Tags		portfolios
 //	@Produce	json
 //	@Param		id			path		string	true	"numeric id or `all`"
@@ -194,6 +199,14 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 	values, flows, external, negativeCash := s.rangeInputs(0, last)
 
 	netFlow := s.netFlow(external)
+	if len(entries) > 0 {
+		invested := s.totals[0].Round(2)
+		entries[0].Invested = invested.StringFixed(2)
+		for i := 1; i < len(entries); i++ {
+			invested = invested.Add(s.flowStep(i, external[i]))
+			entries[i].Invested = invested.StringFixed(2)
+		}
+	}
 
 	var bench *benchmarkResponse
 	if benchmarkCode != "" {
@@ -293,16 +306,20 @@ func historyRange(w http.ResponseWriter, r *http.Request, txs []transaction.Tran
 // netFlow is the history response's net_flow, from the external flows of
 // the whole range (rangeInputs).
 func (s *historySweep) netFlow(external []decimal.Decimal) decimal.Decimal {
-	// net_flow is read against the points' rounded total_value, so each
-	// day's flow is added as the step it makes in the rounded total:
-	// round(total) - round(total - flow). Rounding the sum once can miss
-	// that step by a cent, and the header then shows a -0,01 change when
-	// only flows moved the total.
 	netFlow := decimal.Zero
 	for i, flow := range external {
-		netFlow = netFlow.Add(s.totals[i].Round(2).Sub(s.totals[i].Sub(flow).Round(2)))
+		netFlow = netFlow.Add(s.flowStep(i, flow))
 	}
 	return netFlow
+}
+
+// flowStep is the step day i's external flow makes in the rounded total:
+// round(total) - round(total - flow). net_flow is read against the points'
+// rounded total_value, and rounding the sum of flows once can miss that step
+// by a cent, so the header would show a -0,01 change when only flows moved
+// the total. net_flow and the points' invested both add these steps.
+func (s *historySweep) flowStep(i int, flow decimal.Decimal) decimal.Decimal {
+	return s.totals[i].Round(2).Sub(s.totals[i].Sub(flow).Round(2))
 }
 
 // benchmarkSeries is the history response's benchmark block for the whole

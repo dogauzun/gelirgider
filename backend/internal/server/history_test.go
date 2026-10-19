@@ -129,11 +129,11 @@ func TestPortfolioHistory(t *testing.T) {
 	}
 
 	want := []historyEntry{
-		{Date: "2024-01-01", TotalValue: "0.00", Cash: "-50.00", CostBasis: "50.00"},
-		{Date: "2024-01-02", TotalValue: "10.00", Cash: "-50.00", CostBasis: "50.00"},
-		{Date: "2024-01-03", TotalValue: "0.00", Cash: "-120.00", CostBasis: "120.00"},
-		{Date: "2024-01-04", TotalValue: "60.00", Cash: "-120.00", CostBasis: "120.00"},
-		{Date: "2024-01-05", TotalValue: "60.00", Cash: "-120.00", CostBasis: "120.00"},
+		{Date: "2024-01-01", TotalValue: "0.00", Cash: "-50.00", CostBasis: "50.00", Invested: "0.00"},
+		{Date: "2024-01-02", TotalValue: "10.00", Cash: "-50.00", CostBasis: "50.00", Invested: "0.00"},
+		{Date: "2024-01-03", TotalValue: "0.00", Cash: "-120.00", CostBasis: "120.00", Invested: "0.00"},
+		{Date: "2024-01-04", TotalValue: "60.00", Cash: "-120.00", CostBasis: "120.00", Invested: "0.00"},
+		{Date: "2024-01-05", TotalValue: "60.00", Cash: "-120.00", CostBasis: "120.00", Invested: "0.00"},
 	}
 
 	if len(got.Points) != len(want) {
@@ -257,9 +257,9 @@ func TestPortfolioHistoryFXConversion(t *testing.T) {
 	}
 
 	want := []historyEntry{
-		{Date: "2024-01-01", TotalValue: "0.00", Cash: "-850.00", CostBasis: "850.00"},
-		{Date: "2024-01-02", TotalValue: "400.00", Cash: "-850.00", CostBasis: "850.00"},
-		{Date: "2024-01-03", TotalValue: "500.00", Cash: "-1050.00", CostBasis: "1050.00"},
+		{Date: "2024-01-01", TotalValue: "0.00", Cash: "-850.00", CostBasis: "850.00", Invested: "0.00"},
+		{Date: "2024-01-02", TotalValue: "400.00", Cash: "-850.00", CostBasis: "850.00", Invested: "0.00"},
+		{Date: "2024-01-03", TotalValue: "500.00", Cash: "-1050.00", CostBasis: "1050.00", Invested: "0.00"},
 	}
 	if len(got.Points) != len(want) {
 		t.Fatalf("len(points) = %d, want %d; got %+v", len(got.Points), len(want), got.Points)
@@ -616,6 +616,45 @@ func TestPortfolioHistoryNetFlow(t *testing.T) {
 	if first, last := got.Points[0].TotalValue, got.Points[2].TotalValue; first != "100.00" || last != "800.00" {
 		t.Errorf("total_value first = %q, last = %q; want 100.00 and 800.00", first, last)
 	}
+	for i, want := range []string{"100.00", "1100.00", "800.00"} {
+		if got.Points[i].Invested != want {
+			t.Errorf("points[%d].invested = %q, want %s", i, got.Points[i].Invested, want)
+		}
+	}
+}
+
+// TestPortfolioHistoryInvestedExcludesGain checks that a price move alone
+// raises total_value but not invested: the money put in stays 1000.
+func TestPortfolioHistoryInvestedExcludesGain(t *testing.T) {
+	e := newPeriodsEnv(t)
+	userID, session := e.user(t, "invested@example.com")
+	pf := e.portfolio(t, userID)
+	id := e.instrument(t, "INVST")
+	for date, close := range map[string]string{"2024-01-01": "100", "2024-01-02": "120"} {
+		if err := price.NewRepo(e.conn).Upsert(context.Background(), id, date, close, "test"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	e.cash(t, userID, pf, "2024-01-01", "1000")
+	buy := transaction.Transaction{PortfolioID: pf, InstrumentID: &id, Type: transaction.TypeBuy, Date: "2024-01-01", Quantity: dec("10"), Price: dec("100"), Amount: dec("1000"), Fee: decimal.Zero, Currency: "TRY"}
+	if _, err := transaction.NewRepo(e.conn).Create(context.Background(), userID, buy); err != nil {
+		t.Fatal(err)
+	}
+
+	var got historyResponse
+	e.get(t, session, fmt.Sprintf("/api/portfolios/%d/history?from=2024-01-01&to=2024-01-02", pf), http.StatusOK, &got)
+
+	if len(got.Points) != 2 {
+		t.Fatalf("len(points) = %d, want 2; got %+v", len(got.Points), got.Points)
+	}
+	for i, want := range []string{"1000.00", "1200.00"} {
+		if got.Points[i].TotalValue != want || got.Points[i].Invested != "1000.00" {
+			t.Errorf("points[%d] total_value = %q, invested = %q; want %s and 1000.00", i, got.Points[i].TotalValue, got.Points[i].Invested, want)
+		}
+	}
+	if got.NetFlow != "0.00" {
+		t.Errorf("net_flow = %q, want 0.00", got.NetFlow)
+	}
 }
 
 // TestPortfolioHistoryNetFlowCarriesUnratedCurrency checks that a USD
@@ -771,10 +810,10 @@ func TestPortfolioHistoryMissingPrice(t *testing.T) {
 	}
 
 	want := []historyEntry{
-		{Date: "2024-01-01", TotalValue: "50.00", Cash: "0.00", CostBasis: "50.00", PriceUnknown: true},
-		{Date: "2024-01-02", TotalValue: "50.00", Cash: "0.00", CostBasis: "50.00", PriceUnknown: true},
-		{Date: "2024-01-03", TotalValue: "80.00", Cash: "0.00", CostBasis: "50.00"},
-		{Date: "2024-01-04", TotalValue: "80.00", Cash: "0.00", CostBasis: "50.00"},
+		{Date: "2024-01-01", TotalValue: "50.00", Cash: "0.00", CostBasis: "50.00", Invested: "50.00", PriceUnknown: true},
+		{Date: "2024-01-02", TotalValue: "50.00", Cash: "0.00", CostBasis: "50.00", Invested: "50.00", PriceUnknown: true},
+		{Date: "2024-01-03", TotalValue: "80.00", Cash: "0.00", CostBasis: "50.00", Invested: "80.00"},
+		{Date: "2024-01-04", TotalValue: "80.00", Cash: "0.00", CostBasis: "50.00", Invested: "80.00"},
 	}
 	// The first-price jump is a flow, so the daily twr stays flat too.
 	if twr := pointReturns(got.Points, pointTWR); !slices.Equal(twr, []string{"0.000000", "0.000000", "0.000000", "0.000000"}) {
@@ -1197,9 +1236,9 @@ func TestPortfolioHistorySeedsOldPrice(t *testing.T) {
 	}
 
 	want := []historyEntry{
-		{Date: "2024-01-01", TotalValue: "90.00", Cash: "0.00", CostBasis: "50.00"},
-		{Date: "2024-01-02", TotalValue: "90.00", Cash: "0.00", CostBasis: "50.00"},
-		{Date: "2024-01-03", TotalValue: "90.00", Cash: "0.00", CostBasis: "50.00"},
+		{Date: "2024-01-01", TotalValue: "90.00", Cash: "0.00", CostBasis: "50.00", Invested: "90.00"},
+		{Date: "2024-01-02", TotalValue: "90.00", Cash: "0.00", CostBasis: "50.00", Invested: "90.00"},
+		{Date: "2024-01-03", TotalValue: "90.00", Cash: "0.00", CostBasis: "50.00", Invested: "90.00"},
 	}
 	if twr := pointReturns(got.Points, pointTWR); !slices.Equal(twr, []string{"0.000000", "0.000000", "0.000000"}) {
 		t.Errorf("twr = %v, want all 0.000000", twr)

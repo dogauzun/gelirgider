@@ -4273,7 +4273,7 @@
         },
         "/portfolios/{id}/history": {
             "get": {
-                "description": "One point per day from `from` to `to`, in the reporting currency. A `from` before the first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the first transaction (at most 3660 days back); a `to` after today is clamped to today. The three returns are null when undefined for the range; benchmark is null when no benchmark was requested, and its returns are null when it has no level on or before the first point. Each point's twr is the time-weighted return from the first point to that one, ending on returns.twr, and null on every point when returns.twr is null; benchmark_twr is the same for the benchmark's shadow series. inflation is the TUFE change over the range, whatever the benchmark, null unless the reporting currency is TRY or when TUFE has no level on or before the first point; inflation_estimated_from is the first extrapolated day of it, null when none.",
+                "description": "One point per day from `from` to `to`, in the reporting currency. A `from` before the first transaction moves to it, unless that transaction is after `to`. Without `from` the range starts at the first transaction (at most 3660 days back); a `to` after today is clamped to today. The three returns are null when undefined for the range; benchmark is null when no benchmark was requested, and its returns are null when it has no level on or before the first point. Each point's twr is the time-weighted return from the first point to that one, ending on returns.twr, and null on every point when returns.twr is null; benchmark_twr is the same for the benchmark's shadow series. Each point's invested is the money in the portfolio that is not gain (the first point's value plus the net external flows since, as net_flow counts them), so total_value minus invested is the gain. inflation is the TUFE change over the range, whatever the benchmark, null unless the reporting currency is TRY or when TUFE has no level on or before the first point; inflation_estimated_from is the first extrapolated day of it, null when none.",
                 "produces": [
                     "application/json"
                 ],
@@ -6374,6 +6374,10 @@
                     "type": "string"
                 },
                 "date": {
+                    "type": "string"
+                },
+                "invested": {
+                    "description": "Invested is the money in the portfolio that is not gain: the first\npoint's value plus the net external flows since, counted as net_flow\ncounts them. total_value - invested is the gain the chart header\nshows, and the last point's invested minus the first's equals net_flow.",
                     "type": "string"
                 },
                 "price_unknown": {
