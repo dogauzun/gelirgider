@@ -27,7 +27,8 @@ jobs:
       matrix:
         # target is the Make target; name is the check name GitHub shows.
         include:
-          - { target: lint, name: Lint (Go + web) }
+          - { target: lint-backend, name: Go lint }
+          - { target: lint-frontend, name: Web lint }
           - { target: test-backend, name: Go tests }
           - { target: test-frontend, name: Web tests }
           - { target: build-frontend, name: Web build }
@@ -36,11 +37,13 @@ jobs:
         with:
           # The PR merge commit plus its first parent (the base branch tip).
           fetch-depth: 2
-      # On a pull request, Go tests runs only for backend changes and the web
-      # checks only for frontend changes; Makefile and workflow changes run
-      # everything, and lint and pushes to main always run. Skipping steps
-      # instead of using on.pull_request.paths keeps the required check
-      # reporting green when there is nothing to check.
+      # On a pull request, the Go checks run only for backend changes and the
+      # web checks only for frontend changes; Web lint also runs for docs/,
+      # deploy/, .claude/, .github/ and root *.md changes, which its prettier
+      # check covers. Makefile and workflow changes run everything, and pushes
+      # to main always run. Skipping steps instead of using
+      # on.pull_request.paths keeps the required check reporting green when
+      # there is nothing to check.
       - id: scope
         name: Decide whether this check has work
         env:
@@ -48,33 +51,33 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: |
           case "$TARGET" in
-            test-backend) dir=backend ;;
-            test-frontend | build-frontend) dir=frontend ;;
-            *) dir= ;;
+            lint-backend | test-backend) paths='backend/' ;;
+            lint-frontend) paths='frontend/|docs/|deploy/|\.claude/|\.github/|[^/]+\.md$' ;;
+            test-frontend | build-frontend) paths='frontend/' ;;
           esac
           run=true
-          if [ "$EVENT" = pull_request ] && [ -n "$dir" ]; then
+          if [ "$EVENT" = pull_request ]; then
             # A variable, not a pipe: grep -q under pipefail can fail on SIGPIPE.
             changed=$(git diff --name-only HEAD^1 HEAD)
-            if ! grep -qE "^($dir/|Makefile$|\.github/workflows/)" <<<"$changed"; then
+            if ! grep -qE "^($paths|Makefile$|\.github/workflows/)" <<<"$changed"; then
               run=false
-              echo "no $dir/, Makefile or workflow changes, skipping make $TARGET"
+              echo "no changes under $paths, Makefile or workflows, skipping make $TARGET"
             fi
           fi
           echo "run=$run" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        if: steps.scope.outputs.run == 'true' && (matrix.target == 'lint' || matrix.target == 'test-backend')
+        if: steps.scope.outputs.run == 'true' && endsWith(matrix.target, '-backend')
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: steps.scope.outputs.run == 'true' && matrix.target != 'test-backend'
+        if: steps.scope.outputs.run == 'true' && !endsWith(matrix.target, '-backend')
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-        if: steps.scope.outputs.run == 'true' && matrix.target != 'test-backend'
+        if: steps.scope.outputs.run == 'true' && !endsWith(matrix.target, '-backend')
         working-directory: frontend
       - run: make ${{ matrix.target }}
         if: steps.scope.outputs.run == 'true'

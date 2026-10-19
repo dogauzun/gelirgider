@@ -2,11 +2,10 @@ import type { UseQueryResult } from '@tanstack/react-query'
 import { useId, useMemo } from 'react'
 import { type Benchmark, type HistoryResponse, type ReturnMethod } from '../api/history'
 import { t } from '../i18n/strings'
-import { rangeDelta } from '../lib/chart'
-import { formatMarketDate, todayIstanbul } from '../lib/date'
+import { todayIstanbul } from '../lib/date'
 import { currencySymbol, MISSING, plTone, signedMoney, signedPercent } from '../lib/format'
-import { RANGES, resolveRange, type RangeValue } from '../lib/ranges'
-import { annualizedReturn, excessReturn } from '../lib/returns'
+import type { RangeValue } from '../lib/ranges'
+import { returnFigures } from '../lib/returns'
 import { useZoom } from '../lib/useRange'
 import { benchmarkNames } from '../lib/useReturnSettings'
 import { BenchmarkPill } from './BenchmarkPill'
@@ -88,59 +87,24 @@ export function ReturnCard({
   // The money mode's label is the reporting currency's symbol, ₺ or $.
   const symbol = currencySymbol(currency)
   const zoom = useZoom(range, onRange)
-  const today = todayIstanbul()
-  const { from, to } = resolveRange(range, today)
-  const preset = RANGES.find((r) => r.key === range.key)
-  // A year range reads as the year, a custom one as its two dates.
-  let rangeLabel: string = range.key
-  if (preset) rangeLabel = t(preset.deltaKey)
-  else if (range.key === 'custom') {
-    rangeLabel = `${from ? formatMarketDate(from) : '…'} – ${formatMarketDate(to)}`
-  }
-
-  // The previous range's chart stays up while a new one loads, but
-  // its change and returns would read as the new range's, so they wait.
-  const delta = history && !stale ? rangeDelta(history.points, history.net_flow) : null
-  const pct = history && delta !== null ? history.returns[method] : null
-  // The benchmark's return by the same method, and the excess over it
-  // (excessReturn). Percentages are ratios.
+  const {
+    rangeLabel,
+    delta,
+    pct,
+    benchmarkPct,
+    benchmarkHasValues,
+    excess,
+    benchmarkEstimated,
+    real,
+    realEstimated,
+    annualized,
+    benchmarkAnnualized,
+  } = returnFigures({ history, stale, method, range, today: todayIstanbul() })
   const historyBenchmark = history?.benchmark ?? null
-  const benchmarkPct = historyBenchmark?.returns[method] ?? null
-  // Values with a null return mean the method is undefined for the range
-  // (ADR 0011), not that the benchmark is missing.
-  const benchmarkHasValues = !!history?.points.some((p) => p.benchmark_value !== undefined)
-  const benchmarkHasData = benchmarkPct !== null && benchmarkHasValues
-  const excess =
-    benchmarkHasData && pct !== null ? excessReturn(Number(pct), Number(benchmarkPct)) : null
-  const lastDate = history?.points[history.points.length - 1]?.date
-  const benchmarkEstimated =
-    benchmarkHasData &&
-    !!historyBenchmark?.estimated_from &&
-    !!lastDate &&
-    historyBenchmark.estimated_from <= lastDate
-  // The real return after TÜFE inflation, from the portfolio's twr. The pill
-  // already shows it when TÜFE is the benchmark.
-  const real =
-    history?.inflation != null && history.returns.twr !== null && historyBenchmark?.code !== 'TUFE'
-      ? excessReturn(Number(history.returns.twr), Number(history.inflation))
-      : null
-  const realEstimated =
-    !!history?.inflation_estimated_from &&
-    !!lastDate &&
-    history.inflation_estimated_from <= lastDate
   const { label: benchmarkLabel, excess: excessLabel } = benchmarkNames(
     historyBenchmark?.code,
     benchmarks,
   )
-  // A range of a year or more also shows the returns annualized (see
-  // annualizedReturn), over the days between the first and last point.
-  const firstPoint = history?.points[0]?.date
-  const annualized = annualizedReturn(pct === null ? null : Number(pct), firstPoint, lastDate)
-  const benchmarkAnnualized =
-    annualized !== null && benchmarkHasData
-      ? annualizedReturn(Number(benchmarkPct), firstPoint, lastDate)
-      : null
-
   const moneyLabels = { value: t('chart.totalValue'), invested: t('chart.invested') }
   const returnLabels =
     method === 'twr'

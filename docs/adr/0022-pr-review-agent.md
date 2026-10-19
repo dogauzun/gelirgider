@@ -99,8 +99,8 @@ The merger does not read the whole diff. It:
    concludes `success` either after a review or, for an exempt diff, without
    one; the job summary says which. The merger matches no paths itself;
 2. reads the required GitHub Actions checks on the PR head, once they have
-   run: `Lint (Go + web)`,
-   `Go tests`, `Web tests` and `Web build` (workflow `ci`), `Title`
+   run: `Go lint`,
+   `Web lint`, `Go tests`, `Web tests` and `Web build` (workflow `ci`), `Title`
    (workflow `pr`) and `Claude review` (workflow `Claude Code Review`), see
    `docs/PRINCIPLES.md` #6;
 3. checks hygiene: no AI attribution in commits or the PR body, the PR body

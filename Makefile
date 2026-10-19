@@ -12,7 +12,7 @@ endif
 # Hand them to every target, like compose does for the backend in prod.
 export
 
-.PHONY: setup prune-worktrees dev dev-backend dev-frontend test test-backend bench test-frontend build-frontend build lint swagger swagger-check notices screenshots help
+.PHONY: setup prune-worktrees dev dev-backend dev-frontend test test-backend bench test-frontend build-frontend build lint lint-backend lint-frontend swagger swagger-check notices screenshots help
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*##' $(firstword $(MAKEFILE_LIST)) | awk 'BEGIN {FS = ":.*##"}; {printf "  %-15s %s\n", $$1, $$2}'
@@ -137,13 +137,17 @@ swagger-check: ## Fail if backend/apidocs differs from a fresh swag run
 	@d=$$(mktemp -d) && trap 'rm -rf "$$d"' EXIT && cd backend && $(swag) -o "$$d" && \
 	{ diff -r "$$d" apidocs || { echo "spec stale: run make swagger and commit backend/apidocs"; exit 1; }; }
 
-# The repo-wide prettier check reads the root .gitignore so it skips gitignored
-# local files such as .claude/settings.local.json and .claude/worktrees/.
-lint: swagger-check ## Run the swag spec check, gofmt, go vet, golangci-lint, deadcode, frontend lint, jscpd, knip, prettier
+lint: lint-backend lint-frontend ## Run lint-backend and lint-frontend
+
+lint-backend: swagger-check ## Run the swag spec check, gofmt, go vet, golangci-lint, deadcode
 	@f=$$(gofmt -l backend) || exit 1; if [ -n "$$f" ]; then echo "gofmt needed:"; echo "$$f"; exit 1; fi
 	cd backend && go vet ./...
 	cd backend && $(golangci) run
 	@f=$$(cd backend && $(deadcode) ./...) || exit 1; if [ -n "$$f" ]; then echo "dead code:"; echo "$$f"; exit 1; fi
+
+# The repo-wide prettier check reads the root .gitignore so it skips gitignored
+# local files such as .claude/settings.local.json and .claude/worktrees/.
+lint-frontend: ## Run frontend lint, jscpd, knip, prettier (frontend/ and the repo-wide paths)
 	cd frontend && npm run lint
 	cd frontend && npm run lint:dupl
 	cd frontend && npm run knip
