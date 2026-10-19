@@ -4,9 +4,11 @@ import type { PortfolioScope } from '../api/summary'
 import { useYears, type YearRow } from '../api/years'
 import { t } from '../i18n/strings'
 import { formatMarketDate } from '../lib/date'
-import { MISSING, formatMoney, plTone, signedMoney, signedPercent } from '../lib/format'
+import { MISSING, formatMoney, plTone, signTone, signedMoney, signedPercent } from '../lib/format'
+import { excessReturn } from '../lib/returns'
 import { PartialMark, STICKY } from './PeriodReturnsTable'
 import { ChartFrame } from './ui/ChartFrame'
+import { Pill } from './ui/Pill'
 import { Segmented } from './ui/Segmented'
 import { ROW_40, TABLE, TD, TD_NUM, TH } from './ui/table'
 import { TAP_Y } from './ui/tap'
@@ -21,10 +23,12 @@ type Column = { key: string; header: ReactNode; cell: (row: YearRow) => ReactNod
 export function YearsCard({
   scope,
   benchmark,
+  benchmarkLabel,
   method,
 }: {
   scope: PortfolioScope
   benchmark: Benchmark | null
+  benchmarkLabel?: string
   method: ReturnMethod
 }) {
   const headingId = useId()
@@ -67,6 +71,68 @@ export function YearsCard({
         )
       },
     }
+    const num = (key: string, header: ReactNode, text: (row: YearRow) => string): Column => ({
+      key,
+      header,
+      cell: (row) => <td className={TD_NUM}>{text(row)}</td>,
+    })
+    const percentOrMissing = (v: number | null) => (v === null ? MISSING : signedPercent(v))
+    // The portfolio's return over a benchmark's (ADR 0012); null when either is unknown.
+    const excess = (p: string | null, b: string | null) =>
+      p === null || b === null ? null : excessReturn(Number(p), Number(b))
+    // TÜFE as the benchmark in TRY is what the inflation columns already say.
+    const tufeInTry = benchmark === 'TUFE' && currency === 'TRY'
+    const benchmarkColumns: Column[] =
+      benchmark === null || tufeInTry
+        ? []
+        : [
+            num('benchmark', benchmarkLabel, (row) => {
+              const b = row.benchmark?.[method] ?? null
+              return percentOrMissing(b === null ? null : Number(b))
+            }),
+            {
+              key: 'excess',
+              header: t(
+                benchmark === 'TUFE' ? 'performance.periods.real' : 'performance.periods.excess',
+              ),
+              cell: (row) => {
+                const e = excess(row.returns[method], row.benchmark?.[method] ?? null)
+                return (
+                  <td className={TD_NUM}>
+                    {e === null ? MISSING : <Pill tone={signTone(e)}>{signedPercent(e)}</Pill>}
+                  </td>
+                )
+              },
+            },
+          ]
+    const inflationColumns: Column[] =
+      currency !== 'TRY'
+        ? []
+        : [
+            num('inflation', t('years.inflation'), (row) =>
+              percentOrMissing(row.inflation === null ? null : Number(row.inflation)),
+            ),
+            {
+              key: 'real',
+              header: (
+                <span title={t('chart.return.realHint')}>{t('performance.periods.real')}</span>
+              ),
+              cell: (row) => {
+                const real = excess(row.returns.twr, row.inflation)
+                const estimated =
+                  data.inflation_estimated_from !== null && data.inflation_estimated_from <= row.to
+                return (
+                  <td className={`${TD_NUM} ${plTone(real)}`}>
+                    {real === null
+                      ? MISSING
+                      : signedPercent(real) +
+                        (estimated ? ` (${t('chart.benchmark.estimated')})` : '')}
+                  </td>
+                )
+              },
+            },
+          ]
+    const extra = [...benchmarkColumns, ...inflationColumns]
     const columns: Column[] =
       view === 'summary'
         ? [
@@ -87,6 +153,7 @@ export function YearsCard({
               cell: (row) => <td className={TD_NUM}>{formatMoney(row.closing, currency)}</td>,
             },
             ratioColumn,
+            ...extra,
           ]
         : [
             money('price', t('years.price'), (row) => row.price),
@@ -95,6 +162,7 @@ export function YearsCard({
             money('cashFx', t('years.cashFx'), (row) => row.cash_fx),
             gain,
             ratioColumn,
+            ...extra,
           ]
     return (
       <>

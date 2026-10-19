@@ -21,5 +21,6 @@ export const enYears: AreaStrings<typeof trYears> = {
   'years.income': 'Income',
   'years.fx': 'Currency',
   'years.cashFx': 'Cash currency',
+  'years.inflation': 'TÜFE',
   'years.splitHint': 'The four parts explain the gain; rounding can leave the sum a few cents off.',
 }

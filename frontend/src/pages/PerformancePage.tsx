@@ -52,7 +52,12 @@ export function PerformancePage() {
           benchmarkLabel={options.find((o) => o.value === benchmark)?.label}
           method={method}
         />
-        <YearsCard scope={portfolioId} benchmark={benchmark} method={method} />
+        <YearsCard
+          scope={portfolioId}
+          benchmark={benchmark}
+          benchmarkLabel={options.find((o) => o.value === benchmark)?.label}
+          method={method}
+        />
         <DrawdownCard portfolioId={portfolioId} />
         <RiskCard
           portfolioId={portfolioId}
