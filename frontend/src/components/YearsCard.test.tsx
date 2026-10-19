@@ -5,6 +5,7 @@ import type { Benchmark, ReturnMethod } from '../api/history'
 import type { YearRow, YearsResponse } from '../api/years'
 import { t } from '../i18n/strings'
 import { MISSING, formatMoney, signedMoney, signedPercent } from '../lib/format'
+import { excessReturn } from '../lib/returns'
 import { YearsCard } from './YearsCard'
 
 afterEach(() => {
@@ -56,11 +57,18 @@ const rows = [
   }),
 ]
 
-const response = (years: YearRow[], missing: string[] = []): YearsResponse => ({
-  currency: 'TRY',
+const response = (
+  years: YearRow[],
+  missing: string[] = [],
+  {
+    currency = 'TRY',
+    estimatedFrom = null,
+  }: { currency?: string; estimatedFrom?: string | null } = {},
+): YearsResponse => ({
+  currency,
   years,
   missing_rates: missing,
-  inflation_estimated_from: null,
+  inflation_estimated_from: estimatedFrom,
 })
 
 function renderCard(
@@ -75,13 +83,14 @@ function renderCard(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <YearsCard scope={1} benchmark={benchmark} method={method} />
+      <YearsCard scope={1} benchmark={benchmark} benchmarkLabel="Dolar" method={method} />
     </QueryClientProvider>,
   )
   return fetch
 }
 
 const pct = (v: number) => signedPercent(v, { minimumFractionDigits: 1 })
+const excessPct = (p: number, b: number) => signedPercent(excessReturn(p, b) ?? 0)
 const cells = (tr: HTMLElement) =>
   within(tr)
     .getAllByRole('cell')
@@ -103,6 +112,8 @@ describe('YearsCard', () => {
       signedMoney('120.00', 'TRY'),
       formatMoney('1720.00', 'TRY'),
       pct(0.075),
+      MISSING,
+      MISSING,
     ])
     expect(cells(row2024)).toEqual([
       formatMoney('1000.00', 'TRY'),
@@ -110,6 +121,8 @@ describe('YearsCard', () => {
       signedMoney('100.00', 'TRY'),
       formatMoney('1100.00', 'TRY'),
       pct(0.1),
+      MISSING,
+      MISSING,
     ])
     expect(within(row2024).getByText('*')).toBeInTheDocument()
     expect(within(row2025).queryByText('*')).toBeNull()
@@ -175,6 +188,8 @@ describe('YearsCard', () => {
       signedMoney('15.00', 'TRY'),
       signedMoney('120.00', 'TRY'),
       pct(0.075),
+      MISSING,
+      MISSING,
     ])
     // The 2024 row has no price: a dash, and its gain still prints.
     expect(cells(all[2])[0]).toBe(MISSING)
@@ -188,5 +203,110 @@ describe('YearsCard', () => {
 
     await screen.findByText(t('transactions.empty'))
     expect(screen.queryByRole('radiogroup')).toBeNull()
+  })
+  describe('benchmark and inflation columns', () => {
+    const withBench = [
+      row({
+        year: '2024',
+        to: '2024-12-31',
+        returns: { simple: null, twr: '0.100000', mwr: null },
+        benchmark: { simple: null, twr: '0.050000', mwr: null },
+        inflation: null,
+      }),
+      row({
+        returns: { simple: null, twr: '0.100000', mwr: null },
+        benchmark: { simple: null, twr: '0.050000', mwr: null },
+        inflation: '0.250000',
+      }),
+    ]
+    const headers = (table: HTMLElement) =>
+      within(table)
+        .getAllByRole('columnheader')
+        .map((h) => h.textContent)
+
+    it('prints the benchmark and the excess as a pill', async () => {
+      renderCard(async () => Response.json(response(withBench, [], { currency: 'USD' })), {
+        benchmark: 'USD',
+      })
+
+      const table = await screen.findByRole('table')
+      expect(headers(table).slice(-3)).toEqual([
+        t('years.return'),
+        'Dolar',
+        t('performance.periods.excess'),
+      ])
+      const last2025 = cells(within(table).getAllByRole('row')[1]).slice(-2)
+      expect(last2025).toEqual([signedPercent(0.05), excessPct(0.1, 0.05)])
+      expect(within(table).queryByRole('columnheader', { name: 'TÜFE' })).toBeNull()
+    })
+
+    it('prints TÜFE and the real return in TRY, estimated when the series is', async () => {
+      renderCard(async () =>
+        Response.json(response(withBench, [], { estimatedFrom: '2025-12-01' })),
+      )
+
+      const table = await screen.findByRole('table')
+      const [r2025, r2024] = within(table).getAllByRole('row').slice(1)
+      expect(cells(r2025).slice(-2)).toEqual([
+        signedPercent(0.25),
+        `${excessPct(0.1, 0.25)} (${t('chart.benchmark.estimated')})`,
+      ])
+      // No TÜFE change for the year: a dash in both.
+      expect(cells(r2024).slice(-2)).toEqual([MISSING, MISSING])
+      expect(within(table).getByTitle(t('chart.return.realHint'))).toBeInTheDocument()
+    })
+
+    it('shows the inflation columns alone when TÜFE is the benchmark in TRY', async () => {
+      renderCard(async () => Response.json(response(withBench)), { benchmark: 'TUFE' })
+
+      const table = await screen.findByRole('table')
+      expect(headers(table).slice(-3)).toEqual([
+        t('years.return'),
+        'TÜFE',
+        t('performance.periods.real'),
+      ])
+    })
+
+    it('shows the pair with the real header for TÜFE outside TRY', async () => {
+      renderCard(async () => Response.json(response(withBench, [], { currency: 'USD' })), {
+        benchmark: 'TUFE',
+      })
+
+      const table = await screen.findByRole('table')
+      expect(headers(table).slice(-3)).toEqual([
+        t('years.return'),
+        'Dolar',
+        t('performance.periods.real'),
+      ])
+      expect(within(table).queryByRole('columnheader', { name: 'TÜFE' })).toBeNull()
+    })
+
+    it('shows no extra column without a benchmark in a foreign currency', async () => {
+      renderCard(async () => Response.json(response(withBench, [], { currency: 'USD' })))
+
+      const table = await screen.findByRole('table')
+      expect(headers(table).pop()).toBe(t('years.return'))
+    })
+
+    it('keeps the columns in the split view', async () => {
+      renderCard(async () => Response.json(response(withBench)), { benchmark: 'USD' })
+
+      await screen.findByRole('table')
+      fireEvent.click(screen.getByRole('radio', { name: t('years.view.split') }))
+      const table = screen.getByRole('table')
+      expect(headers(table).slice(-5)).toEqual([
+        t('years.return'),
+        'Dolar',
+        t('performance.periods.excess'),
+        'TÜFE',
+        t('performance.periods.real'),
+      ])
+      expect(cells(within(table).getAllByRole('row')[1]).slice(-4)).toEqual([
+        signedPercent(0.05),
+        excessPct(0.1, 0.05),
+        signedPercent(0.25),
+        excessPct(0.1, 0.25),
+      ])
+    })
   })
 })
