@@ -220,17 +220,10 @@ func buildStats(s holdings.Summary, txs []transaction.Transaction, rates map[str
 		if !ok {
 			// A currency whose figures are all zero converts to zero at any
 			// rate, as in totalKnown.
-			for _, v := range []decimal.Decimal{st.Deposits, st.Withdrawals, st.Fees, st.DividendsGross, st.DividendsTax, st.Interest} {
-				known = known && v.IsZero()
-			}
+			known = known && st.IsZero()
 			continue
 		}
-		sum.Deposits = sum.Deposits.Add(st.Deposits.Mul(f))
-		sum.Withdrawals = sum.Withdrawals.Add(st.Withdrawals.Mul(f))
-		sum.Fees = sum.Fees.Add(st.Fees.Mul(f))
-		sum.DividendsGross = sum.DividendsGross.Add(st.DividendsGross.Mul(f))
-		sum.DividendsTax = sum.DividendsTax.Add(st.DividendsTax.Mul(f))
-		sum.Interest = sum.Interest.Add(st.Interest.Mul(f))
+		sum = sum.Add(st.Scale(f))
 	}
 	if known {
 		r := newStatsFields(sum)

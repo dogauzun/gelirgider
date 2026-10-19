@@ -327,8 +327,7 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 			missing[t.Currency] = true
 			continue
 		}
-		amount, fee := t.Amount.Mul(f), t.Fee.Mul(f)
-		net := amount.Sub(fee)
+		row := holdings.StatsOf(t).Scale(f)
 		for _, b := range []struct {
 			m      map[string]*dividendSums
 			period string
@@ -338,12 +337,12 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 				s = &dividendSums{}
 				b.m[b.period] = s
 			}
-			s.add(t.InstrumentID == nil, amount, fee, net)
+			s.add(row)
 		}
 		if t.Date[:7] >= since {
-			last12.add(t.InstrumentID == nil, amount, fee, net)
+			last12.add(row)
 		}
-		total.add(t.InstrumentID == nil, amount, fee, net)
+		total.add(row)
 		if t.InstrumentID == nil {
 			continue
 		}
@@ -359,7 +358,7 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 			byInstrument[*t.InstrumentID] = e
 		}
 		e.total.Count++
-		e.net = e.net.Add(net)
+		e.net = e.net.Add(row.DividendsGross.Sub(row.DividendsTax))
 		e.total.LastDate = t.Date
 	}
 
@@ -375,23 +374,14 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 }
 
 // dividendSums is one bucket's running totals.
-type dividendSums struct{ gross, tax, net, interest decimal.Decimal }
+type dividendSums struct{ st holdings.Stats }
 
-// add books one dividend: an interest row (no instrument) grows interest by
-// its net only, any other grows gross, tax and net.
-func (s *dividendSums) add(interest bool, amount, fee, net decimal.Decimal) {
-	if interest {
-		s.interest = s.interest.Add(net)
-		return
-	}
-	s.gross = s.gross.Add(amount)
-	s.tax = s.tax.Add(fee)
-	s.net = s.net.Add(net)
-}
+// add books one dividend row, already scaled to the reporting currency.
+func (s *dividendSums) add(row holdings.Stats) { s.st = s.st.Add(row) }
 
 // bucketOf rounds s to the 2-decimal strings of one bucket.
 func bucketOf(period string, s *dividendSums) dividendBucket {
-	return dividendBucket{Period: period, Gross: s.gross.StringFixed(2), Tax: s.tax.StringFixed(2), Net: s.net.StringFixed(2), Interest: s.interest.StringFixed(2)}
+	return dividendBucket{Period: period, Gross: s.st.DividendsGross.StringFixed(2), Tax: s.st.DividendsTax.StringFixed(2), Net: s.st.DividendsGross.Sub(s.st.DividendsTax).StringFixed(2), Interest: s.st.Interest.StringFixed(2)}
 }
 
 // dividendInstrumentSums is one instrument's running total, with its net

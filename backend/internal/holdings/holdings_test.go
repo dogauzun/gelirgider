@@ -1004,6 +1004,39 @@ func TestComputeStats(t *testing.T) {
 	}
 }
 
+// TestStatsOf checks the per-row classifier for one row of each type.
+func TestStatsOf(t *testing.T) {
+	var id int64 = 1
+	tests := []struct {
+		name string
+		tx   transaction.Transaction
+		want holdings.Stats
+	}{
+		{"buy", transaction.Transaction{InstrumentID: &id, Type: transaction.TypeBuy, Amount: d("100"), Fee: d("5")}, holdings.Stats{Fees: d("5")}},
+		{"sell", transaction.Transaction{InstrumentID: &id, Type: transaction.TypeSell, Amount: d("60"), Fee: d("4")}, holdings.Stats{Fees: d("4")}},
+		{"deposit", transaction.Transaction{Type: transaction.TypeDeposit, Amount: d("1000"), Fee: d("1")}, holdings.Stats{Deposits: d("1000"), Fees: d("1")}},
+		{"withdrawal", transaction.Transaction{Type: transaction.TypeWithdrawal, Amount: d("200"), Fee: d("2")}, holdings.Stats{Withdrawals: d("200"), Fees: d("2")}},
+		{"fee", transaction.Transaction{Type: transaction.TypeFee, Amount: d("10"), Fee: d("3")}, holdings.Stats{Fees: d("13")}},
+		{"dividend", transaction.Transaction{InstrumentID: &id, Type: transaction.TypeDividend, Amount: d("100"), Fee: d("15")}, holdings.Stats{DividendsGross: d("100"), DividendsTax: d("15")}},
+		{"interest", transaction.Transaction{Type: transaction.TypeDividend, Amount: d("50"), Fee: d("5")}, holdings.Stats{Interest: d("45")}},
+		{"split", transaction.Transaction{InstrumentID: &id, Type: transaction.TypeSplit, Quantity: d("2")}, holdings.Stats{}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := holdings.StatsOf(tc.tx)
+			if fmt.Sprint(got) != fmt.Sprint(tc.want) {
+				t.Errorf("StatsOf = %s, want %s", fmt.Sprint(got), fmt.Sprint(tc.want))
+			}
+			if tc.want.IsZero() != (tc.name == "split") {
+				t.Errorf("IsZero(%s) wrong", tc.name)
+			}
+			if got.Scale(d("2")).Add(got).IsZero() != got.IsZero() {
+				t.Errorf("Scale/Add changed zeroness")
+			}
+		})
+	}
+}
+
 // TestDepositPrices checks that a deposit's series and latest close come from
 // its terms, for its owner only, next to a stock with a fetched price.
 func TestDepositPrices(t *testing.T) {
