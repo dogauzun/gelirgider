@@ -62,6 +62,8 @@ function mockApi(
     }
     if (url.endsWith('/summary')) return Response.json(summary)
     if (url.endsWith('/cash-gaps')) return Response.json(gaps)
+    if (url.endsWith('/trades'))
+      return Response.json({ currency: 'TRY', trades: [], missing_rates: [] })
     if (url.includes('/returns/periods')) {
       const withBenchmark = url.includes('benchmark=')
       return Response.json({
@@ -229,6 +231,17 @@ it('shows the drawdown of the all-time history below the periodic returns', asyn
   expect(periods.compareDocumentPosition(drawdown) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
 
+it('lists the realized trades of the portfolio below the drawdown', async () => {
+  const urls = mockApi()
+  renderPage()
+
+  expect(await screen.findByText(t('trades.empty'))).toBeInTheDocument()
+  expect(urls).toContain('/api/portfolios/1/trades')
+  const drawdown = screen.getByRole('heading', { name: t('drawdown.title') })
+  const trades = screen.getByRole('heading', { name: t('trades.title') })
+  expect(drawdown.compareDocumentPosition(trades) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
+
 // A scope with no transactions has no buckets at all: nothing to compute,
 // rather than a return that cannot be computed, and nothing to switch
 // between, even with a benchmark.
@@ -241,6 +254,8 @@ it('says there are no transactions yet for an empty scope', async () => {
     if (url.includes('/returns/periods')) {
       return Response.json({ currency: 'TRY', months: [], years: [] })
     }
+    if (url.endsWith('/trades'))
+      return Response.json({ currency: 'TRY', trades: [], missing_rates: [] })
     throw new Error(`unexpected request: ${url}`)
   })
   renderPage('/portfolios/all/performance')
