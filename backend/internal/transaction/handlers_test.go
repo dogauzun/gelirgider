@@ -449,3 +449,19 @@ func TestAcquireFetchSlotGivesUpAfterTheWait(t *testing.T) {
 	}
 	again()
 }
+
+// TestAcquireFetchSlotIsLetGoAtTheDeadline checks that a holder that never
+// calls release still gives the slot up when its context ends.
+func TestAcquireFetchSlotIsLetGoAtTheDeadline(t *testing.T) {
+	parent, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	if _, _, err := AcquireFetchSlot(parent, time.Second); err != nil {
+		t.Fatalf("first acquire: %v", err)
+	}
+	// No release: the deadline alone must free the slot.
+	_, release, err := AcquireFetchSlot(context.Background(), time.Second)
+	if err != nil {
+		t.Fatalf("acquire after the holder's deadline: %v", err)
+	}
+	release()
+}

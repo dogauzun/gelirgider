@@ -656,12 +656,12 @@ func commitAliases(req commitRequest) (aliases, learn map[string]int64) {
 }
 
 // ensurePrices fetches a price for each committed target. The fetches run
-// one after another, each within its own EnsurePrice budget (a wait for the
-// fetch slot, then the fetch within OnDemandFetchTimeout), but it
-// waits for them only that long in all: the rows are committed, so a hung
-// price host must not hold the response past a proxy's timeout, one target
-// at a time. The rest run on after it returns; a client
-// disconnect does not cancel them.
+// one after another, but the response waits for them at most
+// OnDemandFetchTimeout in all, which may end before the fetch slot frees:
+// the rows are committed, so a hung price host must not hold the response
+// past a proxy's timeout. The fetches go on in the background after it
+// returns, each within its own EnsurePrice budget; a client disconnect does
+// not cancel them.
 func (h *handler) ensurePrices(ctx context.Context, targets map[string]fetchTarget) {
 	done := make(chan struct{})
 	go func() {

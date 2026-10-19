@@ -386,17 +386,25 @@ func underFetchSlot(ctx context.Context, covered func(context.Context) (bool, er
 }
 
 // fetchBISTOnDemand fetches in's latest bulletin when it has no price yet
-// and returns the bulletin backfill source for the caller to run.
+// and returns the bulletin backfill source for the caller to run; none when
+// the latest-price check failed.
 func fetchBISTOnDemand(ctx context.Context, d *deps, in instrument.Instrument) []bist.BackfillSource {
 	hasPrice := func(ctx context.Context) (bool, error) {
 		latest, err := d.prices.Latest(ctx, []int64{in.ID}, price.Today())
 		_, ok := latest[in.ID]
 		return ok, err
 	}
-	underFetchSlot(ctx, hasPrice, "on-demand bulletin fetch failed", []any{"instrument_id", in.ID}, func(ctx context.Context) error {
-		syncLatestBulletin(ctx, in, d.instruments, d.prices, d.bistFetcher)
+	has, err := hasPrice(ctx)
+	logFetchErr(ctx, err, "on-demand price fetch: check latest price failed", "instrument_id", in.ID)
+	if err != nil {
 		return nil
-	})
+	}
+	if !has {
+		underFetchSlot(ctx, hasPrice, "on-demand bulletin fetch failed", []any{"instrument_id", in.ID}, func(ctx context.Context) error {
+			syncLatestBulletin(ctx, in, d.instruments, d.prices, d.bistFetcher)
+			return nil
+		})
+	}
 	return []bist.BackfillSource{bist.BulletinBackfillSource(d.bistFetcher, d.instruments, d.prices)}
 }
 

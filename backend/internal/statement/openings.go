@@ -2,7 +2,9 @@ package statement
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 	"time"
 
@@ -254,6 +256,7 @@ type openingRun struct {
 	// The pricing state startPricing and fetchReady set up for priceOf.
 	client       string
 	slotWait     time.Duration
+	busyLogged   bool
 	fetchCtx     context.Context
 	release      func()
 	session      *lookupSession
@@ -320,6 +323,11 @@ func (r *openingRun) fetchReady() bool {
 		ctx, release, err := transaction.AcquireFetchSlot(r.ctx, r.slotWait)
 		r.slotWait -= time.Since(waitStart)
 		if err != nil {
+			// Once per parse, not per candidate, and not for a request that went away.
+			if !r.busyLogged && !errors.Is(err, context.Canceled) {
+				r.busyLogged = true
+				slog.Default().Error("on-demand price fetch failed", "error", err)
+			}
 			return false
 		}
 		r.fetchCtx, r.release = ctx, release

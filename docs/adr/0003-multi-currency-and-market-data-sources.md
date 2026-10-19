@@ -106,7 +106,9 @@ backfills TCMB rates over the same range for every market. A fetch is skipped
 when stored data already covers the range, and a failure is retried next time.
 A fetch that has to go to the network takes one process-wide slot first, so
 fetches run one at a time: each writes, and SQLite has one writer. A fetch whose
-data is already stored (or that has no key to fetch with) never takes the slot.
+data is already stored (or that has no key to fetch with) never takes the slot on
+the save path; an import parse candidate with no price stored for its date may
+queue for it before that check.
 A caller waits for it at most three fetch timeouts and then skips the fetch; the
 fetch's own timeout starts once it has the slot, and the slot is let go when that
 timeout ends. A save thus takes at most 15 s of waiting plus 5 s of fetching, a
