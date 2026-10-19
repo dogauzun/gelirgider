@@ -31,6 +31,7 @@ func registerHistoryRoutes(mux *http.ServeMux, d *deps) {
 	mux.HandleFunc("GET /api/portfolios/{id}/history", h.get)
 	mux.HandleFunc("GET /api/portfolios/{id}/returns/periods", h.periods)
 	mux.HandleFunc("GET /api/portfolios/{id}/attribution", h.attribution)
+	mux.HandleFunc("GET /api/portfolios/{id}/years", h.years)
 }
 
 type historyHandler struct{ *deps }
@@ -190,7 +191,7 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 	last := len(entries) - 1
 	values, flows, external, negativeCash := s.rangeInputs(0, last)
 
-	netFlow := s.netFlow(external)
+	netFlow := s.netFlow(0, external)
 	if len(entries) > 0 {
 		invested := s.totals[0].Round(2)
 		entries[0].Invested = invested.StringFixed(2)
@@ -296,11 +297,11 @@ func historyRange(w http.ResponseWriter, r *http.Request, txs []transaction.Tran
 }
 
 // netFlow is the history response's net_flow, from the external flows of
-// the whole range (rangeInputs).
-func (s *historySweep) netFlow(external []decimal.Decimal) decimal.Decimal {
+// a range (rangeInputs) whose first day is the sweep's day start.
+func (s *historySweep) netFlow(start int, external []decimal.Decimal) decimal.Decimal {
 	netFlow := decimal.Zero
-	for i, flow := range external {
-		netFlow = netFlow.Add(s.flowStep(i, flow))
+	for k, flow := range external {
+		netFlow = netFlow.Add(s.flowStep(start+k, flow))
 	}
 	return netFlow
 }

@@ -282,8 +282,6 @@ func fixed2(d decimal.Decimal, null bool) *string {
 func (s *historySweep) attributionResponse(from, to time.Time, r rangeReturn) attributionResponse {
 	held := s.attribution[len(s.attribution)-1].held
 	out := attributionResponse{Currency: s.currency, From: from.Format(time.DateOnly), To: to.Format(time.DateOnly), Positions: []attributionPosition{}, MissingRates: r.missingRates}
-	price, income, fx := r.costs, r.interest, decimal.Zero
-	priceNull, incomeNull, fxNull := r.gaps.costs, r.gaps.interest, false
 	for _, id := range slices.Sorted(maps.Keys(r.instruments)) {
 		t := r.instruments[id]
 		out.Positions = append(out.Positions, attributionPosition{
@@ -291,11 +289,23 @@ func (s *historySweep) attributionResponse(from, to time.Time, r rangeReturn) at
 			Price: fixed2(t.price, t.missing), Income: fixed2(t.income, t.missing), FX: fixed2(t.fx, t.missing),
 			Total: fixed2(t.price.Add(t.income).Add(t.fx), t.missing),
 		})
+	}
+	out.Total = r.totals()
+	return out
+}
+
+// totals folds r into the four buckets of the scope: price is the costs plus
+// every instrument's price, income the interest plus every instrument's
+// income, fx the instruments' fx. A bucket is null when a scope amount it
+// holds, or any instrument, could not convert.
+func (r rangeReturn) totals() attributionBuckets {
+	price, income, fx := r.costs, r.interest, decimal.Zero
+	priceNull, incomeNull, fxNull := r.gaps.costs, r.gaps.interest, false
+	for _, t := range r.instruments {
 		price, income, fx = price.Add(t.price), income.Add(t.income), fx.Add(t.fx)
 		priceNull, incomeNull, fxNull = priceNull || t.missing, incomeNull || t.missing, fxNull || t.missing
 	}
-	out.Total = attributionBuckets{Price: fixed2(price, priceNull), Income: fixed2(income, incomeNull), FX: fixed2(fx, fxNull), CashFX: fixed2(r.cashFX, r.gaps.cashFX)}
-	return out
+	return attributionBuckets{Price: fixed2(price, priceNull), Income: fixed2(income, incomeNull), FX: fixed2(fx, fxNull), CashFX: fixed2(r.cashFX, r.gaps.cashFX)}
 }
 
 // attribution answers how the scope's return over a date range splits into

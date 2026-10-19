@@ -5187,6 +5187,74 @@
                 }
             }
         },
+        "/portfolios/{id}/years": {
+            "get": {
+                "description": "One row per calendar year, from the first transaction (at most 3660 days back) to today, oldest first. A row's from, to, partial, returns and benchmark equal the periods route's year bucket. opening and closing are the total value on the row's first and last day; net_flow is the history route's net_flow for from..to; gain is closing - opening - net_flow, exactly, on those figures. price, income, fx and cash_fx are the attribution route's total over from..to, with the same rounding (each bucket is rounded on its own, so the four can differ from gain by up to 0.02) and the same null rule: a bucket is null when a day of the year had no rate to convert it, and missing_rates lists those currencies. inflation is TÜFE's change over from..to as the history route returns it, null unless the reporting currency is TRY or TÜFE has no level on from; inflation_estimated_from is the first extrapolated TÜFE day. A row's benchmark is null without the parameter, or when the benchmark has no level on some day of the year.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Yearly statement",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "numeric id or `all`",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "USD, EUR, XU100, TUFE, GOLD, or instrument:\u003cid\u003e for an instrument with a transaction in the scope",
+                        "name": "benchmark",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.yearsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "unknown benchmark",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/setup/admin": {
             "post": {
                 "description": "Needs the one-time setup token from the server log. Sets the `session` cookie. Rate-limited per client IP, 10 per minute.",
@@ -7399,6 +7467,88 @@
                 },
                 "note": {
                     "type": "string"
+                }
+            }
+        },
+        "server.yearRow": {
+            "type": "object",
+            "properties": {
+                "benchmark": {
+                    "$ref": "#/definitions/server.returnsResponse"
+                },
+                "cash_fx": {
+                    "type": "string"
+                },
+                "closing": {
+                    "description": "total value on to",
+                    "type": "string"
+                },
+                "from": {
+                    "description": "first day, Jan 1 or the first transaction",
+                    "type": "string"
+                },
+                "fx": {
+                    "type": "string"
+                },
+                "gain": {
+                    "description": "Gain is closing - opening - net_flow, exact on the rounded figures.",
+                    "type": "string"
+                },
+                "income": {
+                    "type": "string"
+                },
+                "inflation": {
+                    "description": "Inflation is TÜFE's change over from..to, as the history route\ncomputes it; null unless the reporting currency is TRY.",
+                    "type": "string"
+                },
+                "net_flow": {
+                    "type": "string"
+                },
+                "opening": {
+                    "description": "total value on from",
+                    "type": "string"
+                },
+                "partial": {
+                    "description": "the first and the current year",
+                    "type": "boolean"
+                },
+                "price": {
+                    "type": "string"
+                },
+                "returns": {
+                    "$ref": "#/definitions/server.returnsResponse"
+                },
+                "to": {
+                    "description": "last day, Dec 31 or today",
+                    "type": "string"
+                },
+                "year": {
+                    "description": "\"2026\"",
+                    "type": "string"
+                }
+            }
+        },
+        "server.yearsResponse": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "inflation_estimated_from": {
+                    "description": "InflationEstimatedFrom is the first TÜFE day that is extrapolated, null\nwhen none is or when inflation is not served.",
+                    "type": "string"
+                },
+                "missing_rates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "years": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.yearRow"
+                    }
                 }
             }
         },
