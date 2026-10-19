@@ -44,7 +44,7 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The reviewer diffs against origin/main and reads the PR head, not
           # the merge commit.
@@ -58,7 +58,7 @@ jobs:
       # no `gh api` (a prefix rule cannot pin its method) and no `git` at all
       # (`--upload-pack`, `--output` and `--ext-diff` reach a shell). The
       # inline comment tool is the one way to write.
-      - uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@5eb090f3c3afd701a0672cd32981197ca27688f6 # v1.0.253
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
