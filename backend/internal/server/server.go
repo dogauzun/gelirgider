@@ -222,6 +222,7 @@ func newHandler(logger *slog.Logger, conn *sql.DB, cookieSecure bool, d deps, so
 	statement.RegisterRoutes(protected, statement.Deps{Imports: statement.NewImportRepo(conn), Transactions: transactions, Splits: d.splits, Portfolios: portfolios, Instruments: instruments, Prices: prices, ManualPrices: manualPrices, Deposits: d.deposits, OnDemandFetch: onDemandFetch, LookupFund: lookupFund, SyncBulletin: syncBulletin})
 	registerSummaryRoutes(protected, &d)
 	registerHistoryRoutes(protected, &d)
+	registerCashFlowRoutes(protected, &d)
 	registerCashGapRoutes(protected, &d)
 	registerPositionHistoryRoutes(protected, &d)
 	registerDividendRoutes(protected, &d)

@@ -3634,6 +3634,57 @@
                 }
             }
         },
+        "/portfolios/{id}/cashflows": {
+            "get": {
+                "description": "One bucket per calendar month from the month of the first transaction to the current month, oldest first, zero-filled, plus totals over every month, in the reporting currency at each transaction's own-date rate (not today's, which would rewrite history). deposits and withdrawals are the gross amounts, net is deposits minus withdrawals, fees are the fee of every buy, sell, deposit and withdrawal plus the amount and fee of a fee row, dividends are dividends with an instrument net of their fee (stopaj), interest is a dividend without an instrument net of its fee; a split counts nothing. Every bucket is rounded once from its exact sum, so the months can differ from the totals by a cent. A row whose currency has no rate on or before its date is left out of every field and its currency listed in missing_rates. No transactions give no months and zero totals. Amounts are 2-decimal strings.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portfolios"
+                ],
+                "summary": "Monthly cash flows",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "numeric id or `all`",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.cashFlowsResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "portfolio not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/portfolios/{id}/deposits": {
             "get": {
                 "description": "Newest start date first. value is today's net value (principal plus the net interest accrued), payout the principal plus the net interest at maturity, both 2 decimals. status is matured when a sell is recorded on the deposit, else due from the maturity date, else active.",
@@ -5956,6 +6007,56 @@
                 },
                 "returns": {
                     "$ref": "#/definitions/server.returnsResponse"
+                }
+            }
+        },
+        "server.cashFlowBucket": {
+            "type": "object",
+            "properties": {
+                "deposits": {
+                    "type": "string"
+                },
+                "dividends": {
+                    "type": "string"
+                },
+                "fees": {
+                    "type": "string"
+                },
+                "interest": {
+                    "type": "string"
+                },
+                "net": {
+                    "type": "string"
+                },
+                "period": {
+                    "description": "YYYY-MM, empty on the totals",
+                    "type": "string"
+                },
+                "withdrawals": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.cashFlowsResponse": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "missing_rates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "months": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.cashFlowBucket"
+                    }
+                },
+                "totals": {
+                    "$ref": "#/definitions/server.cashFlowBucket"
                 }
             }
         },

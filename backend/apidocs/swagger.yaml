@@ -278,6 +278,39 @@ definitions:
       returns:
         $ref: '#/definitions/server.returnsResponse'
     type: object
+  server.cashFlowBucket:
+    properties:
+      deposits:
+        type: string
+      dividends:
+        type: string
+      fees:
+        type: string
+      interest:
+        type: string
+      net:
+        type: string
+      period:
+        description: YYYY-MM, empty on the totals
+        type: string
+      withdrawals:
+        type: string
+    type: object
+  server.cashFlowsResponse:
+    properties:
+      currency:
+        type: string
+      missing_rates:
+        items:
+          type: string
+        type: array
+      months:
+        items:
+          $ref: '#/definitions/server.cashFlowBucket'
+        type: array
+      totals:
+        $ref: '#/definitions/server.cashFlowBucket'
+    type: object
   server.cashGap:
     properties:
       amount:
@@ -4209,6 +4242,50 @@ paths:
                 type: string
             type: object
       summary: Record the cash gaps as deposits
+      tags:
+      - portfolios
+  /portfolios/{id}/cashflows:
+    get:
+      description: One bucket per calendar month from the month of the first transaction
+        to the current month, oldest first, zero-filled, plus totals over every month,
+        in the reporting currency at each transaction's own-date rate (not today's,
+        which would rewrite history). deposits and withdrawals are the gross amounts,
+        net is deposits minus withdrawals, fees are the fee of every buy, sell, deposit
+        and withdrawal plus the amount and fee of a fee row, dividends are dividends
+        with an instrument net of their fee (stopaj), interest is a dividend without
+        an instrument net of its fee; a split counts nothing. Every bucket is rounded
+        once from its exact sum, so the months can differ from the totals by a cent.
+        A row whose currency has no rate on or before its date is left out of every
+        field and its currency listed in missing_rates. No transactions give no months
+        and zero totals. Amounts are 2-decimal strings.
+      parameters:
+      - description: numeric id or `all`
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.cashFlowsResponse'
+        "404":
+          description: portfolio not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Monthly cash flows
       tags:
       - portfolios
   /portfolios/{id}/deposits:
