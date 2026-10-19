@@ -251,8 +251,11 @@ type openingRun struct {
 	// proceeds and deposits total the priced closing sells and opening
 	// buys per currency.
 	proceeds, deposits currencyTotals
-	// The pricing state startPricing sets up for priceOf.
+	// The pricing state startPricing and fetchReady set up for priceOf.
+	client       string
 	fetchCtx     context.Context
+	fetchOK      bool
+	release      func()
 	session      *lookupSession
 	bulletinDate string
 	fetches      int
@@ -283,29 +286,38 @@ func (r *openingRun) splitRatios(cands []candidate) (map[int64]decimal.Decimal, 
 }
 
 // startPricing sets up priceOf's fetches and bulletin sync, and returns the
-// cancel of their deadline. One deadline for all the fetches, not one each:
+// func that ends them. One deadline for all the fetches, not one each:
 // maxOpeningFetches hung fetches would outlast a proxy's timeout.
 // An instrument left unfetched is priced as if its fetch found nothing. The
 // bulletin sync shares that deadline. A weekend has no bulletin.
-// It holds the fetch slot of transaction.AcquireFetchSlot until the cancel,
-// and takes it before the deadline starts, so a parse queued behind others
-// keeps its whole deadline for its own fetches.
-func (r *openingRun) startPricing(client string, start time.Time) context.CancelFunc {
-	// A ctx that ended while waiting fails the fetches below on its own.
-	slotCtx, release, _ := transaction.AcquireFetchSlot(r.ctx)
-	fetchCtx, cancelTimeout := context.WithTimeout(slotCtx, transaction.OnDemandFetchTimeout)
-	cancel := func() {
-		cancelTimeout()
-		release()
-	}
-	r.fetchCtx = fetchCtx
-	r.session = &lookupSession{ctx: fetchCtx, client: client, synced: map[string]bool{}}
+func (r *openingRun) startPricing(client string, start time.Time) func() {
+	r.client = client
 	day := start.AddDate(0, 0, -1)
 	for day.Weekday() == time.Saturday || day.Weekday() == time.Sunday {
 		day = day.AddDate(0, 0, -1)
 	}
 	r.bulletinDate = day.Format(time.DateOnly)
-	return cancel
+	return func() {
+		if r.release != nil {
+			r.release()
+		}
+	}
+}
+
+// fetchReady reports whether priceOf may fetch or sync. The first call takes
+// the fetch slot of transaction.AcquireFetchSlot, which the parse then holds
+// to its end, and starts the shared deadline: a parse whose prices are all
+// stored never queues, and one queued behind others keeps its whole deadline
+// for its own fetches. False when the wait for the slot ran out or the
+// deadline has: the fetches are skipped.
+func (r *openingRun) fetchReady() bool {
+	if r.release == nil {
+		var err error
+		r.fetchCtx, r.release, err = transaction.AcquireFetchSlot(r.ctx)
+		r.fetchOK = err == nil
+		r.session = &lookupSession{ctx: r.fetchCtx, client: r.client, synced: map[string]bool{}}
+	}
+	return r.fetchOK && r.fetchCtx.Err() == nil
 }
 
 // priceOf prices row, c's opening or closing row, by the rule of
@@ -324,10 +336,10 @@ func (r *openingRun) priceOf(c candidate, row *previewRow) (decimal.Decimal, boo
 	// The on-demand fetch only queues a backfill for an old BIST date,
 	// so the bulletin of the last weekday on or before it is synced
 	// here, once for all the BIST openings.
-	if err == nil && !found && c.in.Market == "BIST" && r.h.syncBulletinOnce(r.session, r.bulletinDate) {
+	if err == nil && !found && c.in.Market == "BIST" && r.h.syncBulletin != nil && r.fetchReady() && r.h.syncBulletinOnce(r.session, r.bulletinDate) {
 		p, found, err = r.h.storedPrice(r.ctx, r.userID, id, r.date)
 	}
-	if err == nil && !found && r.h.onDemandFetch != nil && r.fetches < maxOpeningFetches && r.fetchCtx.Err() == nil {
+	if err == nil && !found && r.h.onDemandFetch != nil && r.fetches < maxOpeningFetches && r.fetchReady() {
 		r.fetches++
 		transaction.EnsurePrice(r.fetchCtx, r.h.onDemandFetch, c.in, transaction.Transaction{InstrumentID: &id, Date: r.date})
 		p, found, err = r.h.storedPrice(r.ctx, r.userID, id, r.date)

@@ -317,12 +317,19 @@ func newOnDemandFetch(d *deps, backfills *backfillQueue) transaction.OnDemandFet
 		on := scheduler.Enabled(settingsCtx, settingsRepo, marketSource[in.Market], slog.Default())
 
 		if on && in.Market == "CRYPTO" {
-			syncCryptoRange(ctx, in, date, prices, d.btcturkFetcher)
+			underFetchSlot(ctx, nil, "on-demand crypto price fetch failed", []any{"instrument_id", in.ID, "symbol", in.Symbol}, func(ctx context.Context) error {
+				syncCryptoRange(ctx, in, date, prices, d.btcturkFetcher)
+				return nil
+			})
 		}
 
 		if on && in.Market == "TEFAS" {
-			_, err := tefasSyncer.SyncHistory(ctx, in, date, time.Now())
-			logFetchErr(ctx, err, "on-demand tefas price fetch failed", "instrument_id", in.ID, "symbol", in.Symbol)
+			underFetchSlot(ctx, func(ctx context.Context) (bool, error) {
+				return tefasSyncer.HistoryCovered(ctx, in, date, time.Now())
+			}, "on-demand tefas price fetch failed", []any{"instrument_id", in.ID, "symbol", in.Symbol}, func(ctx context.Context) error {
+				_, err := tefasSyncer.SyncHistory(ctx, in, date, time.Now())
+				return err
+			})
 		}
 
 		if on && in.Market == "BIST" {
@@ -348,35 +355,81 @@ func newOnDemandFetch(d *deps, backfills *backfillQueue) transaction.OnDemandFet
 	}
 }
 
-// fetchBISTOnDemand fetches in's latest bulletin when it has no price yet
-// and returns the bulletin backfill source for the caller to run; none when
-// the latest-price check failed.
-func fetchBISTOnDemand(ctx context.Context, d *deps, in instrument.Instrument) []bist.BackfillSource {
-	latest, err := d.prices.Latest(ctx, []int64{in.ID}, price.Today())
-	logFetchErr(ctx, err, "on-demand price fetch: check latest price failed", "instrument_id", in.ID)
+// underFetchSlot runs fetch, a network fetch and the writes of what it
+// found, holding the transaction.AcquireFetchSlot slot. covered (nil for a
+// fetch that always runs) is asked first, with no slot taken, and again
+// once the slot is held, since the holder before may have stored the same
+// data: a cache hit never queues. A covered error is logged, as msg, and
+// skips the fetch. fetch's error and a slot that stayed busy are logged
+// as msg, with args.
+func underFetchSlot(ctx context.Context, covered func(context.Context) (bool, error), msg string, args []any, fetch func(context.Context) error) {
+	isCovered := func(ctx context.Context) bool {
+		if covered == nil {
+			return false
+		}
+		done, err := covered(ctx)
+		logFetchErr(ctx, err, msg, args...)
+		return done || err != nil
+	}
+	if isCovered(ctx) {
+		return
+	}
+	fetchCtx, release, err := transaction.AcquireFetchSlot(ctx)
 	if err != nil {
-		return nil
+		logFetchErr(ctx, err, msg, args...)
+		return
 	}
-	if _, hasPrice := latest[in.ID]; !hasPrice {
+	defer release()
+	if !isCovered(fetchCtx) {
+		logFetchErr(fetchCtx, fetch(fetchCtx), msg, args...)
+	}
+}
+
+// fetchBISTOnDemand fetches in's latest bulletin when it has no price yet
+// and returns the bulletin backfill source for the caller to run.
+func fetchBISTOnDemand(ctx context.Context, d *deps, in instrument.Instrument) []bist.BackfillSource {
+	hasPrice := func(ctx context.Context) (bool, error) {
+		latest, err := d.prices.Latest(ctx, []int64{in.ID}, price.Today())
+		_, ok := latest[in.ID]
+		return ok, err
+	}
+	underFetchSlot(ctx, hasPrice, "on-demand bulletin fetch failed", []any{"instrument_id", in.ID}, func(ctx context.Context) error {
 		syncLatestBulletin(ctx, in, d.instruments, d.prices, d.bistFetcher)
-	}
+		return nil
+	})
 	return []bist.BackfillSource{bist.BulletinBackfillSource(d.bistFetcher, d.instruments, d.prices)}
 }
 
 // fetchUSOnDemand fetches in's latest price when it has none yet, then its
 // history from date.
 func fetchUSOnDemand(ctx context.Context, d *deps, usSyncer *us.Syncer, in instrument.Instrument, date string) {
-	latest, err := d.prices.Latest(ctx, []int64{in.ID}, price.Today())
-	logFetchErr(ctx, err, "on-demand price fetch: check latest price failed", "instrument_id", in.ID)
-	if err != nil {
-		return
+	// Both stored: the latest price, and a row on or before date, which is
+	// SyncHistory's own check.
+	covered := func(ctx context.Context) (bool, error) {
+		latest, err := d.prices.Latest(ctx, []int64{in.ID}, price.Today())
+		if err != nil {
+			return false, err
+		}
+		if _, ok := latest[in.ID]; !ok {
+			return false, nil
+		}
+		have, err := d.prices.Latest(ctx, []int64{in.ID}, date)
+		_, ok := have[in.ID]
+		return ok, err
 	}
-	if _, hasPrice := latest[in.ID]; !hasPrice {
-		_, err := us.SyncOne(ctx, d.usFetcher, d.prices, in, time.Now())
-		logFetchErr(ctx, err, "on-demand us price fetch failed", "instrument_id", in.ID, "symbol", in.Symbol)
-	}
-	_, err = usSyncer.SyncHistory(ctx, in, date)
-	logFetchErr(ctx, err, "on-demand us history fetch failed", "instrument_id", in.ID, "symbol", in.Symbol)
+	underFetchSlot(ctx, covered, "on-demand us history fetch failed", []any{"instrument_id", in.ID, "symbol", in.Symbol}, func(ctx context.Context) error {
+		latest, err := d.prices.Latest(ctx, []int64{in.ID}, price.Today())
+		logFetchErr(ctx, err, "on-demand price fetch: check latest price failed", "instrument_id", in.ID)
+		if err != nil {
+			return nil
+		}
+		if _, hasPrice := latest[in.ID]; !hasPrice {
+			_, err := us.SyncOne(ctx, d.usFetcher, d.prices, in, time.Now())
+			logFetchErr(ctx, err, "on-demand us price fetch failed", "instrument_id", in.ID, "symbol", in.Symbol)
+		}
+		_, err = usSyncer.SyncHistory(ctx, in, date)
+		return err
+	})
 }
 
 // fetchGoldOnDemand stores the gold history from date. A ctx already done
@@ -389,8 +442,12 @@ func fetchGoldOnDemand(ctx context.Context, goldSyncer *btcturk.GoldSyncer, date
 			"source", scheduler.NameGold, "date", date, "reason", ctx.Err().Error())
 		return
 	}
-	_, err := goldSyncer.SyncGoldHistory(ctx, date, time.Now())
-	logFetchErr(ctx, err, "on-demand gold price fetch failed", "source", scheduler.NameGold, "date", date)
+	underFetchSlot(ctx, func(ctx context.Context) (bool, error) {
+		return goldSyncer.HistoryCovered(ctx, date, time.Now())
+	}, "on-demand gold price fetch failed", []any{"source", scheduler.NameGold, "date", date}, func(ctx context.Context) error {
+		_, err := goldSyncer.SyncGoldHistory(ctx, date, time.Now())
+		return err
+	})
 }
 
 // marketSource maps an instrument market to the scheduler source whose

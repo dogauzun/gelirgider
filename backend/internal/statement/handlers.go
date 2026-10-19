@@ -113,7 +113,8 @@ const (
 // after another, far past a proxy's timeout. Once it has passed,
 // the remaining lookups are skipped and their rows stay unknown_instrument.
 // It leaves room for one full bulletin sync, and for the opening fetches'
-// own transaction.OnDemandFetchTimeout after it.
+// own transaction.OnDemandFetchTimeout after it, behind a wait for the fetch
+// slot of at most as long.
 const PreviewLookupTimeout = 15 * time.Second
 
 // brokerNames maps a broker key to the display name used in the note of

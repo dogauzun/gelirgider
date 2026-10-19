@@ -28,6 +28,7 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/settings"
 	"github.com/dogauzun/gelirgider/backend/internal/tcmb"
 	"github.com/dogauzun/gelirgider/backend/internal/tefas"
+	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/dogauzun/gelirgider/backend/internal/us"
 	"github.com/dogauzun/gelirgider/backend/internal/user"
 )
@@ -927,5 +928,52 @@ func TestMarketSourceCoversSeededMarkets(t *testing.T) {
 	}
 	if n == 0 {
 		t.Fatal("seed produced no markets")
+	}
+}
+
+// TestOnDemandFetchCoveredNeverQueues checks that a save whose fund history
+// is already stored does not wait for the fetch slot while another fetch
+// holds it, and makes no request.
+func TestOnDemandFetchCoveredNeverQueues(t *testing.T) {
+	var requests atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		w.Write([]byte(`{"resultList":[]}`))
+	}))
+	defer srv.Close()
+	conn := openBackfillTestDB(t)
+	repo := settings.NewRepo(conn, nil)
+	ctx := context.Background()
+	for name, on := range map[string]string{"gold": "false", "tcmb": "false", "tefas": "true"} {
+		if err := repo.Set(ctx, scheduler.EnabledKey(name), on); err != nil {
+			t.Fatalf("set %s: %v", name, err)
+		}
+	}
+	res, err := conn.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES ('AFT', 'TEFAS', 'Test Fonu', 'TRY')`)
+	if err != nil {
+		t.Fatalf("insert instrument: %v", err)
+	}
+	id, _ := res.LastInsertId()
+	date := weekdaysBack(3)[0]
+	if err := price.NewRepo(conn).Upsert(ctx, id, date, "1.5", "tefas"); err != nil {
+		t.Fatalf("upsert price: %v", err)
+	}
+	fetch := newOnDemandFetch(&deps{cfg: repo, instruments: instrument.NewRepo(conn), prices: price.NewRepo(conn), fx: fx.NewRepo(conn), tefasFetcher: &tefas.Fetcher{BaseURL: srv.URL}}, &backfillQueue{})
+
+	_, release, err := transaction.AcquireFetchSlot(ctx)
+	if err != nil {
+		t.Fatalf("hold the slot: %v", err)
+	}
+	defer release()
+
+	start := time.Now()
+	in := instrument.Instrument{ID: id, Symbol: "AFT", Market: "TEFAS", Name: "Test Fonu", Currency: "TRY"}
+	transaction.EnsurePrice(ctx, fetch, in, transaction.Transaction{InstrumentID: &id, Date: date, Currency: "TRY"})
+	backfillWorkers.Wait()
+	if took := time.Since(start); took > time.Second {
+		t.Errorf("covered save took %v while the slot was held, want no wait", took)
+	}
+	if n := requests.Load(); n != 0 {
+		t.Errorf("tefas requests = %d, want 0 for stored history", n)
 	}
 }

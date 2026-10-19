@@ -229,19 +229,34 @@ func Sync(ctx context.Context, f *Fetcher, instruments *instrument.Repo, prices 
 // the fund on every call, one request each. Upgrade path: remember the
 // attempt in empty_fetches if that ever shows up in the logs.
 func (s *Syncer) SyncHistory(ctx context.Context, in instrument.Instrument, from string, now time.Time) (int, error) {
-	start := max(from, now.In(price.Istanbul).AddDate(0, -periods[len(periods)-1], 0).Format(time.DateOnly))
+	start, covered, err := s.historyStart(ctx, in, from, now)
+	if err != nil || covered {
+		return 0, err
+	}
+	return s.SyncFund(ctx, in, coveringPeriod(start, now))
+}
+
+// HistoryCovered reports whether SyncHistory has nothing to fetch for in
+// from from, without any request.
+func (s *Syncer) HistoryCovered(ctx context.Context, in instrument.Instrument, from string, now time.Time) (bool, error) {
+	_, covered, err := s.historyStart(ctx, in, from, now)
+	return covered, err
+}
+
+// historyStart returns the date SyncHistory fetches back to, and whether in's
+// stored prices already reach that far.
+func (s *Syncer) historyStart(ctx context.Context, in instrument.Instrument, from string, now time.Time) (start string, covered bool, err error) {
+	start = max(from, now.In(price.Istanbul).AddDate(0, -periods[len(periods)-1], 0).Format(time.DateOnly))
 	d, err := time.Parse(time.DateOnly, start)
 	if err != nil {
-		return 0, fmt.Errorf("tefas history for %s: bad start date %q: %w", in.Symbol, from, err)
+		return "", false, fmt.Errorf("tefas history for %s: bad start date %q: %w", in.Symbol, from, err)
 	}
 	have, err := s.Prices.Latest(ctx, []int64{in.ID}, d.AddDate(0, 0, backfillSlackDays).Format(time.DateOnly))
 	if err != nil {
-		return 0, fmt.Errorf("check tefas history for %s: %w", in.Symbol, err)
+		return "", false, fmt.Errorf("check tefas history for %s: %w", in.Symbol, err)
 	}
-	if _, ok := have[in.ID]; ok {
-		return 0, nil
-	}
-	return s.SyncFund(ctx, in, coveringPeriod(start, now))
+	_, covered = have[in.ID]
+	return start, covered, nil
 }
 
 // coveringPeriod returns the smallest TEFAS period whose window starts on or

@@ -269,21 +269,35 @@ func LastCandleDay(now time.Time) time.Time {
 // GoldHistoryStart. A GOLD/GRAM price on every day from there to yesterday
 // is nothing to fetch. Returns the number of days stored.
 func (s *GoldSyncer) SyncGoldHistory(ctx context.Context, from string, now time.Time) (int, error) {
-	last := LastCandleDay(now)
-	from = min(from, last.AddDate(0, 0, -6).Format(time.DateOnly))
-	day, err := time.Parse(time.DateOnly, max(from, GoldHistoryStart))
-	if err != nil {
-		return 0, fmt.Errorf("gold history start date: %w", err)
-	}
-	gram, err := s.Instruments.BySymbol(ctx, "GOLD", "GRAM")
-	if err != nil {
-		return 0, fmt.Errorf("look up GOLD/GRAM: %w", err)
-	}
-	stored, err := PricedEveryDay(ctx, s.Prices, gram.ID, day, last)
+	day, stored, err := s.historyStart(ctx, from, now)
 	if err != nil || stored {
 		return 0, err
 	}
 	return s.SyncGold(ctx, day, now)
+}
+
+// HistoryCovered reports whether SyncGoldHistory has nothing to fetch from
+// from, without any request.
+func (s *GoldSyncer) HistoryCovered(ctx context.Context, from string, now time.Time) (bool, error) {
+	_, stored, err := s.historyStart(ctx, from, now)
+	return stored, err
+}
+
+// historyStart returns the first day SyncGoldHistory fetches, and whether
+// GOLD/GRAM is already priced on every day from there to yesterday.
+func (s *GoldSyncer) historyStart(ctx context.Context, from string, now time.Time) (day time.Time, stored bool, err error) {
+	last := LastCandleDay(now)
+	from = min(from, last.AddDate(0, 0, -6).Format(time.DateOnly))
+	day, err = time.Parse(time.DateOnly, max(from, GoldHistoryStart))
+	if err != nil {
+		return day, false, fmt.Errorf("gold history start date: %w", err)
+	}
+	gram, err := s.Instruments.BySymbol(ctx, "GOLD", "GRAM")
+	if err != nil {
+		return day, false, fmt.Errorf("look up GOLD/GRAM: %w", err)
+	}
+	stored, err = PricedEveryDay(ctx, s.Prices, gram.ID, day, last)
+	return day, stored, err
 }
 
 // PricedEveryDay reports whether instrumentID has a price row on every day
