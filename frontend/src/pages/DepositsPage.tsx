@@ -12,8 +12,7 @@ import { useConfirm } from '../components/ui/useConfirm'
 import { t, type StringKey } from '../i18n/strings'
 import { formatMarketDate } from '../lib/date'
 import { formatMoney, formatNumber } from '../lib/format'
-import { toast } from '../lib/toast'
-import { useFocusAfterDelete } from '../lib/useFocusAfterDelete'
+import { useConfirmedDelete } from '../lib/useConfirmedDelete'
 import { usePortfolioTitle } from '../lib/useTitle'
 
 const STATUS: Record<Deposit['status'], { labelKey: StringKey; tone: 'gain' | 'warn' | 'cash' }> = {
@@ -118,39 +117,32 @@ function DepositsBody({ portfolioId }: { portfolioId: number }) {
   usePortfolioTitle(t('deposits.title'), portfolioId)
   const query = useDeposits(portfolioId)
   const { data } = query
-  const deleteMutation = useDeleteDeposit(portfolioId)
   const { confirm, dialog } = useConfirm()
-  const focusAfterDelete = useFocusAfterDelete()
+  const removeDeposit = useConfirmedDelete(useDeleteDeposit(portfolioId), {
+    done: 'deposits.deleted',
+    failed: 'deposits.deleteFailed',
+  })
   const [opening, setOpening] = useState(false)
   const [renewing, setRenewing] = useState<Deposit | null>(null)
   const isEmpty = data !== undefined && data.length === 0
   // A deposit is renewed once: the server answers 409 to a second renewal.
   const renewed = new Set(data?.map((deposit) => deposit.renewed_from))
 
-  async function remove(deposit: Deposit) {
-    const confirmed = await confirm({
-      title: t('deposits.deleteConfirm'),
-      body: t('deposits.deleteConfirmBody', {
-        summary: `${formatMoney(deposit.principal, deposit.currency)} · ${date(deposit.maturity_date)}`,
-      }),
-      confirmLabel: t('deposits.deleteButton'),
-      danger: true,
-    })
-    if (!confirmed) return
-    // A matured deposit has no delete button to take focus.
-    const focusNext = focusAfterDelete(
+  // A matured deposit has no delete button to take focus.
+  const remove = (deposit: Deposit) =>
+    removeDeposit(
       (data ?? []).filter((item) => item.status !== 'matured').map((item) => item.id),
       deposit.id,
+      () =>
+        confirm({
+          title: t('deposits.deleteConfirm'),
+          body: t('deposits.deleteConfirmBody', {
+            summary: `${formatMoney(deposit.principal, deposit.currency)} · ${date(deposit.maturity_date)}`,
+          }),
+          confirmLabel: t('deposits.deleteButton'),
+          danger: true,
+        }),
     )
-    deleteMutation.mutate(deposit.id, {
-      onSuccess: () => {
-        toast(t('deposits.deleted'))
-        focusNext()
-      },
-      onError: (mutationError) =>
-        toast(t('deposits.deleteFailed', { error: mutationError.message }), { error: true }),
-    })
-  }
 
   let body = null
   if (isEmpty) {
