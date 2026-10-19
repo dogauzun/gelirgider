@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import type { DuePlan, Plan } from '../api/plans'
+import { Toaster } from '../components/ui/Toast'
 import { t } from '../i18n/strings'
 import { formatMoney } from '../lib/format'
 import { PlansPage } from './PlansPage'
@@ -58,10 +59,10 @@ const due: DuePlan = {
   booked_amount: '987.60',
 }
 
-// Answers the lists and records the book POSTs; a DELETE drops the plan from
+// Answers the lists and records the book and skip POSTs; a DELETE drops the plan from
 // the list.
 function mockApi(dues: DuePlan[], plans: Plan[] = [plan]) {
-  const booked: string[] = []
+  const posted: string[] = []
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input)
     if (url === '/api/portfolios') {
@@ -76,18 +77,19 @@ function mockApi(dues: DuePlan[], plans: Plan[] = [plan]) {
       return new Response(null, { status: 204 })
     }
     if (url === '/api/portfolios/1/plans/due') return Response.json(dues)
-    if (url === '/api/plans/3/book' && init?.method === 'POST') {
-      booked.push(url)
+    if ((url === '/api/plans/3/book' || url === '/api/plans/3/skip') && init?.method === 'POST') {
+      posted.push(url)
       return Response.json({ ...plan, status: 'active' })
     }
     throw new Error(`unexpected request: ${url}`)
   })
-  return booked
+  return posted
 }
 
 function renderPage() {
   render(
     <QueryClientProvider client={new QueryClient()}>
+      <Toaster />
       <MemoryRouter initialEntries={['/portfolios/1/plans']}>
         <Routes>
           <Route path="/portfolios/:id/plans" element={<PlansPage />} />
@@ -98,7 +100,7 @@ function renderPage() {
 }
 
 it('shows a due plan with its proposed booking and books it once', async () => {
-  const booked = mockApi([due])
+  const posted = mockApi([due])
   renderPage()
 
   const row = (await screen.findByText(t('plans.status.due'))).closest('tr') as HTMLElement
@@ -107,7 +109,23 @@ it('shows a due plan with its proposed booking and books it once', async () => {
 
   fireEvent.click(within(row).getByRole('button', { name: t('plans.book') }))
 
-  await waitFor(() => expect(booked).toEqual(['/api/plans/3/book']))
+  await waitFor(() => expect(posted).toEqual(['/api/plans/3/book']))
+})
+
+it.each([
+  ['plans.book', 'plans.booked', '/api/plans/3/book'],
+  ['plans.skip', 'plans.skipped', '/api/plans/3/skip'],
+] as const)('sends one request when %s is double clicked', async (action, done, url) => {
+  const posted = mockApi([due])
+  renderPage()
+
+  const row = (await screen.findByText(t('plans.status.due'))).closest('tr') as HTMLElement
+  const button = await within(row).findByRole('button', { name: t(action) })
+  fireEvent.click(button)
+  fireEvent.click(button)
+
+  expect(await screen.findByText(t(done))).toBeInTheDocument()
+  expect(posted).toEqual([url])
 })
 
 it('disables Kaydet when the due plan has no close', async () => {

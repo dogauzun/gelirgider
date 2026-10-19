@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { toast } from './toast'
 
 // isPending reaches a component a tick after the click that started the
 // request (TanStack's notifyManager flushes on setTimeout(0)), so the second
@@ -17,5 +18,22 @@ export function useOneAtATime() {
       .finally(() => {
         running.current = false
       })
+  }
+}
+
+// One guard for a click that runs a request and toasts the outcome. `failed`
+// words the error toast; without it the raw message is shown.
+export function useAction() {
+  const once = useOneAtATime()
+  return (request: () => Promise<unknown>, done: string, failed?: (message: string) => string) => {
+    once(async () => {
+      try {
+        await request()
+        toast(done)
+      } catch (error) {
+        const message = (error as Error).message
+        toast(failed ? failed(message) : message, { error: true })
+      }
+    })
   }
 }

@@ -8,9 +8,9 @@ import {
 } from '../api/dividends'
 import { useAllocationTargets } from '../api/allocationTargets'
 import { useAttentionRules } from '../api/auth'
-import { useDueDepositsOf, useMatureDeposit, type DueDeposit } from '../api/deposits'
+import { useDueDepositsOf, useMatureDeposit } from '../api/deposits'
 import { usePortfolioHistory } from '../api/history'
-import { useBookPlan, useDuePlansOf, useSkipPlan, type DuePlan } from '../api/plans'
+import { useBookPlan, useDuePlansOf, useSkipPlan } from '../api/plans'
 import { usePortfolios } from '../api/portfolios'
 import { useDeletePrice } from '../api/prices'
 import {
@@ -55,7 +55,7 @@ import { useBenchmark, useReturnMethod } from '../lib/useReturnSettings'
 import { usePortfolioTitle } from '../lib/useTitle'
 import { toast } from '../lib/toast'
 import { focusIfLost } from '../lib/useFocusLater'
-import { useOneAtATime } from '../lib/useOneAtATime'
+import { useAction } from '../lib/useOneAtATime'
 
 // Özet's KPI strip (layout A): one row of five from lg, the total a
 // little wider; two columns on a phone with the total across both.
@@ -206,42 +206,13 @@ function Attention({
     maturity.isPending ||
     booking.isPending ||
     skipping.isPending
-  const once = useOneAtATime()
+  const runAction = useAction()
   function run(
     dividend: ExpectedDividend,
     action: (portfolioId: number) => Promise<unknown>,
     done: string,
   ) {
-    once(async () => {
-      try {
-        await action(owners.get(dividend) as number)
-        toast(done)
-      } catch (error) {
-        toast((error as Error).message, { error: true })
-      }
-    })
-  }
-
-  function closeDeposit(deposit: DueDeposit) {
-    once(async () => {
-      try {
-        await maturity.mutateAsync(deposit.id)
-        toast(t('attention.deposit.closed'))
-      } catch (error) {
-        toast((error as Error).message, { error: true })
-      }
-    })
-  }
-
-  function settlePlan(mutation: typeof booking, plan: DuePlan, doneKey: StringKey) {
-    once(async () => {
-      try {
-        await mutation.mutateAsync(plan.plan_id)
-        toast(t(doneKey))
-      } catch (error) {
-        toast((error as Error).message, { error: true })
-      }
-    })
+    runAction(() => action(owners.get(dividend) as number), done)
   }
 
   return (
@@ -282,9 +253,13 @@ function Attention({
             t('dividends.expected.dismissed'),
           )
         }
-        onCloseDeposit={closeDeposit}
-        onBookPlan={(plan) => settlePlan(booking, plan, 'plans.booked')}
-        onSkipPlan={(plan) => settlePlan(skipping, plan, 'plans.skipped')}
+        onCloseDeposit={(deposit) =>
+          runAction(() => maturity.mutateAsync(deposit.id), t('attention.deposit.closed'))
+        }
+        onBookPlan={(plan) => runAction(() => booking.mutateAsync(plan.plan_id), t('plans.booked'))}
+        onSkipPlan={(plan) =>
+          runAction(() => skipping.mutateAsync(plan.plan_id), t('plans.skipped'))
+        }
         onEditPrice={(instrumentId) => {
           for (const [i, p] of portfolios.entries()) {
             const position = summaries[i].data?.positions.find(
