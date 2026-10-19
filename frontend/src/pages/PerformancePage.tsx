@@ -9,6 +9,7 @@ import { ReturnBars } from '../components/LazyChart'
 import { PeriodReturnsTable } from '../components/PeriodReturnsTable'
 import { PortfolioHeader } from '../components/PortfolioHeader'
 import { ReturnMethodSelect } from '../components/ReturnMethodSelect'
+import { RiskCard } from '../components/RiskCard'
 import { TradesCard } from '../components/TradesCard'
 import { ChartFrame } from '../components/ui/ChartFrame'
 import { Segmented } from '../components/ui/Segmented'
@@ -50,6 +51,7 @@ export function PerformancePage() {
           method={method}
         />
         <DrawdownCard portfolioId={portfolioId} />
+        <RiskCard portfolioId={portfolioId} benchmark={benchmark} />
         <TradesCard scope={portfolioId} />
         <CashFlowCard portfolioId={portfolioId} />
       </div>

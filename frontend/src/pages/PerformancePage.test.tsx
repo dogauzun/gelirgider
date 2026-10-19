@@ -192,8 +192,8 @@ it('explains a return that cannot be computed', async () => {
   expect(screen.queryByRole('table')).toBeNull()
 })
 
-// The cash gaps show in both cards, and the dialog opens from either.
-it('shows the cash gaps in both cards', async () => {
+// The cash gaps show in the three cards, and the dialog opens from either.
+it('shows the cash gaps in the three cards', async () => {
   mockApi(
     same(null),
     undefined,
@@ -202,7 +202,7 @@ it('shows the cash gaps in both cards', async () => {
   )
   renderPage()
   await waitFor(() =>
-    expect(screen.getAllByRole('button', { name: t('performance.cashGaps.add') })).toHaveLength(2),
+    expect(screen.getAllByRole('button', { name: t('performance.cashGaps.add') })).toHaveLength(3),
   )
   expect(screen.queryByRole('table')).toBeNull()
 })
@@ -224,13 +224,23 @@ it('shows the drawdown of the all-time history below the periodic returns', asyn
 
   const figures = await screen.findByTestId('drawdown-figures')
   expect(figures).toHaveTextContent('En büyük-%20')
-  // All time, without the page's benchmark.
+  // All time, without the page's benchmark; the risk card below asks with it.
   expect(urls.filter((u) => u.includes('/history'))).toEqual([
     expect.stringMatching(/^\/api\/portfolios\/1\/history\?to=[\d-]+$/),
+    expect.stringMatching(/^\/api\/portfolios\/1\/history\?to=[\d-]+&benchmark=USD$/),
   ])
   const periods = screen.getByRole('heading', { name: t('performance.periods.title') })
   const drawdown = screen.getByRole('heading', { name: t('drawdown.title') })
   expect(periods.compareDocumentPosition(drawdown) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
+
+it('shows the risk card below the drawdown', async () => {
+  mockApi()
+  renderPage()
+
+  const risk = await screen.findByRole('heading', { name: t('risk.title') })
+  const drawdown = screen.getByRole('heading', { name: t('drawdown.title') })
+  expect(drawdown.compareDocumentPosition(risk) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
 
 it('lists the realized trades of the portfolio below the drawdown', async () => {

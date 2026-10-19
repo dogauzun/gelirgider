@@ -1,0 +1,65 @@
+import { describe, expect, it } from 'vitest'
+import { dailyReturns, riskStats, windowPoints, type RiskStats } from './risk'
+
+const points = (twr: (string | null)[]) =>
+  twr.map((v, i) => ({ date: `2025-03-0${i + 1}`, twr: v }))
+
+// ADR 0036's worked example: returns +2%, -1%, +3%.
+const example = points([null, '0.000000', '0.020000', '0.009800', '0.040094'])
+
+describe('dailyReturns', () => {
+  it('chains the running twr into daily returns, dated on the later point', () => {
+    const returns = dailyReturns(example)
+
+    expect(returns.map((r) => r.date)).toEqual(['2025-03-03', '2025-03-04', '2025-03-05'])
+    expect(returns[0].value).toBeCloseTo(0.02, 6)
+    expect(returns[1].value).toBeCloseTo(-0.01, 6)
+    expect(returns[2].value).toBeCloseTo(0.03, 6)
+  })
+
+  it('does not chain over a null point', () => {
+    const returns = dailyReturns(points(['0.000000', '0.010000', null, '0.020000', '0.030000']))
+
+    expect(returns.map((r) => r.date)).toEqual(['2025-03-02', '2025-03-05'])
+  })
+
+  it('has no return after a fall of 100%', () => {
+    expect(dailyReturns(points(['0.100000', '-1.000000', '0.500000']))).toHaveLength(1)
+  })
+})
+
+describe('riskStats', () => {
+  it('annualizes the volatility and the downside deviation and finds the best and worst day', () => {
+    const stats = riskStats(example) as RiskStats
+
+    expect(stats.days).toBe(3)
+    expect(stats.volatility).toBeCloseTo(0.3977, 3)
+    expect(stats.downside).toBeCloseTo(0.1103, 3)
+    expect(stats.best.date).toBe('2025-03-05')
+    expect(stats.best.value).toBeCloseTo(0.03, 6)
+    expect(stats.worst.date).toBe('2025-03-04')
+    expect(stats.worst.value).toBeCloseTo(-0.01, 6)
+  })
+
+  it('is null with fewer than two returns and with twr null everywhere', () => {
+    expect(riskStats(points(['0.000000', '0.010000']))).toBeNull()
+    expect(riskStats(points([null, null, null]))).toBeNull()
+  })
+})
+
+describe('windowPoints', () => {
+  const day = (i: number) => ({
+    date: new Date(Date.UTC(2024, 0, 1 + i)).toISOString().slice(0, 10),
+  })
+  const history = Array.from({ length: 400 }, (_, i) => day(i))
+
+  it('keeps the points within 365 or 1095 days of the last one, or all', () => {
+    expect(windowPoints(history, '1y')).toHaveLength(366)
+    expect(windowPoints(history, '3y')).toHaveLength(400)
+    expect(windowPoints(history, 'all')).toHaveLength(400)
+  })
+
+  it('is empty without points', () => {
+    expect(windowPoints([], '1y')).toEqual([])
+  })
+})
