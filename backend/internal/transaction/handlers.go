@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -30,8 +31,63 @@ import (
 // time this runs, so a slow or unreachable price source must never hold the
 // response open for long; any error, including this timeout, is logged and
 // swallowed. A request that fetches for several instruments, such as an
-// import, waits this long in all, not this long per instrument.
+// import, waits this long in all, not this long per instrument. It starts
+// once the fetch has the fetch slot; the wait for the slot is bounded apart.
 const OnDemandFetchTimeout = 5 * time.Second
+
+// FetchSlotWait is how long AcquireFetchSlot waits for the fetch slot: more
+// than one holder's hold plus one queued parse (a hold ends within
+// OnDemandFetchTimeout). A save then waits at most this plus its own fetch,
+// and a parse at most PreviewLookupTimeout plus this plus its fetch, both
+// well under a proxy's 60 s.
+const FetchSlotWait = 3 * OnDemandFetchTimeout
+
+// fetchSlot admits one network fetch and its price writes at a time,
+// process-wide. SQLite has one writer: an import parsed file by file sends
+// many parses at once, and their writes would otherwise queue on the write
+// lock until their deadline ran out and failed.
+//
+// A caller takes the slot only when it is about to fetch, after its own
+// check that the data is not already stored, and waits at most FetchSlotWait
+// for it, so a save or a parse stays near its old time budget however long
+// the queue is. The fetch's own OnDemandFetchTimeout starts after the wait,
+// and the slot is let go when it ends.
+//
+// shortcut: one slot for every user and every market. Split it per market
+// if that ever shows.
+var fetchSlot = make(chan struct{}, 1)
+
+// ErrFetchBusy is AcquireFetchSlot's error when the slot stayed taken for
+// the wait: the fetch is skipped, like one that ran out of time.
+var ErrFetchBusy = errors.New("on-demand fetch slot busy")
+
+type slotHeld struct{}
+
+// AcquireFetchSlot waits up to wait for the on-demand fetch slot and returns
+// a context limited to OnDemandFetchTimeout from now, and the func that
+// releases the slot. The slot is also released when that context ends, so a
+// holder never keeps it past its deadline; release may be called any number
+// of times. A ctx that already carries the slot passes through unchanged, so
+// nested callers share the first one's slot and deadline. The error is
+// ErrFetchBusy, or ctx's when it ended first.
+func AcquireFetchSlot(ctx context.Context, wait time.Duration) (context.Context, func(), error) {
+	if ctx.Value(slotHeld{}) != nil {
+		return ctx, func() {}, nil
+	}
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+	select {
+	case fetchSlot <- struct{}{}:
+	case <-timer.C:
+		return ctx, func() {}, ErrFetchBusy
+	case <-ctx.Done():
+		return ctx, func() {}, ctx.Err()
+	}
+	ctx, cancel := context.WithTimeout(context.WithValue(ctx, slotHeld{}, true), OnDemandFetchTimeout)
+	release := sync.OnceFunc(func() { cancel(); <-fetchSlot })
+	context.AfterFunc(ctx, release)
+	return ctx, release, nil
+}
 
 // maxNoteLen caps the note field so a very long, spaceless note can't stretch
 // the transactions table off screen.
@@ -144,7 +200,9 @@ func FromRequestWith(req Request, get func(id int64) (instrument.Instrument, err
 // fetch may be nil, which disables the feature. Best-effort and
 // synchronous: any error, including the bounded timeout, is logged and
 // ignored by the callback, since the transaction is already saved and the
-// response must go out regardless.
+// response must go out regardless. The callback takes the fetch slot for
+// each fetch it makes, so the timeout here covers a wait for it too: up to
+// FetchSlotWait, then the fetch's own OnDemandFetchTimeout.
 func EnsurePrice(ctx context.Context, fetch OnDemandFetch, in instrument.Instrument, t Transaction) {
 	if fetch == nil {
 		return
@@ -152,7 +210,7 @@ func EnsurePrice(ctx context.Context, fetch OnDemandFetch, in instrument.Instrum
 	if t.InstrumentID == nil && t.Currency == "TRY" {
 		return
 	}
-	fetchCtx, cancel := context.WithTimeout(ctx, OnDemandFetchTimeout)
+	fetchCtx, cancel := context.WithTimeout(ctx, FetchSlotWait+OnDemandFetchTimeout)
 	defer cancel()
 	fetch(fetchCtx, in, t.Date)
 }

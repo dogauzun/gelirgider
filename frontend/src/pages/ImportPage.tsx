@@ -49,6 +49,29 @@ function mark(items: QueueItem[], index: number, change: Partial<QueueItem>): Qu
   return items.map((item, i) => (i === index ? { ...item, ...change } : item))
 }
 
+const PARSES_IN_FLIGHT = 2
+
+// Promise.allSettled over items, with at most PARSES_IN_FLIGHT calls of run
+// pending at once, in item order.
+async function settleLimited<T, R>(
+  items: T[],
+  run: (item: T) => Promise<R>,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = []
+  let taken = 0
+  async function worker() {
+    while (taken < items.length) {
+      const i = taken++
+      results[i] = await run(items[i]).then(
+        (value) => ({ status: 'fulfilled', value }),
+        (reason: unknown) => ({ status: 'rejected', reason }),
+      )
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(PARSES_IN_FLIGHT, items.length) }, worker))
+  return results
+}
+
 export function ImportPage() {
   const params = useParams()
   const portfolioId = Number(params.id)
@@ -157,8 +180,8 @@ export function ImportPage() {
   // queue by period and to name the files that cannot be imported at all
   // before the first review. A single mutation cannot track parallel calls,
   // so these go through parseStatement directly.
-  // shortcut: no client concurrency cap, the browser queues uploads past ~6
-  // per host. Add one if a year of statements ever strains the server.
+  // At most PARSES_IN_FLIGHT at a time: each parse may fetch prices and write
+  // them, and the server runs those one at a time, so more only queue there.
   async function startBatch(selected: File[], dropped: Refused[]) {
     // A batch's files live in its queue, the refused ones last as not
     // imported with the drop zone's reason.
@@ -170,8 +193,8 @@ export function ImportPage() {
     setFiles([])
     setQueue([...selected.map((file): QueueItem => ({ file, status: 'queued' })), ...refusedItems])
     setReading(true)
-    const results = await Promise.allSettled(
-      selected.map((file) => parseStatement(portfolioId, broker, file)),
+    const results = await settleLimited(selected, (file) =>
+      parseStatement(portfolioId, broker, file),
     )
     setReading(false)
     const items = queueFromParses(selected, results, refusedItems, portfolioId)

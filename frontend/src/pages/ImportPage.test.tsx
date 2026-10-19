@@ -2386,6 +2386,29 @@ describe('ImportPage', () => {
     expect(await screen.findByText('Hiçbir ekstre içe aktarılmadı.')).toBeInTheDocument()
   })
 
+  // Each parse may fetch and write prices on the server, which does them one
+  // at a time, so the page keeps only two parses in flight.
+  it('parses at most two files at once', async () => {
+    mockBatch(() => statement(ocak, 'TRY'))
+    const inner = vi.mocked(fetch).getMockImplementation()!
+    let inFlight = 0
+    let peak = 0
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      if (String(input) !== '/api/imports/parse') return inner(input, init)
+      inFlight++
+      peak = Math.max(peak, inFlight)
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      inFlight--
+      return inner(input, init)
+    })
+    renderPage()
+
+    upload(['a.pdf', 'b.pdf', 'c.pdf', 'd.pdf', 'e.pdf'])
+    await screen.findByText(/ · 01\.01\.2025 – 31\.01\.2025 · TRY$/)
+
+    expect(peak).toBe(2)
+  })
+
   it('skips every statement left when Vazgeç ends the batch', async () => {
     const { commits } = mockBatch((name) =>
       name === 'subat.pdf'

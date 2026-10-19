@@ -1,6 +1,8 @@
 package transaction
 
 import (
+	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -410,4 +412,56 @@ func TestFromRequestRejectsFeeOnFeeType(t *testing.T) {
 			t.Errorf("fee type with zero fee: unexpected error %v", err)
 		}
 	}
+}
+
+// TestAcquireFetchSlotGivesUpAfterTheWait checks that a caller queued behind
+// a holder stops waiting after the wait with ErrFetchBusy, and that a caller
+// that gets the slot has its whole fetch deadline from then on.
+func TestAcquireFetchSlotGivesUpAfterTheWait(t *testing.T) {
+	const wait = 50 * time.Millisecond
+	held, release, err := AcquireFetchSlot(context.Background(), wait)
+	if err != nil {
+		t.Fatalf("first acquire: %v", err)
+	}
+	if deadline, _ := held.Deadline(); time.Until(deadline) < OnDemandFetchTimeout-time.Second {
+		t.Errorf("deadline left = %v, want about %v", time.Until(deadline), OnDemandFetchTimeout)
+	}
+	// A nested caller passes through without waiting.
+	if _, nested, err := AcquireFetchSlot(held, wait); err != nil {
+		t.Errorf("nested acquire: %v", err)
+	} else {
+		nested()
+	}
+
+	start := time.Now()
+	if _, _, err := AcquireFetchSlot(context.Background(), wait); !errors.Is(err, ErrFetchBusy) {
+		t.Errorf("queued acquire error = %v, want ErrFetchBusy", err)
+	}
+	if took := time.Since(start); took > time.Second {
+		t.Errorf("queued acquire waited %v, want about %v", took, wait)
+	}
+
+	release()
+	release() // once more: harmless
+	_, again, err := AcquireFetchSlot(context.Background(), wait)
+	if err != nil {
+		t.Fatalf("acquire after release: %v", err)
+	}
+	again()
+}
+
+// TestAcquireFetchSlotIsLetGoAtTheDeadline checks that a holder that never
+// calls release still gives the slot up when its context ends.
+func TestAcquireFetchSlotIsLetGoAtTheDeadline(t *testing.T) {
+	parent, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	if _, _, err := AcquireFetchSlot(parent, time.Second); err != nil {
+		t.Fatalf("first acquire: %v", err)
+	}
+	// No release: the deadline alone must free the slot.
+	_, release, err := AcquireFetchSlot(context.Background(), time.Second)
+	if err != nil {
+		t.Fatalf("acquire after the holder's deadline: %v", err)
+	}
+	release()
 }
