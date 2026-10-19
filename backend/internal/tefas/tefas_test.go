@@ -328,3 +328,37 @@ func TestSyncHistoryRefetchesAHole(t *testing.T) {
 		})
 	}
 }
+
+// TestSyncHistoryRecentTransactionNeedsNoFetch checks that a fund whose
+// stored series reaches yesterday makes no request for a transaction dated
+// today, when no NAV is dated on or after the transaction yet.
+func TestSyncHistoryRecentTransactionNeedsNoFetch(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("unexpected request to %s", r.URL.Path)
+	}))
+	defer srv.Close()
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer conn.Close()
+	ctx := context.Background()
+	for _, q := range []string{
+		`INSERT INTO instruments (id, symbol, market, name, currency) VALUES (9001, 'YAC', 'TEFAS', 'X', 'TRY')`,
+		`INSERT INTO prices (instrument_id, date, close, source) VALUES (9001, '2026-09-10', '1', 'tefas'), (9001, '2026-09-14', '1', 'tefas')`,
+	} {
+		if _, err := conn.ExecContext(ctx, q); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+	instruments := instrument.NewRepo(conn)
+	in, err := instruments.Get(ctx, 9001)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	s := &tefas.Syncer{Fetcher: &tefas.Fetcher{BaseURL: srv.URL}, Instruments: instruments, Prices: price.NewRepo(conn)}
+	now := time.Date(2026, 9, 15, 12, 0, 0, 0, time.UTC)
+	if n, err := s.SyncHistory(ctx, in, "2026-09-15", now); err != nil || n != 0 {
+		t.Fatalf("SyncHistory = %d, %v, want 0, nil", n, err)
+	}
+}

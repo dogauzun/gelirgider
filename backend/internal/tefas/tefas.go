@@ -221,9 +221,10 @@ func Sync(ctx context.Context, f *Fetcher, instruments *instrument.Repo, prices 
 
 // SyncHistory fetches in's NAVs back to from (YYYY-MM-DD) in one request
 // (renaming in as SyncFund does),
-// unless its stored prices already span the range: some are stored in
-// [from, now], and no two consecutive dates among from, those prices and now
-// are more than backfillSlackDays apart, so a series that stops early or skips
+// unless its stored prices already span the range: no two consecutive dates
+// among from, the prices stored in [from, now] and now are more than
+// backfillSlackDays apart (with none stored in it, the newest price before
+// from stands in for from, and a fund with no price at all is fetched), so a series that stops early or skips
 // months is fetched again. from is clamped to the 60-month
 // window TEFAS serves, so a very old transaction does not refetch forever.
 // Returns rows written.
@@ -242,8 +243,17 @@ func (s *Syncer) SyncHistory(ctx context.Context, in instrument.Instrument, from
 	if err != nil {
 		return 0, fmt.Errorf("check tefas history for %s: %w", in.Symbol, err)
 	}
-	hole := len(stored) == 0
+	hole := false
 	prev := start
+	if len(stored) == 0 {
+		// A transaction newer than the last NAV is covered by the price before it.
+		last, err := s.Prices.Latest(ctx, []int64{in.ID}, start)
+		if err != nil {
+			return 0, fmt.Errorf("check tefas history for %s: %w", in.Symbol, err)
+		}
+		p, ok := last[in.ID]
+		hole, prev = !ok, cmp.Or(p.Date, start)
+	}
 	for _, p := range append(stored, price.Price{Date: today.Format(time.DateOnly)}) {
 		hole = hole || daysBetween(prev, p.Date) > backfillSlackDays
 		prev = p.Date
