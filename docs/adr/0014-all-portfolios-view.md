@@ -22,6 +22,9 @@ The view reuses the existing portfolio routes with the reserved id `all`:
 - `GET /api/portfolios/all/returns/periods`
 - `GET /api/portfolios/all/attribution`
   ([ADR 0027](0027-return-attribution.md))
+- `GET /api/portfolios/all/trades`
+  ([ADR 0034](0034-realized-trades.md)), the sales of every portfolio, each
+  realized against its own portfolio's average cost.
 - `GET /api/portfolios/all/cash-gaps` (ADR 0011)
 - `GET /api/portfolios/all/projection` (the real-terms projection of
   [ADR 0029](0029-goals-and-projection.md)), a read like the others.
