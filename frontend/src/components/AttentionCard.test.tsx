@@ -310,6 +310,51 @@ describe('AttentionCard', () => {
     expect(screen.getByRole('img', { name: '4 öğe işlem bekliyor' })).toHaveTextContent('4')
   })
 
+  describe('kind table', () => {
+    const deposit: AttentionItem = {
+      kind: 'due-deposit',
+      deposit: {
+        id: 5,
+        currency: 'TRY',
+        principal: '20000.00',
+        maturity_date: '2026-10-12',
+        gross: '3829.18',
+        stopaj: '574.38',
+        net: '3254.80',
+      },
+    }
+    const plan: AttentionItem = {
+      kind: 'due-plan',
+      plan: {
+        plan_id: 7,
+        instrument_id: null,
+        symbol: null,
+        market: null,
+        currency: 'TRY',
+        amount: '1000.00',
+        date: '2026-10-12',
+        missed: 1,
+        price: null,
+        price_date: null,
+        quantity: null,
+        booked_amount: null,
+      },
+    }
+
+    it('dots the warn and accent kinds and leaves the others bare', () => {
+      // warn: missing-rate, missing-price, stale-manual-prices. accent: dividend,
+      // watch-target, due-deposit, due-plan. none: mover, concentration.
+      renderCard([...items, deposit, plan])
+      expect(document.querySelectorAll('i.bg-warn')).toHaveLength(3)
+      expect(document.querySelectorAll('i.bg-accent')).toHaveLength(4)
+    })
+
+    it('counts due deposits and plans in the header, not watch targets or movers', () => {
+      renderCard([deposit, plan, watched, items[1]])
+      expect(screen.getByRole('img', { name: '2 öğe işlem bekliyor' })).toHaveTextContent('2')
+    })
+  })
+
   it('calls the handlers with the dividend and the instrument', () => {
     const handlers = renderCard(items)
     fireEvent.click(screen.getByRole('button', { name: /TUPRS .* temettüsünü ekle/ }))
