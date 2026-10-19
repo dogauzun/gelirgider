@@ -78,12 +78,11 @@ func (h *cashFlowHandler) get(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	usr, err := h.users.GetByID(r.Context(), userID)
+	reporting, err := h.users.ReportingCurrency(r.Context(), userID)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	reporting := usr.ReportingCurrency
 
 	txs := flatByDate(lists)
 	total := &cashFlowSums{}

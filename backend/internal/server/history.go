@@ -554,11 +554,11 @@ func (h *historyHandler) loadSweepInputs(ctx context.Context, userID int64, txs 
 		in.benchmarkCurrency = in.currencyOf[benchmarkInstrument]
 	}
 
-	usr, err := h.users.GetByID(ctx, userID)
+	reporting, err := h.users.ReportingCurrency(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	in.reporting = usr.ReportingCurrency
+	in.reporting = reporting
 
 	// fxCurrencySet is every currency that could appear in a day's
 	// conversion: currencies held (instrument or cash, via tx.Currency,

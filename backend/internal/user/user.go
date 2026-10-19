@@ -81,26 +81,57 @@ func (r *Repo) Create(ctx context.Context, email, passwordHash string) (User, er
 	return User{ID: id, Email: email, PasswordHash: passwordHash, ReportingCurrency: DefaultReportingCurrency, CreatedAt: createdAt}, nil
 }
 
-// GetByID returns the user with the given id, or a MissingError, which is
-// ErrNotFound.
-func (r *Repo) GetByID(ctx context.Context, id int64) (User, error) {
+// userColumns is the column list scanUser reads.
+const userColumns = "id, email, password_hash, reporting_currency, is_admin, totp_secret IS NOT NULL, created_at"
+
+// scanUser reads one userColumns row. It returns the Scan error unmapped, so
+// each getter keeps its own sql.ErrNoRows branch.
+func scanUser(row *sql.Row) (User, error) {
 	var u User
 	var createdAt string
-	err := r.db.QueryRowContext(ctx,
-		"SELECT id, email, password_hash, reporting_currency, is_admin, totp_secret IS NOT NULL, created_at FROM users WHERE id = ?",
-		id,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.ReportingCurrency, &u.IsAdmin, &u.TOTPEnabled, &createdAt)
-	if errors.Is(err, sql.ErrNoRows) {
-		return User{}, MissingError{ID: id}
-	}
+	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.ReportingCurrency, &u.IsAdmin, &u.TOTPEnabled, &createdAt)
 	if err != nil {
-		return User{}, fmt.Errorf("query user: %w", err)
+		return User{}, err
 	}
 	u.CreatedAt, err = time.Parse(time.RFC3339, createdAt)
 	if err != nil {
 		return User{}, fmt.Errorf("parse created_at: %w", err)
 	}
 	return u, nil
+}
+
+// GetByID returns the user with the given id, or a MissingError, which is
+// ErrNotFound.
+func (r *Repo) GetByID(ctx context.Context, id int64) (User, error) {
+	u, err := scanUser(r.db.QueryRowContext(ctx, "SELECT "+userColumns+" FROM users WHERE id = ?", id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return User{}, MissingError{ID: id}
+	}
+	if err != nil {
+		return User{}, fmt.Errorf("query user: %w", err)
+	}
+	return u, nil
+}
+
+// ReportingCurrency returns the reporting currency of the user with the
+// given id, or a MissingError, which is ErrNotFound.
+func (r *Repo) ReportingCurrency(ctx context.Context, id int64) (string, error) {
+	return r.text(ctx, id, "reporting_currency", "reporting currency")
+}
+
+// text reads one text column of the user with the given id, or a
+// MissingError. column is a constant, never user input; what names the value
+// in the error.
+func (r *Repo) text(ctx context.Context, id int64, column, what string) (string, error) {
+	var v string
+	err := r.db.QueryRowContext(ctx, "SELECT "+column+" FROM users WHERE id = ?", id).Scan(&v)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", MissingError{ID: id}
+	}
+	if err != nil {
+		return "", fmt.Errorf("query %s: %w", what, err)
+	}
+	return v, nil
 }
 
 // UpdatePasswordHash sets a new password hash for the user with the given id.
@@ -346,15 +377,7 @@ func (r *Repo) DisableTOTP(ctx context.Context, id int64) error {
 // with the given id, a JSON object text ("{}" when nothing is overridden),
 // or a MissingError, which is ErrNotFound.
 func (r *Repo) AttentionRules(ctx context.Context, id int64) (string, error) {
-	var rules string
-	err := r.db.QueryRowContext(ctx, "SELECT attention_rules FROM users WHERE id = ?", id).Scan(&rules)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", MissingError{ID: id}
-	}
-	if err != nil {
-		return "", fmt.Errorf("query attention rules: %w", err)
-	}
-	return rules, nil
+	return r.text(ctx, id, "attention_rules", "attention rules")
 }
 
 // UpdateAttentionRules replaces the attention rule overrides of the user
@@ -518,21 +541,12 @@ func (r *Repo) CountAdmins(ctx context.Context) (int, error) {
 
 // GetByEmail returns the user with the given email, or ErrNotFound.
 func (r *Repo) GetByEmail(ctx context.Context, email string) (User, error) {
-	var u User
-	var createdAt string
-	err := r.db.QueryRowContext(ctx,
-		"SELECT id, email, password_hash, reporting_currency, is_admin, totp_secret IS NOT NULL, created_at FROM users WHERE email = ?",
-		email,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.ReportingCurrency, &u.IsAdmin, &u.TOTPEnabled, &createdAt)
+	u, err := scanUser(r.db.QueryRowContext(ctx, "SELECT "+userColumns+" FROM users WHERE email = ?", email))
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, ErrNotFound
 	}
 	if err != nil {
 		return User{}, fmt.Errorf("query user: %w", err)
-	}
-	u.CreatedAt, err = time.Parse(time.RFC3339, createdAt)
-	if err != nil {
-		return User{}, fmt.Errorf("parse created_at: %w", err)
 	}
 	return u, nil
 }

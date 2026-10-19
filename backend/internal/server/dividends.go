@@ -277,12 +277,11 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	usr, err := h.users.GetByID(r.Context(), userID)
+	reporting, err := h.users.ReportingCurrency(r.Context(), userID)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	reporting := usr.ReportingCurrency
 
 	txs, err := h.transactions.List(r.Context(), userID, portfolioID)
 	if err != nil {
@@ -458,12 +457,11 @@ func (h *dividendHandler) forecast(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	usr, err := h.users.GetByID(r.Context(), userID)
+	reporting, err := h.users.ReportingCurrency(r.Context(), userID)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	reporting := usr.ReportingCurrency
 	in, err := h.loadInputs(r.Context(), userID, portfolioID)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)

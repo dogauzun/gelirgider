@@ -84,12 +84,12 @@ func (h *tradeHandler) get(w http.ResponseWriter, r *http.Request) {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	usr, err := h.users.GetByID(r.Context(), userID)
+	reporting, err := h.users.ReportingCurrency(r.Context(), userID)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	out, err := h.buildTrades(r.Context(), lists, instruments, usr.ReportingCurrency, only)
+	out, err := h.buildTrades(r.Context(), lists, instruments, reporting, only)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return

@@ -80,12 +80,12 @@ func (h *historyHandler) periods(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// Nothing to sweep: no transaction, or only future-dated ones.
-	usr, err := h.users.GetByID(r.Context(), userID)
+	reporting, err := h.users.ReportingCurrency(r.Context(), userID)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	resp.Currency = usr.ReportingCurrency
+	resp.Currency = reporting
 	auth.WriteJSON(w, http.StatusOK, resp)
 }
 
