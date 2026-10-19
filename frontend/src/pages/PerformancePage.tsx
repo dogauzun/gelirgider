@@ -54,7 +54,12 @@ export function PerformancePage() {
         />
         <YearsCard scope={portfolioId} benchmark={benchmark} method={method} />
         <DrawdownCard portfolioId={portfolioId} />
-        <RiskCard portfolioId={portfolioId} benchmark={benchmark} benchmarkLabel={names.label} />
+        <RiskCard
+          portfolioId={portfolioId}
+          benchmark={benchmark}
+          benchmarkLabel={names.label}
+          excessLabel={names.excess}
+        />
         <TradesCard scope={portfolioId} />
         <CashFlowCard portfolioId={portfolioId} />
       </div>

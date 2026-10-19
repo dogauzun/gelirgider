@@ -6,6 +6,8 @@ export type RiskWindow = '1y' | '3y' | 'all'
 
 const WINDOW_DAYS = { '1y': 365, '3y': 1095 }
 
+const ROLLING_DAYS = 365
+
 // windowPoints cuts a history to a window: the points dated within 365 days
 // (1y) or 1095 days (3y) of the last one, or every point (all). The first
 // point of the window is its base (ADR 0036).
@@ -21,13 +23,7 @@ export function windowPoints<T extends { date: string }>(points: T[], window: Ri
 // the one before is at -100%. A null point breaks the chain, nothing is
 // chained over it (ADR 0036).
 function returnsOf(points: RiskPoint[], field: 'twr' | 'benchmark_twr'): (number | null)[] {
-  return points.slice(1).map((point, i) => {
-    const current = point[field]
-    const previous = points[i][field]
-    if (current == null || previous == null) return null
-    const base = 1 + Number(previous)
-    return base > 0 ? (1 + Number(current)) / base - 1 : null
-  })
+  return points.slice(1).map((point, i) => growth(point[field], points[i][field]))
 }
 
 // dailyReturns is the points' daily twr returns, dated on the later point.
@@ -35,6 +31,38 @@ export function dailyReturns(points: RiskPoint[]): { date: string; value: number
   return returnsOf(points, 'twr').flatMap((value, i) =>
     value === null ? [] : [{ date: points[i + 1].date, value }],
   )
+}
+
+// growth is the return from `from` to `to` over a running figure (1 + to) /
+// (1 + from) - 1, or null when either is null or `from` is at -100% or below.
+function growth(to: string | null | undefined, from: string | null | undefined): number | null {
+  if (to == null || from == null) return null
+  const base = 1 + Number(from)
+  return base > 0 ? (1 + Number(to)) / base - 1 : null
+}
+
+// rollingReturns is, for each point, the return of the 365 days ending on it:
+// (1 + twr_i) / (1 + twr_k) - 1 against k, the last point dated 365 or more
+// days before it, and the benchmark's the same (null where it is missing). A
+// point with no k, or with no twr or a twr at -100% on k, is left out (ADR
+// 0036).
+export function rollingReturns(
+  points: RiskPoint[],
+): { date: string; value: number; benchmark: number | null }[] {
+  const out: { date: string; value: number; benchmark: number | null }[] = []
+  let k = -1
+  points.forEach((point, i) => {
+    while (k + 1 < i && daysBetween(points[k + 1].date, point.date) >= ROLLING_DAYS) k++
+    if (k < 0) return
+    const value = growth(point.twr, points[k].twr)
+    if (value === null) return
+    out.push({
+      date: point.date,
+      value,
+      benchmark: growth(point.benchmark_twr, points[k].benchmark_twr),
+    })
+  })
+  return out
 }
 
 export type RiskStats = {

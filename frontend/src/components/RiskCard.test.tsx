@@ -1,12 +1,18 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Benchmark } from '../api/history'
 import { t } from '../i18n/strings'
 import { MISSING } from '../lib/format'
+import { mockChartSize } from '../test/chartSize'
 import { RiskCard } from './RiskCard'
 
+let restoreSize: () => void
+beforeEach(() => {
+  restoreSize = mockChartSize()
+})
 afterEach(() => {
+  restoreSize()
   vi.restoreAllMocks()
 })
 
@@ -127,6 +133,21 @@ describe('RiskCard', () => {
       await screen.findByText(t('risk.benchmarkNoData', { benchmark: 'USD' })),
     ).toBeInTheDocument()
     expect(screen.queryByText(t('risk.beta'))).not.toBeInTheDocument()
+  })
+
+  it('draws the rolling one-year return of a history over a year', async () => {
+    renderCard(history(400))
+
+    expect(await screen.findByText(t('risk.rolling.title'))).toBeInTheDocument()
+    expect(await screen.findByRole('application')).toBeInTheDocument()
+    expect(screen.queryByText(t('risk.rolling.empty'))).not.toBeInTheDocument()
+  })
+
+  it('says there is no rolling return under a year of history', async () => {
+    renderCard(history(40))
+
+    expect(await screen.findByText(t('risk.rolling.empty'))).toBeInTheDocument()
+    expect(screen.queryByRole('application')).not.toBeInTheDocument()
   })
 
   it('explains an undefined return instead of the figures', async () => {

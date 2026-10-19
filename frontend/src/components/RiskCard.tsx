@@ -1,12 +1,19 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { usePortfolioHistory, type Benchmark } from '../api/history'
 import type { PortfolioScope } from '../api/summary'
 import { t } from '../i18n/strings'
 import { SHARE_FORMAT } from '../lib/allocation'
 import { formatShortMarketDate, todayIstanbul } from '../lib/date'
 import { formatNumber, MISSING, plTone, signedPercent } from '../lib/format'
-import { riskStats, windowPoints, type RiskStats, type RiskWindow } from '../lib/risk'
+import {
+  riskStats,
+  rollingReturns,
+  windowPoints,
+  type RiskStats,
+  type RiskWindow,
+} from '../lib/risk'
 import { CashGapNotice } from './CashGapNotice'
+import { LineChart } from './LazyChart'
 import { HistoryEmpty } from './HistoryEmpty'
 import { ChartFrame } from './ui/ChartFrame'
 import { FitFigure, KPI_FIGURE, KpiCell, KpiStrip } from './ui/Kpi'
@@ -89,21 +96,61 @@ export function RiskCard({
   portfolioId,
   benchmark,
   benchmarkLabel,
+  excessLabel,
 }: {
   portfolioId: PortfolioScope
   benchmark: Benchmark | null
   benchmarkLabel?: string
+  excessLabel?: string
 }) {
   const [span, setSpan] = useState<RiskWindow>('1y')
   const query = usePortfolioHistory(portfolioId, '', todayIstanbul(), benchmark)
   const points = query.data?.points ?? []
   const stats = riskStats(windowPoints(points, span))
+  // Over all the history, not the window. Keyed on query.data: LineChart
+  // derives its rows from the array's identity.
+  const rolling = useMemo(
+    () =>
+      rollingReturns(query.data?.points ?? []).map((p) => ({
+        date: p.date,
+        total_value: String(p.value),
+        cost_basis: null,
+        invested: null,
+        cash: '0',
+        benchmark_value: p.benchmark === null ? undefined : String(p.benchmark),
+      })),
+    [query.data],
+  )
 
   // What the figures' place holds once the history is in.
   const body = () => {
     if (points.length < 2) return <HistoryEmpty points={points} />
     // twr is null on every point or on none (ADR 0011).
     if (points.every((p) => p.twr == null)) return <CashGapNotice scope={portfolioId} />
+    return (
+      <>
+        {figures()}
+        <div className="mt-4">
+          <h3 className="text-[13px] font-semibold text-ink">{t('risk.rolling.title')}</h3>
+          <p className="mb-2 text-xs text-muted">{t('risk.rolling.hint')}</p>
+          {rolling.length === 0 ? (
+            <p className="text-[13px] text-muted">{t('risk.rolling.empty')}</p>
+          ) : (
+            <LineChart
+              unit="percent"
+              points={rolling}
+              height={180}
+              labels={{ value: t('risk.rolling.line'), excess: excessLabel }}
+              benchmarkLabel={benchmarkLabel}
+            />
+          )}
+        </div>
+      </>
+    )
+  }
+
+  // The strips of the window's figures, or why there are none.
+  const figures = () => {
     if (stats === null || stats.days < MIN_DAYS) {
       return <p className="text-[13px] text-muted">{t('risk.tooShort')}</p>
     }
