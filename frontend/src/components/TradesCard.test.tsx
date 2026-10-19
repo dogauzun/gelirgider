@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { PortfolioScope } from '../api/summary'
@@ -44,7 +44,12 @@ const sales = [
 ]
 
 // `/trades` answers `trades`; the portfolio list a mocked one.
-function renderCard(trades: object[], scope: PortfolioScope = 1, instrumentId?: number) {
+function renderCard(
+  trades: object[],
+  scope: PortfolioScope = 1,
+  instrumentId?: number,
+  hideWhenEmpty = false,
+) {
   const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const url = String(input)
     if (url === '/api/portfolios') {
@@ -59,7 +64,7 @@ function renderCard(trades: object[], scope: PortfolioScope = 1, instrumentId?: 
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <TradesCard scope={scope} instrumentId={instrumentId} />
+      <TradesCard scope={scope} instrumentId={instrumentId} hideWhenEmpty={hideWhenEmpty} />
     </QueryClientProvider>,
   )
   return fetch
@@ -117,6 +122,18 @@ describe('TradesCard', () => {
 
     expect(await screen.findByText(t('trades.empty'))).toBeInTheDocument()
     expect(screen.queryByRole('table')).toBeNull()
+  })
+
+  it('renders nothing for an empty list with hideWhenEmpty, and the card for a sale', async () => {
+    const fetch = renderCard([], 1, 7, true)
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+    await act(async () => {})
+    expect(screen.queryByRole('heading')).toBeNull()
+    expect(screen.queryByText(t('trades.empty'))).toBeNull()
+    cleanup()
+
+    renderCard(sales, 1, 7, true)
+    expect(await screen.findByRole('table')).toBeInTheDocument()
   })
 
   it('prints the short sale label for a sell without days and counts the missing rates', async () => {

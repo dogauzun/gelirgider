@@ -15,6 +15,7 @@ import { PositionPriceChart } from '../components/PositionPriceChart'
 import { PositionTitle } from '../components/PositionTitle'
 import { PositionTransactions } from '../components/PositionTransactions'
 import { RangePicker } from '../components/RangePicker'
+import { TradesCard } from '../components/TradesCard'
 import { ChartFrame } from '../components/ui/ChartFrame'
 import { LoadError } from '../components/ui/LoadError'
 import { Notice } from '../components/ui/Notice'
@@ -46,7 +47,8 @@ const CHART_LABEL = {
 // summary and the dividends timeline; one chart card switching between its
 // price, with the user's trades and splits marked, and its value against its
 // cost, both in the instrument's own currency, and its time-weighted return in
-// percent, over the selected range; and its own transactions, read-only.
+// percent, over the selected range; its realized sells, when it has any; and
+// its own transactions, read-only.
 export function PositionPage() {
   const params = useParams()
   const portfolioId = Number(params.id)
@@ -224,7 +226,14 @@ export function PositionPage() {
               </div>
             </section>
 
-            <section className="overflow-hidden card">
+            <TradesCard
+              scope={portfolioId}
+              instrumentId={instrumentId}
+              title={t('position.trades')}
+              hideWhenEmpty
+            />
+
+            <section className="overflow-hidden mt-6 card">
               <div className={CARD_HEAD}>
                 <h2 className="text-[14px] font-semibold text-ink">{t('position.transactions')}</h2>
                 <Link

@@ -27,13 +27,19 @@ type SortKey = 'date' | 'realized' | 'days'
 // The "Gerçekleşen satışlar" card on the Performans tab: every realized sell
 // of the scope, newest first, each against the average cost (the server's
 // rule). `instrumentId` keeps one instrument's sells and leaves its column
-// out; the portfolio column shows on `all` only.
+// out; the portfolio column shows on `all` only. `hideWhenEmpty` renders
+// nothing until the sells are in and when there are none; a failure still
+// shows.
 export function TradesCard({
   scope,
   instrumentId,
+  title = t('trades.title'),
+  hideWhenEmpty = false,
 }: {
   scope: PortfolioScope
   instrumentId?: number
+  title?: string
+  hideWhenEmpty?: boolean
 }) {
   const headingId = useId()
   const query = useTrades(scope, instrumentId)
@@ -63,6 +69,7 @@ export function TradesCard({
   const portfolioName = (id: number) => portfolios?.find((p) => p.id === id)?.name ?? String(id)
 
   const sortBy = (key: SortKey) => setSort((current) => nextSort(current, key))
+  if (hideWhenEmpty && !query.isError && all.length === 0) return null
 
   const body = () => {
     if (filtered.length === 0)
@@ -160,7 +167,7 @@ export function TradesCard({
       <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
         <div className="flex flex-col gap-0.5">
           <h2 id={headingId} className="text-[14px] font-semibold text-ink">
-            {t('trades.title')}
+            {title}
           </h2>
           <p className="text-xs text-muted">{t('trades.hint')}</p>
         </div>

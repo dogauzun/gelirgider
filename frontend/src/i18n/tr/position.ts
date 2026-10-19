@@ -29,6 +29,7 @@ export const trPosition = {
   'position.returnLine': 'Pozisyon (zaman ağırlıklı)',
   'position.price': 'Fiyat',
   'position.transactions': 'İşlemler',
+  'position.trades': 'Satışlar',
   'position.allTransactions': 'Tüm işlemler',
   'position.return.title': 'Getiri',
   'position.return.annualized': 'yıllık {percent}',

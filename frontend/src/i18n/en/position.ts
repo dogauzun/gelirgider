@@ -31,6 +31,7 @@ export const enPosition: AreaStrings<typeof trPosition> = {
   'position.returnLine': 'Position (time-weighted)',
   'position.price': 'Price',
   'position.transactions': 'Transactions',
+  'position.trades': 'Sales',
   'position.allTransactions': 'All transactions',
   'position.return.title': 'Return',
   'position.return.annualized': '{percent} a year',
