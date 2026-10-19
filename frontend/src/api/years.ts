@@ -5,6 +5,16 @@ import type { PortfolioScope } from './summary'
 
 // One calendar year of the years endpoint (ADR 0038): money as 2-decimal
 // strings in the reporting currency, returns as ratios.
+// The instrument that made the most or the least in a year; total is in the
+// reporting currency, currency is the instrument's own.
+export interface YearInstrument {
+  instrument_id: number
+  symbol: string
+  market: string
+  currency: string
+  total: string
+}
+
 export interface YearRow {
   year: string
   from: string
@@ -21,6 +31,8 @@ export interface YearRow {
   returns: Record<ReturnMethod, string | null>
   benchmark: Record<ReturnMethod, string | null> | null
   inflation: string | null
+  best: YearInstrument | null
+  worst: YearInstrument | null
 }
 
 export interface YearsResponse {

@@ -1,7 +1,7 @@
 import { Fragment, useId, useState, type ReactNode } from 'react'
 import type { ReturnMethod, Benchmark } from '../api/history'
 import type { PortfolioScope } from '../api/summary'
-import { useYears, type YearRow } from '../api/years'
+import { useYears, type YearInstrument, type YearRow } from '../api/years'
 import { t } from '../i18n/strings'
 import { formatMarketDate } from '../lib/date'
 import { MISSING, formatMoney, plTone, signTone, signedMoney, signedPercent } from '../lib/format'
@@ -132,7 +132,31 @@ export function YearsCard({
               },
             },
           ]
-    const extra = [...benchmarkColumns, ...inflationColumns]
+    const instrumentColumn = (
+      key: string,
+      header: string,
+      pick: (row: YearRow) => YearInstrument | null,
+    ): Column => ({
+      key,
+      header,
+      cell: (row) => {
+        const p = pick(row)
+        return p === null ? (
+          <td className={TD_NUM}>{MISSING}</td>
+        ) : (
+          <td className={TD_NUM}>
+            {p.market === 'DEPOSIT' ? t('deposits.labelShort', { currency: p.currency }) : p.symbol}
+            <div className={`text-xs ${plTone(p.total)}`}>{signedMoney(p.total, currency)}</div>
+          </td>
+        )
+      },
+    })
+    const extra = [
+      ...benchmarkColumns,
+      ...inflationColumns,
+      instrumentColumn('best', t('years.best'), (row) => row.best),
+      instrumentColumn('worst', t('years.worst'), (row) => row.worst),
+    ]
     const columns: Column[] =
       view === 'summary'
         ? [

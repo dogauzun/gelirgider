@@ -38,6 +38,15 @@ func TestYears(t *testing.T) {
 	e := newPeriodsEnv(t)
 	userID, session := e.user(t, "years@example.com")
 	pf := seedYears(t, e, userID)
+	// YYY is created after XXX, so XXX has the lower id.
+	yyy := e.instrument(t, "YYY")
+	e.cash(t, userID, pf, "2025-02-01", "200")
+	e.buy(t, userID, lot{portfolioID: pf, instrumentID: yyy, date: "2025-02-01", qty: "5", px: "40"})
+	for date, closePrice := range map[string]string{"2025-02-01": "40", "2025-12-31": "30"} {
+		if err := price.NewRepo(e.conn).Upsert(context.Background(), yyy, date, closePrice, "test"); err != nil {
+			t.Fatalf("prices.Upsert: %v", err)
+		}
+	}
 	_, other := e.user(t, "other@example.com")
 	empty := e.portfolio(t, userID)
 
@@ -64,19 +73,34 @@ func TestYears(t *testing.T) {
 		t.Errorf("2024 twr = %v, want 0.100000", y24.Returns.TWR)
 	}
 
-	if g, w := asJSON(t, y25.attributionBuckets), asJSON(t, attributionBuckets{str("120.00"), zero, zero, zero}); g != w {
+	if g, w := asJSON(t, y25.attributionBuckets), asJSON(t, attributionBuckets{str("70.00"), zero, zero, zero}); g != w {
 		t.Errorf("2025 buckets = %s, want %s", g, w)
 	}
 	if y25.Year != "2025" || y25.From != "2025-01-01" || y25.To != "2025-12-31" || y25.Partial ||
-		y25.Opening != "1100.00" || y25.Closing != "1720.00" || y25.NetFlow != "500.00" || y25.Gain != "120.00" {
+		y25.Opening != "1100.00" || y25.Closing != "1870.00" || y25.NetFlow != "700.00" || y25.Gain != "70.00" {
 		t.Errorf("2025 = %s", asJSON(t, y25))
 	}
-	if y25.Returns.TWR == nil || *y25.Returns.TWR != "0.075000" || y25.Returns.Simple == nil || *y25.Returns.Simple != "0.075000" {
-		t.Errorf("2025 returns = %s, want twr and simple 0.075000", asJSON(t, y25.Returns))
+	if y25.Returns.TWR == nil || *y25.Returns.TWR != "0.038889" || y25.Returns.Simple == nil || *y25.Returns.Simple != "0.038889" {
+		t.Errorf("2025 returns = %s, want twr and simple 0.038889", asJSON(t, y25.Returns))
 	}
 
-	if last.Year != today[:4] || last.Opening != "1720.00" || last.Closing != "1720.00" || last.Gain != "0.00" || !last.Partial {
-		t.Errorf("last = %s, want %s opening and closing 1720.00, gain 0.00", asJSON(t, last), today[:4])
+	if last.Year != today[:4] || last.Opening != "1870.00" || last.Closing != "1870.00" || last.Gain != "0.00" || !last.Partial {
+		t.Errorf("last = %s, want %s opening and closing 1870.00, gain 0.00", asJSON(t, last), today[:4])
+	}
+	xxx := func(total string) *yearInstrument {
+		return &yearInstrument{InstrumentID: yyy - 1, Symbol: "XXX", Market: "BIST", Currency: "TRY", Total: total}
+	}
+	for _, c := range []struct {
+		row         yearRow
+		best, worst *yearInstrument
+	}{
+		{y24, xxx("100.00"), xxx("100.00")},
+		{y25, xxx("120.00"), &yearInstrument{InstrumentID: yyy, Symbol: "YYY", Market: "BIST", Currency: "TRY", Total: "-50.00"}},
+		{last, xxx("0.00"), xxx("0.00")}, // a tie keeps the lower id
+	} {
+		if g, w := asJSON(t, []any{c.row.Best, c.row.Worst}), asJSON(t, []any{c.best, c.worst}); g != w {
+			t.Errorf("%s best, worst = %s, want %s", c.row.Year, g, w)
+		}
 	}
 	for _, y := range got.Years {
 		if y.Benchmark != nil {
@@ -86,6 +110,17 @@ func TestYears(t *testing.T) {
 
 	e.get(t, session, fmt.Sprintf("/api/portfolios/%d/years?benchmark=XYZ", pf), http.StatusBadRequest, nil)
 	e.get(t, other, fmt.Sprintf("/api/portfolios/%d/years", pf), http.StatusNotFound, nil)
+
+	// A portfolio of cash alone has no instrument to name.
+	cashOnly := e.portfolio(t, userID)
+	e.cash(t, userID, cashOnly, "2025-03-01", "100")
+	var cash yearsResponse
+	e.get(t, session, fmt.Sprintf("/api/portfolios/%d/years", cashOnly), http.StatusOK, &cash)
+	for _, y := range cash.Years {
+		if y.Best != nil || y.Worst != nil {
+			t.Errorf("%s best, worst = %s, want null", y.Year, asJSON(t, []any{y.Best, y.Worst}))
+		}
+	}
 
 	var none yearsResponse
 	e.get(t, session, fmt.Sprintf("/api/portfolios/%d/years", empty), http.StatusOK, &none)

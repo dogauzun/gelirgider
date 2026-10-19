@@ -1333,10 +1333,29 @@ definitions:
       note:
         type: string
     type: object
+  server.yearInstrument:
+    properties:
+      currency:
+        type: string
+      instrument_id:
+        type: integer
+      market:
+        type: string
+      symbol:
+        type: string
+      total:
+        type: string
+    type: object
   server.yearRow:
     properties:
       benchmark:
         $ref: '#/definitions/server.returnsResponse'
+      best:
+        allOf:
+        - $ref: '#/definitions/server.yearInstrument'
+        description: |-
+          Best and worst are the instruments with the largest and the smallest
+          price + income + fx over the year, null when none has every rate.
       cash_fx:
         type: string
       closing:
@@ -1372,6 +1391,8 @@ definitions:
       to:
         description: last day, Dec 31 or today
         type: string
+      worst:
+        $ref: '#/definitions/server.yearInstrument'
       year:
         description: '"2026"'
         type: string
@@ -5591,7 +5612,12 @@ paths:
         route returns it, null unless the reporting currency is TRY or TÜFE has no
         level on from; inflation_estimated_from is the first extrapolated TÜFE day.
         A row''s benchmark is null without the parameter, or when the benchmark has
-        no level on some day of the year.'
+        no level on some day of the year. best and worst are the instruments with
+        the largest and the smallest price + income + fx over from..to, among those
+        with a rate on every day (total is that sum in the reporting currency; instrument_id,
+        symbol, market and currency are the instrument''s); a tie keeps the lower
+        instrument id; both are null when the year has no such instrument, and both
+        name it when it has one.'
       parameters:
       - description: numeric id or `all`
         in: path
