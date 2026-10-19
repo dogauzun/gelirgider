@@ -142,9 +142,10 @@ A PR branch changes only through git under the owner's identity, never
 through the GitHub contents API or the update-branch endpoint, which decode
 escape sequences and add merge commits. A merge passes an explicit commit
 title and message, because the merge tool adds a `Co-authored-by` trailer
-otherwise (CLAUDE.md rule 9) and the repository's squash defaults would
-land a single-commit PR under the commit's subject and copy branch commit
-trailers into `main`.
+otherwise (CLAUDE.md rule 9) and the repository's squash default would
+land a single-commit PR under the commit's subject, copy branch commit
+trailers into `main` and add a `Co-authored-by` line for each branch commit
+author other than the merger.
 
 A round is one review that posted findings; after six rounds on one PR
 the merger parks the ticket with the `needs-decision` label instead of a
