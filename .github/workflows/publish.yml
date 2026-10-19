@@ -1,13 +1,16 @@
-# Publishes the backend and frontend images to ghcr.io (ADR 0020): `latest`
-# and `sha-<7>` on a push to main; `vX.Y.Z` plus the floating major `vX` on a
-# `v*` tag push or when release.yml calls this workflow with `version` (a tag
-# created with GITHUB_TOKEN fires no push event, so the call is explicit). The
-# version, or `sha-<7>` on main, goes into the build as `--build-arg VERSION`.
-# Plain docker commands in `run:` steps, because the Actions policy allows
-# GitHub-owned actions only. One `docker buildx build` publishes each image for
-# linux/amd64 and linux/arm64 (the Go binary cross-compiles and the frontend
-# bundle is architecture-independent, so no emulation). Attestations are off, so
-# the index holds only the two platforms.
+# Publishes the backend and frontend images to ghcr.io (ADR 0020): `sha-<7>` on
+# a push to main, plus `latest` only when that commit is still main's tip as the
+# build starts (runs of two commits can start out of order, and the older one
+# must not move `latest` back; a commit merged during the build has its own run
+# queued behind this one, which then moves `latest`). `vX.Y.Z` plus the floating
+# major `vX` on a `v*` tag push or when release.yml calls this workflow with
+# `version` (a tag created with GITHUB_TOKEN fires no push event, so the call is
+# explicit). The version, or `sha-<7>` on main, goes into the build as
+# `--build-arg VERSION`. Plain docker commands in `run:` steps, because the
+# Actions policy allows GitHub-owned actions only. One `docker buildx build`
+# publishes each image for linux/amd64 and linux/arm64 (the Go binary
+# cross-compiles and the frontend bundle is architecture-independent, so no
+# emulation). Attestations are off, so the index holds only the two platforms.
 name: publish
 
 on:
@@ -56,7 +59,13 @@ jobs:
             tags="$version ${version%%.*}"
           else
             version="sha-${GITHUB_SHA::7}"
-            tags="latest $version"
+            tags="$version"
+            tip=$(git ls-remote origin refs/heads/main | cut -f1)
+            if [ "$tip" = "$GITHUB_SHA" ]; then
+              tags="latest $version"
+            else
+              echo "::notice::$GITHUB_SHA is not main's tip, so latest stays"
+            fi
           fi
           args=()
           for t in $tags; do args+=(-t "$name:$t"); done
