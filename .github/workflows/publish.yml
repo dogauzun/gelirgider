@@ -7,10 +7,11 @@
 # `version` (a tag created with GITHUB_TOKEN fires no push event, so the call is
 # explicit). The version, or `sha-<7>` on main, goes into the build as
 # `--build-arg VERSION`. Plain docker commands in `run:` steps, because the
-# Actions policy allows GitHub-owned actions only. One `docker buildx build`
-# publishes each image for linux/amd64 and linux/arm64 (the Go binary
-# cross-compiles and the frontend bundle is architecture-independent, so no
-# emulation). Attestations are off, so the index holds only the two platforms.
+# Actions policy allows no docker action (GitHub-owned ones plus the review
+# action of ADR 0037 only). One `docker buildx build` publishes each image for
+# linux/amd64 and linux/arm64 (the Go binary cross-compiles and the frontend
+# bundle is architecture-independent, so no emulation). Attestations are off,
+# so the index holds only the two platforms.
 name: publish
 
 on:

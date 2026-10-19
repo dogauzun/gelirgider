@@ -8,9 +8,10 @@ is the maintainers' agent workflow. Security problems go through
 
 The maintainers develop gelirgider mostly with AI agents, against a private Jira
 board (project `GLG`): every change starts as a GLG ticket and ships as one pull
-request, reviewed by a separate review agent before it is merged. You do not
-need Jira access. Open a GitHub issue instead of a GLG ticket, and name that
-issue on the `Ticket:` line of your pull request.
+request, reviewed by a separate review agent (the `Claude Code Review`
+workflow, ADR 0037) before it is merged. You do not need Jira access. Open a
+GitHub issue instead of a GLG ticket, and name that issue on the `Ticket:` line
+of your pull request.
 
 ## Running it
 
