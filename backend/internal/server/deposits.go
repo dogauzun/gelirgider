@@ -89,8 +89,8 @@ type depositResponse struct {
 // principal and the trimmed note. Errors are "<field>: <message>", as the
 // transaction routes write them.
 func parseDepositRequest(req depositRequest) (principal decimal.Decimal, terms deposit.Terms, note string, err error) {
-	if !currency.IsValid(req.Currency) {
-		return principal, terms, "", fmt.Errorf("currency: must be one of %s", strings.Join(currency.Valid, ", "))
+	if err = currency.Check(req.Currency); err != nil {
+		return principal, terms, "", err
 	}
 	if principal, err = transaction.ParseNonNegative(req.Principal); err != nil {
 		return principal, terms, "", fmt.Errorf("principal: %w", err)

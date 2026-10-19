@@ -19,6 +19,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
+	"github.com/dogauzun/gelirgider/backend/internal/currency"
 	"github.com/dogauzun/gelirgider/backend/internal/instrument"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
@@ -358,14 +359,14 @@ func fillCash(req Request, t *Transaction) error {
 		return nil
 	}
 
-	currency := "TRY"
+	cur := "TRY"
 	if req.Currency != nil && *req.Currency != "" {
-		currency = *req.Currency
+		cur = *req.Currency
 	}
-	if !IsValidCurrency(currency) {
-		return fmt.Errorf("currency: must be one of %s", strings.Join(ValidCurrencies, ", "))
+	if err := currency.Check(cur); err != nil {
+		return err
 	}
-	t.Currency = currency
+	t.Currency = cur
 	return nil
 }
 

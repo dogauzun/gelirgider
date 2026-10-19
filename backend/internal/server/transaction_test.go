@@ -328,7 +328,7 @@ func TestTransactionsUpdateAndDelete(t *testing.T) {
 // always the instrument's own currency, and a request body currency that
 // contradicts it is rejected instead of silently overwritten, while a cash
 // row (no instrument) takes its currency from the request, validated against
-// transaction.ValidCurrencies and defaulting to TRY.
+// currency.Valid and defaulting to TRY.
 func TestTransactionsCurrency(t *testing.T) {
 	env := newTransactionTestEnv(t)
 	session := env.login("alice@example.com")

@@ -15,7 +15,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/dogauzun/gelirgider/backend/internal/currency"
 	"github.com/dogauzun/gelirgider/backend/internal/db"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
 	"github.com/dogauzun/gelirgider/backend/internal/price"
@@ -43,18 +42,6 @@ var validTypes = map[string]bool{
 	TypeDeposit:    true,
 	TypeWithdrawal: true,
 	TypeFee:        true,
-}
-
-// ValidCurrencies lists the currencies accepted on transactions that have no
-// instrument to derive a currency from (deposit, withdrawal, fee). Trades
-// (buy, sell, dividend) always take their currency from the instrument
-// instead. Kept as an alias to internal/currency so existing callers in this
-// package don't need to change.
-var ValidCurrencies = currency.Valid
-
-// IsValidCurrency reports whether c is one of ValidCurrencies.
-func IsValidCurrency(c string) bool {
-	return currency.IsValid(c)
 }
 
 // ErrNotFound is returned when no transaction matches the lookup for the
