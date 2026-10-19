@@ -55,12 +55,11 @@ func (h *summaryHandler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usr, err := h.users.GetByID(r.Context(), userID)
+	reporting, err := h.users.ReportingCurrency(r.Context(), userID)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	reporting := usr.ReportingCurrency
 
 	out := make([]portfolioListResponse, len(portfolios))
 	if len(portfolios) == 0 {

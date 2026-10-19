@@ -250,12 +250,11 @@ func (h *summaryHandler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usr, err := h.users.GetByID(r.Context(), userID)
+	reporting, err := h.users.ReportingCurrency(r.Context(), userID)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	reporting := usr.ReportingCurrency
 
 	// txs is every portfolio's rows merged by date, for the instrument and
 	// currency sets and fx_pl's flows. Holdings are not computed from it:

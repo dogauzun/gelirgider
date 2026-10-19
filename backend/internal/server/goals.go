@@ -131,12 +131,12 @@ func (h *goalHandler) put(w http.ResponseWriter, r *http.Request) {
 	if !auth.DecodeJSON(w, r, &req) {
 		return
 	}
-	usr, err := h.users.GetByID(r.Context(), userID)
+	reporting, err := h.users.ReportingCurrency(r.Context(), userID)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	g, err := parseGoal(req, usr.ReportingCurrency)
+	g, err := parseGoal(req, reporting)
 	if err != nil {
 		auth.WriteError(w, http.StatusBadRequest, err.Error())
 		return
@@ -230,13 +230,13 @@ func (h *goalHandler) projection(w http.ResponseWriter, r *http.Request) {
 		writeGoalError(w, r, err)
 		return
 	}
-	usr, err := h.users.GetByID(r.Context(), userID)
+	reporting, err := h.users.ReportingCurrency(r.Context(), userID)
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
 	}
-	resp := projectionResponse{Unit: g.Unit, Currency: usr.ReportingCurrency, Amount: g.Amount.String(), TargetDate: g.TargetDate, Months: []projectionMonth{}}
-	in, found, err := h.projectionInput(r.Context(), userID, r.PathValue("id"), g, usr.ReportingCurrency)
+	resp := projectionResponse{Unit: g.Unit, Currency: reporting, Amount: g.Amount.String(), TargetDate: g.TargetDate, Months: []projectionMonth{}}
+	in, found, err := h.projectionInput(r.Context(), userID, r.PathValue("id"), g, reporting)
 	if err != nil {
 		portfolio.WriteLookupError(w, r, err)
 		return
