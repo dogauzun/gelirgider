@@ -101,18 +101,11 @@ func (h *handler) proposeOpenings(ctx context.Context, req requester, txs []tran
 	// proceeds out again, rounded down to the cent so cash never goes
 	// negative: the sales happened in months not imported, and so did
 	// whatever the money went to.
-	withdrawals, err := r.cashRows(transaction.TypeWithdrawal, r.proceeds, decimal.Decimal.RoundFloor)
-	if err != nil {
-		return nil, err
-	}
-	closings = append(closings, withdrawals...)
+	closings = append(closings, r.cashRows(transaction.TypeWithdrawal, r.proceeds, decimal.Decimal.RoundFloor)...)
 	if len(openings) == 0 {
 		return append(closings, preview...), nil
 	}
-	cash, err := r.cashRows(transaction.TypeDeposit, r.deposits, decimal.Decimal.RoundCeil)
-	if err != nil {
-		return nil, err
-	}
+	cash := r.cashRows(transaction.TypeDeposit, r.deposits, decimal.Decimal.RoundCeil)
 	return append(append(append(cash, openings...), closings...), preview...), nil
 }
 
@@ -465,7 +458,7 @@ func (r *openingRun) openingRow(c candidate) (previewRow, bool, error) {
 // each with its total rounded to the cent by round: the open-cash-*
 // deposits that pay for the priced opening buys, or the close-cash-*
 // withdrawals that take the priced closing sells' proceeds out again.
-func (r *openingRun) cashRows(kind string, totals currencyTotals, round func(decimal.Decimal, int32) decimal.Decimal) ([]previewRow, error) {
+func (r *openingRun) cashRows(kind string, totals currencyTotals, round func(decimal.Decimal, int32) decimal.Decimal) []previewRow {
 	rows := make([]previewRow, 0, len(totals.order))
 	for _, cur := range totals.order {
 		amount, fee := round(totals.sum[cur], 2), decimal.Zero
@@ -479,7 +472,7 @@ func (r *openingRun) cashRows(kind string, totals currencyTotals, round func(dec
 		checkRow(&row, instrument.Instrument{})
 		rows = append(rows, row)
 	}
-	return rows, nil
+	return rows
 }
 
 // storedPrice is the price of instrumentID on or before date: userID's

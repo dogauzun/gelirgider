@@ -26,7 +26,7 @@ func TestApplySchema_FailurePartway_NoTrace(t *testing.T) {
 		"schema/002_bad.sql": &fstest.MapFile{Data: []byte(`CREATE TABLE partial (id INTEGER PRIMARY KEY); INSERT INTO does_not_exist VALUES (1)`)},
 	}
 
-	if err := applySchema(conn, files, "schema"); err == nil {
+	if err := applySchema(conn, files); err == nil {
 		t.Fatal("expected error from failing statement, got nil")
 	}
 
@@ -64,14 +64,14 @@ func TestApplySchema_ChecksumMismatch(t *testing.T) {
 	original := fstest.MapFS{
 		"schema/001_a.sql": &fstest.MapFile{Data: []byte(`CREATE TABLE a (id INTEGER PRIMARY KEY)`)},
 	}
-	if err := applySchema(conn, original, "schema"); err != nil {
+	if err := applySchema(conn, original); err != nil {
 		t.Fatalf("first applySchema: %v", err)
 	}
 
 	changed := fstest.MapFS{
 		"schema/001_a.sql": &fstest.MapFile{Data: []byte(`CREATE TABLE a (id INTEGER PRIMARY KEY, extra TEXT)`)},
 	}
-	err = applySchema(conn, changed, "schema")
+	err = applySchema(conn, changed)
 	if err == nil {
 		t.Fatal("expected checksum mismatch error, got nil")
 	}
@@ -85,7 +85,7 @@ func TestApplySchema_ChecksumMismatch(t *testing.T) {
 func schemaBefore(t *testing.T, prefix string) fstest.MapFS {
 	t.Helper()
 	files := fstest.MapFS{}
-	entries, err := fs.ReadDir(schemaFS, "schema")
+	entries, err := fs.ReadDir(schemaFS, schemaDir)
 	if err != nil {
 		t.Fatalf("read schema dir: %v", err)
 	}
@@ -93,11 +93,11 @@ func schemaBefore(t *testing.T, prefix string) fstest.MapFS {
 		if e.Name() >= prefix {
 			continue
 		}
-		data, err := fs.ReadFile(schemaFS, "schema/"+e.Name())
+		data, err := fs.ReadFile(schemaFS, schemaDir+"/"+e.Name())
 		if err != nil {
 			t.Fatalf("read %s: %v", e.Name(), err)
 		}
-		files["schema/"+e.Name()] = &fstest.MapFile{Data: data}
+		files[schemaDir+"/"+e.Name()] = &fstest.MapFile{Data: data}
 	}
 	return files
 }
@@ -152,7 +152,7 @@ func TestSchema027KeepsPortfolioRows(t *testing.T) {
 	}
 	defer conn.Close()
 
-	if err := applySchema(conn, schemaBefore(t, "027"), "schema"); err != nil {
+	if err := applySchema(conn, schemaBefore(t, "027")); err != nil {
 		t.Fatalf("apply schema before 027: %v", err)
 	}
 	for _, q := range []string{
@@ -193,11 +193,11 @@ func TestSchema027KeepsPortfolioRows(t *testing.T) {
 		before = append(before, dumpRows(t, conn, q))
 	}
 
-	if err := applySchema(conn, schemaFS, "schema"); err != nil {
+	if err := applySchema(conn, schemaFS); err != nil {
 		t.Fatalf("apply schema: %v", err)
 	}
 	// Applying again is a no-op.
-	if err := applySchema(conn, schemaFS, "schema"); err != nil {
+	if err := applySchema(conn, schemaFS); err != nil {
 		t.Fatalf("apply schema twice: %v", err)
 	}
 
@@ -254,7 +254,7 @@ func TestSchema028KeepsImportAndTransactionRows(t *testing.T) {
 	}
 	defer conn.Close()
 
-	if err := applySchema(conn, schemaBefore(t, "028"), "schema"); err != nil {
+	if err := applySchema(conn, schemaBefore(t, "028")); err != nil {
 		t.Fatalf("apply schema before 028: %v", err)
 	}
 	for _, q := range []string{
@@ -296,7 +296,7 @@ func TestSchema028KeepsImportAndTransactionRows(t *testing.T) {
 		before = append(before, dumpRows(t, conn, q))
 	}
 
-	if err := applySchema(conn, schemaFS, "schema"); err != nil {
+	if err := applySchema(conn, schemaFS); err != nil {
 		t.Fatalf("apply schema: %v", err)
 	}
 
@@ -354,7 +354,7 @@ func TestSchema029KeepsUserRows(t *testing.T) {
 	}
 	defer conn.Close()
 
-	if err := applySchema(conn, schemaBefore(t, "029"), "schema"); err != nil {
+	if err := applySchema(conn, schemaBefore(t, "029")); err != nil {
 		t.Fatalf("apply schema before 029: %v", err)
 	}
 	for _, q := range []string{
@@ -435,7 +435,7 @@ func TestSchema029KeepsUserRows(t *testing.T) {
 	}
 
 	// Through 029 only: later files add columns to users.
-	if err := applySchema(conn, schemaBefore(t, "030"), "schema"); err != nil {
+	if err := applySchema(conn, schemaBefore(t, "030")); err != nil {
 		t.Fatalf("apply schema: %v", err)
 	}
 
@@ -499,7 +499,7 @@ func TestSchema024ConvertsBulletinDates(t *testing.T) {
 	defer conn.Close()
 
 	before := fstest.MapFS{}
-	entries, err := fs.ReadDir(schemaFS, "schema")
+	entries, err := fs.ReadDir(schemaFS, schemaDir)
 	if err != nil {
 		t.Fatalf("read schema dir: %v", err)
 	}
@@ -507,13 +507,13 @@ func TestSchema024ConvertsBulletinDates(t *testing.T) {
 		if e.Name() >= "024" {
 			continue
 		}
-		data, err := fs.ReadFile(schemaFS, "schema/"+e.Name())
+		data, err := fs.ReadFile(schemaFS, schemaDir+"/"+e.Name())
 		if err != nil {
 			t.Fatalf("read %s: %v", e.Name(), err)
 		}
-		before["schema/"+e.Name()] = &fstest.MapFile{Data: data}
+		before[schemaDir+"/"+e.Name()] = &fstest.MapFile{Data: data}
 	}
-	if err := applySchema(conn, before, "schema"); err != nil {
+	if err := applySchema(conn, before); err != nil {
 		t.Fatalf("apply schema before 024: %v", err)
 	}
 
@@ -528,7 +528,7 @@ func TestSchema024ConvertsBulletinDates(t *testing.T) {
 		t.Fatalf("seed prices: %v", err)
 	}
 
-	if err := applySchema(conn, schemaFS, "schema"); err != nil {
+	if err := applySchema(conn, schemaFS); err != nil {
 		t.Fatalf("apply schema: %v", err)
 	}
 
@@ -560,7 +560,7 @@ func TestSchemaFiles_UniquePrefixes(t *testing.T) {
 	// exception.
 	allowed := map[string]int{"032": 2, "038": 2}
 
-	entries, err := fs.ReadDir(schemaFS, "schema")
+	entries, err := fs.ReadDir(schemaFS, schemaDir)
 	if err != nil {
 		t.Fatalf("read schema dir: %v", err)
 	}

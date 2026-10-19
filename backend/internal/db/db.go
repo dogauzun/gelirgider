@@ -21,6 +21,8 @@ import (
 //go:embed schema/*.sql
 var schemaFS embed.FS
 
+const schemaDir = "schema"
+
 // Open opens (creating if needed) the SQLite database at path, enables
 // foreign keys and WAL mode, and applies any schema files not yet recorded
 // in schema_version. Safe to call repeatedly on the same path.
@@ -61,7 +63,7 @@ func Open(path string) (*sql.DB, error) {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
 
-	if err := applySchema(db, schemaFS, "schema"); err != nil {
+	if err := applySchema(db, schemaFS); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("apply schema: %w", err)
 	}
@@ -145,11 +147,11 @@ func Backup(ctx context.Context, conn *sql.DB, path string) error {
 	return nil
 }
 
-// applySchema applies every .sql file found in dir (within schemaFiles), in
+// applySchema applies every .sql file found in schemaDir (within schemaFiles), in
 // sorted order, recording each in schema_version along with its SHA-256
 // checksum. A file already recorded with a different checksum than the one
 // on disk is a hard error: schema files must never be edited after merge.
-func applySchema(db *sql.DB, schemaFiles fs.FS, dir string) error {
+func applySchema(db *sql.DB, schemaFiles fs.FS) error {
 	ctx := context.Background()
 	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS schema_version (
 		filename TEXT PRIMARY KEY,
@@ -162,7 +164,7 @@ func applySchema(db *sql.DB, schemaFiles fs.FS, dir string) error {
 		return err
 	}
 
-	entries, err := fs.ReadDir(schemaFiles, dir)
+	entries, err := fs.ReadDir(schemaFiles, schemaDir)
 	if err != nil {
 		return fmt.Errorf("read schema dir: %w", err)
 	}
@@ -178,7 +180,7 @@ func applySchema(db *sql.DB, schemaFiles fs.FS, dir string) error {
 	}
 
 	for _, name := range names {
-		content, err := fs.ReadFile(schemaFiles, dir+"/"+name)
+		content, err := fs.ReadFile(schemaFiles, schemaDir+"/"+name)
 		if err != nil {
 			return fmt.Errorf("read %s: %w", name, err)
 		}
