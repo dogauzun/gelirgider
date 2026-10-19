@@ -656,7 +656,8 @@ func commitAliases(req commitRequest) (aliases, learn map[string]int64) {
 }
 
 // ensurePrices fetches a price for each committed target. The fetches run
-// one after another, each within its own OnDemandFetchTimeout, but it
+// one after another, each within its own EnsurePrice budget (a wait for the
+// fetch slot, then the fetch within OnDemandFetchTimeout), but it
 // waits for them only that long in all: the rows are committed, so a hung
 // price host must not hold the response past a proxy's timeout, one target
 // at a time. The rest run on after it returns; a client

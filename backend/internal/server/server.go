@@ -374,7 +374,7 @@ func underFetchSlot(ctx context.Context, covered func(context.Context) (bool, er
 	if isCovered(ctx) {
 		return
 	}
-	fetchCtx, release, err := transaction.AcquireFetchSlot(ctx)
+	fetchCtx, release, err := transaction.AcquireFetchSlot(ctx, transaction.FetchSlotWait)
 	if err != nil {
 		logFetchErr(ctx, err, msg, args...)
 		return
@@ -403,8 +403,7 @@ func fetchBISTOnDemand(ctx context.Context, d *deps, in instrument.Instrument) [
 // fetchUSOnDemand fetches in's latest price when it has none yet, then its
 // history from date.
 func fetchUSOnDemand(ctx context.Context, d *deps, usSyncer *us.Syncer, in instrument.Instrument, date string) {
-	// Both stored: the latest price, and a row on or before date, which is
-	// SyncHistory's own check.
+	// Both stored: the latest price, and the history SyncHistory would fetch.
 	covered := func(ctx context.Context) (bool, error) {
 		latest, err := d.prices.Latest(ctx, []int64{in.ID}, price.Today())
 		if err != nil {
@@ -413,9 +412,7 @@ func fetchUSOnDemand(ctx context.Context, d *deps, usSyncer *us.Syncer, in instr
 		if _, ok := latest[in.ID]; !ok {
 			return false, nil
 		}
-		have, err := d.prices.Latest(ctx, []int64{in.ID}, date)
-		_, ok := have[in.ID]
-		return ok, err
+		return usSyncer.HistoryCovered(ctx, in, date)
 	}
 	underFetchSlot(ctx, covered, "on-demand us history fetch failed", []any{"instrument_id", in.ID, "symbol", in.Symbol}, func(ctx context.Context) error {
 		latest, err := d.prices.Latest(ctx, []int64{in.ID}, price.Today())

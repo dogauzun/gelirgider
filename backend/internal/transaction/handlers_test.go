@@ -415,14 +415,11 @@ func TestFromRequestRejectsFeeOnFeeType(t *testing.T) {
 }
 
 // TestAcquireFetchSlotGivesUpAfterTheWait checks that a caller queued behind
-// a holder stops waiting after slotWait with ErrFetchBusy, and that a caller
+// a holder stops waiting after the wait with ErrFetchBusy, and that a caller
 // that gets the slot has its whole fetch deadline from then on.
 func TestAcquireFetchSlotGivesUpAfterTheWait(t *testing.T) {
-	old := slotWait
-	slotWait = 50 * time.Millisecond
-	t.Cleanup(func() { slotWait = old })
-
-	held, release, err := AcquireFetchSlot(context.Background())
+	const wait = 50 * time.Millisecond
+	held, release, err := AcquireFetchSlot(context.Background(), wait)
 	if err != nil {
 		t.Fatalf("first acquire: %v", err)
 	}
@@ -430,22 +427,23 @@ func TestAcquireFetchSlotGivesUpAfterTheWait(t *testing.T) {
 		t.Errorf("deadline left = %v, want about %v", time.Until(deadline), OnDemandFetchTimeout)
 	}
 	// A nested caller passes through without waiting.
-	if _, nested, err := AcquireFetchSlot(held); err != nil {
+	if _, nested, err := AcquireFetchSlot(held, wait); err != nil {
 		t.Errorf("nested acquire: %v", err)
 	} else {
 		nested()
 	}
 
 	start := time.Now()
-	if _, _, err := AcquireFetchSlot(context.Background()); !errors.Is(err, ErrFetchBusy) {
+	if _, _, err := AcquireFetchSlot(context.Background(), wait); !errors.Is(err, ErrFetchBusy) {
 		t.Errorf("queued acquire error = %v, want ErrFetchBusy", err)
 	}
 	if took := time.Since(start); took > time.Second {
-		t.Errorf("queued acquire waited %v, want about %v", took, slotWait)
+		t.Errorf("queued acquire waited %v, want about %v", took, wait)
 	}
 
 	release()
-	_, again, err := AcquireFetchSlot(context.Background())
+	release() // once more: harmless
+	_, again, err := AcquireFetchSlot(context.Background(), wait)
 	if err != nil {
 		t.Fatalf("acquire after release: %v", err)
 	}

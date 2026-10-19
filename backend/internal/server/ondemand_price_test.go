@@ -960,7 +960,7 @@ func TestOnDemandFetchCoveredNeverQueues(t *testing.T) {
 	}
 	fetch := newOnDemandFetch(&deps{cfg: repo, instruments: instrument.NewRepo(conn), prices: price.NewRepo(conn), fx: fx.NewRepo(conn), tefasFetcher: &tefas.Fetcher{BaseURL: srv.URL}}, &backfillQueue{})
 
-	_, release, err := transaction.AcquireFetchSlot(ctx)
+	_, release, err := transaction.AcquireFetchSlot(ctx, time.Second)
 	if err != nil {
 		t.Fatalf("hold the slot: %v", err)
 	}
@@ -975,5 +975,42 @@ func TestOnDemandFetchCoveredNeverQueues(t *testing.T) {
 	}
 	if n := requests.Load(); n != 0 {
 		t.Errorf("tefas requests = %d, want 0 for stored history", n)
+	}
+}
+
+// TestOnDemandFetchUSNoHistoryKeyNeverQueues checks that a US save with a
+// latest price stored and no Tiingo key, so no history to fetch, does not
+// wait for the fetch slot another fetch holds.
+func TestOnDemandFetchUSNoHistoryKeyNeverQueues(t *testing.T) {
+	conn := openBackfillTestDB(t)
+	repo := settings.NewRepo(conn, nil)
+	ctx := context.Background()
+	for _, name := range []string{"gold", "tcmb"} {
+		if err := repo.Set(ctx, scheduler.EnabledKey(name), "false"); err != nil {
+			t.Fatalf("disable %s: %v", name, err)
+		}
+	}
+	res, err := conn.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES ('AAPL', 'US', 'Apple Inc.', 'USD')`)
+	if err != nil {
+		t.Fatalf("insert instrument: %v", err)
+	}
+	id, _ := res.LastInsertId()
+	if err := price.NewRepo(conn).Upsert(ctx, id, price.Today(), "100", "finnhub"); err != nil {
+		t.Fatalf("upsert price: %v", err)
+	}
+	fetch := newOnDemandFetch(&deps{cfg: repo, instruments: instrument.NewRepo(conn), prices: price.NewRepo(conn), fx: fx.NewRepo(conn), usFetcher: us.NewFetcher(repo)}, &backfillQueue{})
+
+	_, release, err := transaction.AcquireFetchSlot(ctx, time.Second)
+	if err != nil {
+		t.Fatalf("hold the slot: %v", err)
+	}
+	defer release()
+
+	start := time.Now()
+	in := instrument.Instrument{ID: id, Symbol: "AAPL", Market: "US", Name: "Apple Inc.", Currency: "USD"}
+	transaction.EnsurePrice(ctx, fetch, in, transaction.Transaction{InstrumentID: &id, Date: "2024-01-01", Currency: "USD"})
+	backfillWorkers.Wait()
+	if took := time.Since(start); took > time.Second {
+		t.Errorf("save took %v while the slot was held, want no wait", took)
 	}
 }

@@ -2015,6 +2015,65 @@ func TestConcurrentParsesFetchOneAtATime(t *testing.T) {
 	}
 }
 
+// TestQueuedParseStillFetchesAfterTheHolderRunsOut checks that a parse queued
+// behind one whose fetches run to their deadline gets the slot when that
+// deadline ends, not before and not never, and then fetches all its
+// candidates.
+func TestQueuedParseStillFetchesAfterTheHolderRunsOut(t *testing.T) {
+	e := newTransactionTestEnv(t)
+	session := e.login("queued-parse@example.com")
+	portfolioID := e.createPortfolio(session, "Import")
+
+	for _, symbol := range []string{"QA1", "QA2", "QB1", "QB2", "QB3"} {
+		if _, err := e.db.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES (?, 'TEFAS', 'x', 'TRY')`, symbol); err != nil {
+			t.Fatalf("insert instrument: %v", err)
+		}
+	}
+	started := make(chan struct{})
+	var once sync.Once
+	var fetchedB atomic.Int32
+	fetch := func(ctx context.Context, in instrument.Instrument, date string) {
+		if strings.HasPrefix(in.Symbol, "QA") {
+			once.Do(func() { close(started) })
+			<-ctx.Done()            // a hung host: runs to the deadline
+			time.Sleep(time.Second) // and the parse goes on a while after it
+			return
+		}
+		fetchedB.Add(1)
+	}
+	protected := http.NewServeMux()
+	deps := e.importDeps()
+	deps.OnDemandFetch = fetch
+	statement.RegisterRoutes(protected, deps)
+	e.handler = e.sessions.RequireUser(protected)
+
+	for broker, prefix := range map[string]string{"queued-a": "QA", "queued-b": "QB"} {
+		t.Cleanup(func() { delete(statement.Parsers, broker) })
+		n := map[string]int{"QA": 2, "QB": 3}[prefix]
+		statement.Parsers[broker] = func([][]string) (statement.Statement, error) {
+			st := statement.Statement{Broker: broker, PeriodStart: "2025-12-01", PeriodEnd: "2025-12-31", Currency: "TRY", Market: "TEFAS"}
+			for i := 1; i <= n; i++ {
+				st.Holdings = append(st.Holdings, statement.Holding{Symbol: fmt.Sprintf("%s%d", prefix, i), Quantity: dec("1"), Currency: "TRY"})
+			}
+			return st, nil
+		}
+	}
+
+	var wg sync.WaitGroup
+	wg.Go(func() { upload(e, session, "queued-a", portfolioID, emptyPDF(1)) })
+	<-started
+	wg.Go(func() {
+		if rec := upload(e, session, "queued-b", portfolioID, emptyPDF(2)); rec.Code != http.StatusOK {
+			t.Errorf("queued parse status = %d, want 200", rec.Code)
+		}
+	})
+	wg.Wait()
+
+	if got := fetchedB.Load(); got != 3 {
+		t.Errorf("queued parse fetched %d of its 3 candidates, want 3", got)
+	}
+}
+
 // TestImportLookupsShareOneDeadline checks that with TEFAS and the
 // bulletin host hanging until the context ends, a preview naming three
 // unknown fund codes and an unknown BIST symbol on two dates answers within

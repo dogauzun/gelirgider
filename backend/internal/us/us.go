@@ -595,25 +595,34 @@ type Syncer struct {
 // request per such symbol per save/startup; remember misses if the free
 // tier's hourly limit ever bites.
 func (s *Syncer) SyncHistory(ctx context.Context, in instrument.Instrument, from string) (int, error) {
-	if ok, err := s.Fetcher.tiingoConfigured(ctx); !ok {
+	covered, err := s.HistoryCovered(ctx, in, from)
+	if err != nil || covered {
 		return 0, err
 	}
-	start, err := time.Parse(time.DateOnly, from)
-	if err != nil {
-		return 0, fmt.Errorf("us history for %s: bad start date %q: %w", in.Symbol, from, err)
-	}
-	have, err := s.Prices.Latest(ctx, []int64{in.ID}, from)
-	if err != nil {
-		return 0, fmt.Errorf("check us history for %s: %w", in.Symbol, err)
-	}
-	if _, ok := have[in.ID]; ok {
-		return 0, nil
-	}
+	start, _ := time.Parse(time.DateOnly, from) // HistoryCovered read it
 	closes, err := s.Fetcher.FetchHistory(ctx, in.Symbol, start.Add(-historyPad))
 	if err != nil {
 		return 0, err
 	}
 	return s.storeHistory(ctx, in, closes)
+}
+
+// HistoryCovered reports whether SyncHistory has nothing to fetch for in
+// from from, without any request: no Tiingo key is set, or a price is
+// stored on or before from.
+func (s *Syncer) HistoryCovered(ctx context.Context, in instrument.Instrument, from string) (bool, error) {
+	if ok, err := s.Fetcher.tiingoConfigured(ctx); !ok {
+		return true, err
+	}
+	if _, err := time.Parse(time.DateOnly, from); err != nil {
+		return false, fmt.Errorf("us history for %s: bad start date %q: %w", in.Symbol, from, err)
+	}
+	have, err := s.Prices.Latest(ctx, []int64{in.ID}, from)
+	if err != nil {
+		return false, fmt.Errorf("check us history for %s: %w", in.Symbol, err)
+	}
+	_, ok := have[in.ID]
+	return ok, nil
 }
 
 // storeHistory upserts closes into Prices in one transaction, every splitFactor that is

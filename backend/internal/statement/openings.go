@@ -253,8 +253,8 @@ type openingRun struct {
 	proceeds, deposits currencyTotals
 	// The pricing state startPricing and fetchReady set up for priceOf.
 	client       string
+	slotWait     time.Duration
 	fetchCtx     context.Context
-	fetchOK      bool
 	release      func()
 	session      *lookupSession
 	bulletinDate string
@@ -291,7 +291,7 @@ func (r *openingRun) splitRatios(cands []candidate) (map[int64]decimal.Decimal, 
 // An instrument left unfetched is priced as if its fetch found nothing. The
 // bulletin sync shares that deadline. A weekend has no bulletin.
 func (r *openingRun) startPricing(client string, start time.Time) func() {
-	r.client = client
+	r.client, r.slotWait = client, transaction.FetchSlotWait
 	day := start.AddDate(0, 0, -1)
 	for day.Weekday() == time.Saturday || day.Weekday() == time.Sunday {
 		day = day.AddDate(0, 0, -1)
@@ -304,20 +304,28 @@ func (r *openingRun) startPricing(client string, start time.Time) func() {
 	}
 }
 
-// fetchReady reports whether priceOf may fetch or sync. The first call takes
-// the fetch slot of transaction.AcquireFetchSlot, which the parse then holds
-// to its end, and starts the shared deadline: a parse whose prices are all
-// stored never queues, and one queued behind others keeps its whole deadline
-// for its own fetches. False when the wait for the slot ran out or the
-// deadline has: the fetches are skipped.
+// fetchReady reports whether priceOf may fetch or sync. The first call that
+// gets the fetch slot of transaction.AcquireFetchSlot starts the shared
+// deadline, and the slot goes at its end, at the latest: a parse whose
+// prices are all stored never queues, and one queued behind others keeps its
+// whole deadline for its own fetches. A wait that runs out skips that
+// candidate's fetch; a later one waits again, in what is left of
+// transaction.FetchSlotWait for the whole parse.
 func (r *openingRun) fetchReady() bool {
-	if r.release == nil {
-		var err error
-		r.fetchCtx, r.release, err = transaction.AcquireFetchSlot(r.ctx)
-		r.fetchOK = err == nil
-		r.session = &lookupSession{ctx: r.fetchCtx, client: r.client, synced: map[string]bool{}}
+	if r.fetchCtx == nil {
+		if r.slotWait <= 0 {
+			return false
+		}
+		waitStart := time.Now()
+		ctx, release, err := transaction.AcquireFetchSlot(r.ctx, r.slotWait)
+		r.slotWait -= time.Since(waitStart)
+		if err != nil {
+			return false
+		}
+		r.fetchCtx, r.release = ctx, release
+		r.session = &lookupSession{ctx: ctx, client: r.client, synced: map[string]bool{}}
 	}
-	return r.fetchOK && r.fetchCtx.Err() == nil
+	return r.fetchCtx.Err() == nil
 }
 
 // priceOf prices row, c's opening or closing row, by the rule of
