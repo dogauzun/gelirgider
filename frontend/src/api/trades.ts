@@ -5,7 +5,7 @@ import type { PortfolioScope } from './summary'
 
 // One realized sell. Amounts are 2-decimal strings in the instrument's
 // currency, each portfolio applied at its average cost.
-interface Trade {
+export interface Trade {
   portfolio_id: number
   date: string
   instrument_id: number
