@@ -48,9 +48,9 @@ Lint: <rule and config file> or none
 
 Grade by the cost of leaving the code as it is, not by the size of the fix.
 
-- High: two or more copies of a money, return, price or error-handling rule that can drift apart and show a wrong figure or status, or code that lets a user action run twice.
-- Medium: duplication or a leaking layer that every change in that area pays for, a classification that a new case can silently miss, or a function at its lint cap.
-- Low: a local cleanup: a dead parameter or result, a pass-through wrapper, an interface with one implementation, one small duplicate.
+- High: two or more copies of a money, return, price or error-handling rule that can drift apart and show a wrong figure or status, code that lets a user action run twice, or a performance finding on a path every page load or every statement import runs.
+- Medium: duplication or a leaking layer that every change in that area pays for, a classification that a new case can silently miss, a function at its lint cap, or a performance finding on a path users reach only sometimes.
+- Low: a local cleanup: a dead parameter or result, a pass-through wrapper, an interface with one implementation, one small duplicate, or a smell in a function under its lint cap (deep nesting, a flag parameter, an unclear name). A finding no line above describes is low.
 
 ## Ticket rules
 
