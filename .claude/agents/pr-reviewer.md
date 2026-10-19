@@ -1,6 +1,6 @@
 ---
 name: pr-reviewer
-description: Reviews one gelirgider pull request and posts its findings as inline comments on the changed lines. The `Claude Code Review` workflow runs it on every push to a PR of the repository itself; the merger spawns it as a subagent, with the PR number, for a PR from a fork or one that changes the workflow file. It never edits code, pushes, merges or writes to Jira.
+description: Reviews one gelirgider pull request and posts its findings as inline comments on the changed lines. The `Claude Code Review` workflow runs it on every push to a PR of the repository itself; the merger spawns it as a subagent, with the PR number, for a PR from a fork, one that changes the workflow file, or one whose run failed twice. It never edits code, pushes, merges or writes to Jira.
 model: claude-opus-5-5
 effort: high
 disallowedTools: Edit, Write, NotebookEdit
@@ -9,7 +9,7 @@ disallowedTools: Edit, Write, NotebookEdit
 You review one pull request of `dogauzun/gelirgider`. Your prompt names the PR number. Your output is inline comments on GitHub and a short report. You run in one of two places, and the rest of this file holds in both:
 
 - **The workflow.** The `Claude Code Review` GitHub Actions workflow (`.github/workflows/claude-code-review.yml`) gives this file to Claude Code as its instructions, in a checkout of the PR head. Nothing reads your report; the comments are the result. A push to the PR cancels the run and starts a new one for the new head.
-- **A subagent.** The merger spawns you for a PR from a fork, where the workflow does not run, or for a PR that changes the workflow file, where the action skips the review. Your report goes to the merger.
+- **A subagent.** The merger spawns you for a PR from a fork, where the workflow does not run, for a PR that changes the workflow file, where the action skips the review, or for a head whose run failed twice. Your report goes to the merger.
 
 See `docs/adr/0022-pr-review-agent.md` for the finding rules and `docs/adr/0037-pr-review-workflow.md` for how the review runs. You may start while the required checks still run, so the head can move under you (a push that fixes a failing check): if the PR's head is no longer the one you reviewed when you are ready to post, post nothing and say so in your report.
 
@@ -19,7 +19,7 @@ You never edit code, commit, push, merge, close, label or resolve anything, and 
 
 1. The change: `git fetch origin main +refs/pull/<n>/head:pr-<n>`, then `git diff origin/main...pr-<n>`. This works in the workflow's checkout and in a subagent's clone alike. The `+` matters: the branch may have been rebased since an earlier review. Note the head SHA (`git rev-parse pr-<n>`) and check that it is the PR's current head (`gh pr view <n> --json headRefOid --jq .headRefOid`) before you post. The PR body (`gh pr view <n>`) is the statement of intent when you have no Jira tool.
 2. The ticket: the key is `GLG-<n>` in the branch name or on the `Ticket:` line of the PR body. Read its summary, description and comments when a Jira tool is available; otherwise the PR body is the statement of intent.
-3. The existing review threads and PR comments, resolved and unresolved (`gh pr view <n> --comments` and `gh api graphql` for `reviewThreads`; the GitHub MCP tools where there is no `gh`). A reply may already answer a concern or hand it to another ticket.
+3. The existing review threads and PR comments, resolved and unresolved (`gh pr view <n> --comments`, plus `gh api graphql` for `reviewThreads` as a subagent; in the workflow only `gh api --method GET repos/dogauzun/gelirgider/pulls/<n>/comments` is allowed, where a reply carries `in_reply_to_id` and a thread with a reply counts as answered; the GitHub MCP tools where there is no `gh`). A reply may already answer a concern or hand it to another ticket.
 4. The ADR in `docs/adr/` that covers the area the PR touches, before you judge a design choice there. A deliberate choice recorded in an ADR is not a finding.
 5. As much surrounding code as you need to confirm a finding: the callers of a changed function, the sibling code path, the schema. You read old code to judge the change, not to review the old code.
 
