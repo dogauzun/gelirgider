@@ -486,7 +486,7 @@ func (r *openingRun) cashRows(kind string, totals currencyTotals, round func(dec
 // manual price or the fetched one, the manual one winning on the same date,
 // else the newer, as the summary merges them.
 func (h *handler) storedPrice(ctx context.Context, userID, instrumentID int64, date string) (decimal.Decimal, bool, error) {
-	winners, err := holdings.LatestCloses(ctx, holdings.PriceSources{Prices: h.prices, Manual: h.manualPrices, Deposits: h.deposits}, userID, []int64{instrumentID}, date)
+	winners, err := holdings.LatestCloses(ctx, h.priceSources, userID, []int64{instrumentID}, date)
 	if err != nil {
 		return decimal.Decimal{}, false, err
 	}
