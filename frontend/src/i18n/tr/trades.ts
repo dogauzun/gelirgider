@@ -1,0 +1,18 @@
+export const trTrades = {
+  // The Gerçekleşen satışlar card on the Performans tab.
+  'trades.title': 'Gerçekleşen satışlar',
+  'trades.hint':
+    'Her satışın ortalama maliyete göre sonucu, satış günü kuruyla. Temettü ve açık pozisyonlar dahil değil.',
+  'trades.error': 'Satışlar yüklenemedi',
+  'trades.empty': 'Henüz satış yok.',
+  'trades.date': 'Tarih',
+  'trades.instrument': 'Enstrüman',
+  'trades.portfolio': 'Portföy',
+  'trades.quantity': 'Adet',
+  'trades.proceeds': 'Satış tutarı',
+  'trades.cost': 'Maliyet',
+  'trades.realized': 'K/Z',
+  'trades.days': 'Gün',
+  'trades.short': 'Açığa satış',
+  'trades.missingRate': '{count} satışın kuru yok',
+} as const

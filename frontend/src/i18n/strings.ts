@@ -19,6 +19,7 @@ import { trPlans } from './tr/plans'
 import { trPortfolios } from './tr/portfolios'
 import { trPosition } from './tr/position'
 import { trSummary } from './tr/summary'
+import { trTrades } from './tr/trades'
 import { trTransactions } from './tr/transactions'
 import { trWatchlist } from './tr/watchlist'
 import { enAccount } from './en/account'
@@ -34,6 +35,7 @@ import { enPlans } from './en/plans'
 import { enPortfolios } from './en/portfolios'
 import { enPosition } from './en/position'
 import { enSummary } from './en/summary'
+import { enTrades } from './en/trades'
 import { enTransactions } from './en/transactions'
 import { enWatchlist } from './en/watchlist'
 
@@ -51,6 +53,7 @@ export const tr = {
   ...trPortfolios,
   ...trPosition,
   ...trSummary,
+  ...trTrades,
   ...trTransactions,
   ...trWatchlist,
 } as const
@@ -75,6 +78,7 @@ const en: Strings = {
   ...enPortfolios,
   ...enPosition,
   ...enSummary,
+  ...enTrades,
   ...enTransactions,
   ...enWatchlist,
 }
