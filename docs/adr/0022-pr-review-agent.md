@@ -1,6 +1,6 @@
-# ADR 0022: PR review by a subagent of the merger
+# ADR 0022: PR review agent, its findings and its exempt diffs
 
-Status: accepted (2026-10-02).
+Status: accepted (2026-10-02), partly superseded by [ADR 0037](0037-pr-review-workflow.md) (2026-10-19): the workflow runs the review, not the merger.
 
 ## Context
 
@@ -16,18 +16,20 @@ records that routine.
 
 ## Decision
 
-### A review subagent, spawned by the merger
+### A separate review agent
 
 Every PR, except one whose diff is exempt (below), is reviewed by a separate
-review agent, `pr-reviewer`, on Opus 5.5 at high effort. The merger spawns it
-as a subagent: the hourly kanban worker in the cloud, the orchestrating
-session locally. It runs once the PR is open, alongside the required GitHub
-Actions checks, not after them: a lint failure rarely changes a finding, and
-waiting for the checks added their run time to the review time of every PR.
-The checks stay a condition for the merge. A fresh review runs after every
-push that changes the PR's diff and leaves it non-exempt, which includes a
-push that fixes a failing check. The agent that wrote the code never reviews it, and the reviewer
-starts without the author's context.
+review agent, `pr-reviewer`, on Opus 5.5 at high effort. How the review runs
+is in [ADR 0037](0037-pr-review-workflow.md): the `Claude Code Review`
+workflow on every push, and the merger's subagent in its three fallback
+cases. It
+runs alongside the required GitHub Actions checks, not after them: a lint
+failure rarely changes a finding, and waiting for the checks added their run
+time to the review time of every PR. The checks stay a condition for the
+merge. Every push that changes the PR's diff and leaves it non-exempt gets a
+fresh review, which includes a push that fixes a failing check. The agent that
+wrote the code never reviews it, and the reviewer starts without the author's
+context.
 
 ### Exempt diffs
 
@@ -65,8 +67,7 @@ so the cloud worker and a local session use the same text. A session whose
 harness does not load those files as agent types spawns a general subagent
 with the same model and effort and tells it to read the file and follow it.
 
-No session waits for or parses a verdict. The review of a head starts when
-the merger asks for it and ends with a report.
+No session parses a verdict. The review of a head ends with its comments.
 
 ### What the reviewer reports
 
@@ -82,8 +83,9 @@ the merger asks for it and ends with a report.
   no style, no naming, no suggestions, no questions, no praise.
 
 The reviewer never edits code, pushes, merges, resolves a thread or
-writes to Jira. It ends with a short report to the merger: the head SHA
-it reviewed and either `no findings` or one line per comment posted.
+writes to Jira. It ends with a short report: the head SHA it reviewed and
+either `no findings` or one line per comment posted. Only the merger's
+subagent run for a fork PR delivers it to anyone.
 
 The review is posted with state `COMMENT`, because GitHub refuses
 `APPROVE` and `REQUEST_CHANGES` on the author's own PR and every PR is
@@ -94,7 +96,8 @@ authored by the account the agents run as.
 The merger does not read the whole diff. It:
 
 1. decides from `gh pr diff <n> --name-only` whether the diff is exempt, and
-   spawns the reviewer as soon as the PR is open when it is not;
+   for a diff that is not, checks that the review of the current head has run
+   (ADR 0037);
 2. reads the required GitHub Actions checks on the PR head, once they have
    run: `Lint (Go + web)`,
    `Go tests`, `Web tests` and `Web build` (workflow `ci`) and `Title`
@@ -105,38 +108,34 @@ The merger does not read the whole diff. It:
    before the fix or says why no test can express the bug, and a new or
    changed route has its swag annotation (the missing tests and documentation
    the reviewer leaves to the merger);
-4. reads the reviewer's report (an exempt PR has none);
+4. reads the review's result (an exempt PR has none);
 5. sends findings that need a code change back to the ticket's agent, and
    answers the others in their thread: a disagreement with evidence, or a
    new GLG ticket for a real but out-of-scope problem (CLAUDE.md rule 4);
 6. resolves every thread once it is fixed or answered.
 
 The merger posts a merge comment on the PR that lists the required checks with
-their run URLs and conclusions on the merged head, and the head the reviewer ran
-on or `reviewer skipped (exempt paths)`, and it transitions the ticket to `Done`
+their run URLs and conclusions on the merged head, and the review run's URL and
+conclusion on that head or `reviewer skipped (exempt paths)`, and it transitions the ticket to `Done`
 with a comment that links the merged PR.
 
 ### Merge gate
 
 A PR merges when all of these hold (CLAUDE.md rules 6 and 7):
 
-1. the reviewer has reviewed the PR's current diff: the current head, or
-   the head before a push that only rebased the branch onto `main` and
-   resolved no conflict; an exempt diff satisfies this item without a
-   review, and a push that adds a non-exempt path ends the exemption;
+1. the PR's current head has been reviewed, as ADR 0037 states; an exempt
+   diff satisfies this item without a review, and a push that adds a
+   non-exempt path ends the exemption;
 2. every review thread, from the reviewer or a human, is fixed or
    answered and resolved;
 3. the required checks are green on the current head. The merger turns on
    auto-merge (`gh pr merge --auto --squash --subject "<PR title> (#<n>)" --body "<the PR's Description text>"`) and GitHub merges as soon as
    they pass; the branch does not have to be up to date with `main`, so no
    rebase is needed first. A push run on `main` that fails after a merge is
-   a bug ticket for the merger that landed it. Auto-merge is turned on only as the last step, after the reviewer has reviewed the current head (or the diff is exempt) and every thread is resolved; before any push that changes the diff after that, the merger runs `gh pr merge --disable-auto` and turns auto-merge on again only after the new review (or the diff is still exempt).
+   a bug ticket for the merger that landed it. Auto-merge is turned on only as the last step, after the current head has been reviewed (or the diff is exempt) and every thread is resolved; before any push that changes the diff after that, the merger runs `gh pr merge --disable-auto` and turns auto-merge on again only after the new review (or the diff is still exempt).
 
 A push that changes the PR's own diff gets a new review, unless the diff is
-still exempt. A push that only
-rebases the branch onto `main` does not, and neither does a finding that
-was answered without a push. A rebase that had to resolve a conflict
-rewrites the PR's own lines, so it counts as a change and gets a review.
+still exempt. A finding that was answered without a push does not.
 
 A PR branch changes only through git under the owner's identity, never
 through the GitHub contents API or the update-branch endpoint, which decode
@@ -153,18 +152,12 @@ seventh.
 
 ## Recorded simplifications
 
-- Nothing on GitHub says that a clean PR was reviewed. The merger's merge
-  comment states either `reviewer skipped (exempt paths)` or the head the
-  reviewer ran on.
 - A review that starts while the checks run is wasted when a failing check
   forces a push that changes the diff. The cost is accepted.
-- A PR opened outside a merger session (by hand, or by an agent whose
-  orchestrator died) gets no review until a merger picks it up. The hourly
-  worker takes over an idle `In Review` ticket after two hours.
 - The reviewer and the author run on the same model family. The
   independence comes from a fresh context and a different brief, not from
   a different model.
-- In a cloud session the GitHub proxy appends a
+- In a cloud session (a fork PR's subagent review) the GitHub proxy appends a
   `Generated by Claude Code` footer to every review comment and
   re-appends it on every edit. The owner decided that reviews and review
   comments stay as posted, footer included; it is not a CLAUDE.md rule 9
