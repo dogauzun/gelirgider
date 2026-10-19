@@ -157,6 +157,9 @@ func TestPositionHistory(t *testing.T) {
 	if got.ReturnsFrom == nil || *got.ReturnsFrom != "2024-01-02" {
 		t.Errorf("returns_from = %v, want 2024-01-02", got.ReturnsFrom)
 	}
+	if got.ReturnsTo == nil || *got.ReturnsTo != "2024-01-05" {
+		t.Errorf("returns_to = %v, want 2024-01-05", got.ReturnsTo)
+	}
 	for name, r := range map[string]*string{"twr": got.Returns.TWR, "mwr": got.Returns.MWR} {
 		if r == nil {
 			t.Errorf("returns.%s = null, want 0.090909", name)
@@ -254,6 +257,51 @@ func TestPositionHistoryDeposit(t *testing.T) {
 	}
 }
 
+// TestPositionHistoryClosedEnd checks that a closed position's series ends on
+// its last sell: a buy of 10 at 100, a sell of 4 at 120 with a fee of 2 and a
+// sell of 6 at 90 (the ADR 0034 example) have flows -1000, +478, +540, so the
+// daily IRR is 0.011736 and the money-weighted return 0.023610, however many
+// zero-value days the range runs past the last sell. Those days carry no twr
+// and no benchmark_twr.
+func TestPositionHistoryClosedEnd(t *testing.T) {
+	e := newPeriodsEnv(t)
+	userID, session := e.user(t, "closed@example.com")
+	pf := e.portfolio(t, userID)
+	id := e.instrument(t, "CLOSED")
+	e.buy(t, userID, lot{pf, id, "2026-09-01", "10", "100"})
+	e.sell(t, userID, lot{pf, id, "2026-09-02", "4", "120"}, "2", "TRY")
+	e.sell(t, userID, lot{pf, id, "2026-09-03", "6", "90"}, "0", "TRY")
+	for _, p := range []struct{ date, close string }{{"2026-09-01", "100"}, {"2026-09-02", "120"}, {"2026-09-03", "90"}} {
+		if err := price.NewRepo(e.conn).Upsert(context.Background(), id, p.date, p.close, "test"); err != nil {
+			t.Fatalf("prices.Upsert: %v", err)
+		}
+	}
+	if err := fx.NewRepo(e.conn).Upsert(context.Background(), "USD", "2026-09-01", "30", "manual"); err != nil {
+		t.Fatalf("fx.Upsert: %v", err)
+	}
+
+	for _, to := range []string{"2026-09-03", "2026-09-30", "2026-10-19"} {
+		var got positionHistoryResponse
+		e.get(t, session, fmt.Sprintf("/api/portfolios/%d/instruments/%d/history?from=2026-09-01&to=%s&benchmark=USD", pf, id, to), http.StatusOK, &got)
+		if got.ReturnsTo == nil || *got.ReturnsTo != "2026-09-03" {
+			t.Errorf("to %s: returns_to = %v, want 2026-09-03", to, got.ReturnsTo)
+		}
+		r := got.Returns
+		if r.Simple != nil || r.TWR == nil || *r.TWR != "-0.101500" || r.MWR == nil || *r.MWR != "0.023610" {
+			t.Errorf("to %s: returns = %+v, want simple null twr -0.101500 mwr 0.023610", to, r)
+		}
+		for i, p := range got.Points {
+			wantNull := p.Date > "2026-09-03"
+			if (p.Twr == nil) != wantNull || (p.BenchmarkTwr == nil) != wantNull {
+				t.Errorf("to %s: point[%d] %s twr %v benchmark_twr %v, want null %v", to, i, p.Date, p.Twr, p.BenchmarkTwr, wantNull)
+			}
+		}
+		if got.Benchmark == nil || got.Benchmark.Returns.MWR == nil {
+			t.Errorf("to %s: benchmark = %+v, want returns", to, got.Benchmark)
+		}
+	}
+}
+
 // TestPositionFlow checks the money a row moves in or out of the position:
 // a buy and its fee in, a sell or a dividend net of its fee out, the rest zero.
 func TestPositionFlow(t *testing.T) {
@@ -295,6 +343,9 @@ func TestPositionHistoryShortIsUndefined(t *testing.T) {
 	e.get(t, session, fmt.Sprintf("/api/portfolios/%d/instruments/%d/history?to=2024-01-03", portfolioID, instrumentID), http.StatusOK, &got)
 	if got.ReturnsFrom == nil || *got.ReturnsFrom != "2024-01-01" {
 		t.Errorf("returns_from = %v, want 2024-01-01", got.ReturnsFrom)
+	}
+	if got.ReturnsTo == nil || *got.ReturnsTo != "2024-01-03" {
+		t.Errorf("returns_to = %v, want 2024-01-03", got.ReturnsTo)
 	}
 	if got.Returns.Simple != nil || got.Returns.TWR != nil || got.Returns.MWR != nil {
 		t.Errorf("returns = %+v, want all null", got.Returns)

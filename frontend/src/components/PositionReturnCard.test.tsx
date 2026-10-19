@@ -24,6 +24,7 @@ const history = (
     currency: 'TRY',
     returns: { simple: '0.125', twr: '0.05', mwr: '0.090909', ...returns },
     returns_from: from,
+    returns_to: to,
     benchmark,
     points: [from, to].map((date) => ({
       date,
@@ -55,6 +56,21 @@ it('annualizes from a year apart, a calendar year counting as one year', () => {
   localStorage.setItem('returnMethod', 'mwr')
   render(<PositionReturnCard history={history({}, '2025-01-01', '2025-12-31')} currency="TRY" />)
   expect(screen.getByText('yıllık +%9,09')).toBeInTheDocument()
+})
+
+it('annualizes and tags estimates only up to returns_to, not the range end', () => {
+  localStorage.setItem('returnMethod', 'mwr')
+  const closed = history({}, '2025-01-01', '2026-02-05', {
+    code: 'XU100',
+    returns: { simple: '0.1', twr: '0.1', mwr: '0.1' },
+    estimated_from: '2025-06-01',
+  })
+  // Closed on 2025-01-31: 30 days of returns inside a 400-day range.
+  closed.data.returns_to = '2025-01-31'
+  render(<PositionReturnCard history={closed} currency="TRY" benchmark="XU100" />)
+  expect(screen.getByText('+%9,09')).toBeInTheDocument()
+  expect(screen.queryByText(/yıllık/)).toBeNull()
+  expect(screen.queryByText(/tahmini/)).toBeNull()
 })
 
 it('shows a dash with the undefined title for a null return', () => {
