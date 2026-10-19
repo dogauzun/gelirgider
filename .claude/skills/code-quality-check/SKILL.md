@@ -31,7 +31,7 @@ Look for exactly these four things:
 3. Code smell: long functions, deep nesting, boolean-flag parameters, primitive obsession, unclear names, inconsistent handling of the same case in sibling code.
 4. Misused abstraction: an interface with one implementation, a wrapper that adds nothing, a hook or component split that hides a simple flow, a layer that leaks (SQL outside the repository layer, fetch logic in a presentational component), a pattern applied where a function would do.
 
-Not in scope: bugs, security, formatting, missing tests.
+Not in scope: bugs, security, formatting, missing tests. One exception: when a duplication or an inconsistency between sibling code already makes one copy behave differently (a double submit one copy guards against, a 404 where a sibling answers 500), report it as that finding and say the wrong behavior in Problem.
 
 Start from the largest and most-changed files, then follow what you find. Confirm every finding in the code (read the callers) before you report it. Report the ten findings with the highest payoff at most, ranked. Fewer is fine.
 
