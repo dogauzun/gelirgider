@@ -89,7 +89,7 @@ func SyncSectors(ctx context.Context, page string, instrumentRepo *instrument.Re
 	if err != nil {
 		return 0, err
 	}
-	instruments, err := instrumentRepo.All(ctx, "BIST")
+	instruments, err := instrumentRepo.All(ctx, instrument.MarketBIST)
 	if err != nil {
 		return 0, fmt.Errorf("list instruments: %w", err)
 	}

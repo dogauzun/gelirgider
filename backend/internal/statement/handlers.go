@@ -814,7 +814,7 @@ func (h *handler) lookupFundRoute(w http.ResponseWriter, r *http.Request) {
 		auth.WriteError(w, http.StatusBadRequest, "code: must be a TEFAS fund code")
 		return
 	}
-	in, err := h.instruments.BySymbol(r.Context(), "TEFAS", code)
+	in, err := h.instruments.BySymbol(r.Context(), instrument.MarketTEFAS, code)
 	if errors.Is(err, instrument.ErrNotFound) {
 		in, err = h.createFund(r.Context(), &lookupSession{ctx: r.Context(), client: ratelimit.ClientIP(r), asked: map[string]bool{}}, code)
 	}

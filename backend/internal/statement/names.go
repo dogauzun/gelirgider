@@ -37,11 +37,11 @@ func (h *handler) nameInstrument(ctx context.Context, s *lookupSession, learned 
 	if id := learnedName(row.Symbol, learned); id != 0 {
 		return h.instruments.Get(ctx, id)
 	}
-	if learned == nil || s.broker != "garanti" || row.Market != "TEFAS" {
+	if learned == nil || s.broker != "garanti" || row.Market != instrument.MarketTEFAS {
 		return instrument.Instrument{}, instrument.ErrNotFound
 	}
 	if s.funds == nil {
-		all, err := h.instruments.All(ctx, "TEFAS")
+		all, err := h.instruments.All(ctx, instrument.MarketTEFAS)
 		if err != nil {
 			return instrument.Instrument{}, err
 		}

@@ -153,7 +153,7 @@ func SyncCapitalEvents(ctx context.Context, page string, instrumentRepo *instrum
 	if err != nil {
 		return 0, err
 	}
-	instruments, err := instrumentRepo.All(ctx, "BIST")
+	instruments, err := instrumentRepo.All(ctx, instrument.MarketBIST)
 	if err != nil {
 		return 0, fmt.Errorf("list instruments: %w", err)
 	}

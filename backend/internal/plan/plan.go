@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/db"
+	"github.com/dogauzun/gelirgider/backend/internal/instrument"
 	"github.com/shopspring/decimal"
 )
 
@@ -68,7 +69,7 @@ func FirstOnOrAfter(date string, day int) string {
 }
 
 // QuantityScale is the decimal places of a quantity per market.
-var QuantityScale = map[string]int32{"BIST": 0, "US": 4, "TEFAS": 6, "CRYPTO": 8, "GOLD": 4}
+var QuantityScale = map[string]int32{instrument.MarketBIST: 0, instrument.MarketUS: 4, instrument.MarketTEFAS: 6, instrument.MarketCrypto: 8, instrument.MarketGold: 4}
 
 // Booking returns the quantity that amount buys at closePrice, rounded down to the
 // market's scale (0 places for a market not in QuantityScale), and what that

@@ -25,9 +25,9 @@ const sectorUnknown = "unknown"
 // sectorMaps maps a market's folded, lower-case raw sector strings to a sector
 // key. A market without a map has no sector source yet and answers unknown.
 var sectorMaps = map[string]map[string]string{
-	"US":    finnhubSectors,
-	"BIST":  foldKeys(isYatirimSectors),
-	"TEFAS": foldKeys(tefasFundTypes),
+	MarketUS:    finnhubSectors,
+	MarketBIST:  foldKeys(isYatirimSectors),
+	MarketTEFAS: foldKeys(tefasFundTypes),
 }
 
 // foldKeys returns m with its keys folded the way SectorKey folds a raw

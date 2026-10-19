@@ -34,9 +34,6 @@ const maxBodyBytes = 8 << 20
 // SourceTEFAS is the price.Repo source value written by this package.
 const SourceTEFAS = "tefas"
 
-// tefasMarket is the instruments.market value for TEFAS funds.
-const tefasMarket = "TEFAS"
-
 // userAgent identifies the fetcher honestly (ADR 0004).
 const userAgent = "gelirgider/1.0 (+https://github.com/dogauzun/gelirgider)"
 
@@ -202,7 +199,7 @@ func (s *Syncer) SyncFund(ctx context.Context, in instrument.Instrument, periyod
 // is logged and the rest continue, every fund failing is an error, and a
 // cancelled ctx stops it quietly. Returns rows written.
 func Sync(ctx context.Context, f *Fetcher, instruments *instrument.Repo, prices *price.Repo, date time.Time) (int, error) {
-	tracked, err := instruments.Tracked(ctx, tefasMarket)
+	tracked, err := instruments.Tracked(ctx, instrument.MarketTEFAS)
 	if err != nil {
 		return 0, fmt.Errorf("list tracked tefas instruments: %w", err)
 	}

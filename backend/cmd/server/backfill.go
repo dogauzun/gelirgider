@@ -171,7 +171,7 @@ func skippedIfEmpty(written int, err error) (int, bool, error) {
 // per-date walk. A fund whose prices already reach back that far costs one
 // small query and no request.
 func backfillTEFAS(ctx context.Context, r backfillRun, s *tefas.Syncer) (int, error) {
-	return r.backfillTracked(ctx, "TEFAS", "funds", tefas.RequestPause, func(in instrument.Instrument, start string) (int, bool, error) {
+	return r.backfillTracked(ctx, instrument.MarketTEFAS, "funds", tefas.RequestPause, func(in instrument.Instrument, start string) (int, bool, error) {
 		return skippedIfEmpty(s.SyncHistory(ctx, in, start, r.now))
 	})
 }
@@ -185,7 +185,7 @@ func backfillTEFAS(ctx context.Context, r backfillRun, s *tefas.Syncer) (int, er
 // every day of that range is skipped.
 func backfillCrypto(ctx context.Context, r backfillRun, f *btcturk.Fetcher) (int, error) {
 	last := btcturk.LastCandleDay(r.now)
-	return r.backfillTracked(ctx, "CRYPTO", "pairs", btcturk.RequestPause, func(in instrument.Instrument, startStr string) (int, bool, error) {
+	return r.backfillTracked(ctx, instrument.MarketCrypto, "pairs", btcturk.RequestPause, func(in instrument.Instrument, startStr string) (int, bool, error) {
 		start, err := time.Parse(time.DateOnly, startStr)
 		if err != nil {
 			return 0, false, fmt.Errorf("parse crypto start date %q: %w", startStr, err)
@@ -207,7 +207,7 @@ func backfillCrypto(ctx context.Context, r backfillRun, f *btcturk.Fetcher) (int
 // us.SyncHistory. An instrument whose range is already stored
 // costs one small query and no request, so this is cheap on every start.
 func backfillUSHistory(ctx context.Context, r backfillRun, s *us.Syncer) (int, error) {
-	return r.backfillTracked(ctx, "US", "us instruments", us.RequestPause, func(in instrument.Instrument, start string) (int, bool, error) {
+	return r.backfillTracked(ctx, instrument.MarketUS, "us instruments", us.RequestPause, func(in instrument.Instrument, start string) (int, bool, error) {
 		return skippedIfEmpty(s.SyncHistory(ctx, in, start))
 	})
 }

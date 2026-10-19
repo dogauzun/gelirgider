@@ -48,13 +48,13 @@ type walk struct {
 }
 
 var walks = []walk{
-	{"BIST", "THYAO", 280, 1.9, 0.022, 2},
-	{"BIST", "ASELS", 60, 1.7, 0.025, 2},
-	{"BIST", "TUPRS", 160, 1.5, 0.020, 2},
-	{"US", "AAPL", 190, 1.3, 0.016, 2},
-	{"TEFAS", "TTE", 2.5, 1.6, 0.012, 6},
-	{"CRYPTO", "BTC-TRY", 2_000_000, 2.0, 0.030, 2},
-	{"GOLD", "GRAM", 2400, 1.6, 0.010, 2},
+	{instrument.MarketBIST, "THYAO", 280, 1.9, 0.022, 2},
+	{instrument.MarketBIST, "ASELS", 60, 1.7, 0.025, 2},
+	{instrument.MarketBIST, "TUPRS", 160, 1.5, 0.020, 2},
+	{instrument.MarketUS, "AAPL", 190, 1.3, 0.016, 2},
+	{instrument.MarketTEFAS, "TTE", 2.5, 1.6, 0.012, 6},
+	{instrument.MarketCrypto, "BTC-TRY", 2_000_000, 2.0, 0.030, 2},
+	{instrument.MarketGold, "GRAM", 2400, 1.6, 0.010, 2},
 	{"", "USD", 27, 41.0 / 27, 0.004, 4},
 	{"", "EUR", 29, 46.0 / 29, 0.005, 4},
 }
