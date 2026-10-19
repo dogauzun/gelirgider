@@ -50,6 +50,9 @@ jobs:
           # the merge commit.
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+      # The reviewer reads the diff from a file: GitHub refuses `gh pr diff`
+      # above 20,000 changed lines or 300 files, and the agent may not run git.
+      - run: git diff origin/main...HEAD > "$RUNNER_TEMP/pr.diff"
       # The action hands the app's write token to the agent as GH_TOKEN, so
       # the allow list holds `gh pr view`, `gh pr diff` and file reads only:
       # no `gh api` (a prefix rule cannot pin its method) and no `git` at all
@@ -59,7 +62,7 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            You are running as the review workflow of dogauzun/gelirgider, inside the checkout of the pull request head. Read `.claude/agents/pr-reviewer.md` and review pull request #${{ github.event.pull_request.number }} exactly as it says, as the agent it describes. Post each finding with the tool `mcp__github_inline_comment__create_inline_comment` and `confirmed: true`. Post nothing else.
+            You are running as the review workflow of dogauzun/gelirgider, inside the checkout of the pull request head. Read `.claude/agents/pr-reviewer.md` and review pull request #${{ github.event.pull_request.number }} exactly as it says, as the agent it describes. The PR's diff against main is in the file ${{ runner.temp }}/pr.diff. Post each finding with the tool `mcp__github_inline_comment__create_inline_comment` and `confirmed: true`. Post nothing else.
           claude_args: >-
             --model claude-opus-5-5 --effort high
             --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr view:*),Bash(gh pr diff:*)"
