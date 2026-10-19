@@ -18,6 +18,13 @@ Nothing at the moment.
 - Phase 45, Cash flow timeline and the invested line (GLG-1673): an invested
   line on the Özet chart, and monthly money in and out with a saving streak on
   the Performans tab.
+- Phase 46, Risk and volatility (GLG-1694): volatility, downside deviation, beta
+  and correlation against the benchmark, the drawdown's recovery time and a
+  rolling one-year return on the Performans tab and the position page.
+- Phase 47, Yearly statement (GLG-1695): one row per calendar year with the
+  opening value, the net flow, the gain and its split, the closing value, the
+  return against the benchmark and inflation, and the best and worst position,
+  on the Performans tab.
 
 A new phase is added here, together with its Jira epic, once it is planned.
 
