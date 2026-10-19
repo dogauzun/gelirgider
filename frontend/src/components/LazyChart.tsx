@@ -5,6 +5,7 @@ import { LEGEND_HEIGHT } from '../lib/chart'
 import { lazyNamed } from '../lib/lazyNamed'
 import type { AllocationDonutProps } from './charts/AllocationDonut'
 import type { BarChartProps } from './charts/BarChart'
+import type { CashFlowBarsProps } from './charts/CashFlowBars'
 import type { DrawdownChartProps } from './charts/DrawdownChart'
 import type { LineChartProps } from './charts/LineChart'
 import type { ProjectionChartProps } from './charts/ProjectionChart'
@@ -19,6 +20,7 @@ import { Skeleton } from './ui/Skeleton'
 // the document, so an in-page retry would only get the same error.
 const LazyLineChart = lazyNamed(() => import('./charts'), 'LineChart')
 const LazyBarChart = lazyNamed(() => import('./charts'), 'BarChart')
+const LazyCashFlowBars = lazyNamed(() => import('./charts'), 'CashFlowBars')
 const LazyDrawdownChart = lazyNamed(() => import('./charts'), 'DrawdownChart')
 const LazyProjectionChart = lazyNamed(() => import('./charts'), 'ProjectionChart')
 const LazyReturnBars = lazyNamed(() => import('./charts'), 'ReturnBars')
@@ -112,21 +114,37 @@ export function ProjectionChart(props: ProjectionChartProps) {
   )
 }
 
-// The return bars' placeholder is their height plus their one-line legend.
-export function ReturnBars(props: ReturnBarsProps) {
+// The grouped bars' placeholder is their height plus their one-line legend.
+function GroupedBarsLoaded({ height = 200, children }: { height?: number; children: ReactNode }) {
   return (
     <Loaded
       placeholder={
         <div data-chart-placeholder>
-          <div style={{ height: props.height ?? 200 }}>
+          <div style={{ height }}>
             <Skeleton className="h-full w-full" />
           </div>
           <div className="mt-2 min-h-4" />
         </div>
       }
     >
-      <LazyReturnBars {...props} />
+      {children}
     </Loaded>
+  )
+}
+
+export function ReturnBars(props: ReturnBarsProps) {
+  return (
+    <GroupedBarsLoaded height={props.height}>
+      <LazyReturnBars {...props} />
+    </GroupedBarsLoaded>
+  )
+}
+
+export function CashFlowBars(props: CashFlowBarsProps) {
+  return (
+    <GroupedBarsLoaded height={props.height}>
+      <LazyCashFlowBars {...props} />
+    </GroupedBarsLoaded>
   )
 }
 
