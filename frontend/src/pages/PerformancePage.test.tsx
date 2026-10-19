@@ -62,6 +62,8 @@ function mockApi(
     }
     if (url.endsWith('/summary')) return Response.json(summary)
     if (url.endsWith('/cash-gaps')) return Response.json(gaps)
+    if (url.endsWith('/cashflows'))
+      return Response.json({ currency: 'TRY', months: [], totals: {}, missing_rates: [] })
     if (url.endsWith('/trades'))
       return Response.json({ currency: 'TRY', trades: [], missing_rates: [] })
     if (url.includes('/returns/periods')) {
@@ -242,6 +244,17 @@ it('lists the realized trades of the portfolio below the drawdown', async () => 
   expect(drawdown.compareDocumentPosition(trades) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
 
+it('reads the cash flow months of the portfolio below the trades', async () => {
+  const urls = mockApi()
+  renderPage()
+
+  expect(await screen.findByRole('heading', { name: t('cashflow.title') })).toBeInTheDocument()
+  await waitFor(() => expect(urls).toContain('/api/portfolios/1/cashflows'))
+  const trades = screen.getByRole('heading', { name: t('trades.title') })
+  const cashflow = screen.getByRole('heading', { name: t('cashflow.title') })
+  expect(trades.compareDocumentPosition(cashflow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
+
 // A scope with no transactions has no buckets at all: nothing to compute,
 // rather than a return that cannot be computed, and nothing to switch
 // between, even with a benchmark.
@@ -254,15 +267,21 @@ it('says there are no transactions yet for an empty scope', async () => {
     if (url.includes('/returns/periods')) {
       return Response.json({ currency: 'TRY', months: [], years: [] })
     }
+    if (url.endsWith('/cashflows'))
+      return Response.json({ currency: 'TRY', months: [], totals: {}, missing_rates: [] })
     if (url.endsWith('/trades'))
       return Response.json({ currency: 'TRY', trades: [], missing_rates: [] })
     throw new Error(`unexpected request: ${url}`)
   })
   renderPage('/portfolios/all/performance')
-  expect(await screen.findByText(t('transactions.empty'))).toBeInTheDocument()
+  // The cash flow card below says the same, so look in the returns card.
+  const card = (
+    await screen.findByRole('heading', { name: t('performance.periods.title') })
+  ).closest('section')!
+  expect(await within(card).findByText(t('transactions.empty'))).toBeInTheDocument()
   expect(screen.queryByText(t('performance.cashGaps.noValue'))).toBeNull()
   expect(screen.queryByRole('table')).toBeNull()
-  expect(screen.queryByRole('radiogroup')).toBeNull()
+  expect(within(card).queryByRole('radiogroup')).toBeNull()
 })
 
 it('serves Tüm portföyler with Özet and Performans as its tabs', async () => {

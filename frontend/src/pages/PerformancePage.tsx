@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { useParams } from 'react-router'
 import { usePeriodReturns, type Benchmark, type ReturnMethod } from '../api/history'
 import { usePortfolioSummary, type PortfolioScope } from '../api/summary'
+import { CashFlowCard } from '../components/CashFlowCard'
 import { CashGapNotice } from '../components/CashGapNotice'
 import { DrawdownCard } from '../components/DrawdownCard'
 import { ReturnBars } from '../components/LazyChart'
@@ -50,6 +51,7 @@ export function PerformancePage() {
         />
         <DrawdownCard portfolioId={portfolioId} />
         <TradesCard scope={portfolioId} />
+        <CashFlowCard portfolioId={portfolioId} />
       </div>
     </PortfolioHeader>
   )
