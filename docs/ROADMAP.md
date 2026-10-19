@@ -12,7 +12,12 @@ Nothing at the moment.
 
 ## Next
 
-Nothing at the moment.
+- Phase 44, Realized trades report (GLG-1672): every sell as one closed trade
+  with its cost, realized gain and holding period, on the Performans tab and
+  the position page.
+- Phase 45, Cash flow timeline and the invested line (GLG-1673): an invested
+  line on the Özet chart, and monthly money in and out with a saving streak on
+  the Performans tab.
 
 A new phase is added here, together with its Jira epic, once it is planned.
 
