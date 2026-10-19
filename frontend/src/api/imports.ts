@@ -180,7 +180,7 @@ export interface ImportResult {
 // `picks` are the instruments the user picked in this preview so far: the
 // server resolves their symbols with them for this request only, so the
 // opening rows and the reconciliation follow them.
-export function parseStatement(
+function parseStatement(
   portfolioId: number,
   broker: string,
   file: File,
@@ -234,6 +234,38 @@ export function useParseStatement(portfolioId: number) {
       })
     },
   })
+}
+
+const PARSES_IN_FLIGHT = 2
+
+// Promise.allSettled over items, with at most PARSES_IN_FLIGHT calls of run
+// pending at once, in item order.
+async function settleLimited<T, R>(
+  items: T[],
+  run: (item: T) => Promise<R>,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = []
+  let taken = 0
+  async function worker() {
+    while (taken < items.length) {
+      const i = taken++
+      results[i] = await run(items[i]).then(
+        (value) => ({ status: 'fulfilled', value }),
+        (reason: unknown) => ({ status: 'rejected', reason }),
+      )
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(PARSES_IN_FLIGHT, items.length) }, worker))
+  return results
+}
+
+// Every file of a batch parsed once, results in file order. A single mutation
+// cannot track parallel calls, so this is a plain function, not useMutation.
+// At most PARSES_IN_FLIGHT at a time: each parse may fetch prices and write
+// them, and the server runs those one at a time, so more only queue there.
+export function useParseStatements(portfolioId: number) {
+  return (broker: string, files: File[]) =>
+    settleLimited(files, (file) => parseStatement(portfolioId, broker, file))
 }
 
 export function useCommitImport() {

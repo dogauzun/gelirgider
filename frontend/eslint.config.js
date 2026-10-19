@@ -78,7 +78,7 @@ export default tseslint.config(
           patterns: [
             {
               group: ['**/api/*'],
-              importNamePattern: '^(create|update|delete|dismiss|save|run|set|test)[A-Z]',
+              importNamePattern: '^(create|update|delete|dismiss|save|run|set|test|parse)[A-Z]',
               message: 'call it through a hook in src/api/',
             },
           ],
