@@ -12,12 +12,6 @@ Nothing at the moment.
 
 ## Next
 
-- Phase 44, Realized trades report (GLG-1672): every sell as one closed trade
-  with its cost, realized gain and holding period, on the Performans tab and
-  the position page.
-- Phase 45, Cash flow timeline and the invested line (GLG-1673): an invested
-  line on the Özet chart, and monthly money in and out with a saving streak on
-  the Performans tab.
 - Phase 46, Risk and volatility (GLG-1694): volatility, downside deviation, beta
   and correlation against the benchmark, the drawdown's recovery time and a
   rolling one-year return on the Performans tab and the position page.
