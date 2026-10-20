@@ -92,7 +92,7 @@ function renderCard(
 }
 
 const pct = (v: number) => signedPercent(v, { minimumFractionDigits: 1 })
-const excessPct = (p: number, b: number) => signedPercent(excessReturn(p, b) ?? 0)
+const excessPct = (p: number, b: number) => pct(excessReturn(p, b) ?? 0)
 const cells = (tr: HTMLElement) =>
   within(tr)
     .getAllByRole('cell')
@@ -287,8 +287,28 @@ describe('YearsCard', () => {
         t('performance.periods.excess'),
       ])
       const last2025 = cells(within(table).getAllByRole('row')[1]).slice(-4, -2)
-      expect(last2025).toEqual([signedPercent(0.05), excessPct(0.1, 0.05)])
+      expect(last2025).toEqual([pct(0.05), excessPct(0.1, 0.05)])
       expect(within(table).queryByRole('columnheader', { name: 'TÜFE' })).toBeNull()
+    })
+
+    it('keeps one decimal on a whole percent in every column', async () => {
+      const whole = [
+        row({
+          returns: { simple: null, twr: '0.030000', mwr: null },
+          benchmark: { simple: null, twr: '0.030000', mwr: null },
+          inflation: '0.030000',
+        }),
+      ]
+      renderCard(async () => Response.json(response(whole)), { benchmark: 'USD' })
+
+      const table = await screen.findByRole('table')
+      // Benchmark, excess (zero), TÜFE and real, each with its trailing zero.
+      expect(cells(within(table).getAllByRole('row')[1]).slice(-6, -2)).toEqual([
+        '+%3,0',
+        '%0,0',
+        '+%3,0',
+        '%0,0',
+      ])
     })
 
     it('prints TÜFE and the real return in TRY, estimated when the series is', async () => {
@@ -299,7 +319,7 @@ describe('YearsCard', () => {
       const table = await screen.findByRole('table')
       const [r2025, r2024] = within(table).getAllByRole('row').slice(1)
       expect(cells(r2025).slice(-4, -2)).toEqual([
-        signedPercent(0.25),
+        pct(0.25),
         `${excessPct(0.1, 0.25)} (${t('chart.benchmark.estimated')})`,
       ])
       // No TÜFE change for the year: a dash in both.
@@ -353,9 +373,9 @@ describe('YearsCard', () => {
         t('performance.periods.real'),
       ])
       expect(cells(within(table).getAllByRole('row')[1]).slice(-6, -2)).toEqual([
-        signedPercent(0.05),
+        pct(0.05),
         excessPct(0.1, 0.05),
-        signedPercent(0.25),
+        pct(0.25),
         excessPct(0.1, 0.25),
       ])
     })
