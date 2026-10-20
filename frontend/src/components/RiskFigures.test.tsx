@@ -25,6 +25,19 @@ it('names the benchmark that has gaps when the stats carry no benchmark figures'
   expect(screen.getByText(t('risk.benchmarkNoData', { benchmark: 'USD' }))).toBeInTheDocument()
 })
 
+it('says a benchmark that never moves did not move, not that it has gaps', () => {
+  render(
+    <RiskFigures
+      stats={{ ...stats(40), benchmark: { days: 40, flat: true } }}
+      benchmark="USD"
+      benchmarkLabel="USD"
+    />,
+  )
+
+  expect(screen.getByText(t('risk.benchmarkFlat', { benchmark: 'USD' }))).toBeInTheDocument()
+  expect(screen.queryByText(t('risk.benchmarkNoData', { benchmark: 'USD' }))).toBeNull()
+})
+
 it('says there is not enough data under 30 daily returns', () => {
   render(<RiskFigures stats={stats(29)} benchmark="USD" benchmarkLabel="USD" />)
 

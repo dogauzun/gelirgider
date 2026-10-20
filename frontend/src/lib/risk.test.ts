@@ -47,7 +47,10 @@ describe('riskStats', () => {
     const half = [null, '0.000000', '0.010000', '0.004950', '0.020024']
 
     it('pairs the days: beta, correlation and the benchmark volatility', () => {
-      const { benchmark } = riskStats(withBenchmark(half)) as RiskStats
+      const benchmark = riskStats(withBenchmark(half))?.benchmark as Extract<
+        RiskStats['benchmark'],
+        { beta: number }
+      >
 
       expect(benchmark?.days).toBe(3)
       expect(benchmark?.beta).toBeCloseTo(2, 2)
@@ -62,10 +65,10 @@ describe('riskStats', () => {
       expect(stats?.volatility).toBeCloseTo(0.3977, 3)
     })
 
-    it('is null without a benchmark and with one that never moves', () => {
+    it('is null without a benchmark and flat with one that never moves', () => {
       expect(riskStats(example)?.benchmark).toBeNull()
       const flat = [null, '0.000000', '0.000000', '0.000000', '0.000000']
-      expect(riskStats(withBenchmark(flat))?.benchmark).toBeNull()
+      expect(riskStats(withBenchmark(flat))?.benchmark).toEqual({ days: 3, flat: true })
     })
   })
 

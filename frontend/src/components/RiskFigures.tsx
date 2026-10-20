@@ -27,8 +27,8 @@ function DayCell({ label, day }: { label: string; day: RiskStats['best'] }) {
 }
 
 // Beta, correlation and the benchmark's volatility, or why they are not shown
-// (ADR 0036, "Against the benchmark"): no benchmark picked, or one with gaps
-// or fewer than MIN_DAYS paired returns in the window.
+// (ADR 0036, "Against the benchmark"): no benchmark picked, one with gaps or
+// fewer than MIN_DAYS paired returns in the window, or one that never moves.
 function BenchmarkRow({
   stats,
   benchmark,
@@ -46,6 +46,11 @@ function BenchmarkRow({
       <p className="mt-3 text-[13px] text-muted">
         {t('risk.benchmarkNoData', { benchmark: label })}
       </p>
+    )
+  }
+  if ('flat' in stats) {
+    return (
+      <p className="mt-3 text-[13px] text-muted">{t('risk.benchmarkFlat', { benchmark: label })}</p>
     )
   }
   return (

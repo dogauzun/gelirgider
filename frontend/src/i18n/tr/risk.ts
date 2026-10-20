@@ -21,6 +21,7 @@ export const trRisk = {
   'risk.benchmarkVolatility': '{benchmark} oynaklığı',
   'risk.noBenchmark': 'Beta ve korelasyon için bir karşılaştırma seç.',
   'risk.benchmarkNoData': '{benchmark} bu dönemde eksik',
+  'risk.benchmarkFlat': '{benchmark} bu dönemde hiç değişmedi',
   'risk.error': 'Risk ölçüleri yüklenemedi',
   'risk.position.hint': '{currency} cinsinden, seçili aralıkta, temettüler dahil',
   'risk.rolling.title': 'Yuvarlanan 1 yıllık getiri',

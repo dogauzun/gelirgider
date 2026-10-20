@@ -25,6 +25,7 @@ export const enRisk: AreaStrings<typeof trRisk> = {
   'risk.benchmarkVolatility': '{benchmark} volatility',
   'risk.noBenchmark': 'Pick a benchmark for beta and correlation.',
   'risk.benchmarkNoData': '{benchmark} has gaps in this window',
+  'risk.benchmarkFlat': '{benchmark} did not move in this window',
   'risk.error': 'Risk figures failed to load',
   'risk.position.hint': 'In {currency}, over the selected range, dividends counted',
   'risk.rolling.title': 'Rolling 1-year return',
