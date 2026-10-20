@@ -30,6 +30,7 @@ const reasonKey: Record<string, StringKey> = {
   'IPO payment, booked by the allotment': 'import.reason.ipoPayment',
   'fractional share cash-out, booked from the ledger': 'import.reason.fractionalCashOut',
   'unsupported asset type': 'import.reason.unsupportedAssetType',
+  'zero-commission credit, not cash': 'import.reason.zeroCommission',
 }
 
 // The row error codes the statement parsers emit. An unknown code shows

@@ -168,8 +168,9 @@ stock transfers are skipped, not errors.
   between the user's own accounts. Midas prints each conversion on both
   accounts' statements with only that account's amount, so booking both legs
   counted every conversion twice.
-- A zero-commission credit is a deposit. It is paid into the cash account,
-  and skipping it left every month with trades short of the printed balance.
+- The zero-commission row reports the commission waived. It is not paid into
+  the cash account, and the account's printed balance excludes it, so it is
+  skipped.
 - Sections are found by title and columns by header text, never by position,
   and numbers in both Turkish and plain formats are accepted, because the
   layout is a document, not a documented API.

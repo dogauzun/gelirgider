@@ -287,9 +287,12 @@ func parseCash(st *statement.Statement, row []string) {
 		kind = transaction.TypeFee
 	case "Döviz Alış", "Döviz Satış":
 		kind = "fx"
-	case "Para Yatırma", "Ücretsiz İşlem":
-		// Ücretsiz İşlem is Midas's zero-commission credit, paid into the cash
-		// account like a deposit.
+	case "Ücretsiz İşlem":
+		// Midas's zero-commission row reports the commission waived. It is not
+		// paid into the cash account, and the printed balance excludes it.
+		st.Skipped = append(st.Skipped, statement.Skipped{Section: secCash, Reason: "zero-commission credit, not cash", Row: row})
+		return
+	case "Para Yatırma":
 		kind = transaction.TypeDeposit
 	default:
 		date, _ := parseDate(row[1])
