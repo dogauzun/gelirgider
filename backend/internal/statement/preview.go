@@ -461,19 +461,24 @@ func parseUpload(w http.ResponseWriter, r *http.Request, data []byte, broker str
 
 // holdingInstruments resolves each of st's holdings, in order, to an
 // instrument by the rule a trade row follows short of creating one: the
-// symbol in the holding's market, else the instrument userID picked for it
-// in an earlier commit of broker or in this preview (picks).
+// symbol in the holding's market, then, when the statement names no market,
+// in the currency's other markets (soleMatch), else the instrument userID
+// picked for it in an earlier commit of broker or in this preview (picks).
 // The market is the statement's
 // when it names one, else the holding's currency's (ADR 0006). A holding
 // that resolves to none gets the zero Instrument.
 func (h *handler) holdingInstruments(ctx context.Context, userID int64, broker string, picks map[string]instrument.Instrument, st Statement) ([]instrument.Instrument, error) {
 	out := make([]instrument.Instrument, len(st.Holdings))
+	s := &lookupSession{}
 	for i, hold := range st.Holdings {
 		market := st.Market
 		if market == "" {
 			market = marketForCurrency[hold.Currency]
 		}
-		in, err := h.instruments.BySymbol(ctx, market, hold.Symbol)
+		in, err := h.bySymbol(ctx, s, market, hold.Symbol)
+		if errors.Is(err, instrument.ErrNotFound) && st.Market == "" {
+			in, err = h.soleMatch(ctx, s, otherMarkets[hold.Currency], hold.Symbol, hold.Currency)
+		}
 		if errors.Is(err, instrument.ErrNotFound) {
 			in, err = h.aliasInstrument(ctx, userID, broker, picks, hold.Symbol)
 		}

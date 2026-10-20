@@ -42,6 +42,7 @@ func init() {
 	statement.Parsers["test-lookup"] = func([][]string) (statement.Statement, error) { return lookupStatement, nil }
 	statement.Parsers["test-bonus"] = func([][]string) (statement.Statement, error) { return bonusStatement, nil }
 	statement.Parsers["test-alias"] = func([][]string) (statement.Statement, error) { return aliasStatement, nil }
+	statement.Parsers["test-midas-fund"] = func([][]string) (statement.Statement, error) { return midasFundStatement, nil }
 }
 
 // aliasStatement holds and buys ZZZZZ, a symbol no instrument has, which
@@ -53,6 +54,22 @@ var aliasStatement = statement.Statement{
 	},
 	Holdings: []statement.Holding{
 		{Symbol: "ZZZZZ", Quantity: dec("15"), AvgCost: dec("20"), Price: dec("20"), Currency: "TRY"},
+	},
+}
+
+// midasFundStatement is a TRY statement with no market hint, as Midas prints
+// one, that buys and holds two TRY symbols no BIST instrument has: FNDA only
+// on TEFAS, and DUPA on both TEFAS and GOLD.
+var midasFundStatement = statement.Statement{
+	Broker: "test-midas-fund", PeriodStart: "2026-01-01", PeriodEnd: "2026-01-31", Currency: "TRY",
+	Trades: []statement.Trade{
+		{Date: "2026-01-10", Symbol: "FNDA", Side: "buy", Quantity: dec("600"), Price: dec("2"), Amount: dec("1200"), Fee: dec("0"), Currency: "TRY"},
+		{Date: "2026-01-12", Symbol: "FNDA", Side: "buy", Quantity: dec("400"), Price: dec("2"), Amount: dec("800"), Fee: dec("0"), Currency: "TRY"},
+		{Date: "2026-01-12", Symbol: "DUPA", Side: "buy", Quantity: dec("5"), Price: dec("2"), Amount: dec("10"), Fee: dec("0"), Currency: "TRY"},
+	},
+	Holdings: []statement.Holding{
+		{Symbol: "FNDA", Quantity: dec("1000"), AvgCost: dec("2"), Currency: "TRY"},
+		{Symbol: "DUPA", Quantity: dec("5"), AvgCost: dec("2"), Currency: "TRY"},
 	},
 }
 
@@ -496,6 +513,44 @@ func TestParseStatementReconcilesMarketHint(t *testing.T) {
 	if got.Symbol != "GJH" || !got.Match || got.PortfolioQuantity != "100" ||
 		got.StatementQuantity == nil || *got.StatementQuantity != "100" {
 		t.Errorf("reconciliation[0] = %+v, want GJH matching the TEFAS position", got)
+	}
+}
+
+// TestParseStatementReconcilesHoldingInOtherMarket checks that a holding with
+// no market hint found only in a currency's other markets (a TEFAS fund for a
+// TRY statement) resolves like its trade rows do, so the reconciliation matches
+// and no opening is proposed, while one found in two of them stays unresolved.
+func TestParseStatementReconcilesHoldingInOtherMarket(t *testing.T) {
+	e := newTransactionTestEnv(t)
+	session := e.login("reconcile-other@example.com")
+	portfolioID := e.createPortfolio(session, "Import")
+
+	ids := map[string]int64{}
+	for _, in := range []struct{ symbol, market string }{{"FNDA", "TEFAS"}, {"DUPA", "TEFAS"}, {"DUPA", "GOLD"}} {
+		res, err := e.db.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES (?, ?, 'x', 'TRY')`, in.symbol, in.market)
+		if err != nil {
+			t.Fatalf("insert instrument: %v", err)
+		}
+		if ids[in.symbol], err = res.LastInsertId(); err != nil {
+			t.Fatalf("instrument id: %v", err)
+		}
+	}
+
+	p := parsePreview(t, upload(e, session, "test-midas-fund", portfolioID, emptyPDF(0)))
+	if len(p.Reconciliation) != 2 {
+		t.Fatalf("reconciliation = %+v, want FNDA and DUPA", p.Reconciliation)
+	}
+	if r := p.Reconciliation[0]; r.Symbol != "FNDA" || r.InstrumentID != ids["FNDA"] || !r.Match || r.PortfolioQuantity != "1000" ||
+		r.StatementQuantity == nil || *r.StatementQuantity != "1000" {
+		t.Errorf("reconciliation[0] = %+v, want FNDA matching the TEFAS fund", r)
+	}
+	if r := p.Reconciliation[1]; r.Symbol != "DUPA" || r.InstrumentID != 0 || r.Match {
+		t.Errorf("reconciliation[1] = %+v, want DUPA unresolved, in two markets", r)
+	}
+	for _, row := range p.Rows {
+		if row.Opening {
+			t.Errorf("row %s %s is an opening, want none: the trades hold the whole quantity", row.Key, row.Symbol)
+		}
 	}
 }
 
