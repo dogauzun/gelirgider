@@ -14,13 +14,16 @@ type Booked = Partial<ImportRow>
 
 // What rows dated up to the period end add to each instrument's quantity and
 // to the cash in `currency`, in 1e-9 units, by the holdings engine's rules
-// (backend/internal/holdings Apply). A trade without an amount, as the page
-// sends an edited one, books quantity × price, as the server derives it.
+// (backend/internal/holdings Apply). A row with no instrument counts whatever
+// its date, as the printed balance includes it, as on the server. A trade
+// without an amount, as the page sends an edited one, books quantity × price,
+// as the server derives it.
 function effects(rows: Booked[], periodEnd: string, currency: string | undefined) {
   const quantities = new Map<number, bigint>()
   let cash = 0n
   for (const row of rows) {
-    if (!row.type || !row.date || row.date > periodEnd) continue
+    if (!row.type || !row.date) continue
+    if (row.date > periodEnd && row.instrument_id !== undefined) continue
     const quantity = decimalUnits(row.quantity ?? '0')
     if (row.instrument_id !== undefined && (row.type === 'buy' || row.type === 'sell')) {
       // eslint-disable-next-line no-restricted-syntax -- share counts, not money
