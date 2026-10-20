@@ -51,7 +51,10 @@ var cashTolerance = decimal.RequireFromString("0.01")
 // splits included.
 func (h *handler) periodEnd(ctx context.Context, txs []transaction.Transaction, st Statement, preview []previewRow) (holdings.Summary, map[int64]instrument.Instrument, error) {
 	// Existing rows dated after the period are not in the broker's snapshot,
-	// and neither are proposed ones: the comparison is as of period_end.
+	// and neither are proposed ones that name an instrument: the comparison
+	// is as of period_end. A proposed row with no instrument is kept
+	// whatever its date, as the printed balance already includes it (a Midas
+	// interest row dated the day after).
 	applied := make([]transaction.Transaction, 0, len(txs)+len(preview))
 	for _, t := range txs {
 		// List's split rows are added again below, for the preview's rows
@@ -65,7 +68,7 @@ func (h *handler) periodEnd(ctx context.Context, txs []transaction.Transaction, 
 		// the cash comparison needs. A row flagged as a duplicate is
 		// left out, as the page leaves it unchecked: the comparison is of the
 		// rows a plain commit books. So is a closing sell.
-		if row.Status != statusOK || row.DuplicateOf != "" || row.Closing || row.Date > st.PeriodEnd {
+		if row.Status != statusOK || row.DuplicateOf != "" || row.Closing || (row.Date > st.PeriodEnd && row.InstrumentID != nil) {
 			continue
 		}
 		applied = append(applied, transaction.Transaction{

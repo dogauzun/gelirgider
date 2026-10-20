@@ -527,6 +527,38 @@ func TestParseStatementReconcilesCash(t *testing.T) {
 	}
 }
 
+// TestParseStatementReconcilesCashAfterPeriodEnd checks that an interest row
+// dated the day after period_end, which the statement's balance already
+// includes, counts toward the cash comparison, while a buy dated after the
+// period leaves its instrument's quantity alone.
+func TestParseStatementReconcilesCashAfterPeriodEnd(t *testing.T) {
+	e := newTransactionTestEnv(t)
+	session := e.login("reconcile-late@example.com")
+	portfolioID := e.createPortfolio(session, "Import")
+	t.Cleanup(func() { delete(statement.Parsers, "late") })
+	balance := dec("1050.00")
+	st := statement.Statement{
+		Broker: "late", PeriodStart: "2026-09-01", PeriodEnd: "2026-09-30", Currency: "TRY", CashBalance: &balance,
+		Cash: []statement.CashMovement{
+			{Date: "2026-09-10", Kind: "deposit", Amount: dec("1000"), Currency: "TRY"},
+			{Date: "2026-10-01", Kind: "dividend", Amount: dec("50"), Currency: "TRY", Description: "Aylık Nema Geliri"},
+		},
+		Trades: []statement.Trade{
+			{Date: "2026-10-01", Symbol: "TEST", Side: "buy", Quantity: dec("3"), Price: dec("10"), Amount: dec("30"), Fee: dec("0"), Currency: "TRY"},
+		},
+		Holdings: []statement.Holding{{Symbol: "TEST", Quantity: dec("0"), Currency: "TRY"}},
+	}
+	statement.Parsers["late"] = func([][]string) (statement.Statement, error) { return st, nil }
+
+	p := parsePreview(t, upload(e, session, "late", portfolioID, emptyPDF(0)))
+	if got := p.CashReconciliation; got == nil || got.PortfolioAmount != "1050" || !got.Match {
+		t.Errorf("cash_reconciliation = %+v, want 1050 against 1050.00 and a match", got)
+	}
+	if len(p.Reconciliation) != 1 || p.Reconciliation[0].PortfolioQuantity != "0" || !p.Reconciliation[0].Match {
+		t.Errorf("reconciliation = %+v, want TEST at 0: the buy after the period is not counted", p.Reconciliation)
+	}
+}
+
 // TestParseStatementWithoutRowsReturnsEmptyRows checks that a quiet
 // month's statement, a cash balance and nothing else, proposes no opening
 // or closing, and its rows are an empty array, not null, which the import
