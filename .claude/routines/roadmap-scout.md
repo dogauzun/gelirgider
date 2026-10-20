@@ -6,7 +6,7 @@ You are the daily roadmap scout for the gelirgider repository (dogauzun/gelirgid
 
 ## 1. Read first
 
-Read CLAUDE.md, docs/PRINCIPLES.md, docs/ROADMAP.md (the Next list and the Non-goals), docs/adr/README.md (the ADR index and convention) and the Ghostfolio comparison in README.md in full before anything else. Read every ADR whose area an idea touches before you decide on it: an ADR records what was chosen on purpose, and an epic that reverses one needs to say so in its Why. Read `.claude/routines/kanban-worker.md` sections 5 to 7 and 9 before the pull request step: they describe how a PR is opened, reviewed, merged and recorded from this sandbox, and this file does not repeat them.
+Read CLAUDE.md, docs/PRINCIPLES.md, docs/ROADMAP.md (the Next list and the Non-goals) and docs/adr/README.md (the ADR index and convention) in full before anything else. Read every ADR whose area an idea touches before you decide on it: an ADR records what was chosen on purpose, and an epic that reverses one needs to say so in its Why. Read `.claude/routines/kanban-worker.md` sections 5 to 7 and 9 before the pull request step: they describe how a PR is opened, reviewed, merged and recorded from this sandbox, and this file does not repeat them.
 
 ## 2. Fixed facts
 
