@@ -54,7 +54,7 @@ export function KpiCell({
             <Popover.Trigger
               openOnHover
               delay={0}
-              className="cursor-help rounded uppercase underline decoration-dotted underline-offset-2"
+              className="cursor-help rounded text-left uppercase underline decoration-dotted underline-offset-2"
             >
               {label}
             </Popover.Trigger>
