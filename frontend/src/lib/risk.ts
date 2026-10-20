@@ -72,8 +72,12 @@ export type RiskStats = {
   best: { date: string; value: number }
   worst: { date: string; value: number }
   // Over the days both the portfolio and the benchmark have a return on; null
-  // without a benchmark, with a gap in it, or when it never moves.
-  benchmark: { days: number; volatility: number; beta: number; correlation: number | null } | null
+  // without a benchmark or with a gap in it, `flat` when it never moves (no
+  // beta then).
+  benchmark:
+    | { days: number; volatility: number; beta: number; correlation: number | null }
+    | { days: number; flat: true }
+    | null
 }
 
 const sum = (values: number[]) => values.reduce((a, v) => a + v, 0)
@@ -99,7 +103,7 @@ function benchmarkStats(points: RiskPoint[]): RiskStats['benchmark'] {
   const rMean = sum(r) / m
   const bMean = sum(b) / m
   const bSpread = sum(b.map((v) => (v - bMean) ** 2))
-  if (bSpread === 0) return null
+  if (bSpread === 0) return { days: m, flat: true }
   const rSpread = sum(r.map((v) => (v - rMean) ** 2))
   const covariance = sum(r.map((v, i) => (v - rMean) * (b[i] - bMean)))
   return {
