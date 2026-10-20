@@ -12,13 +12,7 @@ Nothing at the moment.
 
 ## Next
 
-- Phase 46, Risk and volatility (GLG-1694): volatility, downside deviation, beta
-  and correlation against the benchmark, the drawdown's recovery time and a
-  rolling one-year return on the Performans tab and the position page.
-- Phase 47, Yearly statement (GLG-1695): one row per calendar year with the
-  opening value, the net flow, the gain and its split, the closing value, the
-  return against the benchmark and inflation, and the best and worst position,
-  on the Performans tab.
+Nothing at the moment.
 
 A new phase is added here, together with its Jira epic, once it is planned.
 
