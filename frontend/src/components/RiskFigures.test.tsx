@@ -43,3 +43,34 @@ it('says there is not enough data under 30 daily returns', () => {
 
   expect(screen.getByText(t('risk.tooShort'))).toBeInTheDocument()
 })
+
+it('shows beta and correlation that round to zero from below without a minus sign', () => {
+  render(
+    <RiskFigures
+      stats={{
+        ...stats(40),
+        benchmark: { days: 40, volatility: 0.1, beta: -0.0036, correlation: -0.004 },
+      }}
+      benchmark="USD"
+      benchmarkLabel="USD"
+    />,
+  )
+
+  expect(screen.queryByText('-0,00')).toBeNull()
+  expect(screen.getAllByText('0,00')).toHaveLength(2)
+})
+
+it('keeps the minus sign on a beta that does not round to zero', () => {
+  render(
+    <RiskFigures
+      stats={{
+        ...stats(40),
+        benchmark: { days: 40, volatility: 0.1, beta: -0.02, correlation: 0.5 },
+      }}
+      benchmark="USD"
+      benchmarkLabel="USD"
+    />,
+  )
+
+  expect(screen.getByText('-0,02')).toBeInTheDocument()
+})
