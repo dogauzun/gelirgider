@@ -162,7 +162,10 @@ row per year, newest first:
 - with a benchmark, a column with its return and the difference as a pill
   (`excessReturn`);
 - in TRY, a "TÜFE" column and a "Reel" column;
-- an "En iyi / en kötü" column naming `best` and `worst` with their totals.
+- two columns, "En iyi" and "En kötü", for `best` and `worst`: each names the
+  instrument (a deposit reads as `deposits.labelShort`, as on ContributionCard)
+  with its signed total on a line below, and shows a dash when the field is
+  null.
 
 Below `md` the table scrolls sideways with the year column fixed, as the
 heatmap does. A scope with no transaction shows the transactions-empty text.
