@@ -13,6 +13,9 @@ import { Segmented } from './ui/Segmented'
 import { ROW_40, TABLE, TD, TD_NUM, TH } from './ui/table'
 import { TAP_Y } from './ui/tap'
 
+// Every percent in the table keeps one fixed decimal, so "+%3,0" lines up with "+%7,3".
+const percent = (v: number) => signedPercent(v, { minimumFractionDigits: 1 })
+
 const VIEWS = ['summary', 'split'] as const
 type View = (typeof VIEWS)[number]
 
@@ -66,7 +69,7 @@ export function YearsCard({
         const ratio = row.returns[method]
         return (
           <td className={`${TD_NUM} ${plTone(ratio)}`}>
-            {ratio === null ? MISSING : signedPercent(Number(ratio), { minimumFractionDigits: 1 })}
+            {ratio === null ? MISSING : percent(Number(ratio))}
           </td>
         )
       },
@@ -76,7 +79,7 @@ export function YearsCard({
       header,
       cell: (row) => <td className={TD_NUM}>{text(row)}</td>,
     })
-    const percentOrMissing = (v: number | null) => (v === null ? MISSING : signedPercent(v))
+    const percentOrMissing = (v: number | null) => (v === null ? MISSING : percent(v))
     // The portfolio's return over a benchmark's (ADR 0012); null when either is unknown.
     const excess = (p: string | null, b: string | null) =>
       p === null || b === null ? null : excessReturn(Number(p), Number(b))
@@ -99,7 +102,7 @@ export function YearsCard({
                 const e = excess(row.returns[method], row.benchmark?.[method] ?? null)
                 return (
                   <td className={TD_NUM}>
-                    {e === null ? MISSING : <Pill tone={signTone(e)}>{signedPercent(e)}</Pill>}
+                    {e === null ? MISSING : <Pill tone={signTone(e)}>{percent(e)}</Pill>}
                   </td>
                 )
               },
@@ -125,8 +128,7 @@ export function YearsCard({
                   <td className={`${TD_NUM} ${plTone(real)}`}>
                     {real === null
                       ? MISSING
-                      : signedPercent(real) +
-                        (estimated ? ` (${t('chart.benchmark.estimated')})` : '')}
+                      : percent(real) + (estimated ? ` (${t('chart.benchmark.estimated')})` : '')}
                   </td>
                 )
               },
