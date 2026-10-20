@@ -9,7 +9,12 @@ import { FitFigure, KPI_FIGURE, KpiCell, KpiStrip } from './ui/Kpi'
 // A window with fewer daily returns says too little (ADR 0036).
 const MIN_DAYS = 30
 
-const TWO_DECIMALS = { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+// 'negative' keeps a value that rounds to zero from below from reading "-0,00".
+const TWO_DECIMALS: Intl.NumberFormatOptions = {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  signDisplay: 'negative',
+}
 
 const spread = (value: number) => formatNumber(value, SHARE_FORMAT)
 
