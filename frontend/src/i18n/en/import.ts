@@ -79,6 +79,7 @@ export const enImport: AreaStrings<typeof trImport> = {
   'import.reason.ipoPayment': 'IPO payment, booked by the allotment',
   'import.reason.fractionalCashOut': 'Fractional share cash-out, booked from the ledger',
   'import.reason.unsupportedAssetType': 'Unsupported asset type, skipped',
+  'import.reason.zeroCommission': 'Zero-commission credit, not a cash movement',
   'import.warning.overlap': 'This period overlaps an earlier import of {start} – {end}.',
   'import.warning.samePeriod':
     '{start} – {end} has already been imported into this portfolio. To import it again, undo the earlier import below first.',

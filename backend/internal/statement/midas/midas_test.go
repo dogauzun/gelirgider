@@ -226,25 +226,23 @@ func TestParseTRYStatement(t *testing.T) {
 
 	// The header-less HESAP İŞLEMLERİ section still reads its first row,
 	// the commission rebate, as data instead of mistaking it for a column
-	// header. Döviz Satış on the TRY account: only the lira bought arrive.
+	// header, then skips it: the rebate is not cash.
+	// Döviz Satış on the TRY account: only the lira bought arrive.
 	// Then the monthly interest (Diğer Gelir), a dividend with no instrument
 	// that keeps its description.
-	if len(st.Cash) != 3 {
-		t.Fatalf("cash = %+v, want the rebate, the lira leg and the interest", st.Cash)
+	if len(st.Cash) != 2 {
+		t.Fatalf("cash = %+v, want the lira leg and the interest", st.Cash)
 	}
-	if c := st.Cash[0]; c.Kind != "deposit" || !c.Amount.Equal(dec(t, "0.31827415")) || c.Description != "Sıfır Komisyonlu İşlem" {
+	if c := st.Cash[0]; c.Kind != "deposit" || c.Currency != "TRY" || !c.Amount.Equal(dec(t, "61208.77")) || c.Date != "2026-04-22" ||
+		c.Description != "41,96 USD/TRY kurundan 61.208,77 lira alış" {
 		t.Errorf("cash[0] = %+v", c)
 	}
-	if c := st.Cash[1]; c.Kind != "deposit" || c.Currency != "TRY" || !c.Amount.Equal(dec(t, "61208.77")) || c.Date != "2026-04-22" ||
-		c.Description != "41,96 USD/TRY kurundan 61.208,77 lira alış" {
+	if c := st.Cash[1]; c.Kind != "dividend" || c.Currency != "TRY" || !c.Amount.Equal(dec(t, "47.93")) || c.Date != "2026-04-22" ||
+		c.Description != "Aylık Nema Geliri" {
 		t.Errorf("cash[1] = %+v", c)
 	}
-	if c := st.Cash[2]; c.Kind != "dividend" || c.Currency != "TRY" || !c.Amount.Equal(dec(t, "47.93")) || c.Date != "2026-04-22" ||
-		c.Description != "Aylık Nema Geliri" {
-		t.Errorf("cash[2] = %+v", c)
-	}
-	if len(st.Skipped) != 0 {
-		t.Fatalf("skipped = %+v, want none", st.Skipped)
+	if len(st.Skipped) != 1 || st.Skipped[0].Reason != "zero-commission credit, not cash" || st.Skipped[0].Row[3] != "Sıfır Komisyonlu İşlem" {
+		t.Fatalf("skipped = %+v, want the rebate row", st.Skipped)
 	}
 
 	if len(st.Dividends) != 1 {
@@ -263,26 +261,28 @@ func TestParseTRYStatement(t *testing.T) {
 	}
 }
 
-// Ücretsiz İşlem is a credit Midas pays into the cash account; skipping it
-// left cash below the statement's Nakit Bakiye.
+// Ücretsiz İşlem reports the commission Midas waived; it is not paid into the
+// cash account, so booking it left cash above the statement's Nakit Bakiye.
 func TestParseCommissionRebate(t *testing.T) {
 	rows := append(trySample()[:21:21],
 		[]string{"HESAP İŞLEMLERİ (", "01/02/26", "-", "28/02/26", ")"},
 		[]string{"01/02/26", "28/02/26", "Ücretsiz İşlem", "Sıfır Komisyonlu İşlem", "Gerçekleşti", "12,34500000 TRY"},
+		[]string{"01/02/26", "28/02/26", "Ücretsiz İşlem", "Sıfır Komisyonlu İşlem", "İptal", "1,00000000 TRY"},
 	)
 	st, err := midas.Parse(rows)
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
-	if len(st.Errors) != 0 || len(st.Skipped) != 0 {
-		t.Fatalf("errors = %+v, skipped = %+v, want none", st.Errors, st.Skipped)
+	if len(st.Errors) != 0 || len(st.Cash) != 0 {
+		t.Fatalf("errors = %+v, cash = %+v, want none", st.Errors, st.Cash)
 	}
-	if len(st.Cash) != 1 {
-		t.Fatalf("cash = %+v, want one rebate", st.Cash)
+	if len(st.Skipped) != 2 {
+		t.Fatalf("skipped = %+v, want both rebate rows", st.Skipped)
 	}
-	if c := st.Cash[0]; c.Kind != "deposit" || c.Currency != "TRY" || !c.Amount.Equal(dec(t, "12.345")) || c.Date != "2026-02-28" ||
-		c.Description != "Sıfır Komisyonlu İşlem" {
-		t.Errorf("cash[0] = %+v", c)
+	for _, sk := range st.Skipped {
+		if sk.Section != "HESAP İŞLEMLERİ" || sk.Reason != "zero-commission credit, not cash" || sk.Row[2] != "Ücretsiz İşlem" {
+			t.Errorf("skipped = %+v", sk)
+		}
 	}
 }
 

@@ -77,6 +77,7 @@ export const trImport = {
   'import.reason.ipoPayment': 'Halka arz ödemesi, dağıtımla kaydedilir',
   'import.reason.fractionalCashOut': 'Kesirli pay nakde çevrimi, hesap hareketinden kaydedilir',
   'import.reason.unsupportedAssetType': 'Desteklenmeyen varlık türü, atlandı',
+  'import.reason.zeroCommission': 'Sıfır komisyon bilgisi, nakit hareketi değil',
   'import.warning.overlap':
     'Bu dönem, daha önce içe aktarılan {start} – {end} dönemiyle çakışıyor.',
   'import.warning.samePeriod':
