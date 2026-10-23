@@ -14,7 +14,7 @@
 - Bug fix: grep every caller of the function you touch before editing, then fix the root cause once in the shared code. Code you move or merge keeps its error handling and validation. Between options of equal size, take the one that is correct on edge cases.
 - A deliberate shortcut with a known limit gets a code comment `shortcut: <the limit>, <when to upgrade>`; the ponytail command `/ponytail-debt` lists them.
 - Never cut: validation at trust boundaries, error handling that prevents data loss, security, accessibility, anything the ticket asks for.
-- This is the ruleset of the ponytail plugin (DietrichGebert/ponytail, its `AGENTS.md`); it lives here because the cloud routines and their subagents run without plugins.
+- This is the ruleset of the ponytail plugin (DietrichGebert/ponytail, its `AGENTS.md`); it lives here so agents that run without the plugin follow the same text.
 
 ## 2. Multi-user from the first migration
 
