@@ -51,8 +51,8 @@ the UI strings under `frontend/src/i18n/`, and a few plain chore files. Everythi
 else is reviewed: the rule documents (`CLAUDE.md`, `docs/PRINCIPLES.md`,
 `docs/adr/`), because the merger's hygiene step does not compare documents
 with each other and the reviewer's findings on them have been real
-inconsistencies; `.claude/`, because agent files, skills and routine prompts
-steer agents; the `Makefile`, dependency manifests and lockfiles; `backend/`;
+inconsistencies; `.claude/`, because agent files and skills steer
+agents; the `Makefile`, dependency manifests and lockfiles; `backend/`;
 and `frontend/` outside `frontend/src/i18n/`. A diff that touches one path
 outside the list is reviewed in full.
 
@@ -60,7 +60,7 @@ The author is the `ticket-implementer` agent, on Sonnet 5.5 at high effort.
 
 Both agents' instructions live in the repository, in
 `.claude/agents/pr-reviewer.md` and `.claude/agents/ticket-implementer.md`,
-so the cloud worker and a local session use the same text. A session whose
+so every session uses the same text. A session whose
 harness does not load those files as agent types spawns a general subagent
 with the same model and effort and tells it to read the file and follow it.
 
@@ -143,7 +143,8 @@ still exempt. A finding that was answered without a push does not.
 
 A PR branch changes only through git under the owner's identity, never
 through the GitHub contents API or the update-branch endpoint, which decode
-escape sequences and add merge commits. A merge passes an explicit commit
+escape sequences and add merge commits; the one exception is `gh pr update-branch`
+for a head that predates a required-check change (CLAUDE.md rule 7). A merge passes an explicit commit
 title and message, because the merge tool adds a `Co-authored-by` trailer
 otherwise (CLAUDE.md rule 9) and the repository's squash default would
 land a single-commit PR under the commit's subject, copy branch commit
@@ -177,9 +178,8 @@ seventh.
 
 ## Alternatives rejected
 
-| Option                                         | Why not                                                                                                              |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| A cloud routine fired by a webhook and a timer | The webhook, the polling, the verdict parsing and the race between runs, for no gain over a subagent.                |
-| A one-line "reviewed" marker comment per head  | One more comment on every PR to carry information the merger already has from the reviewer's report.                 |
-| Merger keeps its own full diff read            | Two reads of the same diff by the same model family; the merger's time goes to the checks, hygiene and triage.       |
-| Local sessions only, the cloud worker no merge | Every PR would wait for a local session; the worker can spawn the same reviewer from the same file in the same repo. |
+| Option                                         | Why not                                                                                                        |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| A cloud routine fired by a webhook and a timer | The webhook, the polling, the verdict parsing and the race between runs, for no gain over a subagent.          |
+| A one-line "reviewed" marker comment per head  | One more comment on every PR to carry information the merger already has from the reviewer's report.           |
+| Merger keeps its own full diff read            | Two reads of the same diff by the same model family; the merger's time goes to the checks, hygiene and triage. |

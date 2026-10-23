@@ -46,6 +46,7 @@ of a phase epic, or a workflow rule.
 | 0036 | [Risk and volatility figures](0036-risk-figures.md)                                                                | accepted 2026-10-19                               |
 | 0037 | [PR review by a GitHub Actions workflow](0037-pr-review-workflow.md)                                               | accepted 2026-10-19                               |
 | 0038 | [Yearly statement](0038-yearly-statement.md)                                                                       | accepted 2026-10-19                               |
+| 0039 | [Cloud routines retired](0039-cloud-routines-retired.md)                                                           | accepted 2026-10-23                               |
 
 ## Convention
 
