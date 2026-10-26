@@ -100,10 +100,6 @@ func (h *summaryHandler) list(w http.ResponseWriter, r *http.Request) {
 
 	for i, p := range portfolios {
 		totals := holdings.Convert(summaries[i], rates, reporting)
-		missingRates := totals.Missing
-		if missingRates == nil {
-			missingRates = []string{}
-		}
 		out[i] = portfolioListResponse{
 			ID:           p.ID,
 			Name:         p.Name,
@@ -111,7 +107,7 @@ func (h *summaryHandler) list(w http.ResponseWriter, r *http.Request) {
 			TotalValue:   totals.TotalValue.StringFixed(2),
 			Cash:         totals.Cash.StringFixed(2),
 			Currency:     reporting,
-			MissingRates: missingRates,
+			MissingRates: totals.Missing,
 		}
 		// unrealizedKnown's verdict on the unrealized total, so the list
 		// nulls unrealized_pl on exactly the input the summary does.

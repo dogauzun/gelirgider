@@ -3,7 +3,6 @@ package server
 import (
 	"cmp"
 	"context"
-	"maps"
 	"net/http"
 	"slices"
 	"strconv"
@@ -144,10 +143,7 @@ func (h *tradeHandler) buildTrades(ctx context.Context, lists [][]transaction.Tr
 	if err != nil {
 		return out, err
 	}
-	out.MissingRates = slices.Sorted(maps.Keys(missing))
-	if out.MissingRates == nil {
-		out.MissingRates = []string{}
-	}
+	out.MissingRates = holdings.SortedKeys(missing)
 	return out, nil
 }
 

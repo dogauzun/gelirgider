@@ -1,9 +1,7 @@
 package server
 
 import (
-	"maps"
 	"net/http"
-	"slices"
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
@@ -125,9 +123,6 @@ func (h *cashFlowHandler) get(w http.ResponseWriter, r *http.Request) {
 		out.Months = append(out.Months, s.bucket(period))
 	}
 	out.Totals = total.bucket("")
-	out.MissingRates = slices.Sorted(maps.Keys(missing))
-	if out.MissingRates == nil {
-		out.MissingRates = []string{}
-	}
+	out.MissingRates = holdings.SortedKeys(missing)
 	auth.WriteJSON(w, http.StatusOK, out)
 }

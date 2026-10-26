@@ -159,10 +159,7 @@ func attributeDay(in dayInput) dayReturn {
 			out.gaps.costs = true
 		}
 	}
-	for currency := range f.missing {
-		out.missing = append(out.missing, currency)
-	}
-	slices.Sort(out.missing)
+	out.missing = holdings.SortedKeys(f.missing)
 	return out
 }
 
@@ -228,10 +225,7 @@ func (s *historySweep) rangeAttribution(i, j int) rangeReturn {
 			}
 		}
 	}
-	out.missingRates = slices.Sorted(maps.Keys(missing))
-	if out.missingRates == nil {
-		out.missingRates = []string{}
-	}
+	out.missingRates = holdings.SortedKeys(missing)
 	return out
 }
 

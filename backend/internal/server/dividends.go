@@ -351,10 +351,7 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 	out.Last12Months = bucketOf(since, last12)
 	out.Total = bucketOf("", total)
 	out.ByInstrument = dividendInstrumentTotals(byInstrument)
-	out.MissingRates = slices.Sorted(maps.Keys(missing))
-	if out.MissingRates == nil {
-		out.MissingRates = []string{}
-	}
+	out.MissingRates = holdings.SortedKeys(missing)
 	auth.WriteJSON(w, http.StatusOK, out)
 }
 
@@ -516,6 +513,6 @@ func (h *dividendHandler) forecast(w http.ResponseWriter, r *http.Request) {
 	for _, period := range periods {
 		out.Months = append(out.Months, dividendForecastMonth{Period: period, Net: sums[period].StringFixed(2)})
 	}
-	out.MissingRates = append(out.MissingRates, slices.Sorted(maps.Keys(missing))...)
+	out.MissingRates = holdings.SortedKeys(missing)
 	auth.WriteJSON(w, http.StatusOK, out)
 }

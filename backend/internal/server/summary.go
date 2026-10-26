@@ -297,11 +297,6 @@ func (h *summaryHandler) get(w http.ResponseWriter, r *http.Request) {
 	cashByCurrency, cashByCurrencyReporting := cashMaps(summary, rates, reporting)
 	positions, dayTotal := positionRows(summary, v, prev, rates, reporting)
 
-	missingRates := totals.Missing
-	if missingRates == nil {
-		missingRates = []string{}
-	}
-
 	resp := summaryResponse{
 		Currency:                reporting,
 		Cash:                    totals.Cash.StringFixed(2),
@@ -310,7 +305,7 @@ func (h *summaryHandler) get(w http.ResponseWriter, r *http.Request) {
 		TotalValue:              totals.TotalValue.StringFixed(2),
 		PositionsValue:          totals.PositionsValue.StringFixed(2),
 		CostBasis:               totals.CostBasis.StringFixed(2),
-		MissingRates:            missingRates,
+		MissingRates:            totals.Missing,
 		Positions:               positions,
 		Stats:                   buildStats(summary, txs, rates, reporting),
 	}

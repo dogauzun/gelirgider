@@ -942,10 +942,15 @@ func Convert(s Summary, rates map[string]decimal.Decimal, reporting string) Tota
 		totals.RealizedPL = totals.RealizedPL.Add(s.RealizedPL[currency].Mul(f))
 	}
 
-	for m := range missing {
-		totals.Missing = append(totals.Missing, m)
-	}
-	sort.Strings(totals.Missing)
+	totals.Missing = SortedKeys(missing)
 
 	return totals
+}
+
+// SortedKeys returns the keys of set in ascending order. It is never nil, so
+// a missing-currency list encodes as [] and not null.
+func SortedKeys(set map[string]bool) []string {
+	keys := slices.AppendSeq(make([]string, 0, len(set)), maps.Keys(set))
+	slices.Sort(keys)
+	return keys
 }
