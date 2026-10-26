@@ -14,6 +14,7 @@ import { UpcomingDividends } from '../components/UpcomingDividends'
 import { TransactionDialog } from '../components/TransactionDialog'
 import { emptyForm } from '../components/transactionForm'
 import { Button } from '../components/ui/Button'
+import { EmptyCard } from '../components/ui/EmptyCard'
 import { FitFigure, KPI_FIGURE, KpiCell, KpiStrip } from '../components/ui/Kpi'
 import { LoadError } from '../components/ui/LoadError'
 import { Notice } from '../components/ui/Notice'
@@ -128,15 +129,6 @@ export function DividendsPage() {
   return <DividendsBody portfolioId={Number(params.id)} />
 }
 
-function EmptyCard({ onAdd }: { onAdd: () => void }) {
-  return (
-    <section className="mb-6 flex flex-col items-center gap-3 card px-6 py-12 text-center">
-      <p className="text-[16px] font-semibold text-ink">{t('dividends.page.empty')}</p>
-      <Button onClick={onAdd}>{t('dividends.page.emptyAdd')}</Button>
-    </section>
-  )
-}
-
 function DividendsBody({ portfolioId }: { portfolioId: number }) {
   usePortfolioTitle(t('dividends.page.title'), portfolioId)
   const positionPath = usePositionPath()
@@ -165,7 +157,11 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
 
   let body = null
   if (isEmpty) {
-    body = <EmptyCard onAdd={() => setAdding(true)} />
+    body = (
+      <EmptyCard title={t('dividends.page.empty')} className="mb-6">
+        <Button onClick={() => setAdding(true)}>{t('dividends.page.emptyAdd')}</Button>
+      </EmptyCard>
+    )
   } else if (undecided) {
     body = <SkeletonRows label={t('dividends.page.loading')} />
   } else if (data) {

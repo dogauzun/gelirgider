@@ -14,6 +14,7 @@ import {
 } from '../components/transactions/filters'
 import { TransactionList } from '../components/transactions/TransactionList'
 import { Button } from '../components/ui/Button'
+import { EmptyCard } from '../components/ui/EmptyCard'
 import { buttonClass } from '../components/ui/buttonClass'
 import { useConfirm } from '../components/ui/useConfirm'
 import { Icon } from '../components/ui/Icon'
@@ -64,8 +65,7 @@ function deleteSummary(tx: Transaction): string {
 // The card of a portfolio with no transactions at all.
 function NoTransactions({ portfolioId }: { portfolioId: number }) {
   return (
-    <section className="flex flex-col items-center gap-3 card px-6 py-12 text-center">
-      <p className="text-[16px] font-semibold text-ink">{t('transactions.empty')}</p>
+    <EmptyCard title={t('transactions.empty')}>
       {/* The add button is in the header; a statement is the other
           way to start, and the faster one for a broker user. */}
       <Link
@@ -74,7 +74,7 @@ function NoTransactions({ portfolioId }: { portfolioId: number }) {
       >
         {t('transactions.emptyImport')}
       </Link>
-    </section>
+    </EmptyCard>
   )
 }
 
