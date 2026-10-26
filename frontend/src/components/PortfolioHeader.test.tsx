@@ -141,7 +141,7 @@ describe('PortfolioHeader', () => {
     expect(screen.getByRole('link', { name: t('summary.title') })).toHaveAttribute('href', href)
   })
 
-  it('announces a failed portfolio list load (GLG-469)', async () => {
+  it('announces a failed portfolio list load', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () => new Response(JSON.stringify({ error: 'boom' }), { status: 500 }),
     )
@@ -209,7 +209,7 @@ describe('PortfolioHeader', () => {
     ])
   })
 
-  it('sticks the tab row under the top bar on phone (GLG-571)', async () => {
+  it('sticks the tab row under the top bar on phone', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () =>
         new Response(
@@ -236,7 +236,7 @@ describe('PortfolioHeader', () => {
     expect(nav.parentElement).toBe(screen.getByText('body').parentElement)
   })
 
-  it('scrolls the tab row to the active tab (GLG-1060)', async () => {
+  it('scrolls the tab row to the active tab', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () =>
         new Response(
@@ -268,7 +268,7 @@ describe('PortfolioHeader', () => {
     expect(scrollLeft).toHaveBeenCalledWith(45)
   })
 
-  it('names the page with an h1 inside the main landmark, beside a named app nav (GLG-668)', async () => {
+  it('names the page with an h1 inside the main landmark, beside a named app nav', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () =>
         new Response(
@@ -300,7 +300,7 @@ describe('PortfolioHeader', () => {
   it.each([
     [1, 'Emeklilik'],
     ['all', t('portfolio.all')],
-  ] as const)('hides the h1 below lg only (GLG-940): %s', async (portfolioId, name) => {
+  ] as const)('hides the h1 below lg only: %s', async (portfolioId, name) => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () =>
         new Response(
@@ -328,7 +328,7 @@ describe('PortfolioHeader', () => {
   // row spaces it from the actions only from lg; on a phone an empty Özet's
   // stacked actions start where the header starts. The rename input shows
   // below lg, so it gets the gap back.
-  it('spaces the hidden title from the actions from lg only (GLG-995)', async () => {
+  it('spaces the hidden title from the actions from lg only', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () =>
         new Response(
@@ -357,7 +357,7 @@ describe('PortfolioHeader', () => {
 
   // The rename input takes the title row's width, up to a maximum,
   // instead of shrinking to its own 208 px.
-  it('widens the rename input to the title row (GLG-940)', async () => {
+  it('widens the rename input to the title row', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () =>
         new Response(
@@ -382,7 +382,7 @@ describe('PortfolioHeader', () => {
     expect(input.parentElement).toHaveClass('flex-1')
   })
 
-  it('keeps an h1 while the portfolio list loads (GLG-690)', () => {
+  it('keeps an h1 while the portfolio list loads', () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise<Response>(() => {}))
 
     render(
@@ -398,7 +398,7 @@ describe('PortfolioHeader', () => {
     ).toBeInTheDocument()
   })
 
-  it('leaves the h1 to a page with its own (GLG-668, GLG-677)', async () => {
+  it('leaves the h1 to a page with its own', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () =>
         new Response(
@@ -419,7 +419,7 @@ describe('PortfolioHeader', () => {
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
   })
 
-  it('hands focus back to the menu button after a rename or a cancelled delete (GLG-441)', async () => {
+  it('hands focus back to the menu button after a rename or a cancelled delete', async () => {
     const patches: string[] = []
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const url = String(input)
@@ -600,7 +600,7 @@ describe('PortfolioHeader', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('shows a read-only header for all portfolios (GLG-540)', async () => {
+  it('shows a read-only header for all portfolios', async () => {
     const urls: string[] = []
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
@@ -648,7 +648,7 @@ describe('PortfolioHeader', () => {
     expect(screen.getByText(t('portfolios.nameHint'))).toBeInTheDocument()
   })
 
-  it('offers no actions for a portfolio not in the list (GLG-338)', async () => {
+  it('offers no actions for a portfolio not in the list', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/portfolios') {

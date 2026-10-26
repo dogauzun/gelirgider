@@ -35,7 +35,7 @@ describe('dateTicks', () => {
     expect(dateTicks(days(5), 1200)).toEqual(days(5))
   })
 
-  it('keeps labels with a year apart, down to the two ends on a narrow plot (GLG-1035)', () => {
+  it('keeps labels with a year apart, down to the two ends on a narrow plot', () => {
     const dates = days(366)
     // A 320 px phone's 172 px plot fits "30 Eyl 2024" and "06 Eki 2026" only.
     expect(dateTicks(dates, 172, true)).toEqual([dates[0], dates[365]])
@@ -159,7 +159,7 @@ describe('rangeDelta', () => {
     ).toBeNull()
   })
 
-  it('subtracts exactly, not as floats (GLG-942)', () => {
+  it('subtracts exactly, not as floats', () => {
     const points = (first: string, last: string) => [
       { date: '2026-01-01', total_value: first, cash: '0', cost_basis: '0' },
       { date: '2026-02-01', total_value: last, cash: '0', cost_basis: '0' },

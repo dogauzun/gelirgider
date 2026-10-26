@@ -218,7 +218,7 @@ describe('SummaryPage', () => {
     expect(urls).not.toContain('/api/watchlist')
   })
 
-  it("shows the API's cost and positions value, not totals less cash (GLG-976)", async () => {
+  it("shows the API's cost and positions value, not totals less cash", async () => {
     // Cash 8.995 and a 1.005 position, each rounded on its own: total minus
     // cash minus gain is 10.00 - 9.00 - 0.00 = 1.00, a cent off the row.
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
@@ -291,7 +291,7 @@ describe('SummaryPage', () => {
     expect(within(footer).getByText('₺1,01')).toBeInTheDocument()
   })
 
-  it('builds only the positions layout that matches the viewport (GLG-460)', async () => {
+  it('builds only the positions layout that matches the viewport', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/portfolios') {
@@ -383,7 +383,7 @@ describe('SummaryPage', () => {
     expect(item.queryByRole('button', { name: 'THYAO işlemleri' })).not.toBeInTheDocument()
   })
 
-  it("leaves a foreign position's currency gain to the position page (GLG-537, GLG-933)", async () => {
+  it("leaves a foreign position's currency gain to the position page", async () => {
     const position = (id: number, symbol: string, currency: string, fx: string | null) => ({
       instrument_id: id,
       symbol,
@@ -468,7 +468,7 @@ describe('SummaryPage', () => {
     expect(phone.card.queryByText(/Kur farkı/)).not.toBeInTheDocument()
   })
 
-  it("shows each position's daily change and their total in the KPI strip (GLG-552)", async () => {
+  it("shows each position's daily change and their total in the KPI strip", async () => {
     const position = (
       id: number,
       symbol: string,
@@ -587,7 +587,7 @@ describe('SummaryPage', () => {
     expect(within(flatCell).queryByRole('button')).toBeNull()
   })
 
-  it('opens the position page when a symbol is clicked (GLG-549)', async () => {
+  it('opens the position page when a symbol is clicked', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/portfolios') {
@@ -656,7 +656,7 @@ describe('SummaryPage', () => {
     expect(within(container).getByTestId('location')).toHaveTextContent('/portfolios/1/positions/7')
   })
 
-  it('renders the all scope read-only: no price editor, no symbol link, copy for AI (GLG-545, GLG-608)', async () => {
+  it('renders the all scope read-only: no price editor, no symbol link, copy for AI', async () => {
     const urls: string[] = []
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
@@ -791,7 +791,7 @@ describe('SummaryPage', () => {
     expect(writeText.mock.calls[0][0]).toContain('# Tüm portföyler')
   })
 
-  it('offers an import link under the one primary add on an empty portfolio (GLG-781)', async () => {
+  it('offers an import link under the one primary add on an empty portfolio', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/portfolios') {
@@ -839,7 +839,7 @@ describe('SummaryPage', () => {
     )
   })
 
-  it('opens a sell prefilled with the instrument and held quantity from a row (GLG-558)', async () => {
+  it('opens a sell prefilled with the instrument and held quantity from a row', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/portfolios') {
@@ -992,7 +992,7 @@ describe('SummaryPage', () => {
     expect(table.getAllByText('—').length).toBeGreaterThan(0)
   })
 
-  it('shows - for a position with no reporting value and leaves it out of the total (GLG-164)', async () => {
+  it('shows - for a position with no reporting value and leaves it out of the total', async () => {
     const position = (id: number, symbol: string, reporting: string | null) => ({
       instrument_id: id,
       symbol,
@@ -1128,7 +1128,7 @@ describe('SummaryPage', () => {
     expect(card.getByText('USD kur eksikliği nedeniyle toplam dışında')).toBeInTheDocument()
   })
 
-  it('shows the untotaled cash balance and no zero total when the only currency has no rate (GLG-113)', async () => {
+  it('shows the untotaled cash balance and no zero total when the only currency has no rate', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
 
@@ -1192,7 +1192,7 @@ describe('SummaryPage', () => {
     expect(await hint('Nakit')).toBe('$1.000,00')
   })
 
-  it('badges a position changed by a split with its date and ratio (GLG-276)', async () => {
+  it('badges a position changed by a split with its date and ratio', async () => {
     const position = {
       currency: 'TRY',
       quantity: '10',
@@ -1272,7 +1272,7 @@ describe('SummaryPage', () => {
     }
   })
 
-  it('names the holdings with no price yet under the chart (GLG-254)', async () => {
+  it('names the holdings with no price yet under the chart', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
 
@@ -1325,7 +1325,7 @@ describe('SummaryPage', () => {
     expect(await screen.findByText(/Fiyat bilinmiyor.*AAPL/)).toBeInTheDocument()
   })
 
-  it('shows the chosen return method in the chart header and remembers it (GLG-392)', async () => {
+  it('shows the chosen return method in the chart header and remembers it', async () => {
     localStorage.removeItem('returnMethod')
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
@@ -1393,7 +1393,7 @@ describe('SummaryPage', () => {
     localStorage.removeItem('returnMethod')
   })
 
-  it('shows a placeholder when the chosen return method is null for the range (GLG-410)', async () => {
+  it('shows a placeholder when the chosen return method is null for the range', async () => {
     localStorage.removeItem('returnMethod')
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
@@ -1470,7 +1470,7 @@ describe('SummaryPage', () => {
     ['2024 calendar-year', '2024-01-01', '2024-12-31', 'yıllık +%21 · BIST 100 yıllık +%44'],
     ['2025 calendar-year', '2025-01-01', '2025-12-31', 'yıllık +%21 · BIST 100 yıllık +%44'],
     ['one-year', '2025-10-01', '2026-10-01', 'yıllık +%21 · BIST 100 yıllık +%44'],
-  ])('annualizes returns on a %s range from a year on (GLG-607)', async (_, from, to, line) => {
+  ])('annualizes returns on a %s range from a year on', async (_, from, to, line) => {
     localStorage.setItem('benchmark', 'XU100')
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
@@ -1556,7 +1556,7 @@ describe('SummaryPage', () => {
     localStorage.removeItem('benchmark')
   })
 
-  describe('benchmark comparison (GLG-496)', () => {
+  describe('benchmark comparison', () => {
     // Serves an empty portfolio in `currency` whose history carries a
     // benchmark when one is requested; returns every requested URL.
     function mockBenchmarkApi(
@@ -1667,7 +1667,7 @@ describe('SummaryPage', () => {
       )
     })
 
-    it('keeps the full-width header dropdowns out of the wrapping row (GLG-504)', async () => {
+    it('keeps the full-width header dropdowns out of the wrapping row', async () => {
       mockBenchmarkApi('TRY', '0.050000')
       renderPage()
 
@@ -1724,7 +1724,7 @@ describe('SummaryPage', () => {
       closed: quantity === '0',
     })
 
-    it('offers open positions by symbol and keeps a stored one the scope holds (GLG-702)', async () => {
+    it('offers open positions by symbol and keeps a stored one the scope holds', async () => {
       localStorage.setItem('benchmark', 'instrument:7')
       const urls = mockBenchmarkApi('TRY', '0.050000', true, [
         fund(7, 'GJH'),
@@ -1755,7 +1755,7 @@ describe('SummaryPage', () => {
       )
     })
 
-    it('treats a stored position the scope does not hold as none (GLG-702)', async () => {
+    it('treats a stored position the scope does not hold as none', async () => {
       localStorage.setItem('benchmark', 'instrument:7')
       const urls = mockBenchmarkApi('TRY', '0.050000', true, [fund(3, 'AFT')])
       renderPage()
@@ -1767,7 +1767,7 @@ describe('SummaryPage', () => {
       ).toBe(true)
     })
 
-    it('says the benchmark has no data in place of the pill (GLG-934)', async () => {
+    it('says the benchmark has no data in place of the pill', async () => {
       localStorage.setItem('benchmark', 'XU100')
       mockBenchmarkApi('TRY', null)
       renderPage()
@@ -1786,7 +1786,7 @@ describe('SummaryPage', () => {
     })
   })
 
-  it('requests history from Jan 1 of the Istanbul year on YTD, keeping 3M the default (GLG-554)', async () => {
+  it('requests history from Jan 1 of the Istanbul year on YTD, keeping 3M the default', async () => {
     // 22:30 UTC on Dec 31 is already Jan 1 in Istanbul (UTC+3).
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-12-31T22:30:00Z'))
@@ -1848,7 +1848,7 @@ describe('SummaryPage', () => {
     )
   })
 
-  it('shows the translated error instead of an empty chart when the history query fails, with a Retry that refetches it (GLG-771)', async () => {
+  it('shows the translated error instead of an empty chart when the history query fails, with a Retry that refetches it', async () => {
     let historyCalls = 0
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
@@ -1916,7 +1916,7 @@ describe('SummaryPage', () => {
     expect(historyCalls).toBe(2)
   })
 
-  it('keeps the previous range on the chart, dimmed and busy, while a new range loads (GLG-771)', async () => {
+  it('keeps the previous range on the chart, dimmed and busy, while a new range loads', async () => {
     let answer1y: (r: Response) => void = () => {}
     const oneYear = resolveRange({ key: '1y', from: '', to: '' }, todayIstanbul())
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
@@ -1982,7 +1982,7 @@ describe('SummaryPage', () => {
     )
   })
 
-  it('does not retry a 404 and shows the translated not-found message (GLG-94)', async () => {
+  it('does not retry a 404 and shows the translated not-found message', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
 
@@ -2263,7 +2263,7 @@ describe('SummaryPage', () => {
     expect(document.activeElement).toBe(card.getByRole('heading', { name: 'Dikkat' }))
   })
 
-  it('shows - instead of a zero P/L when every contributing currency is excluded (GLG-129)', async () => {
+  it('shows - instead of a zero P/L when every contributing currency is excluded', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/portfolios') {
@@ -2343,7 +2343,7 @@ describe('SummaryPage', () => {
     expect(within(container).getAllByText('—')).toHaveLength(9)
   })
 
-  describe('manual price removal (GLG-134)', () => {
+  describe('manual price removal', () => {
     // The ticket's repro: a wrong-dated manual row (2026-09-12, 60) shadowing
     // the fetched close (2026-09-11, 58). After the DELETE the refetched
     // summary is the fetched price again.
@@ -2495,7 +2495,7 @@ describe('SummaryPage', () => {
     })
   })
 
-  it('does not tag a fetched price as manual (GLG-134)', async () => {
+  it('does not tag a fetched price as manual', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       if (url === '/api/portfolios') {
@@ -2909,7 +2909,7 @@ describe('SummaryPage', () => {
     expect(table.getByText('₺350.000,03')).toBeInTheDocument()
   })
 
-  it('subtracts cash and unrealized P/L from the total exactly, not as floats (GLG-943)', async () => {
+  it('subtracts cash and unrealized P/L from the total exactly, not as floats', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
 
@@ -2981,7 +2981,7 @@ describe('SummaryPage', () => {
     expect(await hint('Gerçekleşmemiş K/Z')).toContain('Maliyet ₺987.654.321.098.765,41')
   })
 
-  describe('statistics card (GLG-596)', () => {
+  describe('statistics card', () => {
     function renderStats(reporting: Record<string, string> | null) {
       // 09:00 UTC on Sep 29 2026; 2024-07-15 is 2 years 2 months before it.
       vi.useFakeTimers({ toFake: ['Date'] })
@@ -3060,7 +3060,7 @@ describe('SummaryPage', () => {
       expect(card.getByText('2 yıl 2 ay')).toBeInTheDocument()
     })
 
-    it('keeps the cents of a net figure above 2^53 units (GLG-635)', async () => {
+    it('keeps the cents of a net figure above 2^53 units', async () => {
       renderStats({
         deposits: '100000000000000.03',
         withdrawals: '0.02',
@@ -3091,7 +3091,7 @@ describe('SummaryPage', () => {
     })
   })
 
-  describe('layout A (GLG-934)', () => {
+  describe('layout A', () => {
     const position = (
       instrument_id: number,
       symbol: string,
@@ -3494,7 +3494,7 @@ describe('SummaryPage', () => {
       )
     })
 
-    describe('Tüm portföyler (GLG-935)', () => {
+    describe('Tüm portföyler', () => {
       const listed = (id: number, name: string, total_value: string) => ({
         id,
         name,

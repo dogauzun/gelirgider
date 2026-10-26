@@ -143,9 +143,9 @@ not in env vars or cron:
    rebuilds instead, with
    `docker compose -f deploy/compose.yml up -d --build`.
 
-Since GLG-1118 the backend runs as uid 65532 instead of root. On a host
-set up before it, hand the existing database files to that uid once, before
-step 2, and make the env file and the directory private:
+The backend runs as uid 65532 instead of root. On a host
+set up while it still ran as root, hand the existing database files to that
+uid once, before step 2, and make the env file and the directory private:
 
 ```
 sudo chown -R 65532:65532 deploy/data
@@ -156,7 +156,7 @@ chmod 600 deploy/.env
 Without it the new backend cannot write the root-owned database and does
 not start.
 
-Since GLG-1117 (2026-10-07) an unset registration toggle means closed: an
+Since 2026-10-07 an unset registration toggle means closed: an
 instance that never set it stops taking sign-ups after the update. Open it
 in Yönetim / Administration → Users if anyone should sign up.
 
@@ -184,8 +184,8 @@ error before deciding which.
 
 ## 4. Backup
 
-`deploy/backup.sh` runs the backend's `-backup` flag (`VACUUM INTO`, added
-in GLG-44) for a consistent snapshot, gzips it into `deploy/data/backups/`,
+`deploy/backup.sh` runs the backend's `-backup` flag (`VACUUM INTO`) for a
+consistent snapshot, gzips it into `deploy/data/backups/`,
 and deletes local backups older than 14 days.
 
 Plain `cp` of the live `gelirgider.db` file is not used because the backend
@@ -230,12 +230,11 @@ database, so `backup.sh` stays the backup. §6 restores one.
 The backend has a built-in scheduler (no cron needed) that fetches each
 source (`bist`, `bist-splits`, `tcmb`, `us`, `crypto`, `tefas`, `tufe`,
 `xu100`, `gold`) once a day.
-It checks the settings once a minute, so a change applies without a restart
-(GLG-303):
+It checks the settings once a minute, so a change applies without a restart:
 
 - `source.<name>.enabled` — on by default, except `tefas`, which stays off
   until an admin turns it on (tefas.gov.tr's robots.txt disallows its
-  endpoint, GLG-1114). Disabling a source also skips it in the startup
+  endpoint). Disabling a source also skips it in the startup
   catch-up, the startup backfill and the fetch after a transaction is saved.
   Offline dev means disabling the sources.
 - `source.<name>.at` — daily time, Europe/Istanbul, default `19:00`
@@ -247,8 +246,7 @@ It checks the settings once a minute, so a change applies without a restart
   `schedule.backfill_from` (`YYYY-MM-DD`) overrides the backfill start date,
   like `-backfill-from`.
 
-These live in the `settings` table; the admin area edits them (GLG-307,
-GLG-315). A malformed value logs a warning once and uses its default.
+These live in the `settings` table; the admin area edits them. A malformed value logs a warning once and uses its default.
 
 The Finnhub (latest US close), Tiingo (US daily-close history) and TCMB
 EVDS (BIST 100 index closes) API keys are set in Yönetim / Administration,
@@ -480,7 +478,7 @@ matching images.
 
 There is no self-service reset: the app cannot send email yet, so a
 "forgot password" link would have nowhere to send a token. The backend
-binary has an operator escape hatch instead (GLG-124). It reads the new
+binary has an operator escape hatch instead. It reads the new
 password from stdin — never an argument — so it stays out of the process
 list, and it exits without starting a server.
 

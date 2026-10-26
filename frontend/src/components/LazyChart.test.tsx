@@ -65,7 +65,7 @@ describe('LazyChart', () => {
     expect(screen.queryByRole('main')).not.toBeInTheDocument()
   })
 
-  it('shows chart.error in the locale active at render, not at import (GLG-1254)', async () => {
+  it('shows chart.error in the locale active at render, not at import', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.doMock('./charts', () => {
       throw new Error('chunk failed')
