@@ -111,6 +111,11 @@ export function moneyByCurrency(items: { currency: string; amount: string }[]): 
 export const netTotal = (rows: { currency: string; net: string }[]) =>
   moneyByCurrency(rows.map((row) => ({ currency: row.currency, amount: row.net }))).join(' + ')
 
+// The values added exactly, as a count of 1e-9 units: 0n for an empty list.
+export function sumUnits(values: string[]): bigint {
+  return values.reduce((sum, value) => sum + decimalUnits(value), 0n)
+}
+
 // a + b and a - b of two API decimal strings, exact: Number() would round a
 // large amount's cents. Scales may differ ("1.5" and "0.25").
 export function addDecimal(a: string, b: string): string {

@@ -11,6 +11,7 @@ import {
   moneyByCurrency,
   parseDecimalInput,
   subDecimal,
+  sumUnits,
 } from './decimal'
 
 afterEach(() => setLocale('tr'))
@@ -110,6 +111,13 @@ describe('unitsToDecimal', () => {
     expect(unitsToDecimal(100_000_000_000_000_010_000_000n)).toBe('100000000000000.01')
     expect(unitsToDecimal(-1_500_000_000n)).toBe('-1.5')
     expect(unitsToDecimal(0n)).toBe('0')
+  })
+})
+
+describe('sumUnits', () => {
+  it('adds values of mixed fraction digits exactly, and an empty list to 0n', () => {
+    expect(sumUnits(['0.1', '0.2', '1', '-0.000000001'])).toBe(1_299_999_999n)
+    expect(sumUnits([])).toBe(0n)
   })
 })
 
