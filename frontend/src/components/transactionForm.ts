@@ -292,8 +292,8 @@ export function validate(form: FormState): FormError | null {
   // Amount is already known valid and positive here: every type in
   // TYPES_WITH_FEE_FROM_AMOUNT is also in TYPES_WITH_AMOUNT.
   if (TYPES_WITH_FEE_FROM_AMOUNT.has(form.type)) {
-    const fee = form.fee.trim() === '' ? 0 : Number(parseDecimalInput(form.fee))
-    if (fee > Number(parseDecimalInput(form.amount))) {
+    const fee = parseDecimalInput(form.fee) ?? '0'
+    if (compareDecimal(fee, parseDecimalInput(form.amount) ?? '0') > 0) {
       return {
         field: 'fee',
         message: t('transactions.error.feeExceedsAmount', { field: t(feeLabelKey(form.type)) }),

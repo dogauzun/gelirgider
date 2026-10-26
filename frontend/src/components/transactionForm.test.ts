@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { rowLabel } from './transactionForm'
+import { emptyForm, rowLabel, validate } from './transactionForm'
 
 describe('rowLabel', () => {
   it('puts the symbol first and signs the amount, and leaves out what the row lacks', () => {
@@ -18,5 +18,22 @@ describe('rowLabel', () => {
       '09.12.2025 Para yatırma +₺100,00',
     )
     expect(rowLabel({})).toBe('')
+  })
+})
+
+describe('validate fee against amount', () => {
+  const form = (fee: string, amount: string) => ({
+    ...emptyForm('deposit', '2025-12-26'),
+    amount,
+    fee,
+  })
+
+  it('compares exactly: a fee of 100000000.000000001 exceeds an amount of 100000000.000000000, which share a double', () => {
+    expect(validate(form('100000000.000000001', '100000000.000000000'))?.field).toBe('fee')
+  })
+
+  it('accepts an equal fee and an empty fee', () => {
+    expect(validate(form('100000000.000000000', '100000000.000000000'))).toBeNull()
+    expect(validate(form('', '1'))).toBeNull()
   })
 })
