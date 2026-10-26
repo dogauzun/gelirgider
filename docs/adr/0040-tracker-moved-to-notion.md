@@ -14,7 +14,7 @@ Notion, so a second tool for the tracker was one tool too many.
 ## Decision
 
 - The tracker is one Notion Tasks database per project; gelirgider's is the
-  database "gelirgider Tasks" on the page "Work". A ticket is a task page there,
+  database "gelirgider Tasks" on the page "Projects". A ticket is a task page there,
   with Status `To Do` / `In Progress` / `In Review` / `Done`, Type `Task` /
   `Bug` / `Epic`, labels, an `Epic` / `Children` relation, a `Blocked by` /
   `Blocks` relation and a `PR` URL property. The database URLs, label meanings,
