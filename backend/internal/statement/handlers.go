@@ -705,10 +705,7 @@ func (h *handler) instrumentLookup(ctx context.Context, ids []int64) (func(int64
 				return in, err
 			}
 		}
-		if in.Market == instrument.MarketDeposit {
-			return instrument.Instrument{}, instrument.ErrNotFound
-		}
-		return in, nil
+		return instrument.Usable(in)
 	}, nil
 }
 

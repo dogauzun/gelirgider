@@ -636,3 +636,27 @@ func TestDividendForecast(t *testing.T) {
 		t.Errorf("currency = %q, missing_rates = %v, want TRY and none", got.Currency, got.MissingRates)
 	}
 }
+
+// TestDividendDismissRefusesRefusedInstruments: a DEPOSIT instrument and an
+// unknown one answer the same 400 as every other body validator.
+func TestDividendDismissRefusesRefusedInstruments(t *testing.T) {
+	e := newTransactionTestEnv(t)
+	session := e.login("dismiss@example.com")
+	portfolioID := e.createPortfolio(session, "Main")
+	res, err := e.db.Exec(`INSERT INTO instruments (symbol, market, name, currency) VALUES ('DEP-ZZ1', 'DEPOSIT', 'Deposit ZZ1', 'TRY')`)
+	if err != nil {
+		t.Fatalf("insert deposit instrument: %v", err)
+	}
+	depositID, _ := res.LastInsertId()
+
+	path := fmt.Sprintf("/api/portfolios/%d/dividends/expected/dismiss", portfolioID)
+	for name, id := range map[string]int64{"DEPOSIT instrument": depositID, "unknown instrument": 9999} {
+		rec := e.do(session, http.MethodPost, path, map[string]any{"instrument_id": id, "date": "2025-05-10"})
+		if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "instrument_id: unknown instrument") {
+			t.Errorf("dismiss %s = %d %s, want 400 instrument_id: unknown instrument", name, rec.Code, rec.Body.String())
+		}
+	}
+	if n := e.countRows("dividend_dismissals"); n != 0 {
+		t.Errorf("%d dismissals stored, want 0", n)
+	}
+}

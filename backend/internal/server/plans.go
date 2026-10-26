@@ -184,8 +184,8 @@ func (h *planHandler) create(w http.ResponseWriter, r *http.Request) {
 	}
 	var in *instrument.Instrument
 	if req.InstrumentID != nil {
-		got, err := h.instruments.Get(r.Context(), *req.InstrumentID)
-		if errors.Is(err, instrument.ErrNotFound) || (err == nil && got.Market == instrument.MarketDeposit) {
+		got, err := h.instruments.GetUsable(r.Context(), *req.InstrumentID)
+		if errors.Is(err, instrument.ErrNotFound) {
 			auth.WriteError(w, http.StatusBadRequest, "instrument_id: unknown instrument")
 			return
 		}
