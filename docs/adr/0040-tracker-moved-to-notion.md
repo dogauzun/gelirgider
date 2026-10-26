@@ -21,10 +21,11 @@ workspace already, and one MCP connector reaches it from every subagent.
   house style and query recipes are in `.claude/rules/tracker.md`.
 - Nothing is imported from Jira; open Jira tickets are not carried over, and
   the Jira project is left as it is.
-- No task key in branch names or PR titles. The PR body's `Ticket:` line holds
-  the task page URL (or a GitHub issue for outside contributors), the squash
-  body carries it into git, and the task's `PR` property holds the PR URL from
-  the moment the PR opens.
+- No task key in branch names or PR titles, and no task link in the PR body:
+  the tracker is private. The task's `PR` property holds the PR URL from the
+  moment the PR opens and is the one link between a task and its PR; the
+  tracker recipes find the task of a PR through it. An outside contributor
+  names their GitHub issue in the PR body instead.
 - No effort record. Status transitions by name are the only progress signal;
   nothing is estimated or timed.
 - GitHub issues stay the entry for outside contributors.

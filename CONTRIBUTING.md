@@ -11,8 +11,8 @@ task database in Notion: every change starts as a task and ships as one pull
 request, reviewed by a separate review agent (the `Claude Code Review`
 workflow, or for a pull request from a fork the same review agent run by a
 maintainer; ADR 0037) before it is merged. You do not need access to that
-database. Open a GitHub issue instead of a task, and name that issue on the
-`Ticket:` line of your pull request.
+database. Open a GitHub issue instead of a task, and name that issue in the
+body of your pull request (`Closes #<n>`).
 
 ## Running it
 
@@ -41,25 +41,16 @@ One concern per pull request. The title follows Conventional Commits:
 Types: `feat` new behavior, `fix` wrong behavior, `perf`, `refactor`, `test`,
 `docs`, `build` (Makefile, Docker, dependencies), `chore` (anything else).
 
-The body:
-
-```
-## Description
-A short description of what is done
-
-Ticket: <link to the GitHub issue>
-
-## Testing
-Very short explanation of how testing is conducted to verify the PR. Include what commands are run and what is observed
-```
+The body is free text: what changed and why, how you verified it (the
+commands you ran and what you saw), and `Closes #<n>` for the issue.
 
 Releases: run the `release` workflow in Actions; the version comes from the squash
 titles since the last tag, the notes are GitHub's generated notes.
 
 ## Rules the review checks
 
-- Bug fix: write the test first and see it fail, and name it in the Testing
-  section ([docs/PRINCIPLES.md](docs/PRINCIPLES.md) #6).
+- Bug fix: write the test first and see it fail, and name it in the PR body
+  ([docs/PRINCIPLES.md](docs/PRINCIPLES.md) #6).
 - Non-trivial logic ships with one test. Trivial code ships with none.
 - New or changed API route: update its swag annotations, run `make swagger` and
   commit `backend/apidocs/`. `make lint` fails on a stale spec.
