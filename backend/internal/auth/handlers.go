@@ -470,6 +470,22 @@ type changePasswordRequest struct {
 	NewPassword     string `json:"new_password"`
 }
 
+// checkCurrentPassword reloads the user and compares password with the stored
+// bcrypt hash. It writes the error (401 on a mismatch) and returns false when
+// the request must stop.
+func (h *handler) checkCurrentPassword(w http.ResponseWriter, r *http.Request, userID int64, password string) (user.User, bool) {
+	u, err := h.users.GetByID(r.Context(), userID)
+	if err != nil {
+		WriteInternalError(w, r, err)
+		return user.User{}, false
+	}
+	if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)) != nil {
+		WriteError(w, http.StatusUnauthorized, "current password is incorrect")
+		return user.User{}, false
+	}
+	return u, true
+}
+
 // changePassword handles POST /api/account/password. On success it deletes
 // every other session of the user, keeping only the one making this request.
 //
@@ -496,13 +512,7 @@ func (h *handler) changePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := h.users.GetByID(r.Context(), userID)
-	if err != nil {
-		WriteInternalError(w, r, err)
-		return
-	}
-	if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(req.CurrentPassword)) != nil {
-		WriteError(w, http.StatusUnauthorized, "current password is incorrect")
+	if _, ok := h.checkCurrentPassword(w, r, userID, req.CurrentPassword); !ok {
 		return
 	}
 
