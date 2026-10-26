@@ -12,8 +12,8 @@ import (
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
 	"github.com/dogauzun/gelirgider/backend/internal/holdings"
 	"github.com/dogauzun/gelirgider/backend/internal/instrument"
-	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
+	"github.com/shopspring/decimal"
 )
 
 // registerTradeRoutes wires GET /api/portfolios/{id}/trades. It lives in
@@ -132,27 +132,17 @@ func (h *tradeHandler) buildTrades(ctx context.Context, lists [][]transaction.Tr
 	if len(kept) == 0 {
 		return out, nil
 	}
-	set := map[string]bool{}
-	for _, t := range kept {
-		set[t.Currency] = true
+	for i, t := range kept {
+		out.Trades[i] = newTradeResponse(t, instruments[t.InstrumentID])
 	}
-	// The walk goes forward in time, so the newest-first list is filled from its end.
-	fxw, err := loadFXWalk(ctx, h.fx, set, reporting, kept[len(kept)-1].Date, price.Today())
+	// The walk goes forward in time, so it reads the newest-first list from its end.
+	n := len(kept)
+	missing, err := walkRowFactors(ctx, h.fx, n, func(i int) (string, string) { return kept[n-1-i].Date, kept[n-1-i].Currency }, reporting, func(i int, f decimal.Decimal) {
+		s := kept[n-1-i].Realized.Mul(f).StringFixed(2)
+		out.Trades[n-1-i].RealizedReporting = &s
+	})
 	if err != nil {
 		return out, err
-	}
-	missing := map[string]bool{}
-	for i := len(kept) - 1; i >= 0; i-- {
-		t := kept[i]
-		fxw.advance(t.Date)
-		row := newTradeResponse(t, instruments[t.InstrumentID])
-		if f, ok := holdings.Factor(fxw.rates, t.Currency, reporting); ok {
-			s := t.Realized.Mul(f).StringFixed(2)
-			row.RealizedReporting = &s
-		} else {
-			missing[t.Currency] = true
-		}
-		out.Trades[i] = row
 	}
 	out.MissingRates = slices.Sorted(maps.Keys(missing))
 	if out.MissingRates == nil {
