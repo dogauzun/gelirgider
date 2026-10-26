@@ -56,3 +56,4 @@ Do not file these.
 
 - The 8 MB decoded-stream cap on a PDF, against real statements.
 - The 0.3 s history target.
+- The delete path of `.github/workflows/prune-images.yml` has never run against real versions. A 403 on a user-owned package would need an owner PAT, and no agent creates one.
