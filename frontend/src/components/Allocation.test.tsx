@@ -118,7 +118,7 @@ describe('Allocation', () => {
     expect(await slices(container)).toHaveLength(3)
   })
 
-  it('claims cash in the header only when cash is in the donut (GLG-1323)', () => {
+  it('claims cash in the header only when cash is in the donut', () => {
     // Zero or negative cash stays out of the donut, so the header
     // must not say "nakit dahil", in any view.
     for (const cash of ['-500.00', '0']) {
@@ -154,7 +154,7 @@ describe('Allocation', () => {
     expect(scoped.getByText('1 kalem · nakit dahil')).toBeInTheDocument()
   })
 
-  it('puts the legend beside the donut on the card width, not the viewport (GLG-1027)', () => {
+  it('puts the legend beside the donut on the card width, not the viewport', () => {
     const { scoped } = renderAllocation()
     // From lg the card is half the page, so a viewport breakpoint put the
     // legend beside the donut in a card too narrow for the names. jsdom has
@@ -243,7 +243,7 @@ describe('Allocation', () => {
     expect(scoped.getByText('USD nakdi kur eksikliği nedeniyle dahil değil')).toBeInTheDocument()
   })
 
-  it('switches between the symbol, market and currency views (GLG-553)', () => {
+  it('switches between the symbol, market and currency views', () => {
     const { scoped } = renderAllocation({
       positions: [
         position(1, 'THYAO', '300.00'),
@@ -269,7 +269,7 @@ describe('Allocation', () => {
     expect(scoped.getByText('2 kalem · nakit dahil')).toBeInTheDocument()
   })
 
-  it('folds rows past the fifth into "Diğer (n)" with its members in the title (GLG-780)', () => {
+  it('folds rows past the fifth into "Diğer (n)" with its members in the title', () => {
     const { scoped } = renderAllocation({
       positions: ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map((symbol, i) =>
         position(i + 1, symbol, String(70 - i * 10)),

@@ -454,7 +454,7 @@ describe('PositionsTable', () => {
     expect(screen.getByText('Aramayla eşleşen pozisyon yok.')).toBeInTheDocument()
   })
 
-  it('matches whichever way I is typed, in either locale (GLG-1143)', () => {
+  it('matches whichever way I is typed, in either locale', () => {
     const data = summary([
       position(1, 'BIMAS'),
       position(2, 'THYAO', { name: 'TURK HAVA YOLLARI' }),

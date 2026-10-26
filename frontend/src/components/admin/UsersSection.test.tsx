@@ -251,7 +251,7 @@ describe('UsersSection', () => {
     ])
   })
 
-  it('asks before an admin demotes themselves, then leaves /admin for home (GLG-347)', async () => {
+  it('asks before an admin demotes themselves, then leaves /admin for home', async () => {
     let meIsAdmin = true
     const puts: string[] = []
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {

@@ -719,7 +719,7 @@ func TestSummarizeAllMatchesMerge(t *testing.T) {
 		}
 	}
 	if got := holdings.SummarizeAll(states, latest); !slices.ContainsFunc(got.Positions, func(p holdings.Position) bool { return p.InstrumentID == 5 }) {
-		t.Errorf("positions = %v, want instrument 5 kept at merged quantity 0 (GLG-827)", got.Positions)
+		t.Errorf("positions = %v, want instrument 5 kept at merged quantity 0", got.Positions)
 	}
 }
 

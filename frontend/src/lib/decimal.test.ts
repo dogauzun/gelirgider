@@ -36,7 +36,7 @@ describe('parseDecimalInput', () => {
     expect(parseDecimalInput('1000.000,5')).toBeNull()
   })
 
-  it('rejects a first thousands group that starts with 0 (GLG-977)', () => {
+  it('rejects a first thousands group that starts with 0', () => {
     expect(parseDecimalInput('0.234,5')).toBeNull()
     expect(parseDecimalInput('012.345,6')).toBeNull()
     expect(parseDecimalInput('0,234.5')).toBeNull()

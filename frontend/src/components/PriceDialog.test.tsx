@@ -110,7 +110,7 @@ describe('PriceDialog', () => {
     expect(await screen.findByText(t('prices.saved'))).toBeInTheDocument()
   })
 
-  it('closes without a request on a re-save of the manual price in effect (GLG-813)', async () => {
+  it('closes without a request on a re-save of the manual price in effect', async () => {
     const { puts } = mockFetch()
     const onClose = renderDialog(
       position({ price_source: 'manual', price_date: todayIstanbul(), last_price: '60.00' }),
@@ -131,7 +131,7 @@ describe('PriceDialog', () => {
     expect(puts()[0][1]?.body).toBe(JSON.stringify({ close: '12.345' }))
   })
 
-  it('announces an invalid price as an alert (GLG-437)', () => {
+  it('announces an invalid price as an alert', () => {
     const { puts } = mockFetch()
     renderDialog()
     fireEvent.change(screen.getByLabelText('Fiyat'), { target: { value: 'abc' } })
@@ -142,7 +142,7 @@ describe('PriceDialog', () => {
     expect(puts()).toHaveLength(0)
   })
 
-  it('rejects an empty date without a request (GLG-478)', () => {
+  it('rejects an empty date without a request', () => {
     const { puts } = mockFetch()
     renderDialog()
     fireEvent.change(screen.getByLabelText('Tarih'), { target: { value: '' } })

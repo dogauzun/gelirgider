@@ -703,7 +703,7 @@ it('draws nothing on the days nothing is held: before the first held day and in 
   expect(heights(lines().slice(2))).toBe(1)
 })
 
-it('has exactly one h1 while loading and for an instrument not held (GLG-677)', async () => {
+it('has exactly one h1 while loading and for an instrument not held', async () => {
   let resolveSummary: (r: Response) => void = () => {}
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const url = String(input)
