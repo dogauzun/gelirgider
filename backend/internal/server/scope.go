@@ -17,8 +17,14 @@ import (
 // a number, or names another user's portfolio, is portfolio.ErrNotFound, as
 // it is on the single-portfolio routes today.
 func scopeTransactions(ctx context.Context, portfolios *portfolio.Repo, transactions *transaction.Repo, userID int64, id string) ([][]transaction.Transaction, error) {
+	pid, err := scopePortfolioID(ctx, portfolios, userID, id)
+	if err != nil {
+		return nil, err
+	}
 	var ids []int64
-	if id == "all" {
+	if pid != nil {
+		ids = []int64{*pid}
+	} else {
 		ps, err := portfolios.List(ctx, userID)
 		if err != nil {
 			return nil, err
@@ -26,15 +32,6 @@ func scopeTransactions(ctx context.Context, portfolios *portfolio.Repo, transact
 		for _, p := range ps {
 			ids = append(ids, p.ID)
 		}
-	} else {
-		n, err := strconv.ParseInt(id, 10, 64)
-		if err != nil {
-			return nil, portfolio.ErrNotFound
-		}
-		if _, err := portfolios.Get(ctx, userID, n); err != nil {
-			return nil, err
-		}
-		ids = []int64{n}
 	}
 
 	// shortcut: one List query per portfolio. Fine for a handful of
@@ -53,8 +50,7 @@ func scopeTransactions(ctx context.Context, portfolios *portfolio.Repo, transact
 // scopePortfolioID resolves the {id} path value into the portfolio a stored
 // per-scope row belongs to: nil for "all", else the id of a portfolio userID
 // owns. A non-number, or another user's portfolio, is portfolio.ErrNotFound.
-func (d *deps) scopePortfolioID(r *http.Request, userID int64) (*int64, error) {
-	id := r.PathValue("id")
+func scopePortfolioID(ctx context.Context, portfolios *portfolio.Repo, userID int64, id string) (*int64, error) {
 	if id == "all" {
 		return nil, nil
 	}
@@ -62,7 +58,7 @@ func (d *deps) scopePortfolioID(r *http.Request, userID int64) (*int64, error) {
 	if err != nil {
 		return nil, portfolio.ErrNotFound
 	}
-	if _, err := d.portfolios.Get(r.Context(), userID, n); err != nil {
+	if _, err := portfolios.Get(ctx, userID, n); err != nil {
 		return nil, err
 	}
 	return &n, nil
@@ -84,7 +80,7 @@ func (d *deps) scopeLists(w http.ResponseWriter, r *http.Request) (userID int64,
 // and is false when it cannot.
 func (d *deps) scopeID(w http.ResponseWriter, r *http.Request) (userID int64, portfolioID *int64, ok bool) {
 	userID = auth.MustUserID(r.Context())
-	portfolioID, err := d.scopePortfolioID(r, userID)
+	portfolioID, err := scopePortfolioID(r.Context(), d.portfolios, userID, r.PathValue("id"))
 	if err != nil {
 		portfolio.WriteLookupError(w, r, err)
 		return 0, nil, false
