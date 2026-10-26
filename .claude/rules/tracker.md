@@ -39,4 +39,4 @@ Use `query-data-sources` in SQL mode, with the data source URL as the table name
 - Duplicate check after a filing wave (a silent retry of `create-pages` may duplicate; this is unknown): `SELECT "userDefined:ID", Name FROM [collection://96301f5d-9a95-48ac-8381-72392034e31c] WHERE "userDefined:ID" >= <first id of the wave> ORDER BY Name`, then look for repeated names.
 - Transitions: `update-page` with `update_properties` and the status name.
 
-A Claude Code session can create, query, transition, set `PR` on and delete a task, and a general-purpose subagent can do the same with no permission or classifier denial. An implementer or QA subagent may therefore file and move its own tasks when its brief says so.
+The Notion calls (create, query, transition, set `PR`, delete) work from a Claude Code session and from a general-purpose subagent alike, with no permission or classifier denial. Who writes is `CLAUDE.md` rule 12: the coordinating session, never the implementer.

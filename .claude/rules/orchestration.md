@@ -21,7 +21,7 @@ For a session that runs one implementer per task. `CLAUDE.md` rules 12 and 13 ho
 - Plan a wave by hot file: one task per hot file at a time, everything else in parallel, within the cap of about five implementers. Tell parallel agents to insert into shared registries next to existing entries, not at the end of the file.
 - Isolated subagents rediscover the same out-of-scope bug and each files a task. The orchestrator compares the names of new out-of-scope tasks and closes duplicates ([tracker.md](tracker.md)).
 - An agent can silently absorb a neighbouring task's scope when that is the root-cause fix for its own bug. Re-read `main` before launching a dependent task and narrow the agent's prompt to what is left. A task goes stale after a few dozen commits: groom it right before dispatch.
-- A task that only plugs into a page another open task is building runs in two phases. Phase A builds the independent parts (lib, chart, card, tests, i18n) and commits locally without pushing. When the blocker merges, the message "start phase B" triggers the rest (merge `main`, mount, browser check, PR). Start a phase-A agent for every task whose blocker only affects where its code mounts.
+- A task that only plugs into a page another open task is building runs in two phases. This is the exception that `CLAUDE.md` rules 12 and 13 name. Phase A builds the independent parts (lib, chart, card, tests, i18n) and commits locally without pushing. When the blocker merges, the message "start phase B" triggers the rest (merge `main`, mount, browser check, PR). Start a phase-A agent for every task whose blocker only affects where its code mounts.
 
 ## Briefs and reviews
 
