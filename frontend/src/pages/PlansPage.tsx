@@ -12,6 +12,7 @@ import {
 } from '../api/plans'
 import { PlanDialog } from '../components/PlanDialog'
 import { ListCard, PortfolioListFrame } from '../components/PortfolioListFrame'
+import { EmptyCard } from '../components/ui/EmptyCard'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Icon } from '../components/ui/Icon'
@@ -183,12 +184,11 @@ function PlansBody({ portfolioId }: { portfolioId: number }) {
   let body = null
   if (isEmpty) {
     body = (
-      <section className="mb-6 flex flex-col items-center gap-3 card px-6 py-12 text-center">
-        <p className="text-[16px] font-semibold text-ink">{t('plans.empty')}</p>
+      <EmptyCard title={t('plans.empty')} className="mb-6">
         <Button data-list-add onClick={() => setAdding(true)}>
           {t('plans.add')}
         </Button>
-      </section>
+      </EmptyCard>
     )
   } else if (data) {
     body = (

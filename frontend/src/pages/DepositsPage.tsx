@@ -5,6 +5,7 @@ import { DepositDialog } from '../components/DepositDialog'
 import { ListCard, PortfolioListFrame } from '../components/PortfolioListFrame'
 import { RenewDepositDialog } from '../components/RenewDepositDialog'
 import { Button } from '../components/ui/Button'
+import { EmptyCard } from '../components/ui/EmptyCard'
 import { Icon } from '../components/ui/Icon'
 import { Pill } from '../components/ui/Pill'
 import { ROW_44, TD, TD_NUM } from '../components/ui/table'
@@ -147,12 +148,11 @@ function DepositsBody({ portfolioId }: { portfolioId: number }) {
   let body = null
   if (isEmpty) {
     body = (
-      <section className="mb-6 flex flex-col items-center gap-3 card px-6 py-12 text-center">
-        <p className="text-[16px] font-semibold text-ink">{t('deposits.empty')}</p>
+      <EmptyCard title={t('deposits.empty')} className="mb-6">
         <Button data-list-add onClick={() => setOpening(true)}>
           {t('deposits.open')}
         </Button>
-      </section>
+      </EmptyCard>
     )
   } else if (data) {
     body = (

@@ -39,6 +39,7 @@ import { ReturnCard } from '../components/ReturnCard'
 import { ReturnSplitCard } from '../components/ReturnSplitCard'
 import { toInput } from '../components/transactionForm'
 import { Button } from '../components/ui/Button'
+import { EmptyCard } from '../components/ui/EmptyCard'
 import { FitFigure, KPI_FIGURE, KpiCell, KpiStrip } from '../components/ui/Kpi'
 import { LoadError } from '../components/ui/LoadError'
 import { Skeleton } from '../components/ui/Skeleton'
@@ -545,9 +546,7 @@ export function SummaryPage() {
             {data &&
               (isEmpty ? (
                 <div className="flex flex-col gap-4">
-                  <section className="flex flex-col items-center gap-3 card px-6 py-12 text-center">
-                    <Mark size={32} />
-                    <p className="text-[16px] font-semibold text-ink">{t('summary.empty')}</p>
+                  <EmptyCard title={t('summary.empty')} icon={<Mark size={32} />}>
                     {/* `all` has no İşlemler or İçe aktar to send the user to
                         (ADR 0014); its rows below open the portfolios. */}
                     {!isAll && (
@@ -565,7 +564,7 @@ export function SummaryPage() {
                         </Link>
                       </>
                     )}
-                  </section>
+                  </EmptyCard>
                   {portfoliosTable}
                 </div>
               ) : (
@@ -657,12 +656,13 @@ export function SummaryPage() {
 function NoPortfolio() {
   const [creating, setCreating] = useState(false)
   return (
-    <section className="flex flex-col items-center gap-3 card px-6 py-12 text-center">
-      <Mark size={32} />
-      <p className="text-[16px] font-semibold text-ink">{t('portfolios.emptyTitle')}</p>
-      <p className="text-[13px] text-muted">{t('portfolios.emptyBody')}</p>
+    <EmptyCard
+      title={t('portfolios.emptyTitle')}
+      body={t('portfolios.emptyBody')}
+      icon={<Mark size={32} />}
+    >
       <Button onClick={() => setCreating(true)}>{t('portfolios.emptyCta')}</Button>
       {creating && <CreatePortfolioDialog onClose={() => setCreating(false)} />}
-    </section>
+    </EmptyCard>
   )
 }

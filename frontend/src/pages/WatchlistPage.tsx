@@ -5,6 +5,7 @@ import { WatchAddDialog } from '../components/WatchAddDialog'
 import { WatchTargetDialog } from '../components/WatchTargetDialog'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
+import { EmptyCard } from '../components/ui/EmptyCard'
 import { ActionsTh } from '../components/ui/ActionsTh'
 import { Icon } from '../components/ui/Icon'
 import { LoadError } from '../components/ui/LoadError'
@@ -145,12 +146,7 @@ export function WatchlistPage() {
 
   let body = null
   if (data?.length === 0) {
-    body = (
-      <section className="flex flex-col items-center gap-3 card px-6 py-12 text-center">
-        <p className="text-[16px] font-semibold text-ink">{t('watchlist.empty')}</p>
-        {addButton}
-      </section>
-    )
+    body = <EmptyCard title={t('watchlist.empty')}>{addButton}</EmptyCard>
   } else if (data) {
     body = (
       <section className="relative overflow-x-auto card">
