@@ -346,3 +346,29 @@ func TestCheckAffected(t *testing.T) {
 		}
 	}
 }
+
+func TestIsUniqueViolation(t *testing.T) {
+	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer conn.Close()
+	ctx := context.Background()
+	if _, err := conn.ExecContext(ctx, "CREATE TABLE uniq_probe (k TEXT NOT NULL UNIQUE)"); err != nil {
+		t.Fatalf("create table: %v", err)
+	}
+	if _, err := conn.ExecContext(ctx, "INSERT INTO uniq_probe (k) VALUES ('a')"); err != nil {
+		t.Fatalf("first insert: %v", err)
+	}
+	_, dup := conn.ExecContext(ctx, "INSERT INTO uniq_probe (k) VALUES ('a')")
+	if !db.IsUniqueViolation(dup) {
+		t.Errorf("IsUniqueViolation(%v) = false, want true", dup)
+	}
+	_, notNull := conn.ExecContext(ctx, "INSERT INTO uniq_probe (k) VALUES (NULL)")
+	if notNull == nil || db.IsUniqueViolation(notNull) {
+		t.Errorf("IsUniqueViolation(%v) = true, want false", notNull)
+	}
+	if db.IsUniqueViolation(nil) || db.IsUniqueViolation(errors.New("boom")) {
+		t.Error("IsUniqueViolation true for nil or unrelated error")
+	}
+}
