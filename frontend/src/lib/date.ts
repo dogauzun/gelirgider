@@ -13,12 +13,21 @@ import { getLocale } from '../i18n/strings'
 // key, so a runtime locale switch still takes effect.
 const formatters = new Map<string, Intl.DateTimeFormat>()
 
+// The bare numeric form. tr pads day and month ("09.12.2025") only when asked:
+// newer ICU (Node 26) drops the pad by default. en stays M/d/yyyy.
+const paddedTurkish: Intl.DateTimeFormatOptions = {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+}
+
 export function formatMarketDate(iso: string, options?: Intl.DateTimeFormatOptions): string {
   const key = JSON.stringify([getLocale(), options])
   let formatter = formatters.get(key)
   if (!formatter) {
+    const bare = options === undefined && getLocale() === 'tr' ? paddedTurkish : options
     // eslint-disable-next-line no-restricted-syntax -- the per-locale cache itself
-    formatter = new Intl.DateTimeFormat(getLocale(), { timeZone: 'UTC', ...options })
+    formatter = new Intl.DateTimeFormat(getLocale(), { timeZone: 'UTC', ...bare })
     formatters.set(key, formatter)
   }
   return formatter.format(new Date(iso))

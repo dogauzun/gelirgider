@@ -11,9 +11,19 @@ afterEach(() => setLocale('tr'))
 
 describe('formatMarketDate', () => {
   it('keeps the calendar day in a zone behind UTC', () => {
-    expect(new Intl.DateTimeFormat('tr-TR').format(new Date('2026-09-14'))).toBe('13.09.2026')
+    const naive = new Intl.DateTimeFormat('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
+    expect(naive.format(new Date('2026-09-14'))).toBe('13.09.2026')
     expect(formatMarketDate('2026-09-14')).toBe('14.09.2026')
     expect(formatMarketDate('2026-01-01')).toBe('01.01.2026')
+  })
+
+  it('pads a single-digit day and month in tr on every ICU', () => {
+    expect(formatMarketDate('2025-12-09')).toBe('09.12.2025')
+    expect(formatMarketDate('2025-02-03')).toBe('03.02.2025')
   })
 
   it('honours format options', () => {
