@@ -74,7 +74,7 @@ export function useCreatePortfolio() {
   return useMutation({
     mutationFn: (name: string) => createPortfolio(name),
     // eslint-disable-next-line no-restricted-syntax -- invalidates the list key only
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: portfoliosQueryKey }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: portfoliosQueryKey, exact: true }),
   })
 }
 
@@ -83,7 +83,7 @@ export function useRenamePortfolio() {
   return useMutation({
     mutationFn: ({ id, name }: { id: number; name: string }) => renamePortfolio(id, name),
     // eslint-disable-next-line no-restricted-syntax -- invalidates the list key only
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: portfoliosQueryKey }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: portfoliosQueryKey, exact: true }),
   })
 }
 
