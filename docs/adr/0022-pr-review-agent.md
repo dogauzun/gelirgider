@@ -104,8 +104,8 @@ The merger does not read the whole diff. It:
    (workflow `pr`) and `Claude review` (workflow `Claude Code Review`), see
    `docs/PRINCIPLES.md` #6;
 3. checks hygiene: no AI attribution in commits or the PR body, the PR body
-   follows the template, non-trivial logic
-   ships with a test, a bug fix's Testing section names a test that failed
+   says what changed and how it was verified, non-trivial logic
+   ships with a test, a bug fix's PR body names a test that failed
    before the fix or says why no test can express the bug, and a new or
    changed route has its swag annotation (the missing tests and documentation
    the reviewer leaves to the merger);

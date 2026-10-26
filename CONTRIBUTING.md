@@ -12,7 +12,7 @@ request, reviewed by a separate review agent (the `Claude Code Review`
 workflow, or for a pull request from a fork the same review agent run by a
 maintainer; ADR 0037) before it is merged. You do not need access to that
 database. Open a GitHub issue instead of a task, and name that issue in the
-Description of your pull request (`Closes #<n>`).
+body of your pull request (`Closes #<n>`).
 
 ## Running it
 
@@ -41,15 +41,8 @@ One concern per pull request. The title follows Conventional Commits:
 Types: `feat` new behavior, `fix` wrong behavior, `perf`, `refactor`, `test`,
 `docs`, `build` (Makefile, Docker, dependencies), `chore` (anything else).
 
-The body:
-
-```
-## Description
-A short description of what is done, naming the GitHub issue (`Closes #<n>`)
-
-## Testing
-Very short explanation of how testing is conducted to verify the PR. Include what commands are run and what is observed
-```
+The body is free text: what changed and why, how you verified it (the
+commands you ran and what you saw), and `Closes #<n>` for the issue.
 
 Releases: run the `release` workflow in Actions; the version comes from the squash
 titles since the last tag, the notes are GitHub's generated notes.

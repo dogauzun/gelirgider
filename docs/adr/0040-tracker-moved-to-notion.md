@@ -25,7 +25,7 @@ workspace already, and one MCP connector reaches it from every subagent.
   the tracker is private. The task's `PR` property holds the PR URL from the
   moment the PR opens and is the one link between a task and its PR; the
   tracker recipes find the task of a PR through it. An outside contributor
-  names their GitHub issue in the PR's Description instead.
+  names their GitHub issue in the PR body instead.
 - No effort record. Status transitions by name are the only progress signal;
   nothing is estimated or timed.
 - GitHub issues stay the entry for outside contributors.
