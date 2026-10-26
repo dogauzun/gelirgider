@@ -56,6 +56,7 @@ export const enCharts: AreaStrings<typeof trCharts> = {
     'Enter a percent per class; an empty field counts as 0. The sum must be 100.',
   'allocation.targets.sum': 'Sum: {sum}%',
   'allocation.targets.invalid': 'Enter a valid percent',
+  'allocation.targets.saved': 'Targets saved',
   'allocation.planContribution': 'Plan a contribution',
   'sector.energy': 'Energy',
   'sector.materials': 'Materials',

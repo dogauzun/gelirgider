@@ -55,6 +55,7 @@ export const trCharts = {
   'allocation.targets.hint': 'Her sınıf için yüzde gir; boş alan 0 sayılır. Toplam 100 olmalı.',
   'allocation.targets.sum': 'Toplam: %{sum}',
   'allocation.targets.invalid': 'Geçerli bir yüzde gir',
+  'allocation.targets.saved': 'Hedefler kaydedildi',
   'allocation.planContribution': 'Katkı planla',
   'sector.energy': 'Enerji',
   'sector.materials': 'Hammadde',

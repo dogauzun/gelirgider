@@ -155,6 +155,22 @@ describe('AccountPage', () => {
     )
   })
 
+  // isPending reaches the button a tick after the click, so a double click
+  // sent the PUT twice and toasted twice.
+  it('sends the attention rules once on a double click of save', async () => {
+    const fetchMock = mockMe('TRY')
+    renderPage()
+
+    const cash = await screen.findByRole('spinbutton', { name: 'Nakit payı' })
+    fireEvent.change(cash, { target: { value: '55' } })
+    const save = screen.getByRole('button', { name: 'Kaydet' })
+    fireEvent.click(save)
+    fireEvent.click(save)
+
+    await waitFor(() => expect(screen.getAllByText('Kaydedildi')).toHaveLength(1))
+    expect(attentionPut(fetchMock)).toHaveLength(1)
+  })
+
   it('drops an override set back to its default and sends a switched-off rule', async () => {
     const fetchMock = mockMe('TRY', { cash_share: { value: 0.55 } })
     renderPage()
