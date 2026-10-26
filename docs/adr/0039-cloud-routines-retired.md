@@ -18,8 +18,7 @@ owner had started:
 - the weekly security review: read the codebase and filed the High-severity
   defects.
 
-Their full instructions lived in `.claude/routines/`. Jira remains the
-tracker for now.
+Their full instructions lived in `.claude/routines/`.
 
 ## Decision
 

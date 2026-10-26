@@ -47,6 +47,7 @@ of a phase epic, or a workflow rule.
 | 0037 | [PR review by a GitHub Actions workflow](0037-pr-review-workflow.md)                                               | accepted 2026-10-19                               |
 | 0038 | [Yearly statement](0038-yearly-statement.md)                                                                       | accepted 2026-10-19                               |
 | 0039 | [Cloud routines retired](0039-cloud-routines-retired.md)                                                           | accepted 2026-10-23                               |
+| 0040 | [Tracker moved from Jira to Notion](0040-tracker-moved-to-notion.md)                                               | accepted 2026-10-26                               |
 
 ## Convention
 
@@ -58,6 +59,8 @@ of a phase epic, or a workflow rule.
 - When a decision changes, rewrite the body so it reads true today; the git
   log of the file is the history. A replaced decision gets one sentence
   pointing at the ADR that replaced it. No dated blockquote notes.
-- A ticket key may appear only where its Jira comments hold evidence the ADR
-  summarizes (a spike result). Otherwise no ticket ids.
+- A task key or link may appear only where its page holds evidence the ADR
+  needs (a spike result). Otherwise no task ids. A `GLG-n` key in an ADR dated
+  before 2026-10-26 refers to the closed Jira project, not to the Notion IDs
+  ([ADR 0040](0040-tracker-moved-to-notion.md)).
 - A new ADR takes the next free number and gets a row in the index above.

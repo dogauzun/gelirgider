@@ -54,7 +54,7 @@
 - PR "Testing" section states the commands run and what was observed.
 - Every PR's current diff is reviewed by the review agent (`.claude/agents/pr-reviewer.md`), which the workflow `Claude Code Review` runs on every push and the merger spawns for a PR from a fork, a Dependabot PR, one that changes the workflow file, or any PR while the owner has lifted the required check for an outage ([ADR 0037](adr/0037-pr-review-workflow.md); finding rules in [ADR 0022](adr/0022-pr-review-agent.md)). Its job `Claude review` is a required check, so GitHub holds the PR until the review has finished on the current head; a run that fails is re-run until it succeeds, and a lasting outage goes to the owner. A diff that touches only exempt paths (the list lives only in the workflow's `scope` step, ADR 0022) gets a run that ends `success` without a review and says so in its job summary, so `success` means reviewed or exempt; the merger's hygiene step covers the exempt diff, except a diff that touches the workflow file, which always gets the merger's subagent. It reviews the change, not the old code around it, and posts inline comments for potential bugs, security issues and inconsistencies only; linting is `make lint`'s job.
 - Every review comment, from the review agent or a human, gets a reply or a fix before merge. The reviewer's report plus green required checks is not a substitute for checking the comment threads.
-- Comment raises something real but out of scope: open a new GLG ticket, do not merge silently. Never let a flagged issue merge unaddressed and untracked.
+- Comment raises something real but out of scope: open a new task, do not merge silently. Never let a flagged issue merge unaddressed and untracked.
 - Once addressed (fixed, or ticketed), resolve the thread on the PR. Addressed-but-unresolved threads are not done.
 
 ## 7. Two deployables, one command
@@ -67,7 +67,7 @@
 - Timestamps in UTC. Market calendar in `Europe/Istanbul`.
 - JSON API with stable, documented shapes.
 - Errors are returned, logged once at the boundary, never swallowed.
-- No ticket ids in code comments; git blame and the squash-merge subject carry them. `ADR NNNN` pointers are fine.
+- No ticket ids in code comments; git blame and the `Ticket:` line of the squash-merge body carry them. `ADR NNNN` pointers are fine.
 
 ## 9. Data sources are replaceable
 
@@ -77,4 +77,4 @@
 
 ## 10. Roadmap is a guide, not a contract
 
-- Phases in `ROADMAP.md` are ordered by value and dependency. Reorder when learning says so, but update the doc and the Jira epics together. A shipped phase leaves this file; its Jira epic is the record. An ADR states what holds now; the convention is in `docs/adr/README.md`.
+- Phases in `ROADMAP.md` are ordered by value and dependency. Reorder when learning says so, but update the doc and the Epic tasks in the Tasks database together. A shipped phase leaves this file; its Done epic is the record. An ADR states what holds now; the convention is in `docs/adr/README.md`.

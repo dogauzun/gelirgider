@@ -21,7 +21,7 @@ Two independent read-only audits, one for the backend and one for the frontend, 
 ## Agent brief
 
 ```
-Audit <scope> of this repository for code quality. Read-only: do not edit, commit, or write to Jira or GitHub.
+Audit <scope> of this repository for code quality. Read-only: do not edit, commit, or write to the tracker (Notion) or GitHub.
 
 Read first: CLAUDE.md, docs/PRINCIPLES.md, and the ADR in docs/adr/ that covers an area before you judge a design choice there. A choice recorded in an ADR, or marked with a `shortcut:` comment, is not a finding.
 
@@ -57,7 +57,7 @@ Grade by the cost of leaving the code as it is, not by the size of the fix.
 - One ticket per finding, except: findings that change the same code, or that one reviewer would read as one mechanical change (CLAUDE.md workflow rule 3), share a ticket.
 - A ticket's severity is its highest finding's. Type `fix` when a finding describes wrong behavior (a double submit, a 404 for a DB error), `perf` when every finding is a performance finding, `refactor` otherwise.
 - A linter change that flags only the findings' code goes in the ticket that fixes them. A rule that also flags other code gets its own ticket, after the tickets whose findings it covers, so `make lint` never goes red on `main`.
-- When two tickets change the same file (adding a rule to the same lint config does not count), name the order (`after <ticket>`); it becomes a Blocks link.
+- When two tickets change the same file (adding a rule to the same lint config does not count), name the order (`after <ticket>`); it becomes a `Blocked by` relation.
 
 ## Summary format
 

@@ -6,13 +6,13 @@ is the maintainers' agent workflow. Security problems go through
 
 ## How the project is run
 
-The maintainers develop gelirgider mostly with AI agents, against a private Jira
-board (project `GLG`): every change starts as a GLG ticket and ships as one pull
+The maintainers develop gelirgider mostly with AI agents, against a private
+task database in Notion: every change starts as a task and ships as one pull
 request, reviewed by a separate review agent (the `Claude Code Review`
 workflow, or for a pull request from a fork the same review agent run by a
-maintainer; ADR 0037) before it is merged. You do not need Jira access. Open a
-GitHub issue instead of a GLG ticket, and name that issue on the `Ticket:` line
-of your pull request.
+maintainer; ADR 0037) before it is merged. You do not need access to that
+database. Open a GitHub issue instead of a task, and name that issue on the
+`Ticket:` line of your pull request.
 
 ## Running it
 
@@ -37,8 +37,7 @@ pull request title, and a pull request merges only when they pass. Still run
 
 One concern per pull request. The title follows Conventional Commits:
 `<type>: <what changed>`, lowercase imperative after the colon, for example
-`fix: keep the allocation donut's tooltip inside the donut`. Maintainers end it
-with the ticket key, `(GLG-<n>)`; without a GLG ticket, leave that off.
+`fix: keep the allocation donut's tooltip inside the donut`, with no suffix.
 Types: `feat` new behavior, `fix` wrong behavior, `perf`, `refactor`, `test`,
 `docs`, `build` (Makefile, Docker, dependencies), `chore` (anything else).
 
