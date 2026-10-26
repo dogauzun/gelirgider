@@ -65,8 +65,9 @@ derives from `GITHUB_REPOSITORY`, so a fork publishes under its own owner.
 
 Two gaps are known:
 
-- The workflow's concurrency group keeps one pending run, so a merge that lands
-  while another publish run is already queued gets no `sha-` tag.
+- The workflow's concurrency group holds one pending run, so a run still
+  pending when a newer commit lands is cancelled, and that older commit gets no
+  `sha-` tag.
 - The two images are separate matrix jobs with `fail-fast: false`, so a new
   backend `latest` can briefly pair with an old frontend `latest`.
 
