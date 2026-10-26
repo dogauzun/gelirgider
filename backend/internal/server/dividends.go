@@ -192,7 +192,7 @@ func (h *dividendHandler) writeSuggestions(w http.ResponseWriter, r *http.Reques
 //	@Param		id		path	int									true	"portfolio id"
 //	@Param		body	body	object{instrument_id=int,date=string}	true	"instrument and ex-date, YYYY-MM-DD"
 //	@Success	204
-//	@Failure	400	{object}	object{error=string}	"invalid request body; date must be YYYY-MM-DD; date must not be in the future; date must be on or after 1990-01-01; instrument not found"
+//	@Failure	400	{object}	object{error=string}	"invalid request body; date must be YYYY-MM-DD; date must not be in the future; date must be on or after 1990-01-01; instrument_id: unknown instrument"
 //	@Failure	404	{object}	object{error=string}	"portfolio not found"
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/dividends/expected/dismiss [post]
@@ -214,9 +214,9 @@ func (h *dividendHandler) dismiss(w http.ResponseWriter, r *http.Request) {
 		auth.WriteError(w, http.StatusBadRequest, "date "+err.Error())
 		return
 	}
-	if _, err := h.instruments.Get(r.Context(), req.InstrumentID); err != nil {
+	if _, err := h.instruments.GetUsable(r.Context(), req.InstrumentID); err != nil {
 		if errors.Is(err, instrument.ErrNotFound) {
-			auth.WriteError(w, http.StatusBadRequest, "instrument not found")
+			auth.WriteError(w, http.StatusBadRequest, "instrument_id: unknown instrument")
 			return
 		}
 		auth.WriteInternalError(w, r, err)

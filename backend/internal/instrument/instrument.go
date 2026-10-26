@@ -309,6 +309,24 @@ func (r *Repo) Get(ctx context.Context, id int64) (Instrument, error) {
 	return in, nil
 }
 
+// GetUsable is Get for an instrument id a request body names: a deposit's
+// instrument is not one the caller may name, so it is ErrNotFound too.
+func (r *Repo) GetUsable(ctx context.Context, id int64) (Instrument, error) {
+	in, err := r.Get(ctx, id)
+	if err != nil {
+		return Instrument{}, err
+	}
+	return Usable(in)
+}
+
+// Usable is the deposit check of GetUsable for an instrument already loaded.
+func Usable(in Instrument) (Instrument, error) {
+	if in.Market == MarketDeposit {
+		return Instrument{}, ErrNotFound
+	}
+	return in, nil
+}
+
 // byIDsChunk caps the ids of one ByIDs query below modernc sqlite's limit of
 // 32766 variables; a statement commit can name more ids.
 const byIDsChunk = 10000

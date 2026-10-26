@@ -164,8 +164,8 @@ func (h *watchlistHandler) create(w http.ResponseWriter, r *http.Request) {
 	if !auth.DecodeJSON(w, r, &req) {
 		return
 	}
-	in, err := h.instruments.Get(r.Context(), req.InstrumentID)
-	if errors.Is(err, instrument.ErrNotFound) || (err == nil && in.Market == instrument.MarketDeposit) {
+	in, err := h.instruments.GetUsable(r.Context(), req.InstrumentID)
+	if errors.Is(err, instrument.ErrNotFound) {
 		auth.WriteError(w, http.StatusBadRequest, "instrument_id: unknown instrument")
 		return
 	}

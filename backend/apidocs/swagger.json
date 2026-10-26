@@ -3963,7 +3963,7 @@
                         "description": "No Content"
                     },
                     "400": {
-                        "description": "invalid request body; date must be YYYY-MM-DD; date must not be in the future; date must be on or after 1990-01-01; instrument not found",
+                        "description": "invalid request body; date must be YYYY-MM-DD; date must not be in the future; date must be on or after 1990-01-01; instrument_id: unknown instrument",
                         "schema": {
                             "type": "object",
                             "properties": {
