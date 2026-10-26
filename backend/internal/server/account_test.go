@@ -1,8 +1,10 @@
 package server
 
 import (
+	"io"
 	"net/http"
 	"net/http/cookiejar"
+	"strings"
 	"testing"
 )
 
@@ -27,8 +29,10 @@ func TestChangePassword(t *testing.T) {
 	}
 
 	wrongCurrent := map[string]string{"current_password": "not-the-password", "new_password": "new-password"}
-	if resp := postJSON(t, client, srv.URL+"/api/account/password", wrongCurrent); resp.StatusCode != http.StatusUnauthorized {
-		t.Fatalf("wrong current password status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+	resp := postJSON(t, client, srv.URL+"/api/account/password", wrongCurrent)
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusUnauthorized || !strings.Contains(string(body), "current password is incorrect") {
+		t.Fatalf("wrong current password = %d %s, want 401 current password is incorrect", resp.StatusCode, body)
 	}
 
 	change := map[string]string{"current_password": "old-password", "new_password": "new-password"}

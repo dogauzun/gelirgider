@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/dogauzun/gelirgider/backend/internal/settings"
 	"github.com/dogauzun/gelirgider/backend/internal/user"
 )
@@ -43,13 +41,8 @@ func (h *handler) totpSetup(w http.ResponseWriter, r *http.Request) {
 	if !DecodeJSON(w, r, &req) {
 		return
 	}
-	u, err := h.users.GetByID(r.Context(), userID)
-	if err != nil {
-		WriteInternalError(w, r, err)
-		return
-	}
-	if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(req.Password)) != nil {
-		WriteError(w, http.StatusUnauthorized, "current password is incorrect")
+	u, ok := h.checkCurrentPassword(w, r, userID, req.Password)
+	if !ok {
 		return
 	}
 
@@ -194,13 +187,8 @@ func (h *handler) checkSecondFactor(ctx context.Context, userID int64, state use
 // request that changes the user's two-factor state. It writes the error and
 // returns false when the request must stop.
 func (h *handler) authorizeTOTPChange(w http.ResponseWriter, r *http.Request, userID int64, password, code string) bool {
-	u, err := h.users.GetByID(r.Context(), userID)
-	if err != nil {
-		WriteInternalError(w, r, err)
-		return false
-	}
-	if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)) != nil {
-		WriteError(w, http.StatusUnauthorized, "current password is incorrect")
+	u, ok := h.checkCurrentPassword(w, r, userID, password)
+	if !ok {
 		return false
 	}
 	if !u.TOTPEnabled {
@@ -212,7 +200,7 @@ func (h *handler) authorizeTOTPChange(w http.ResponseWriter, r *http.Request, us
 		WriteInternalError(w, r, err)
 		return false
 	}
-	ok, err := h.checkSecondFactor(r.Context(), userID, state, code)
+	ok, err = h.checkSecondFactor(r.Context(), userID, state, code)
 	if err != nil {
 		writeSecretError(w, r, userID, http.StatusConflict, err)
 		return false
