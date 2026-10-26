@@ -12,7 +12,7 @@ backend/    Go module (JSON API server); cmd/symbols refreshes internal/instrume
 frontend/   React + TypeScript + Vite
 deploy/     Dockerfiles, compose, Caddyfile, nginx.conf, backup.sh, README, RUNBOOK
 docs/       ROADMAP.md, PRINCIPLES.md, ADRs (adr/)
-.claude/    agents, skills
+.claude/    agents, rules, skills
 Makefile    single entrypoint: make setup / dev / test / lint / build / swagger
 ```
 
@@ -26,7 +26,7 @@ Makefile    single entrypoint: make setup / dev / test / lint / build / swagger
 
 ## Workflow rules
 
-1. Work is tracked in the gelirgider Tasks database in Notion, on the page "Projects" (database URLs, status and label names, house style and SQL recipes: Agent Memory row `tracker-basics`; the decision: ADR 0040). A ticket is a task page there. Plan and create tasks (or a GitHub issue for outside contributors) before implementation begins. The owner may decide that a change runs without a task; the PR then says `Ticket: none` and why. Otherwise: no task, no code.
+1. Work is tracked in the gelirgider Tasks database in Notion, on the page "Projects" (database ids, status and label names, house style and SQL recipes: `.claude/rules/tracker.md`; the decision: ADR 0040). A ticket is a task page there. Plan and create tasks (or a GitHub issue for outside contributors) before implementation begins. The owner may decide that a change runs without a task; the PR then says `Ticket: none` and why. Otherwise: no task, no code.
 2. Tickets are small and independent. Minimize dependencies so many tickets can run in parallel. Short but never missing important context. Every dependency between tickets is a `Blocked by` relation on the blocked task (`Blocks` is its reverse) besides the "Depends on" text in the description.
 3. No story points, no sprints. Kanban only. A ticket that looks like more than a day of work gets split. A mechanical change that one reviewer would read as one unit (a rename, removing one comment pattern, clearing one lint exception) is one ticket and one PR, however many files it touches; small tickets are for logic, not for file count.
 4. Problem found that is unrelated to current ticket: create a new task. Do not fix it in the current PR.
@@ -69,6 +69,6 @@ Very short explanation of how testing is conducted to verify the PR. Include wha
 - New or changed API route: update its swag annotations; run `make swagger` and commit `backend/apidocs/`; `make lint` fails on a stale spec (see ADR 0013).
 - A ticket that adds a new external data host checks `robots.txt` on the real API host first, not the docs or marketing host. A disallow is reported to the owner with manual entry as the fallback and never worked around.
 
-## Agent memory
+## Memory
 
-The owner's Notion database "Agent Memory" (page "AI Knowledge Base", data source `collection://03b5d209-3af3-4ada-88d9-708b77ce5e04`) holds decisions, environment facts, recipes, references and ledgers that this repository does not record; it holds no rules. Before any work, read its index: one SQL query through the Notion MCP tool `notion-query-data-sources` for the active rows' Name, Type, Project, Tags, Summary and url; rows with Project = general or gelirgider apply. Fetch a row's page only when the task touches its area; never fetch every page. Record a durable fact there at once (create or update a row, Status = active, Last verified = today) and read it back. Without the Notion connector, say so and continue with this file.
+Project knowledge lives in this repository: rules here and in `.claude/rules/`, decisions in `docs/adr/` and `.claude/rules/decisions.md`, recipes in `.claude/skills/`. A durable fact learned in a session goes into the file that owns it, in the same PR as the change it came from or in a docs PR of its own. A fact that must not be public (a path on the maintainer's machine, personal data) stays in the maintainer's local auto memory and reaches a subagent only through its brief. Notion holds the task tracker only.

@@ -57,6 +57,19 @@ published to `ghcr.io/dogauzun/gelirgider-backend` and `-frontend`. Compose
 pulls them with the tag `${IMAGE_TAG:-latest}`; `build:` stays for a modified
 checkout. `IMAGE_TAG` pins a `sha-<7>` or `vX.Y.Z` tag for a rollback.
 
+`.github/workflows/publish.yml` publishes them on a push to `main` and on a
+`v*` tag, with plain `docker login`, `buildx build` and `push` in `run:` steps
+(the Actions policy allows no third-party docker action). Each image carries
+the OCI labels `source`, `revision` and `licenses=AGPL-3.0-only`. The image name
+derives from `GITHUB_REPOSITORY`, so a fork publishes under its own owner.
+
+Two gaps are known:
+
+- The workflow's concurrency group keeps one pending run, so a merge that lands
+  while another publish run is already queued gets no `sha-` tag.
+- The two images are separate matrix jobs with `fail-fast: false`, so a new
+  backend `latest` can briefly pair with an old frontend `latest`.
+
 ### Release flow
 
 `main` is the release candidate, with no RC branches. A manual run of the
