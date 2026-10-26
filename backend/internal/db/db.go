@@ -93,6 +93,15 @@ func IsForeignKeyViolation(err error) bool {
 	return err != nil && strings.Contains(strings.ToLower(err.Error()), "foreign key constraint")
 }
 
+// IsUniqueViolation reports whether err is a unique-constraint failure.
+// Matched on the message rather than a driver error type: internal/db is the
+// only package allowed to import the sqlite driver, and the message wording
+// ("UNIQUE constraint failed" on SQLite, "duplicate key value violates unique
+// constraint" on PostgreSQL) survives a datastore change.
+func IsUniqueViolation(err error) bool {
+	return err != nil && strings.Contains(strings.ToLower(err.Error()), "unique constraint")
+}
+
 // Upsert runs updateSQL on tx and, when it touched no row, insertSQL: the
 // portable UPDATE-then-INSERT of ADR 0002. The caller owns tx and must have
 // begun it with BeginTx, whose immediate lock keeps two writers of a new key

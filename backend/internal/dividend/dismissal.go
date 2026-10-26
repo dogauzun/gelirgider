@@ -3,7 +3,6 @@ package dividend
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/dogauzun/gelirgider/backend/internal/db"
 	"github.com/dogauzun/gelirgider/backend/internal/portfolio"
@@ -40,7 +39,7 @@ func (r *Repo) Dismiss(ctx context.Context, userID, portfolioID, instrumentID in
 	// ownership check. A duplicate whose row is gone by the count
 	// is the same delete, committed after the insert: only a portfolio or
 	// user delete removes dismissals.
-	if n == 0 && (db.IsForeignKeyViolation(insErr) || strings.Contains(strings.ToLower(insErr.Error()), "unique constraint")) {
+	if n == 0 && (db.IsForeignKeyViolation(insErr) || db.IsUniqueViolation(insErr)) {
 		return fmt.Errorf("insert dividend dismissal: %w", portfolio.ErrNotFound)
 	}
 	if n == 0 {

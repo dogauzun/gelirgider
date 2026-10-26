@@ -9,7 +9,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/db"
@@ -239,9 +238,9 @@ func (r *Repo) InsertTx(ctx context.Context, tx *sql.Tx, d Deposit) (Deposit, er
 		d.Terms.StopajRate.String(), d.Terms.StartDate, d.Terms.MaturityDate, d.FundingTransactionID,
 		d.RenewedFrom, d.CreatedAt.Format(time.RFC3339),
 	)
-	// Matched on the message, as the user and import repos do: instrument_id
-	// is fresh, so renewed_from is the only unique column that can fail.
-	if err != nil && strings.Contains(strings.ToLower(err.Error()), "unique constraint") {
+	// instrument_id is fresh, so renewed_from is the only unique column that
+	// can fail.
+	if db.IsUniqueViolation(err) {
 		return Deposit{}, ErrAlreadyRenewed
 	}
 	if err != nil {

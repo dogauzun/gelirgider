@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/db"
@@ -64,11 +63,9 @@ func (r *Repo) Create(ctx context.Context, email, passwordHash string) (User, er
 		"INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)",
 		email, passwordHash, createdAt.Format(time.RFC3339),
 	)
-	// Matched on the message, not a driver error type, so no driver import
-	// leaks in: "UNIQUE constraint failed" on SQLite, "duplicate key value
-	// violates unique constraint" on PostgreSQL. email is the only unique
-	// column besides the primary key, which the insert does not set.
-	if err != nil && strings.Contains(strings.ToLower(err.Error()), "unique constraint") {
+	// email is the only unique column besides the primary key, which the
+	// insert does not set.
+	if db.IsUniqueViolation(err) {
 		return User{}, ErrEmailTaken
 	}
 	if err != nil {

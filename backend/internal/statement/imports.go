@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/db"
@@ -199,7 +198,7 @@ func create(ctx context.Context, q querier, n NewImport) (Import, error) {
 		sql.NullString{String: n.Currency, Valid: n.Currency != ""},
 	)
 	if err != nil {
-		if isUniqueViolation(err) {
+		if db.IsUniqueViolation(err) {
 			return Import{}, ErrDuplicate
 		}
 		// The portfolio, or its user, was deleted since the caller's
@@ -231,15 +230,6 @@ func (imp Import) samePeriod(currency, periodStart, periodEnd string) bool {
 // account.
 func (imp Import) sameAccount(currency string) bool {
 	return imp.Currency == "" || currency == "" || imp.Currency == currency
-}
-
-// isUniqueViolation reports whether err is a unique-constraint failure.
-// Matched on the message rather than a driver error type: internal/db is the
-// only package allowed to import the sqlite driver, and the message wording
-// ("UNIQUE constraint failed" on SQLite, "duplicate key value violates unique
-// constraint" on PostgreSQL) survives a datastore change.
-func isUniqueViolation(err error) bool {
-	return strings.Contains(strings.ToLower(err.Error()), "unique constraint")
 }
 
 // BySHA256 returns the user's import of this file into any of their
