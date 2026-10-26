@@ -3,6 +3,7 @@ import { useAttentionRules, useUpdateAttentionRules } from '../api/auth'
 import { ATTENTION, type AttentionRules } from '../lib/attention'
 import { t } from '../i18n/strings'
 import { toast } from '../lib/toast'
+import { useOneAtATime } from '../lib/useOneAtATime'
 import { Button } from './ui/Button'
 import { Checkbox } from './ui/Checkbox'
 import { inputClass } from './ui/inputClass'
@@ -88,6 +89,7 @@ function AttentionRulesForm({ rules }: { rules: AttentionRules }) {
     ),
   )
   const mutation = useUpdateAttentionRules(() => toast(t('account.attention.saved')))
+  const once = useOneAtATime()
 
   function edit(key: string, change: Partial<Draft[string]>) {
     setDraft((current) => ({ ...current, [key]: { ...current[key], ...change } }))
@@ -110,7 +112,7 @@ function AttentionRulesForm({ rules }: { rules: AttentionRules }) {
       }
       if (Object.keys(override).length > 0) body[key] = override
     }
-    mutation.mutate(body)
+    once(() => mutation.mutateAsync(body))
   }
 
   return (
