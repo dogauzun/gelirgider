@@ -13,7 +13,7 @@
 - The shortest working diff wins once everything it must touch is known; a one-liner that needs decoding is not short. Comment only the why the code cannot show, in one line.
 - Bug fix: grep every caller of the function you touch before editing, then fix the root cause once in the shared code. Code you move or merge keeps its error handling and validation. Between options of equal size, take the one that is correct on edge cases.
 - A deliberate shortcut with a known limit gets a code comment `shortcut: <the limit>, <when to upgrade>`; the ponytail command `/ponytail-debt` lists them.
-- Never cut: validation at trust boundaries, error handling that prevents data loss, security, accessibility, anything the ticket asks for.
+- Never cut: validation at trust boundaries, error handling that prevents data loss, security, accessibility, anything the task asks for.
 - This is the ruleset of the ponytail plugin (DietrichGebert/ponytail, its `AGENTS.md`); it lives here so agents that run without the plugin follow the same text.
 
 ## 2. Multi-user from the first migration
@@ -37,9 +37,9 @@
 
 ## 5. Small, independent units of work
 
-- One ticket, one PR, one concern. Vertical slices over horizontal layers when possible.
-- Tickets are written so they can be worked in parallel. Name the dependency if one truly exists.
-- Unrelated problem found mid-ticket: open a new ticket. Never widen the PR.
+- One task, one PR, one concern. Vertical slices over horizontal layers when possible.
+- Tasks are written so they can be worked in parallel. Name the dependency if one truly exists.
+- Unrelated problem found mid-task: open a new task. Never widen the PR.
 
 ## 6. Verified and reviewed before merged
 
@@ -47,7 +47,7 @@
   - `make lint` runs `make lint-backend` and `make lint-frontend`, which CI runs as separate jobs. `make lint-backend`: `make swagger-check`, `gofmt -l backend` (fails if it prints a file), `go vet ./...`, `golangci-lint run` (`dupl`, `forbidigo`, `funlen` with `lines` 100 (comments ignored, tests exempt), `goconst` with `min-len` 3 and `min-occurrences` 3 (tests exempt), `gocognit` with `min-complexity` 30, `nestif` with `min-complexity` 10, `noctx`, `revive` with `argument-limit` 6 and `file-length-limit` 1000 (comments ignored), `unparam`, and `usestdlibvars` with `time-layout`, configured in `backend/.golangci.yml`) and `deadcode ./...` (without `-test`, fails if it prints a function) in `backend/`. `make lint-frontend`: `npm run lint`, `npm run lint:dupl` (`jscpd`, configured in `frontend/.jscpd.json`), `npm run knip` (unused exports and types, configured in `frontend/knip.json`), `npx prettier --check .` in `frontend/`, prettier check on `docs/`, `deploy/`, `.claude/`, `.github/` and the root `*.md` files.
   - `make test`: `make test-backend` (`go vet ./...` and `go test ./...` in `backend/`) and `make test-frontend` (`npm run lint` and `npm test` in `frontend/`). CI runs the two as separate jobs.
   - `make build-frontend`: `npm run build` in `frontend/`. Neither `make lint` nor `make test` runs it.
-- A PR merges through auto-merge once its head is reviewed and its threads are resolved: GitHub merges it as soon as the required checks are green on its head, with no rebase onto `main` first. A push run on `main` that goes red after a merge is a bug ticket for the merger that landed it. The procedure is in [CLAUDE.md](../CLAUDE.md) rule 7.
+- A PR merges through auto-merge once its head is reviewed and its threads are resolved: GitHub merges it as soon as the required checks are green on its head, with no rebase onto `main` first. A push run on `main` that goes red after a merge is a bug task for the merger that landed it. The procedure is in [CLAUDE.md](../CLAUDE.md) rule 7.
 - Non-trivial logic ships with a test that fails when the logic breaks. One test, not a suite.
 - A bug fix starts with the test. Before writing the fix, turn the bug report into a test that fails for the reported reason, run it and watch it fail. The fix is done when that test passes and the others stay green. The PR's "Testing" section names the test and states that it failed before the fix.
 - When no automated test can express the bug (pure visual layout, a documentation fix), say so in the PR and describe the manual check instead.
@@ -55,7 +55,7 @@
 - Every PR's current diff is reviewed by the review agent (`.claude/agents/pr-reviewer.md`), which the workflow `Claude Code Review` runs on every push and the merger spawns for a PR from a fork, a Dependabot PR, one that changes the workflow file, or any PR while the owner has lifted the required check for an outage ([ADR 0037](adr/0037-pr-review-workflow.md); finding rules in [ADR 0022](adr/0022-pr-review-agent.md)). Its job `Claude review` is a required check, so GitHub holds the PR until the review has finished on the current head; a run that fails is re-run until it succeeds, and a lasting outage goes to the owner. A diff that touches only exempt paths (the list lives only in the workflow's `scope` step, ADR 0022) gets a run that ends `success` without a review and says so in its job summary, so `success` means reviewed or exempt; the merger's hygiene step covers the exempt diff, except a diff that touches the workflow file, which always gets the merger's subagent. It reviews the change, not the old code around it, and posts inline comments for potential bugs, security issues and inconsistencies only; linting is `make lint`'s job.
 - Every review comment, from the review agent or a human, gets a reply or a fix before merge. The reviewer's report plus green required checks is not a substitute for checking the comment threads.
 - Comment raises something real but out of scope: open a new task, do not merge silently. Never let a flagged issue merge unaddressed and untracked.
-- Once addressed (fixed, or ticketed), resolve the thread on the PR. Addressed-but-unresolved threads are not done.
+- Once addressed (fixed, or filed as a task), resolve the thread on the PR. Addressed-but-unresolved threads are not done.
 
 ## 7. Two deployables, one command
 
@@ -67,7 +67,7 @@
 - Timestamps in UTC. Market calendar in `Europe/Istanbul`.
 - JSON API with stable, documented shapes.
 - Errors are returned, logged once at the boundary, never swallowed.
-- No ticket ids in code comments; git blame and the `Ticket:` line of the squash-merge body carry them. `ADR NNNN` pointers are fine.
+- No task ids in code comments; git blame and the `Ticket:` line of the squash-merge body carry them. `ADR NNNN` pointers are fine.
 
 ## 9. Data sources are replaceable
 

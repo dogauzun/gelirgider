@@ -5,7 +5,7 @@ description: Use when the user asks for a code quality check, quality audit or h
 
 # Code quality check
 
-Two independent read-only audits, one for the backend and one for the frontend, then one summary that grades every finding by severity and suggests tickets. Nothing is fixed, committed or ticketed by this skill: it only suggests tickets.
+Two independent read-only audits, one for the backend and one for the frontend, then one summary that grades every finding by severity and suggests tasks. Nothing is fixed, committed or filed as a task by this skill: it only suggests tasks.
 
 ## Steps
 
@@ -14,9 +14,9 @@ Two independent read-only audits, one for the backend and one for the frontend, 
    - Frontend agent: scope `frontend/src/` (React + TypeScript). Linters today: `frontend/eslint.config.js`, `jscpd` (copied blocks of 6 lines or more, configured in `frontend/.jscpd.json`) and `knip` (unused exports and types, configured in `frontend/knip.json`), all run by `make lint`.
 2. Give each agent the brief below with its scope and linter line filled in. If the user passed an argument (a path or a topic), add it to both briefs as a narrower scope.
 3. Wait for both reports. Do not start the summary with one report missing.
-4. Grade every finding high, medium or low with the rubric below, and group the findings into suggested tickets with the ticket rules below.
+4. Grade every finding high, medium or low with the rubric below, and group the findings into suggested tasks with the task rules below.
 5. Write the summary in the format below.
-6. Create no ticket. Only an explicit approval from the owner in chat, naming the tickets, starts that, and it covers only the tickets named.
+6. Create no task. Only an explicit approval from the owner in chat, naming the tasks, starts that, and it covers only the tasks named.
 
 ## Agent brief
 
@@ -52,12 +52,12 @@ Grade by the cost of leaving the code as it is, not by the size of the fix.
 - Medium: duplication or a leaking layer that every change in that area pays for, a classification that a new case can silently miss, a function at its lint cap, or a performance finding on a path users reach only sometimes.
 - Low: a local cleanup: a dead parameter or result, a pass-through wrapper, an interface with one implementation, one small duplicate, or a smell in a function under its lint cap (deep nesting, a flag parameter, an unclear name). A finding no line above describes is low.
 
-## Ticket rules
+## Task rules
 
-- One ticket per finding, except: findings that change the same code, or that one reviewer would read as one mechanical change (CLAUDE.md workflow rule 3), share a ticket.
-- A ticket's severity is its highest finding's. Type `fix` when a finding describes wrong behavior (a double submit, a 404 for a DB error), `perf` when every finding is a performance finding, `refactor` otherwise.
-- A linter change that flags only the findings' code goes in the ticket that fixes them. A rule that also flags other code gets its own ticket, after the tickets whose findings it covers, so `make lint` never goes red on `main`.
-- When two tickets change the same file (adding a rule to the same lint config does not count), name the order (`after <ticket>`); it becomes a `Blocked by` relation.
+- One task per finding, except: findings that change the same code, or that one reviewer would read as one mechanical change (CLAUDE.md workflow rule 3), share a task.
+- A task's severity is its highest finding's. Type `fix` when a finding describes wrong behavior (a double submit, a 404 for a DB error), `perf` when every finding is a performance finding, `refactor` otherwise.
+- A linter change that flags only the findings' code goes in the task that fixes them. A rule that also flags other code gets its own task, after the tasks whose findings it covers, so `make lint` never goes red on `main`.
+- When two tasks change the same file (adding a rule to the same lint config does not count), name the order (`after <task>`); it becomes a `Blocked by` relation.
 
 ## Summary format
 
@@ -72,8 +72,8 @@ Grade by the cost of leaving the code as it is, not by the size of the fix.
 ## Low (<n>)
 ...
 
-## Suggested tickets
-1. `refactor: <what changes>` (high). Findings: B1. Lint: <rule> or none. After: <ticket number> or nothing.
+## Suggested tasks
+1. `refactor: <what changes>` (high). Findings: B1. Lint: <rule> or none. After: <task number> or nothing.
 ...
 
 ## Linter changes
