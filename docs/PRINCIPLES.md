@@ -67,7 +67,7 @@
 - Timestamps in UTC. Market calendar in `Europe/Istanbul`.
 - JSON API with stable, documented shapes.
 - Errors are returned, logged once at the boundary, never swallowed.
-- No task ids in code comments; git blame and the `Ticket:` line of the squash-merge body carry them. `ADR NNNN` pointers are fine.
+- No task ids in code comments; git blame and the task's `PR` property in Notion carry them. `ADR NNNN` pointers are fine.
 
 ## 9. Data sources are replaceable
 

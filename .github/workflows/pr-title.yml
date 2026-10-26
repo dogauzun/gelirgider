@@ -17,7 +17,7 @@ jobs:
         env:
           TITLE: ${{ github.event.pull_request.title }}
         run: |
-          # No task key: the task link lives on the PR body's Ticket: line (CLAUDE.md "PR format").
+          # No task key: the task's PR property in Notion links the task to the PR (CLAUDE.md rule 10).
           re='^(feat|fix|perf|refactor|test|docs|build|chore): [[:lower:]`].*$'
           if [[ ! "$TITLE" =~ $re ]]; then
             echo "Title:    $TITLE"

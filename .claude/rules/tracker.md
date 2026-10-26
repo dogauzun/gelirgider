@@ -1,6 +1,6 @@
 # Tracker
 
-The gelirgider Tasks database in Notion ([ADR 0040](../../docs/adr/0040-tracker-moved-to-notion.md)). Who moves a task and when, branch names, the PR title and the `Ticket:` line are in `CLAUDE.md` (rules 1, 2, 5, 10, 12); this file holds the identifiers, the schema and the query recipes.
+The gelirgider Tasks database in Notion ([ADR 0040](../../docs/adr/0040-tracker-moved-to-notion.md)). Who moves a task and when, branch names, the PR title and the `PR` property are in `CLAUDE.md` (rules 1, 2, 5, 10, 12); this file holds the identifiers, the schema and the query recipes.
 
 ## Identifiers
 
@@ -33,6 +33,7 @@ The gelirgider Tasks database in Notion ([ADR 0040](../../docs/adr/0040-tracker-
 Use `query-data-sources` in SQL mode, with the data source URL as the table name.
 
 - Board: `SELECT "userDefined:ID" AS id, Name, Status, Type, Labels, Epic, PR, url FROM [collection://96301f5d-9a95-48ac-8381-72392034e31c] WHERE Status != 'Done' ORDER BY "userDefined:ID"`.
+- Task of a PR (the PR body carries no task link; the `PR` property is the one link between the two): `SELECT "userDefined:ID" AS id, Name, Status, url FROM [collection://96301f5d-9a95-48ac-8381-72392034e31c] WHERE PR = '<PR URL>'`.
 - To Do sweep: the Board query with `AND Status = 'To Do' AND Type != 'Epic' AND Labels NOT LIKE '%needs-decision%' AND Labels NOT LIKE '%blocked%' AND ("Blocked by" IS NULL OR "Blocked by" = '[]')`. Relation columns need the data source fetched in the session first.
 - Decisions sweep: `WHERE Status != 'Done' AND (Labels LIKE '%needs-decision%' OR Labels LIKE '%blocked%')`.
 - Filing: `create-pages` with parent `{"type":"data_source_id","data_source_id":"96301f5d-9a95-48ac-8381-72392034e31c"}`, properties `Name`, `Type`, `Labels`, `Epic` (array of page URLs) and `Blocked by` (array of page URLs), the body as content.

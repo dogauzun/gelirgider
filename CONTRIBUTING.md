@@ -11,8 +11,8 @@ task database in Notion: every change starts as a task and ships as one pull
 request, reviewed by a separate review agent (the `Claude Code Review`
 workflow, or for a pull request from a fork the same review agent run by a
 maintainer; ADR 0037) before it is merged. You do not need access to that
-database. Open a GitHub issue instead of a task, and name that issue on the
-`Ticket:` line of your pull request.
+database. Open a GitHub issue instead of a task, and name that issue in the
+Description of your pull request (`Closes #<n>`).
 
 ## Running it
 
@@ -45,9 +45,7 @@ The body:
 
 ```
 ## Description
-A short description of what is done
-
-Ticket: <link to the GitHub issue>
+A short description of what is done, naming the GitHub issue (`Closes #<n>`)
 
 ## Testing
 Very short explanation of how testing is conducted to verify the PR. Include what commands are run and what is observed
