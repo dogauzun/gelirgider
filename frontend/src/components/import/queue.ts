@@ -100,3 +100,17 @@ export function batchNames(items: QueueItem[], broker: string | undefined): Impo
     .filter((name) => name.instrument_id !== 0)
     .slice(0, maxNames)
 }
+
+// Vazgeç in a batch: the statement in review (the item at `turn`) was
+// skipped by the user, the ones after it without a look; both say so.
+export function skipQueued(items: QueueItem[], turn: number): QueueItem[] {
+  return items.map((item, index): QueueItem =>
+    item.status === 'queued'
+      ? {
+          ...item,
+          status: 'skipped',
+          reason: t(index === turn ? 'import.queue.skippedByUser' : 'import.queue.notReviewed'),
+        }
+      : item,
+  )
+}

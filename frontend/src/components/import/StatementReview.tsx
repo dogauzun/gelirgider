@@ -1,25 +1,19 @@
-import { useState, type Dispatch, type MouseEvent, type ReactNode } from 'react'
-import { ApiError, rowError, translateError } from '../../api'
+import type { MouseEvent } from 'react'
+import { ApiError, translateError } from '../../api'
 import {
   brokerLabel,
+  useImports,
   type Import,
-  type ImportAlias,
   type ImportResult,
   type PreviewWarning,
   type StatementPreview,
-  type useCommitImport,
-  type useParseStatement,
 } from '../../api/imports'
-import type { Instrument } from '../../api/instruments'
-import type { TransactionInput } from '../../api/transactions'
 import { t, type StringKey } from '../../i18n/strings'
 import { formatMarketDate } from '../../lib/date'
-import { toast } from '../../lib/toast'
 import { useOneAtATime } from '../../lib/useOneAtATime'
 import { TransactionDialog } from '../TransactionDialog'
 import { feeLabelKey, fromTransaction } from '../transactionForm'
 import { Button } from '../ui/Button'
-import type { ConfirmOptions } from '../ui/ConfirmDialog'
 import { Notice } from '../ui/Notice'
 import type { Refused } from './DropZone'
 import { HoldingsPanel } from './HoldingsPanel'
@@ -28,11 +22,10 @@ import { DialogContext, PreviewRows, UnknownNames } from './PreviewTable'
 import { ReviewBar } from './ReviewBar'
 import { ReviewFilter, type ReviewFilterValue } from './ReviewFilter'
 import { liveReconciliation } from './reconcile'
-import type { Review, ReviewAction } from './review'
 import { inDateOrder, problemRows } from './reviewRows'
-import { asTransaction, picksOf, toImportRow } from './rows'
-import { resolveRows } from './shared'
-import type { useFocusLater } from '../../lib/useFocusLater'
+import { asTransaction, toImportRow } from './rows'
+import type { Row } from './shared'
+import type { StatementReviewState } from './useStatementReview'
 
 // The warning codes of the parse endpoint about an earlier import. Both name
 // it by its period, which is how the past-imports list below shows it, never
@@ -110,25 +103,87 @@ function ReviewHeading({
   )
 }
 
+// Every warning but `period` names an earlier import. One undone below
+// while this preview is open no longer applies: its notice goes, and a
+// same_period block on İçe aktar lifts with it.
+function reviewWarnings(preview: StatementPreview, imports: Import[] | undefined) {
+  const warnings = (preview.warnings ?? []).filter(
+    (warning) =>
+      warning.code === 'period' ||
+      !imports ||
+      imports.some((item) => item.id === warning.import_id),
+  )
+  const blocked = warnings.some(
+    (warning) => warning.code === 'same_period' || warning.code === 'period',
+  )
+  // A same_period statement's portfolio side already counts the earlier
+  // import, so a mismatch there says nothing about missing months. The raw
+  // warning is used: until an undo's preview is read again, the
+  // reconciliation still counts the undone import.
+  const samePeriod = (preview.warnings ?? []).some((warning) => warning.code === 'same_period')
+  return { warnings, blocked, samePeriod }
+}
+
+// The preview proposes no opening rows while a buy or sell is unknown,
+// an error row's unknown symbol included (backend proposeOpenings), so a statement with holdings says they come
+// once the symbols are matched.
+function awaitsOpenings(preview: StatementPreview, rows: Row[]): boolean {
+  return (
+    !rows.some((row) => row.opening) &&
+    preview.holdings.length > 0 &&
+    rows.some(
+      (row) =>
+        (row.status === 'unknown_instrument' || row.unknown_instrument) &&
+        (row.type === 'buy' || row.type === 'sell'),
+    )
+  )
+}
+
+// What the review says before its rows: the files the drop zone refused, and
+// the warnings of the preview. A same_period or period warning blocks İçe
+// aktar.
+function ReviewNotices({
+  refused,
+  warnings,
+  blocked,
+}: {
+  refused: Refused[]
+  warnings: PreviewWarning[]
+  blocked: boolean
+}) {
+  return (
+    <>
+      {refused.length > 0 && (
+        <div className="mt-3">
+          <Notice role="alert" tone="warn">
+            {refused.map(({ reason }, index) => (
+              <p key={index}>{reason}</p>
+            ))}
+          </Notice>
+        </div>
+      )}
+      {warnings.length > 0 && (
+        <div className="mt-3">
+          <Notice tone={blocked ? 'error' : 'warn'}>
+            {warnings.map((warning) => (
+              <p key={`${warning.code}-${warning.import_id}`}>{warningText(warning)}</p>
+            ))}
+          </Notice>
+        </div>
+      )}
+    </>
+  )
+}
+
 type StatementReviewProps = {
   portfolioId: number
-  review: Review
+  // The page's useStatementReview, and its preview, which is not null here.
+  state: StatementReviewState
   preview: StatementPreview
-  dispatch: Dispatch<ReviewAction>
-  // The file in review, and the batch's fund names every parse of it sends.
-  file: File | undefined
-  names: ImportAlias[] | undefined
   refused: Refused[]
-  imports: Import[] | undefined
-  parse: ReturnType<typeof useParseStatement>
-  commit: ReturnType<typeof useCommitImport>
-  // Whether the statement is one of a batch, which offers Atla.
-  batch: boolean
-  confirm: (options: ConfirmOptions) => Promise<boolean>
-  confirmDialog: ReactNode
-  focusLater: ReturnType<typeof useFocusLater>
   onCancel: () => void
-  onSkip: () => void
+  // Offered only for a statement of a batch, as Atla.
+  onSkip?: () => void
   // `from` is the control the user committed with.
   onCommitted: (result: ImportResult, from: Element | null) => void
 }
@@ -159,27 +214,29 @@ function oncePerRun(action: () => void) {
 // (reviewReducer) and moves the batch on; this renders it and changes it.
 export function StatementReview({
   portfolioId,
-  review,
+  state,
   preview,
-  dispatch,
-  file,
-  names,
   refused,
-  imports,
-  parse,
-  commit,
-  batch,
-  confirm,
-  confirmDialog,
-  focusLater,
   onCancel,
   onSkip,
   onCommitted,
 }: StatementReviewProps) {
+  const {
+    review,
+    dispatch,
+    file,
+    parse,
+    commit,
+    confirmDialog,
+    change,
+    pickInstrument,
+    applyDialog,
+    commitRows,
+    failedRow,
+    failedKey,
+  } = state
   const { rows, dialog, filter, announcement } = review
-  // The keys of the rows the last commit sent, in order: its `rows[i]` error
-  // names the row on screen through these.
-  const [sentKeys, setSentKeys] = useState<string[]>([])
+  const { data: imports } = useImports()
   // İçe aktar, Vazgeç and a batch's Atla share it: either of the last two
   // would move on while a commit runs, before its pending state is in, and
   // drop the commit's outcome.
@@ -187,142 +244,11 @@ export function StatementReview({
   const once = useOneAtATime()
   const cancel = () => once(async () => onCancel())
 
-  // A change to the rows (each sets `touched`, so Vazgeç asks first from now
-  // on), and a failed commit's error, which may name a row now
-  // fixed, goes. Only a failed one: resetting a commit in flight
-  // drops its onSuccess.
-  function change(action: ReviewAction) {
-    dispatch(action)
-    if (commit.isError) commit.reset()
-  }
-
-  // Choosing an instrument is the whole fix for an unknown symbol
-  // (resolveRows). The preview is then requested again with every pick so far, so its
-  // opening rows and reconciliation follow the picks. Only the
-  // latest request's answer is applied, and it is merged into the rows as
-  // they are by then (mergeRows).
-  function pickInstrument(key: string, instrument: Instrument) {
-    const updated = resolveRows(rows, key, instrument)
-    change({ type: 'pick', rows: updated })
-    focusAfterFix(key)
-    if (!file) return
-    parse.mutate(
-      { broker: preview.broker, file, picks: picksOf(updated), names },
-      {
-        onSuccess: (result) => {
-          const added =
-            result.rows.filter((row) => row.opening).length -
-            rows.filter((row) => row.opening).length
-          dispatch({
-            type: 'merge',
-            preview: result,
-            announcement: added > 0 ? t('import.openingAdded', { count: added }) : '',
-          })
-        },
-      },
-    )
-  }
-
-  function applyDialog(input: TransactionInput, symbol: string | undefined) {
-    if (!dialog) return
-    const { key, row } = dialog
-    change({ type: 'applyDialog', key, row, currency: preview.currency, input, symbol })
-    // An edited row the dialog fixed leaves Sorunlu, as a picked one does.
-    if (key !== null) focusAfterFix(key)
-    // The dialog closes itself, or stays open for "Ekle ve yeni".
-  }
-
-  // A fixed row keeps focus on its pencil; one that left Sorunlu hands it to
-  // the next row still to fix, else the one before, else the review heading.
-  function focusAfterFix(key: string) {
-    const byDate = inDateOrder(rows)
-    const at = byDate.findIndex((row) => row.key === key)
-    const keys = [
-      key,
-      ...problemRows(byDate.slice(at + 1)).map((row) => row.key),
-      ...problemRows(byDate.slice(0, Math.max(at, 0)))
-        .map((row) => row.key)
-        .reverse(),
-    ]
-    focusLater([...keys.map((k) => `[data-edit-row="${k}"]`), '#import-review'])
-  }
-
-  // Rows that still need fixing are left out of the commit: asked about
-  // once, and named in the toast, so they are never dropped silently.
-  async function handleCommit() {
-    const from = document.activeElement
-    const leftOut = attentionCount
-    if (
-      leftOut > 0 &&
-      !(await confirm({
-        title: t('import.leftOut', { count: leftOut }),
-        body: t('import.leftOut.confirmBody'),
-        confirmLabel: t('import.leftOut.confirm'),
-      }))
-    ) {
-      return
-    }
-    const checked = rows.filter((row) => row.checked)
-    const aliases = picksOf(checked)
-    const sent = checked.flatMap((row) => {
-      const out = toImportRow(row)
-      return out ? [{ key: row.key, out }] : []
-    })
-    setSentKeys(sent.map((item) => item.key))
-    return commit.mutateAsync(
-      {
-        broker: preview.broker,
-        portfolio_id: portfolioId,
-        sha256: preview.sha256,
-        currency: preview.currency,
-        period_start: preview.period_start,
-        period_end: preview.period_end,
-        rows: sent.map((item) => item.out),
-        ...(aliases.length > 0 && { aliases }),
-        names: preview.names,
-      },
-      {
-        onSuccess: (result) => {
-          const count = result.transaction_count
-          toast(
-            leftOut > 0
-              ? t('import.doneLeftOut', { count, left: leftOut })
-              : t('import.done', { count }),
-          )
-          onCommitted(result, from)
-        },
-        // The refused row is a checked ok row, which Sorunlu never shows:
-        // Tümü puts it on screen at the number the error names.
-        onError: (error) => {
-          if (error instanceof ApiError && rowError(String(error.body.error))) {
-            dispatch({ type: 'filter', filter: 'all' })
-          }
-        },
-      },
-    )
-  }
-
   // The rows as İçe aktar would send them, so the comparison below follows
   // every check, edit and added row.
   const committed = rows.flatMap((row) => (row.checked ? (toImportRow(row) ?? []) : []))
   const { reconciliation, cash: cashReconciliation } = liveReconciliation(preview, committed)
-  // Every warning but `period` names an earlier import. One undone below
-  // while this preview is open no longer applies: its notice goes, and a
-  // same_period block on İçe aktar lifts with it.
-  const warnings = (preview.warnings ?? []).filter(
-    (warning) =>
-      warning.code === 'period' ||
-      !imports ||
-      imports.some((item) => item.id === warning.import_id),
-  )
-  const blocked = warnings.some(
-    (warning) => warning.code === 'same_period' || warning.code === 'period',
-  )
-  // A same_period statement's portfolio side already counts the earlier
-  // import, so a mismatch there says nothing about missing months. The raw
-  // warning is used: until an undo's preview is read again, the
-  // reconciliation still counts the undone import.
-  const samePeriod = (preview.warnings ?? []).some((warning) => warning.code === 'same_period')
+  const { warnings, blocked, samePeriod } = reviewWarnings(preview, imports)
   const checkedCount = rows.filter((row) => row.checked).length
   // A CSV prints no period of its own: the commit takes it from the rows
   // sent, so a CSV with none checked is not recorded as an empty import.
@@ -337,12 +263,6 @@ export function StatementReview({
   const ordered = inDateOrder(rows)
   const shown = filter === 'problems' && problems.length > 0 ? inDateOrder(problems) : ordered
 
-  // A commit row error counts the rows sent, which skip the unchecked ones,
-  // so `rows[i]` is mapped back to the row's place in the preview.
-  const failedRow =
-    commit.error instanceof ApiError ? rowError(String(commit.error.body.error)) : null
-  // The row a commit error names, marked by the error and scrolled to.
-  const failedKey = failedRow ? sentKeys[failedRow.index] : undefined
   function commitErrorMessage(error: Error): string {
     const n = failedRow ? ordered.findIndex((row) => row.key === failedKey) : -1
     if (!failedRow || n < 0) return error.message
@@ -352,17 +272,7 @@ export function StatementReview({
     })
   }
 
-  // The preview proposes no opening rows while a buy or sell is unknown,
-  // an error row's unknown symbol included (backend proposeOpenings), so a statement with holdings says they come
-  // once the symbols are matched.
-  const openingPending =
-    !rows.some((row) => row.opening) &&
-    preview.holdings.length > 0 &&
-    rows.some(
-      (row) =>
-        (row.status === 'unknown_instrument' || row.unknown_instrument) &&
-        (row.type === 'buy' || row.type === 'sell'),
-    )
+  const openingPending = awaitsOpenings(preview, rows)
   // A pick requests the preview again; İçe aktar waits for it.
   const refreshing = parse.isPending
 
@@ -377,26 +287,7 @@ export function StatementReview({
         onFilter={(value) => dispatch({ type: 'filter', filter: value })}
       />
 
-      {refused.length > 0 && (
-        <div className="mt-3">
-          <Notice role="alert" tone="warn">
-            {refused.map(({ reason }, index) => (
-              <p key={index}>{reason}</p>
-            ))}
-          </Notice>
-        </div>
-      )}
-
-      {/* A same_period or period warning blocks İçe aktar. */}
-      {warnings.length > 0 && (
-        <div className="mt-3">
-          <Notice tone={blocked ? 'error' : 'warn'}>
-            {warnings.map((warning) => (
-              <p key={`${warning.code}-${warning.import_id}`}>{warningText(warning)}</p>
-            ))}
-          </Notice>
-        </div>
-      )}
+      <ReviewNotices refused={refused} warnings={warnings} blocked={blocked} />
 
       {dialog && (
         <TransactionDialog
@@ -497,7 +388,7 @@ export function StatementReview({
         <Button variant="ghost" onClick={cancel} pending={commit.isPending}>
           {t('confirm.cancel')}
         </Button>
-        {batch && (
+        {onSkip && (
           <Button
             variant="secondary"
             {...oncePerRun(() => once(async () => onSkip()))}
@@ -516,7 +407,7 @@ export function StatementReview({
             preview is requested again after a pick, as its opening
             rows are not in yet. */}
         <Button
-          {...oncePerRun(() => once(handleCommit))}
+          {...oncePerRun(() => once(() => commitRows(onCommitted)))}
           disabled={blocked || nothingToImport}
           pending={commit.isPending || parse.isPending}
         >
