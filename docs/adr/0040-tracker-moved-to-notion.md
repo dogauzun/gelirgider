@@ -8,8 +8,8 @@ Work was tracked in the Jira project `GLG` on stockpuppet.atlassian.net: a
 ticket per change, its key in the branch name and the PR title, its
 transition timestamps as the effort record. The agents reached it through the
 Atlassian MCP connector, whose calls the harness denied inside subagents, so
-only the coordinating session could write to it. Agent memory already lives in
-Notion, so a second tool for the tracker was one tool too many.
+only the coordinating session could write to it. Notion is the maintainer's
+workspace already, and one MCP connector reaches it from every subagent.
 
 ## Decision
 
@@ -17,8 +17,8 @@ Notion, so a second tool for the tracker was one tool too many.
   database "gelirgider Tasks" on the page "Projects". A ticket is a task page there,
   with Status `To Do` / `In Progress` / `In Review` / `Done`, Type `Task` /
   `Bug` / `Epic`, labels, an `Epic` / `Children` relation, a `Blocked by` /
-  `Blocks` relation and a `PR` URL property. The database URLs, label meanings,
-  house style and query recipes are in the Agent Memory row `tracker-basics`.
+  `Blocks` relation and a `PR` URL property. The database ids, label meanings,
+  house style and query recipes are in `.claude/rules/tracker.md`.
 - Nothing is imported from Jira; open Jira tickets are not carried over, and
   the Jira project is left as it is.
 - No task key in branch names or PR titles. The PR body's `Ticket:` line holds
