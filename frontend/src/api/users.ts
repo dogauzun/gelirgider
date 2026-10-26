@@ -99,12 +99,11 @@ export function useToggleAdmin(onDemotedSelf: () => void) {
   })
 }
 
-export function useDeleteUser(onDeleted: (user: AdminUser) => void) {
+export function useDeleteUser() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (user: AdminUser) => deleteUser(user.id),
-    onSuccess: (_, user) => {
-      onDeleted(user)
+    mutationFn: deleteUser,
+    onSuccess: () => {
       refreshUsers(queryClient)
     },
   })

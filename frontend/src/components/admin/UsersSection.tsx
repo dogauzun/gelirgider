@@ -14,7 +14,7 @@ import { formatMarketDate } from '../../lib/date'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 import { getLocale, locales, t, type Locale } from '../../i18n/strings'
 import { toast } from '../../lib/toast'
-import { focusIfLost, neighbourOf } from '../../lib/useFocusLater'
+import { useConfirmedDelete } from '../../lib/useConfirmedDelete'
 import { useOneAtATime } from '../../lib/useOneAtATime'
 import { ActionsTh } from '../ui/ActionsTh'
 import { Button } from '../ui/Button'
@@ -58,24 +58,13 @@ export function UsersSection() {
     toast(t('admin.users.demotedSelf'))
   })
   const once = useOneAtATime()
-  const deleteMutation = useDeleteUser((user) => {
-    toast(t('admin.users.deleted'))
-    // The dialog closed and the refetch removes this row's delete button,
-    // dropping a keyboard user to <body>. Move focus to the next
-    // user's delete button, else the previous one's, else the heading --
-    // unless the user has already moved it elsewhere. The caller's row has
-    // no delete button, so it is skipped.
-    const deletable = (users ?? []).filter((other) => !isMe(other))
-    const neighbour = neighbourOf(
-      deletable.map((other) => other.id),
-      user.id,
-    )
-    focusIfLost(
-      document.querySelector<HTMLElement>(
-        neighbour !== undefined ? `[data-delete-user="${neighbour}"]` : '[data-users-heading]',
-      ),
-      document.querySelector(`[data-delete-user="${user.id}"]`),
-    )
+  const deleteMutation = useDeleteUser()
+  // The error shows in the line under the heading, so there is no failed
+  // toast. The caller's row has no delete button, so it is not a neighbour.
+  const removeUser = useConfirmedDelete(deleteMutation, {
+    done: 'admin.users.deleted',
+    rowAttribute: 'data-delete-user',
+    fallback: '[data-users-heading]',
   })
   const actionError = adminMutation.error ?? deleteMutation.error
 
@@ -270,7 +259,14 @@ export function UsersSection() {
         confirmLabel={t('admin.users.deleteConfirm')}
         confirmDisabled={typedEmail.trim().toLowerCase() !== deleting?.email.toLowerCase()}
         onConfirm={() => {
-          if (deleting) deleteMutation.mutate(deleting)
+          if (deleting) {
+            // The dialog above is the confirm.
+            void removeUser(
+              (users ?? []).filter((other) => !isMe(other)).map((other) => other.id),
+              deleting.id,
+              () => Promise.resolve(true),
+            )
+          }
           setDeleting(null)
         }}
         onCancel={() => setDeleting(null)}
