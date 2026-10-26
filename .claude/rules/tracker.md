@@ -26,7 +26,7 @@ The gelirgider Tasks database in Notion ([ADR 0040](../../docs/adr/0040-tracker-
 
 ## House style
 
-- Body: `## What` / `## Scope` / `## Acceptance` / `## Depends on` / `## Notes`. English. One day of work at most. Synthetic figures only: the tracker is as public-facing as the repository.
+- Body: `## What` / `## Scope` / `## Acceptance` / `## Depends on` / `## Notes`. English. One day of work at most. Synthetic figures only: task text gets quoted into public PRs and commits.
 
 ## Recipes
 
