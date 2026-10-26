@@ -290,11 +290,9 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 	}
 	// List returns rows date-ascending, which the fx walk needs.
 	var rows []transaction.Transaction
-	set := map[string]bool{}
 	for _, t := range txs {
 		if t.Type == transaction.TypeDividend {
 			rows = append(rows, t)
-			set[t.Currency] = true
 		}
 	}
 	today := price.Today()
@@ -306,22 +304,10 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 		auth.WriteJSON(w, http.StatusOK, out)
 		return
 	}
-	fxw, err := loadFXWalk(r.Context(), h.fx, set, reporting, rows[0].Date, today)
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
-		return
-	}
-
 	months, years := map[string]*dividendSums{}, map[string]*dividendSums{}
 	byInstrument := map[int64]*dividendInstrumentSums{}
-	missing := map[string]bool{}
-	for _, t := range rows {
-		fxw.advance(t.Date)
-		f, ok := holdings.Factor(fxw.rates, t.Currency, reporting)
-		if !ok {
-			missing[t.Currency] = true
-			continue
-		}
+	missing, err := walkRowFactors(r.Context(), h.fx, len(rows), func(i int) (string, string) { return rows[i].Date, rows[i].Currency }, reporting, func(i int, f decimal.Decimal) {
+		t := rows[i]
 		row := holdings.StatsOf(t).Scale(f)
 		for _, b := range []struct {
 			m      map[string]*dividendSums
@@ -339,7 +325,7 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 		}
 		total.add(row)
 		if t.InstrumentID == nil {
-			continue
+			return
 		}
 		e := byInstrument[*t.InstrumentID]
 		if e == nil {
@@ -355,6 +341,10 @@ func (h *dividendHandler) timeline(w http.ResponseWriter, r *http.Request) {
 		e.total.Count++
 		e.net = e.net.Add(row.DividendsGross.Sub(row.DividendsTax))
 		e.total.LastDate = t.Date
+	})
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
 	}
 
 	out.Months, out.Years = dividendBuckets(months), dividendBuckets(years)

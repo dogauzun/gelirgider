@@ -91,29 +91,16 @@ func (h *cashFlowHandler) get(w http.ResponseWriter, r *http.Request) {
 		auth.WriteJSON(w, http.StatusOK, out)
 		return
 	}
-	set := map[string]bool{}
-	for _, t := range txs {
-		set[t.Currency] = true
-	}
 	today := price.Today()
-	fxw, err := loadFXWalk(r.Context(), h.fx, set, reporting, txs[0].Date, today)
-	if err != nil {
-		auth.WriteInternalError(w, r, err)
-		return
-	}
-
 	months := map[string]*cashFlowSums{}
-	missing := map[string]bool{}
+	var flows []transaction.Transaction
 	for _, t := range txs {
-		if t.Type == transaction.TypeSplit {
-			continue
+		if t.Type != transaction.TypeSplit {
+			flows = append(flows, t)
 		}
-		fxw.advance(t.Date)
-		f, ok := holdings.Factor(fxw.rates, t.Currency, reporting)
-		if !ok {
-			missing[t.Currency] = true
-			continue
-		}
+	}
+	missing, err := walkRowFactors(r.Context(), h.fx, len(flows), func(i int) (string, string) { return flows[i].Date, flows[i].Currency }, reporting, func(i int, f decimal.Decimal) {
+		t := flows[i]
 		s := months[t.Date[:7]]
 		if s == nil {
 			s = &cashFlowSums{}
@@ -121,6 +108,10 @@ func (h *cashFlowHandler) get(w http.ResponseWriter, r *http.Request) {
 		}
 		s.add(t, f)
 		total.add(t, f)
+	})
+	if err != nil {
+		auth.WriteInternalError(w, r, err)
+		return
 	}
 
 	first, _ := time.Parse(time.DateOnly, txs[0].Date[:7]+"-01") // dates are stored valid

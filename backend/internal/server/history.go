@@ -1061,6 +1061,38 @@ func (w *fxWalk) advance(day string) {
 	}
 }
 
+// walkRowFactors walks n date-ascending rows (at(i) gives row i's date and
+// currency) from the first row to today and calls visit with each row's
+// factor into reporting at the rate on its own date. A row with no rate is
+// not visited; its currency is in the returned set instead. No rows load
+// nothing.
+func walkRowFactors(ctx context.Context, repo *fx.Repo, n int, at func(i int) (date, currency string), reporting string, visit func(i int, f decimal.Decimal)) (map[string]bool, error) {
+	missing := map[string]bool{}
+	if n == 0 {
+		return missing, nil
+	}
+	set := map[string]bool{}
+	for i := range n {
+		_, currency := at(i)
+		set[currency] = true
+	}
+	first, _ := at(0)
+	fxw, err := loadFXWalk(ctx, repo, set, reporting, first, price.Today())
+	if err != nil {
+		return nil, err
+	}
+	for i := range n {
+		date, currency := at(i)
+		fxw.advance(date)
+		if f, ok := holdings.Factor(fxw.rates, currency, reporting); ok {
+			visit(i, f)
+		} else {
+			missing[currency] = true
+		}
+	}
+	return missing, nil
+}
+
 // convertCarried converts what it can of carried (amounts per currency)
 // into reporting at rates. The rest -- currencies with no rate yet -- comes
 // back to be carried to the next day: its cash only enters total_value on
