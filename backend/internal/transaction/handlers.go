@@ -554,7 +554,7 @@ func parseFilter(q url.Values) (Filter, error) {
 	if f.Types, err = parseTypes(q.Get("type")); err != nil {
 		return Filter{}, err
 	}
-	if f.InstrumentID, err = parseInstrumentID(q.Get("instrument_id")); err != nil {
+	if f.InstrumentID, err = ParseInstrumentID(q.Get("instrument_id")); err != nil {
 		return Filter{}, err
 	}
 	if f.ImportID, err = parseImportID(q.Get("import_id")); err != nil {
@@ -584,9 +584,9 @@ func parseTypes(q string) ([]string, error) {
 	return types, nil
 }
 
-// parseInstrumentID reads the ?instrument_id= query value of the transaction
-// list. An absent or empty value is 0, no filter.
-func parseInstrumentID(q string) (int64, error) {
+// ParseInstrumentID reads the ?instrument_id= query value of the transaction
+// list and the trades list. An absent or empty value is 0, no filter.
+func ParseInstrumentID(q string) (int64, error) {
 	if q == "" {
 		return 0, nil
 	}
@@ -604,7 +604,7 @@ func parseImportID(q string) (int64, error) {
 	if q == "none" {
 		return ImportNone, nil
 	}
-	id, err := parseInstrumentID(q)
+	id, err := ParseInstrumentID(q)
 	if err != nil {
 		return 0, fmt.Errorf("import_id: must be a positive integer or none")
 	}

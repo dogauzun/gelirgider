@@ -55,7 +55,9 @@ func TestTrades(t *testing.T) {
 	if none.Trades == nil || len(none.Trades) != 0 || none.MissingRates == nil {
 		t.Errorf("another instrument = %+v, want empty lists, not null", none)
 	}
-	e.get(t, session, fmt.Sprintf("/api/portfolios/%d/trades?instrument_id=x", pf), http.StatusBadRequest, nil)
+	for _, bad := range []string{"x", "0", "-1"} {
+		e.get(t, session, fmt.Sprintf("/api/portfolios/%d/trades?instrument_id=%s", pf, bad), http.StatusBadRequest, nil)
+	}
 	e.get(t, session, "/api/portfolios/999999/trades", http.StatusNotFound, nil)
 }
 
