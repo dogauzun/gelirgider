@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../api'
 import { t } from '../i18n/strings'
-import { decimalUnits, unitsToDecimal } from '../lib/decimal'
+import { sumUnits, unitsToDecimal } from '../lib/decimal'
 import { toast } from '../lib/toast'
 
 export interface Portfolio {
@@ -37,7 +37,7 @@ export function sumPortfolios(
   portfolios: Portfolio[] | undefined,
   pick: (p: Portfolio) => string,
 ): string {
-  return unitsToDecimal((portfolios ?? []).reduce((acc, p) => acc + decimalUnits(pick(p)), 0n))
+  return unitsToDecimal(sumUnits((portfolios ?? []).map(pick)))
 }
 
 function fetchPortfolios(): Promise<Portfolio[]> {

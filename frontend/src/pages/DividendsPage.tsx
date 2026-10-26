@@ -25,7 +25,7 @@ import { t, type StringKey } from '../i18n/strings'
 import { SHARE_FORMAT } from '../lib/allocation'
 import type { Bar } from '../lib/chart'
 import { formatMarketDate, todayIstanbul } from '../lib/date'
-import { decimalUnits, unitsToDecimal } from '../lib/decimal'
+import { sumUnits, unitsToDecimal } from '../lib/decimal'
 import { sortRows } from '../lib/sortRows'
 import { formatMoney, formatNumber, MISSING } from '../lib/format'
 import { usePortfolioTitle } from '../lib/useTitle'
@@ -179,7 +179,7 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
     const yieldOnCost = cost > 0 ? percent(Number(last12) / cost) : MISSING
     const forecastMonths = forecast.data?.months ?? []
     const forecastNet = forecast.data
-      ? unitsToDecimal(forecastMonths.reduce((sum, m) => sum + decimalUnits(m.net), 0n))
+      ? unitsToDecimal(sumUnits(forecastMonths.map((m) => m.net)))
       : null
     const positionsValue = Number(summary.data?.positions_value ?? 0)
     const forwardYield =
@@ -191,7 +191,7 @@ function DividendsBody({ portfolioId }: { portfolioId: number }) {
         <FitFigure className={`${KPI_FIGURE} text-ink`} text={formatMoney(value, currency)} />
       </KpiCell>
     )
-    const netUnits = data.by_instrument.reduce((sum, row) => sum + decimalUnits(row.net), 0n)
+    const netUnits = sumUnits(data.by_instrument.map((row) => row.net))
     // Each instrument's expected annual net; instruments only the forecast
     // knows are not rows of this table.
     const expectedNet = (id: number) =>

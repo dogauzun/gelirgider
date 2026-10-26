@@ -1,7 +1,7 @@
 import type { AllocationTarget } from '../api/allocationTargets'
 import type { Position } from '../api/summary'
 import { marketLabel, sectorLabel, t } from '../i18n/strings'
-import { compareUnits, decimalUnits, unitsToDecimal } from './decimal'
+import { compareUnits, decimalUnits, sumUnits, unitsToDecimal } from './decimal'
 import { currencyTotals, holdingsTotal, positionLabel, shareOf, shareUnits } from './positions'
 
 // The groupings of the allocation card's toggle: one row per position, per
@@ -202,7 +202,7 @@ export function planContribution(
   )
   if (classes.length === 0 || amount <= 0n) return []
 
-  const total = rows.reduce((sum, row) => sum + decimalUnits(row.amount), 0n) + amount
+  const total = sumUnits(rows.map((row) => row.amount)) + amount
   // Gaps in units * TARGET_SCALE, to divide only once.
   const gaps = classes.map(({ weight, current }) => {
     const gap = weight * total - current * TARGET_SCALE

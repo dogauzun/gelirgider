@@ -1,6 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../api'
-import { decimalUnits, unitsToDecimal } from '../lib/decimal'
+import { sumUnits, unitsToDecimal } from '../lib/decimal'
 import type { PortfolioScope } from './summary'
 import { createTransaction, invalidatePortfolios, type TransactionInput } from './transactions'
 
@@ -125,7 +125,7 @@ export interface DividendForecast {
 export function expectedNetOf(rows: DividendForecastRow[]): string | null {
   const nets = rows.flatMap((r) => (r.net_reporting === null ? [] : [r.net_reporting]))
   if (nets.length === 0) return null
-  return unitsToDecimal(nets.reduce((sum, n) => sum + decimalUnits(n), 0n))
+  return unitsToDecimal(sumUnits(nets))
 }
 
 export function useDividendForecast(portfolioId: PortfolioScope) {
