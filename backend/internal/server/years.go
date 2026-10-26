@@ -7,6 +7,7 @@ import (
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
 	"github.com/dogauzun/gelirgider/backend/internal/benchmark"
+	"github.com/dogauzun/gelirgider/backend/internal/holdings"
 	"github.com/shopspring/decimal"
 )
 
@@ -140,9 +141,7 @@ func (s *historySweep) yearRows(levels []float64) ([]yearRow, []string) {
 		rows[0].Partial = true
 		rows[len(rows)-1].Partial = true
 	}
-	rates := slices.AppendSeq([]string{}, maps.Keys(missing))
-	slices.Sort(rates)
-	return rows, rates
+	return rows, holdings.SortedKeys(missing)
 }
 
 // extremes names the instruments of r with the largest and the smallest

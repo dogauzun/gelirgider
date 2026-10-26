@@ -681,11 +681,8 @@ func (h *historyHandler) sweep(ctx context.Context, userID int64, txs []transact
 		s.addDay(w, day.Format(time.DateOnly))
 	}
 
-	// Sorted and never nil: an empty union is [] in the response.
-	s.missingRates = slices.AppendSeq(make([]string, 0, len(w.missingSet)), maps.Keys(w.missingSet))
-	slices.Sort(s.missingRates)
-	s.missingPrices = slices.AppendSeq(make([]string, 0, len(w.missingPriceSet)), maps.Keys(w.missingPriceSet))
-	slices.Sort(s.missingPrices)
+	s.missingRates = holdings.SortedKeys(w.missingSet)
+	s.missingPrices = holdings.SortedKeys(w.missingPriceSet)
 	return s, nil
 }
 

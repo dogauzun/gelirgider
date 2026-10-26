@@ -2,6 +2,7 @@ package holdings_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"path/filepath"
@@ -1129,5 +1130,24 @@ func TestDepositPrices(t *testing.T) {
 	}
 	if got := latest(2, "2026-02-01"); len(got) != 1 || got[2].Date != "2026-01-12" {
 		t.Errorf("another user's latest = %v, want the stock only", got)
+	}
+}
+
+// TestSortedKeysNeverNil pins the contract every missing-currency list relies
+// on: sorted, and [] (not null) in JSON when nothing is missing, from the
+// helper and from Convert.
+func TestSortedKeysNeverNil(t *testing.T) {
+	if got := holdings.SortedKeys(map[string]bool{}); got == nil || len(got) != 0 {
+		t.Errorf("SortedKeys(empty) = %#v, want []string{}", got)
+	}
+	if got := holdings.SortedKeys(nil); got == nil {
+		t.Error("SortedKeys(nil) = nil, want []string{}")
+	}
+	if got := holdings.SortedKeys(map[string]bool{"USD": true, "EUR": true}); !slices.Equal(got, []string{"EUR", "USD"}) {
+		t.Errorf("SortedKeys = %v, want [EUR USD]", got)
+	}
+	b, err := json.Marshal(holdings.Convert(holdings.Summary{}, nil, "TRY").Missing)
+	if err != nil || string(b) != "[]" {
+		t.Errorf("JSON of Convert(empty).Missing = %s, %v, want []", b, err)
 	}
 }
