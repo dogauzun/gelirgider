@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest'
 import type { StatementPreview } from '../../api/imports'
-import { queueFromParses } from './queue'
+import { queueFromParses, skipQueued } from './queue'
+import type { QueueItem } from './shared'
 
 const preview = (change: Partial<StatementPreview>): StatementPreview => ({
   broker: 'midas',
@@ -42,4 +43,19 @@ it('skips a second copy of a file and queues the rest by period then currency', 
     ['notes.txt', 'failed'],
   ])
   expect(queue[3].reason).toBe('feb.pdf ile aynı dosya')
+})
+
+it('skips the statement in review as the user and the ones after it as not reviewed', () => {
+  const item = (name: string, status: QueueItem['status']): QueueItem => ({
+    file: new File([], name),
+    status,
+  })
+  const items = [
+    item('done.pdf', 'imported'),
+    item('now.pdf', 'queued'),
+    item('later.pdf', 'queued'),
+  ]
+  const skipped = skipQueued(items, 1)
+  expect(skipped.map((i) => i.status)).toEqual(['imported', 'skipped', 'skipped'])
+  expect(skipped[1].reason).not.toBe(skipped[2].reason)
 })
