@@ -17,10 +17,10 @@ jobs:
         env:
           TITLE: ${{ github.event.pull_request.title }}
         run: |
-          # The (GLG-<n>) suffix is optional: a PR without a GLG ticket drops it.
-          re='^(feat|fix|perf|refactor|test|docs|build|chore): [[:lower:]`].*( \(GLG-[0-9]+\))?$'
+          # No task key: the task link lives on the PR body's Ticket: line (CLAUDE.md "PR format").
+          re='^(feat|fix|perf|refactor|test|docs|build|chore): [[:lower:]`].*$'
           if [[ ! "$TITLE" =~ $re ]]; then
             echo "Title:    $TITLE"
-            echo "Expected: <feat|fix|perf|refactor|test|docs|build|chore>: <lowercase imperative> [(GLG-<n>)]"
+            echo "Expected: <feat|fix|perf|refactor|test|docs|build|chore>: <lowercase imperative>"
             exit 1
           fi

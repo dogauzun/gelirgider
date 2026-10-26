@@ -80,7 +80,7 @@ No session parses a verdict. The review of a head ends with its comments.
   no style, no naming, no suggestions, no questions, no praise.
 
 The reviewer never edits code, pushes, merges, resolves a thread or
-writes to Jira. It ends with a short report: the head SHA it reviewed and
+writes to the tracker. It ends with a short report: the head SHA it reviewed and
 either `no findings` or one line per comment posted. Only a run as the
 merger's subagent (a fork PR, a Dependabot PR, a PR that changes the
 workflow file, or any PR while the owner has lifted the required check for an

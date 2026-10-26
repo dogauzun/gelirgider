@@ -1,10 +1,10 @@
 # Roadmap
 
 This file lists the work in progress, the work planned next and what is out
-of scope. Phases map to Jira epics in project `GLG`, and this file and the
-epics change together. The decisions behind shipped work are in the ADRs
-under [`adr/`](adr/), and the shipped phases are the Done epics of the Jira
-project.
+of scope. Phases map to Epic tasks in the gelirgider Tasks database in
+Notion, and this file and the epics change together. The decisions behind
+shipped work are in the ADRs under [`adr/`](adr/), and the shipped phases are
+the Done epics of the Tasks database.
 
 ## In progress
 
@@ -14,7 +14,7 @@ Nothing at the moment.
 
 Nothing at the moment.
 
-A new phase is added here, together with its Jira epic, once it is planned.
+A new phase is added here, together with its Epic task, once it is planned.
 
 ## Non-goals
 
