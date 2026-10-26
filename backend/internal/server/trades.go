@@ -6,7 +6,6 @@ import (
 	"maps"
 	"net/http"
 	"slices"
-	"strconv"
 	"time"
 
 	"github.com/dogauzun/gelirgider/backend/internal/auth"
@@ -61,19 +60,15 @@ type tradesResponse struct {
 //	@Param		id				path		string	true	"numeric id or `all`"
 //	@Param		instrument_id	query		integer	false	"only this instrument's sells"
 //	@Success	200	{object}	server.tradesResponse
-//	@Failure	400	{object}	object{error=string}	"instrument_id must be a number"
+//	@Failure	400	{object}	object{error=string}	"instrument_id: must be a positive integer"
 //	@Failure	404	{object}	object{error=string}	"portfolio not found"
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/trades [get]
 func (h *tradeHandler) get(w http.ResponseWriter, r *http.Request) {
-	var only int64
-	if q := r.URL.Query().Get("instrument_id"); q != "" {
-		n, err := strconv.ParseInt(q, 10, 64)
-		if err != nil {
-			auth.WriteError(w, http.StatusBadRequest, "instrument_id must be a number")
-			return
-		}
-		only = n
+	only, err := transaction.ParseInstrumentID(r.URL.Query().Get("instrument_id"))
+	if err != nil {
+		auth.WriteError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 	userID, lists, ok := h.scopeLists(w, r)
 	if !ok {

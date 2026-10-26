@@ -4872,7 +4872,7 @@
                         }
                     },
                     "400": {
-                        "description": "instrument_id must be a number",
+                        "description": "instrument_id: must be a positive integer",
                         "schema": {
                             "type": "object",
                             "properties": {
