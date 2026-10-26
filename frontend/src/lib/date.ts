@@ -13,8 +13,24 @@ import { getLocale } from '../i18n/strings'
 // key, so a runtime locale switch still takes effect.
 const formatters = new Map<string, Intl.DateTimeFormat>()
 
-// The bare numeric form. tr pads day and month ("09.12.2025") only when asked:
-// newer ICU (Node 26) drops the pad by default. en stays M/d/yyyy.
+// The bare numeric form: options that set no date or time field (none, or only
+// a timeZone). tr pads day and month ("09.12.2025") only when asked: newer ICU
+// (Node 26) drops the pad by default. en stays M/d/yyyy.
+const fieldOptions = [
+  'weekday',
+  'era',
+  'year',
+  'month',
+  'day',
+  'dayPeriod',
+  'hour',
+  'minute',
+  'second',
+  'fractionalSecondDigits',
+  'timeZoneName',
+  'dateStyle',
+  'timeStyle',
+] as const
 const paddedTurkish: Intl.DateTimeFormatOptions = {
   day: '2-digit',
   month: '2-digit',
@@ -25,9 +41,14 @@ export function formatMarketDate(iso: string, options?: Intl.DateTimeFormatOptio
   const key = JSON.stringify([getLocale(), options])
   let formatter = formatters.get(key)
   if (!formatter) {
-    const bare = options === undefined && getLocale() === 'tr' ? paddedTurkish : options
+    const bare =
+      getLocale() === 'tr' && !fieldOptions.some((field) => options?.[field] !== undefined)
     // eslint-disable-next-line no-restricted-syntax -- the per-locale cache itself
-    formatter = new Intl.DateTimeFormat(getLocale(), { timeZone: 'UTC', ...bare })
+    formatter = new Intl.DateTimeFormat(getLocale(), {
+      timeZone: 'UTC',
+      ...(bare && paddedTurkish),
+      ...options,
+    })
     formatters.set(key, formatter)
   }
   return formatter.format(new Date(iso))
