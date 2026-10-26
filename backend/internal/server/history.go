@@ -796,12 +796,7 @@ func (in *sweepInputs) benchmarkPrice(benchmarkInstrument int64, from, day strin
 		// latest carries forward. It is in the day's terms, so the
 		// shares of a fixed holding grow by each in-range split's
 		// ratio: a split is not a loss.
-		units := decimal.NewFromInt(1)
-		for _, sp := range in.splitsOf[benchmarkInstrument] {
-			if sp.Date > from && sp.Date <= day {
-				units = units.Mul(sp.Ratio)
-			}
-		}
+		units := split.Factor(in.splitsOf[benchmarkInstrument], from, day)
 		level = units.Mul(latest[benchmarkInstrument]).InexactFloat64()
 	}
 	if f, ok := holdings.Factor(rates, in.benchmarkCurrency, in.reporting); ok {
@@ -831,12 +826,7 @@ func (s *historySweep) scanPositions(in *sweepInputs, positions []holdings.Posit
 				// these buys, so the in-range part is then overstated;
 				// upgrade with lot-level cost if that ever shows.
 				for _, b := range s.unpricedBuys[p.InstrumentID] {
-					shares := b.tx.Quantity
-					for _, sp := range in.splitsOf[p.InstrumentID] {
-						if sp.Date > b.tx.Date && sp.Date <= dayStr {
-							shares = shares.Mul(sp.Ratio)
-						}
-					}
+					shares := b.tx.Quantity.Mul(split.Factor(in.splitsOf[p.InstrumentID], b.tx.Date, dayStr))
 					gain := shares.Mul(p.LastPrice).Sub(b.tx.Amount).Sub(b.tx.Fee)
 					jump.inRange = append(jump.inRange, buyGain{day: b.day, gain: gain.Mul(f)})
 				}

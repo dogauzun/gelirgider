@@ -117,3 +117,31 @@ func TestListMany(t *testing.T) {
 		t.Fatalf("ListMany(nil) = %v, %v; want empty map, nil", empty, err)
 	}
 }
+
+// TestFactor covers the half-open (after, through] bounds: a split dated
+// exactly after is out, one dated exactly through is in.
+func TestFactor(t *testing.T) {
+	d := decimal.RequireFromString
+	splits := []split.Split{
+		{Date: "2020-01-10", Ratio: d("2")},
+		{Date: "2020-02-10", Ratio: d("3")},
+		{Date: "2020-03-10", Ratio: d("0.5")},
+	}
+	for _, c := range []struct {
+		name, after, through, want string
+	}{
+		{"empty range", "2020-02-10", "2020-02-10", "1"},
+		{"after is excluded", "2020-01-10", "2020-01-31", "1"},
+		{"through is included", "2020-01-09", "2020-01-10", "2"},
+		{"product of the interval", "2020-01-10", "2020-03-10", "1.5"},
+		{"all", "2019-12-31", "2020-12-31", "3"},
+		{"before all", "2019-01-01", "2019-12-31", "1"},
+	} {
+		if got := split.Factor(splits, c.after, c.through); !got.Equal(d(c.want)) {
+			t.Errorf("%s: Factor(%s, %s) = %s, want %s", c.name, c.after, c.through, got, c.want)
+		}
+	}
+	if got := split.Factor(nil, "2020-01-01", "2020-12-31"); !got.Equal(d("1")) {
+		t.Errorf("no splits: got %s, want 1", got)
+	}
+}
