@@ -49,8 +49,8 @@ titles since the last tag, the notes are GitHub's generated notes.
 
 ## Rules the review checks
 
-- Bug fix: write the test first and see it fail, and name it in the Testing
-  section ([docs/PRINCIPLES.md](docs/PRINCIPLES.md) #6).
+- Bug fix: write the test first and see it fail, and name it in the PR body
+  ([docs/PRINCIPLES.md](docs/PRINCIPLES.md) #6).
 - Non-trivial logic ships with one test. Trivial code ships with none.
 - New or changed API route: update its swag annotations, run `make swagger` and
   commit `backend/apidocs/`. `make lint` fails on a stale spec.
