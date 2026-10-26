@@ -6,8 +6,7 @@ import { Button } from '../ui/Button'
 import { useConfirm } from '../ui/useConfirm'
 import { Notice } from '../ui/Notice'
 import { Pill } from '../ui/Pill'
-import { toast } from '../../lib/toast'
-import { focusIfLost, neighbourOf } from '../../lib/useFocusLater'
+import { useConfirmedDelete } from '../../lib/useConfirmedDelete'
 import { viewImportClass } from './shared'
 
 // The statement's months: "Haz 2026", or "Oca 2026 – Mar 2026" for a span.
@@ -43,6 +42,12 @@ export function PastImports({
 }) {
   const { data, isError } = useImports()
   const remove = useDeleteImport(onUndone)
+  // The mutation's error shows in the notice below, so there is no failed toast.
+  const removeImport = useConfirmedDelete(remove, {
+    done: 'import.undone',
+    rowAttribute: 'data-undo-import',
+    fallback: '#past-imports',
+  })
   const { confirm, dialog } = useConfirm()
   const imports = (data ?? []).filter((item) => item.portfolio_id === portfolioId)
 
@@ -50,32 +55,17 @@ export function PastImports({
     // One undo at a time: a second mutate would take the mutation over and
     // drop the first one's toast, focus move and error.
     if (remove.isPending) return
-    const confirmed = await confirm({
-      title: t('import.undoConfirm'),
-      body: t('import.undoConfirmBody', { count: item.transaction_count }),
-      confirmLabel: t('import.undo'),
-      danger: true,
-    })
-    if (!confirmed) return
-    const neighbour = neighbourOf(
+    await removeImport(
       imports.map((other) => other.id),
       item.id,
+      () =>
+        confirm({
+          title: t('import.undoConfirm'),
+          body: t('import.undoConfirmBody', { count: item.transaction_count }),
+          confirmLabel: t('import.undo'),
+          danger: true,
+        }),
     )
-    remove.mutate(item.id, {
-      onSuccess: () => {
-        toast(t('import.undone'))
-        // The dialog handed focus back to this row's undo button, which
-        // leaves with the row and drops focus to <body>. Move it to
-        // the next row, else the previous one, else the heading -- unless the
-        // user has already moved it elsewhere.
-        focusIfLost(
-          document.querySelector<HTMLElement>(
-            neighbour !== undefined ? `[data-undo-import="${neighbour}"]` : '#past-imports',
-          ),
-          document.querySelector(`[data-undo-import="${item.id}"]`),
-        )
-      },
-    })
   }
 
   return (
