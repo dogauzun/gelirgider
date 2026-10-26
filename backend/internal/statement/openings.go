@@ -10,6 +10,7 @@ import (
 
 	"github.com/dogauzun/gelirgider/backend/internal/holdings"
 	"github.com/dogauzun/gelirgider/backend/internal/instrument"
+	"github.com/dogauzun/gelirgider/backend/internal/price"
 	"github.com/dogauzun/gelirgider/backend/internal/transaction"
 	"github.com/shopspring/decimal"
 )
@@ -75,6 +76,9 @@ func (h *handler) proposeOpenings(ctx context.Context, req requester, txs []tran
 		return preview, nil
 	}
 	r := &openingRun{h: h, ctx: ctx, userID: req.userID, txs: txs, st: st, preview: preview, date: start.AddDate(0, 0, -1).Format(time.DateOnly)}
+	r.latest = func(ids []int64) (map[int64]price.Price, error) {
+		return holdings.LatestCloses(ctx, h.priceSources, req.userID, ids, r.date)
+	}
 	summary, instruments, err := h.periodEnd(ctx, txs, st, preview)
 	if err != nil {
 		return nil, err
@@ -93,6 +97,12 @@ func (h *handler) proposeOpenings(ctx context.Context, req requester, txs []tran
 		return nil, err
 	}
 	defer r.startPricing(req.client, start)()
+	for _, c := range cands {
+		r.ids = append(r.ids, c.in.ID)
+	}
+	if err := r.refresh(r.ids); err != nil {
+		return nil, err
+	}
 	closings, openings, err := r.rows(cands)
 	if err != nil {
 		return nil, err
@@ -246,6 +256,12 @@ type openingRun struct {
 	// proceeds and deposits total the priced closing sells and opening
 	// buys per currency.
 	proceeds, deposits currencyTotals
+	// latest reads the stored closes of ids on or before date; closes holds
+	// them per candidate ids, loaded once by refresh and re-read after a
+	// sync or a fetch.
+	latest func(ids []int64) (map[int64]price.Price, error)
+	ids    []int64
+	closes map[int64]price.Price
 	// The pricing state startPricing and fetchReady set up for priceOf.
 	client       string
 	slotWait     time.Duration
@@ -279,6 +295,27 @@ func (r *openingRun) splitRatios(cands []candidate) (map[int64]decimal.Decimal, 
 		ratio[p.InstrumentID] = p.Quantity.Sub(r.held[p.InstrumentID])
 	}
 	return ratio, nil
+}
+
+// refresh re-reads the stored close of ids into r.closes: every candidate
+// once at the start, all again after the bulletin sync, one after its
+// on-demand fetch.
+func (r *openingRun) refresh(ids []int64) error {
+	got, err := r.latest(ids)
+	if err != nil {
+		return err
+	}
+	if r.closes == nil {
+		r.closes = map[int64]price.Price{}
+	}
+	for _, id := range ids {
+		if p, ok := got[id]; ok {
+			r.closes[id] = p
+		} else {
+			delete(r.closes, id)
+		}
+	}
+	return nil
 }
 
 // startPricing sets up priceOf's fetches and bulletin sync, and returns the
@@ -340,18 +377,23 @@ func (r *openingRun) priceOf(c candidate, row *previewRow) (decimal.Decimal, boo
 	if c.cost.IsPositive() {
 		p, found, row.CostPrice = c.cost, true, true
 	} else {
-		p, found, err = r.h.storedPrice(r.ctx, r.userID, id, r.date)
+		p, found = r.stored(id)
 	}
 	// The on-demand fetch only queues a backfill for an old BIST date,
 	// so the bulletin of the last weekday on or before it is synced
 	// here, once for all the BIST openings.
 	if err == nil && !found && c.in.Market == instrument.MarketBIST && r.h.syncBulletin != nil && r.fetchReady() && r.h.syncBulletinOnce(r.session, r.bulletinDate) {
-		p, found, err = r.h.storedPrice(r.ctx, r.userID, id, r.date)
+		// The sync may have stored a price for any candidate and runs once.
+		if err = r.refresh(r.ids); err == nil {
+			p, found = r.stored(id)
+		}
 	}
 	if err == nil && !found && r.h.onDemandFetch != nil && r.fetches < maxOpeningFetches && r.fetchReady() {
 		r.fetches++
 		transaction.EnsurePrice(r.fetchCtx, r.h.onDemandFetch, c.in, transaction.Transaction{InstrumentID: &id, Date: r.date})
-		p, found, err = r.h.storedPrice(r.ctx, r.userID, id, r.date)
+		if err = r.refresh([]int64{id}); err == nil {
+			p, found = r.stored(id)
+		}
 	}
 	if err != nil {
 		return p, false, err
@@ -475,16 +517,12 @@ func (r *openingRun) cashRows(kind string, totals currencyTotals, round func(dec
 	return rows
 }
 
-// storedPrice is the price of instrumentID on or before date: userID's
-// manual price or the fetched one, the manual one winning on the same date,
-// else the newer, as the summary merges them.
-func (h *handler) storedPrice(ctx context.Context, userID, instrumentID int64, date string) (decimal.Decimal, bool, error) {
-	winners, err := holdings.LatestCloses(ctx, h.priceSources, userID, []int64{instrumentID}, date)
-	if err != nil {
-		return decimal.Decimal{}, false, err
-	}
-	won, ok := winners[instrumentID]
-	return won.Close, ok, nil
+// stored is the loaded close of id: userID's manual price or the fetched
+// one on or before date, the manual one winning on the same date, else the
+// newer, as the summary merges them.
+func (r *openingRun) stored(id int64) (decimal.Decimal, bool) {
+	won, ok := r.closes[id]
+	return won.Close, ok
 }
 
 // orZero is a preview row's number, zero when the row has none.
