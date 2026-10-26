@@ -19,6 +19,7 @@ Dated decisions agents do not re-ask. A decision an ADR or `CLAUDE.md` already s
 
 ## Process
 
+- 2026-10-26: `max-lines-per-function` stays at 300 in `frontend/eslint.config.js`. A cap of 200 fails nine existing functions, and splitting them only to pass the rule is a structure-only move. Never propose a lower cap or split tasks for it again.
 - 2026-10-15: measure (review rounds, QA run summaries) before proposing further process cuts. Low code-quality findings stay unticketed: only High and Medium become tasks. No per-finding AST-selector lint rules and no structure-only moves. The `code-quality-check` skill grades findings and files nothing without an approval naming the tasks.
 - 2026-10-14: ADRs are decision-only (`docs/adr/README.md`), code comments carry no task ids (`docs/PRINCIPLES.md` #8) and each workflow rule has one home ([CLAUDE.md](../../CLAUDE.md) rule 14).
 - 2026-10-12: at most about five implementer agents at once on the owner's machine.
