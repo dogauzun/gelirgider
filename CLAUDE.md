@@ -26,7 +26,7 @@ Makefile    single entrypoint: make setup / dev / test / lint / build / swagger
 
 ## Workflow rules
 
-1. Work is tracked in the gelirgider Tasks database in Notion, on the page "Projects" (database ids, status and label names, house style and SQL recipes: `.claude/rules/tracker.md`; the decision: ADR 0040). A task is a page there. Plan and create tasks (or a GitHub issue for outside contributors) before implementation begins. The owner may decide that a change runs without a task; the PR then says `Ticket: none` and why. Otherwise: no task, no code.
+1. Work is tracked in the gelirgider Tasks database in Notion, on the page "Projects / gelirgider" (database ids, status and label names, house style and SQL recipes: `.claude/rules/tracker.md`; the decision: ADR 0040). A task is a page there. Plan and create tasks (or a GitHub issue for outside contributors) before implementation begins. The owner may decide that a change runs without a task; the PR then says `Ticket: none` and why. Otherwise: no task, no code.
 2. Tasks are small and independent. Minimize dependencies so many tasks can run in parallel. Short but never missing important context. Every dependency between tasks is a `Blocked by` relation on the blocked task (`Blocks` is its reverse) besides the "Depends on" text in the description.
 3. No story points, no sprints. Kanban only. A task that looks like more than a day of work gets split. A mechanical change that one reviewer would read as one unit (a rename, removing one comment pattern, clearing one lint exception) is one task and one PR, however many files it touches; small tasks are for logic, not for file count.
 4. Problem found that is unrelated to current task: create a new task. Do not fix it in the current PR.
