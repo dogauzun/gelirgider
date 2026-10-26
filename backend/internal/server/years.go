@@ -72,19 +72,12 @@ type yearsResponse struct {
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/years [get]
 func (h *historyHandler) years(w http.ResponseWriter, r *http.Request) {
-	userID, lists, ok := h.scopeLists(w, r)
+	userID, txs, bm, ok := h.scopeWithBenchmark(w, r)
 	if !ok {
 		return
 	}
-	txs := flatByDate(lists)
-	benchmarkCode := r.URL.Query().Get("benchmark")
-	benchmarkInstrument, known := parseBenchmark(benchmarkCode, distinctInstrumentIDs(txs))
-	if !known {
-		auth.WriteError(w, http.StatusBadRequest, "unknown benchmark")
-		return
-	}
 
-	s, from, currency, err := h.sweepToToday(r.Context(), userID, txs, sweepOpts{benchmark: benchmarkRef{benchmarkCode, benchmarkInstrument}, attribution: true})
+	s, from, currency, err := h.sweepToToday(r.Context(), userID, txs, sweepOpts{benchmark: bm, attribution: true})
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return

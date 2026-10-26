@@ -158,22 +158,8 @@ type historyResponse struct {
 //	@Failure	500	{object}	object{error=string}	"internal error"
 //	@Router		/portfolios/{id}/history [get]
 func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
-	// One list per portfolio in scope: a numeric id or "all".
-	userID, lists, ok := h.scopeLists(w, r)
+	userID, txs, bm, ok := h.scopeWithBenchmark(w, r)
 	if !ok {
-		return
-	}
-
-	// txs is every portfolio's rows merged by date, for the date walks and
-	// the instrument and currency sets. Holdings are not computed from it:
-	// each portfolio's List carries its own synthetic split rows, which one
-	// shared State would apply once per portfolio.
-	txs := flatByDate(lists)
-
-	benchmarkCode := r.URL.Query().Get("benchmark")
-	benchmarkInstrument, known := parseBenchmark(benchmarkCode, distinctInstrumentIDs(txs))
-	if !known {
-		auth.WriteError(w, http.StatusBadRequest, "unknown benchmark")
 		return
 	}
 
@@ -182,7 +168,7 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, err := h.sweep(r.Context(), userID, txs, from, to, sweepOpts{benchmark: benchmarkRef{benchmarkCode, benchmarkInstrument}})
+	s, err := h.sweep(r.Context(), userID, txs, from, to, sweepOpts{benchmark: bm})
 	if err != nil {
 		auth.WriteInternalError(w, r, err)
 		return
@@ -202,8 +188,8 @@ func (h *historyHandler) get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var bench *benchmarkResponse
-	if benchmarkCode != "" {
-		bench = s.benchmarkSeries(benchmarkCode, flows, negativeCash)
+	if bm.code != "" {
+		bench = s.benchmarkSeries(bm.code, flows, negativeCash)
 	}
 
 	returns := periodReturns(values, flows, negativeCash)
@@ -334,6 +320,31 @@ func (s *historySweep) benchmarkSeries(code string, flows []float64, negativeCas
 		}
 	}
 	return benchmark
+}
+
+// scopeWithBenchmark opens the history, periods and years handlers: the
+// request's scope as one date-ordered row list, and its ?benchmark=. It
+// writes the error and is false when it cannot.
+func (h *historyHandler) scopeWithBenchmark(w http.ResponseWriter, r *http.Request) (userID int64, txs []transaction.Transaction, bm benchmarkRef, ok bool) {
+	// One list per portfolio in scope: a numeric id or "all".
+	userID, lists, ok := h.scopeLists(w, r)
+	if !ok {
+		return 0, nil, benchmarkRef{}, false
+	}
+
+	// txs is every portfolio's rows merged by date, for the date walks and
+	// the instrument and currency sets. Holdings are not computed from it:
+	// each portfolio's List carries its own synthetic split rows, which one
+	// shared State would apply once per portfolio.
+	txs = flatByDate(lists)
+
+	code := r.URL.Query().Get("benchmark")
+	instrumentID, known := parseBenchmark(code, distinctInstrumentIDs(txs))
+	if !known {
+		auth.WriteError(w, http.StatusBadRequest, "unknown benchmark")
+		return 0, nil, benchmarkRef{}, false
+	}
+	return userID, txs, benchmarkRef{code, instrumentID}, true
 }
 
 // parseBenchmark validates a ?benchmark= value: "" (none), a fixed code of

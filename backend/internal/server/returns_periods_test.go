@@ -411,3 +411,20 @@ func TestPeriodReturnsScope(t *testing.T) {
 	e.get(t, session, fmt.Sprintf("/api/portfolios/%d/returns/periods?benchmark=instrument:%d", p1, x+100), http.StatusBadRequest, nil)
 	e.get(t, session, fmt.Sprintf("/api/portfolios/%d/returns/periods?benchmark=instrument:%d", p1, x), http.StatusOK, nil)
 }
+
+// TestUnknownBenchmarkIsBadRequest: the history, periods and years routes
+// share scopeWithBenchmark, which answers an unknown benchmark with the same
+// 400 body.
+func TestUnknownBenchmarkIsBadRequest(t *testing.T) {
+	e := newPeriodsEnv(t)
+	userID, session := e.user(t, "owner@example.com")
+	p := e.portfolio(t, userID)
+
+	for _, route := range []string{"history", "returns/periods", "years"} {
+		var got map[string]string
+		e.get(t, session, fmt.Sprintf("/api/portfolios/%d/%s?benchmark=FOO", p, route), http.StatusBadRequest, &got)
+		if got["error"] != "unknown benchmark" {
+			t.Errorf("%s: error = %q, want %q", route, got["error"], "unknown benchmark")
+		}
+	}
+}
