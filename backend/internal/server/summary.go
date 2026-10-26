@@ -447,12 +447,7 @@ func (h *summaryHandler) prevCloses(ctx context.Context, userID int64, v valuati
 		}
 		// In today's terms like prev: the splits after the trade scale its
 		// quantity up; its price is already per share of the day it traded.
-		qty := t.Quantity
-		for _, s := range v.splitsOf[*t.InstrumentID] {
-			if s.Date > t.Date && s.Date <= v.asOf {
-				qty = qty.Mul(s.Ratio)
-			}
-		}
+		qty := t.Quantity.Mul(split.Factor(v.splitsOf[*t.InstrumentID], t.Date, v.asOf))
 		// A trade after the price date is priced at last: it contributes
 		// nothing to the move.
 		adj := qty.Mul(pc.close.Sub(v.latest[*t.InstrumentID]))
@@ -678,12 +673,7 @@ func (h *summaryHandler) latestRates(ctx context.Context, s holdings.Summary, re
 // the ex-date never had the split applied, yet its quantity is post-split
 // too.
 func splitScaled(close decimal.Decimal, splits []split.Split, priceDate, asOf string) decimal.Decimal {
-	for _, s := range splits {
-		if s.Date > priceDate && s.Date <= asOf {
-			close = close.Div(s.Ratio)
-		}
-	}
-	return close
+	return close.Div(split.Factor(splits, priceDate, asOf))
 }
 
 // computeSummary runs the holdings engine over txs (one portfolio's: each

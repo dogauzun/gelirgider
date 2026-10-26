@@ -22,6 +22,19 @@ type Split struct {
 	Source       string
 }
 
+// Factor is the product of the ratios of splits dated after the date after
+// and on or before the date through, in (after, through]: the multiplier that
+// carries a quantity held on after to through. 1 with none in range.
+func Factor(splits []Split, after, through string) decimal.Decimal {
+	f := decimal.NewFromInt(1)
+	for _, s := range splits {
+		if s.Date > after && s.Date <= through {
+			f = f.Mul(s.Ratio)
+		}
+	}
+	return f
+}
+
 // Repo persists splits.
 type Repo struct {
 	db *sql.DB
